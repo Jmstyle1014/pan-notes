@@ -1,0 +1,2485 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1a1d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pan Notes</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>window.PAN_APP=true</script>
+<style>@font-face{font-family:'Bricolage Grotesque';font-weight:600;font-style:normal;font-display:swap;src:url(fonts/bricolage-600.woff2) format('woff2')}@font-face{font-family:'Bricolage Grotesque';font-weight:800;font-style:normal;font-display:swap;src:url(fonts/bricolage-800.woff2) format('woff2')}@font-face{font-family:'Atkinson Hyperlegible';font-weight:400;font-style:normal;font-display:swap;src:url(fonts/atkinson-400.woff2) format('woff2')}@font-face{font-family:'Atkinson Hyperlegible';font-weight:700;font-style:normal;font-display:swap;src:url(fonts/atkinson-700.woff2) format('woff2')}*,*::before,*::after{box-sizing:border-box}body{margin:0}</style>
+</head><body>
+<style>
+/* Layout: phone-first app — three views (Play, Cues, Setup) over a fixed bottom transport + tab bar. Single committed dark "stage" look. */
+:root{
+  color-scheme:dark;
+  --bg:#0e1719;--surface:#162427;--raised:#1e3135;--line:#2e474c;
+  --steel:#c4d1d3;--text:#eef3f1;--muted:#97aeb0;
+  --gold:#ffc65c;--gold-ink:#3a2604;--teal:#5fc4c0;--teal-ink:#06302e;--danger:#ff8a7a;
+  --ec:#f2b38a;--bf:#8fc7ff;   /* note colours: E / C pan, B / F pan */
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --dock:132px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg)}
+body{color:var(--text);font:16px/1.45 var(--body);padding-inline:16px;padding-block:0 calc(var(--dock) + env(safe-area-inset-bottom,0px) + 16px)}
+main{max-width:760px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#status{min-height:22px;font-size:14px;color:var(--teal);margin:2px 0 10px}
+.view{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h2{font-size:18px;font-weight:600}
+.help{font-size:14px;color:var(--muted);margin:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--raised);border-radius:12px;padding:11px 14px;min-height:44px;font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.btn.on{background:var(--teal);border-color:var(--teal);color:var(--teal-ink)}
+.btn.danger{color:var(--danger)}
+.btn.grow{flex:1}
+.btn:disabled{opacity:.45;cursor:default}
+label.btn{position:relative;overflow:hidden}
+label.btn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:200px}
+.banner{background:var(--raised);border:1px dashed var(--gold);border-radius:12px;padding:10px 12px;font-size:14px}
+.banner b{color:var(--gold)}
+
+/* Pans */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stack{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:640px){.stack{grid-template-columns:1fr 1fr;gap:10px}}
+.pan{min-width:0;text-align:center}
+.pan h3{font:700 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.pan svg{width:100%;height:auto;display:block;touch-action:manipulation}
+.rim{fill:#0b1416;stroke:var(--steel);stroke-width:10}
+.bed{fill:#3f5b5f}
+.field{outline:none}
+.tap .field{cursor:pointer}
+.zone{fill:#c9d6d0;stroke:#2a4245;stroke-width:8;transition:fill .08s}
+.field text{fill:#163236;font:700 88px var(--body);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.field.inner text{font-size:62px}
+.tap .field:hover .zone,.tap .field:focus-visible .zone{fill:#fff0c4;stroke:var(--gold)}
+.chosen .zone{fill:var(--teal);stroke:#c6fffb;stroke-width:10}
+.active .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:12}
+.active text{fill:var(--gold-ink)}
+.photo .zone{fill:transparent;stroke:rgba(255,255,255,.14);stroke-width:5}
+.photo .field text{display:none}
+.photo.tap .field:hover .zone{fill:rgba(255,220,130,.25);stroke:#ffe6aa;stroke-width:9}
+.photo .chosen .zone{fill:rgba(60,200,200,.38);stroke:#a4fffa;stroke-width:10}
+.photo .active .zone{fill:rgba(255,198,92,.7);stroke:#fff4bc;stroke-width:14}
+.legend{display:flex;justify-content:center;gap:16px;font-size:13px;color:var(--muted)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+
+/* Now playing */
+.now{text-align:center;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px 12px;min-height:118px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+#nowNote{font:800 clamp(34px,11vw,52px)/1.05 var(--display);color:var(--gold);letter-spacing:-.01em;overflow-wrap:anywhere}
+#nowNote.idle{font-size:22px;color:var(--steel);font-weight:600}
+#nowWhere,#nowNote+div{font-size:14px;color:var(--muted)}
+#nowReminder{font-size:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+#nextUp{font-size:14px;color:var(--muted)}
+#nextUp b{color:var(--text)}
+
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;min-height:40px;font-size:14px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+
+/* Editor */
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;align-items:center}
+.chip{border:1px solid var(--teal);background:transparent;color:var(--text);border-radius:999px;padding:6px 11px;font-size:14px}
+.chip b{color:var(--teal)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fields .wide{grid-column:1/-1}
+.lab{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);min-width:0}
+.inline{display:flex;gap:6px}
+.inline input{flex:1;min-width:0}
+input[type=number],input[type=text],textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;font-size:16px;font-variant-numeric:tabular-nums}
+textarea{resize:vertical}
+.mini{border:1px solid var(--line);background:var(--raised);border-radius:10px;padding:0 10px;font-size:13px;font-weight:700;min-height:44px}
+
+/* Cue list */
+.cues{display:flex;flex-direction:column}
+.cue{display:grid;grid-template-columns:1fr auto;gap:4px 8px;padding:12px 0 12px 10px;border-top:1px solid var(--line);border-left:3px solid transparent}
+.cue.current{border-left-color:var(--gold)}
+.cue .jump{grid-row:span 2;text-align:left;background:none;border:0;padding:0;min-width:0}
+.cue .t{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cue .n{display:block;font-weight:700;font-size:17px;overflow-wrap:anywhere}
+.cue .r{display:block;font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.cue .acts{display:flex;gap:6px}
+.cue .acts button{min-height:38px;padding:0 10px;font-size:13px}
+.empty{color:var(--muted);font-size:14px;padding:8px 0}
+
+.photoSlot{display:flex;align-items:center;gap:12px}
+.thumb{width:64px;height:58px;border-radius:10px;background:var(--bg) center/cover no-repeat;border:1px solid var(--line);flex:none}
+.photoSlot div{flex:1;min-width:0}
+.photoSlot strong{display:block}
+
+/* Dock */
+.dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 16px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
+.dock-in{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
+.transport{display:flex;align-items:center;gap:10px}
+#playBtn{width:48px;height:48px;border-radius:50%;border:0;background:var(--gold);color:var(--gold-ink);font-size:20px;flex:none;display:grid;place-items:center}
+#playBtn:disabled{opacity:.4}
+.scrub{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#seek{width:100%;accent-color:var(--gold);height:28px}
+.times{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.times span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.tabs button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;min-height:40px;border-radius:10px}
+.tabs button[aria-selected="true"]{background:var(--raised);color:var(--text)}
+/* Timeline */
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.tlbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.zoom{display:flex;align-items:center;gap:6px}
+.zoom .mini{width:44px;font-size:20px;padding:0}
+#zoomLabel{min-width:62px;text-align:center;font-variant-numeric:tabular-nums}
+#tl{width:100%;height:180px;display:block;border-radius:12px;background:var(--bg);border:1px solid var(--line);touch-action:pan-y;cursor:grab}
+#tl:active{cursor:grabbing}
+/* Part view: bars of letters (like a written pan chart) or a two-line pan tab */
+.sheet{display:flex;flex-direction:column;gap:2px;max-height:62vh;overflow-y:auto;overscroll-behavior:contain;margin-inline:-6px;padding-inline:2px}
+.sline{display:grid;grid-template-columns:30px minmax(0,1fr);gap:6px;align-items:start;padding:8px 4px;border-radius:10px;cursor:pointer}
+.sline.cur{background:var(--raised)}
+.sline .ln{font-size:11px;color:var(--muted);padding-top:8px;font-variant-numeric:tabular-nums;text-align:right}
+.lbars{display:flex;flex-wrap:wrap;row-gap:6px;min-width:0}
+.lbar{display:flex;align-items:flex-start;gap:5px;padding:2px 8px;border-left:2px solid var(--line)}
+.lbar:last-child{border-right:2px solid var(--line)}
+.btimes{font-size:12px;color:var(--gold);font-weight:700;align-self:center;margin-left:2px}
+.tok{border:0;background:none;padding:2px;border-radius:6px;display:inline-flex;gap:3px;font:700 19px/1.15 var(--body);color:var(--text);cursor:pointer}
+.tok>span{display:inline-flex;flex-direction:column;align-items:center}
+.tok sub{font:400 10px/1 var(--body);color:var(--muted);margin-top:1px}
+.tok.chord{flex-direction:column;border:1px dashed var(--steel);padding:1px 5px;gap:0}
+.tok .ec{color:var(--ec)}.tok .bf{color:var(--bf)}
+.mult{font-size:12px;color:var(--gold);margin-left:1px}
+.tok.sel{background:rgb(95 196 192 / .22);box-shadow:0 0 0 2px var(--teal)}
+.tok.editing{box-shadow:0 0 0 2px var(--teal)}
+.tok.on{background:var(--gold)}.tok.on *{color:var(--gold-ink)!important}
+.rest{color:var(--muted);font-weight:700;align-self:center}
+.fold,.restline{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--steel);border:1px dashed var(--line);margin-block:2px}
+.fold .rp{color:var(--gold);font:800 18px var(--display)}
+.restline{color:var(--muted);border-style:solid;padding-block:6px}
+.tabline{grid-template-columns:minmax(0,1fr)}
+.tabsvg{width:100%;height:auto;display:block}
+.tlab{font:700 10px var(--body)}.tlab.ec{fill:var(--ec)}.tlab.bf{fill:var(--bf)}
+.tline{stroke:var(--line);stroke-width:2}.tbar{stroke:var(--steel);stroke-width:1.2;opacity:.6}.tbeat{stroke:var(--line);stroke-dasharray:2 3}
+.tno{font:10px var(--body);fill:var(--muted)}
+.tnote{cursor:pointer}.tnote circle{fill:var(--bg);stroke-width:2}.tnote.ec circle{stroke:var(--ec)}.tnote.bf circle{stroke:var(--bf)}
+.tnote text{font:700 11px var(--body);text-anchor:middle}.tnote.ec text{fill:var(--ec)}.tnote.bf text{fill:var(--bf)}
+.tnote .tpos{font:400 7.5px var(--body);fill:var(--muted)!important}
+.tnote.sel circle{fill:var(--teal);stroke:var(--teal)}.tnote.sel text{fill:var(--teal-ink)}
+.tnote.on circle{fill:var(--gold);stroke:var(--gold)}.tnote.on text{fill:var(--gold-ink)}
+.pnotes{grid-column:2;display:flex;flex-direction:column}
+.tabline .pnotes{grid-column:1}
+.pnote{margin:2px 0 0;font-size:13px;color:var(--steel);font-style:italic;overflow-wrap:anywhere}
+.sheetkey{font-size:12px;color:var(--muted);margin:6px 0 0}
+#sheetPanel .tlbar{flex-wrap:wrap;row-gap:8px}
+#sheetPanel h2 .help{font:400 13px var(--body);margin-left:4px}
+.mseg{display:inline-flex;padding:2px}.mseg button{min-height:34px;padding:0 10px;font-size:13px;white-space:nowrap}
+#posBtn{width:auto;padding:0 10px;font-size:13px}
+#posBtn.on{background:var(--teal);border-color:var(--teal);color:var(--teal-ink)}
+h3.sub{font:600 16px var(--display);margin-top:4px}
+#expTextBox{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font:13px/1.5 ui-monospace,Menlo,monospace;color:var(--text)}
+.snaprow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.snaprow .lbl{font-size:13px;color:var(--muted);min-width:44px}
+.snaprow .seg{flex:1;min-width:0}
+.snaprow .seg button{padding:0 4px}
+.gridbox{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.gridbox #tapTempo{min-height:64px;font-size:18px}
+.gridbox #tapTempo.pulse{transform:scale(.97)}
+.bpmrow{align-items:flex-end}
+.bpmrow .lab{flex:1}
+.nudge{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acts3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.acts3 .btn{padding-inline:6px;font-size:14px}
+#rateBtn{width:auto;min-width:48px;font-size:14px;padding:0 8px}
+/* next-note hint on the pans: off, subtle (a soft thin outline) or bold (dashed teal) */
+body[data-hint="subtle"] .soon .zone{stroke:rgb(238 243 241 / .5)!important;stroke-width:11!important}
+body[data-hint="subtle"] .photo .soon .zone{stroke:rgb(255 255 255 / .4)!important;stroke-width:9!important}
+body[data-hint="bold"] .soon .zone{stroke:var(--teal)!important;stroke-width:22!important;stroke-dasharray:40 24}
+body[data-hint="bold"] .photo .soon .zone{stroke:#a4fffa!important}
+#nowNote.next{color:var(--teal);font-size:28px;font-weight:700}
+.tokw{display:inline-flex;align-items:flex-start}
+.tok+.fx,.fx{font:700 13px var(--body);color:var(--gold);margin-left:1px;line-height:1}
+.tfx{font:700 12px var(--body);fill:var(--gold)}
+.markbar{position:sticky;bottom:8px;z-index:4;display:flex;flex-direction:column;gap:8px;background:var(--raised);border:1px solid var(--teal);border-radius:14px;padding:10px;box-shadow:0 8px 24px rgb(0 0 0 / .4);margin-top:8px}
+.mkhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mkhead strong{color:var(--teal);font-size:15px}
+.mkhead .btn{min-height:34px}
+.mkrow{display:flex;gap:6px;flex-wrap:wrap}
+.mkrow .btn{flex:1;min-width:0;padding-inline:8px;font-size:14px}
+.mk b{color:var(--gold);font-size:16px;margin-right:2px}
+.mk[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--teal-ink)}
+.mk[aria-pressed="true"] b{color:var(--teal-ink)}
+#mkNoteIn{flex:3;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:42px;font-size:16px}
+/* a rolled note shimmers on the pans while it plays, and while you hold it in tap along */
+#editPans .field.holding .zone{animation:rollshim .11s linear infinite alternate;stroke:#fff6cf;stroke-width:12}
+.field.active.rolling .zone{animation:rollshim .11s linear infinite alternate}
+@keyframes rollshim{from{fill:#ffc65c}to{fill:#ffe7a8}}
+@media (prefers-reduced-motion:reduce){.field.active.rolling .zone{animation:none}}
+.selbar{display:flex;flex-direction:column;gap:8px;background:var(--raised);border:1px solid var(--teal);border-radius:12px;padding:10px 12px}
+.selbar strong{color:var(--teal)}
+.flash{animation:flash .35s ease-out}
+@keyframes flash{from{background:var(--gold);color:var(--gold-ink)}}
+/* Minimal chrome: pans sit straight on the page, messages float and fade */
+main{padding-top:10px}
+.stage{display:flex;flex-direction:column;gap:10px;min-width:0}
+#playPans.pair,#editPans.pair{gap:4px;margin-inline:-6px}
+.pan h3{display:none}
+#cueStage .seg button{min-height:36px}
+#tlPanel{padding:12px;gap:10px}
+#tlTools .row .btn{padding-inline:12px}
+#status{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--dockH,132px) + 10px);margin:0;min-height:0;background:var(--raised);border:1px solid var(--line);color:var(--text);padding:8px 14px;border-radius:999px;font-size:14px;max-width:calc(100% - 32px);width:max-content;text-align:center;z-index:7;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 6px 20px rgb(0 0 0 / .35)}
+#status.show{opacity:1}
+body{padding-bottom:calc(var(--dockH,132px) + 16px)}
+.tabs{grid-template-columns:repeat(4,1fr) 44px}
+.helpbtn{border:1px solid var(--line)!important;font-size:16px!important;color:var(--text)!important}
+.sheetov{position:fixed;inset:0;background:rgb(0 0 0 / .55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheetbox{background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;max-width:760px;max-height:88%;display:flex;flex-direction:column;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px))}
+.sheethead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px}
+.vidbody{overflow:auto;display:flex;flex-direction:column;gap:10px}
+#vidCv{width:100%;height:auto;aspect-ratio:16/9;border-radius:10px;border:1px solid var(--line);background:#0d1a1d}
+.vidprog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}#vidProgFill{height:100%;width:0;background:var(--gold)}
+.helpbody{overflow:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px}
+.helpbody details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.helpbody summary{font-weight:700;cursor:pointer;min-height:28px;display:flex;align-items:center}
+.helpbody p{margin:8px 0 2px;font-size:15px;color:var(--steel);line-height:1.5}
+.helpbody b{color:var(--text)}
+.helpbody .kg{color:var(--gold)}.helpbody .kt{color:var(--teal)}
+/* Tap along: let two fingers land on the pans without the page zooming */
+.tapmode svg{touch-action:none}
+
+/* Landscape: both pans big on the left, timeline beside them */
+@media (orientation:landscape) and (min-width:640px){
+  main{max-width:1180px}
+  #view-play,#view-cues{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;align-items:start}
+  /* Play: pans fill the left; timeline, then the now-playing box, stack on the right */
+  #view-play{grid-template-areas:"banner banner" "pans tl" "pans now" "pans next" "sheet sheet" "practice practice";grid-template-rows:auto auto auto 1fr auto auto}
+  #playStage{display:contents}
+  #demoBanner{grid-area:banner}
+  #playPans{grid-area:pans;align-self:stretch;align-items:center}
+  #slot-play{grid-area:tl}
+  #playStage>.now{grid-area:now}
+  #nextUp{grid-area:next}
+  #playStage>.legend{display:none}
+  #slot-sheet-play{grid-area:sheet}
+  #practicePanel{grid-area:practice}
+  #view-cues>#slot-sheet-cues{grid-column:1/-1}
+  #view-cues>#cueStage{grid-column:1;grid-row:1}
+  #view-cues>#slot-cues{grid-column:2;grid-row:1}
+  #editPans.stack{grid-template-columns:1fr 1fr}
+  .dock-in{max-width:1180px}
+}
+/* Landscape phone: little height, so trim everything around the pans */
+@media (orientation:landscape) and (max-height:520px){
+  :root{--dock:62px}
+  .panel{padding:10px;gap:8px;border-radius:14px}
+  #nextUp{display:none}
+  #playPans svg{max-height:calc(100vh - 92px)}
+  #editPans svg{max-height:calc(100vh - 128px)}
+  .now{min-height:0;padding:6px 8px}
+  #nowNote{font-size:30px}#nowNote.idle{font-size:16px}#nowNote.next{font-size:20px}
+  #nowWhere,#nowReminder{font-size:12px}
+  #tl{height:150px}
+  #view-play #tl{height:128px}
+  #view-play #tlPanel{gap:6px}
+  #view-play .tlbar .mini{min-height:34px}
+  #view-play #tlPanel .tlbar{margin-block:-2px}
+  .seg button{min-height:34px}
+  .tlbar h2{font-size:15px}
+  .dock{padding:6px 16px calc(4px + env(safe-area-inset-bottom,0px))}
+  .dock-in{flex-direction:row;align-items:center;gap:12px}
+  .transport{flex:1;min-width:0}
+  #playBtn{width:42px;height:42px;font-size:17px}
+  .tabs{width:400px;flex:none}
+  .tabs button{min-height:36px}
+}
+/* Phone landscape "stage": note highway on top, pans fill the screen, timeline in a drawer */
+.hwwrap,.drawer,.cuetop{display:none}
+@media (orientation:landscape) and (max-height:520px){
+  /* cueing screen: pans only (the highway is for the Play tab) */
+  body[data-view="cues"] .hwwrap,body[data-view="cues"] #slot-sheet-cues,body[data-view="cues"] #cueStage .seg{display:none!important}
+  body[data-view="cues"] .cuetop{display:block;position:fixed;left:0;right:0;top:0;height:0;z-index:7}
+  .cuetop .prog{position:absolute;left:0;right:0;top:0;height:4px;background:var(--line)}
+  .cuetop .prog i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold)}
+  .nextchip{position:absolute;left:50%;transform:translateX(-50%);top:10px;background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-weight:700;font-size:15px;white-space:nowrap}
+  .nextchip.now{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+  #editBtn2{position:absolute;right:16px;top:10px;min-height:38px;padding:0 14px}
+  body[data-view="cues"] main{padding-top:10px}
+  body[data-view="cues"] #editPans svg{height:calc(100vh - var(--dockH,62px) - 24px)}
+  body[data-view="play"] .hwwrap{display:block;position:sticky;top:0;z-index:6;margin-inline:-16px;padding-inline:16px;background:var(--bg);padding-block:4px 2px}
+  #hw{display:block;width:100%;height:60px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+  #editBtn{position:absolute;right:24px;top:72px;min-height:38px;padding:0 14px;z-index:7}
+  main{padding-top:0}
+  #view-play:not([hidden]),#view-cues:not([hidden]){display:flex!important;flex-direction:column;gap:10px;align-items:stretch}
+  #playStage{display:flex!important;flex-direction:column}
+  #view-play #slot-play,#playStage>.now,#nextUp,#demoBanner,#entrySeg,#buildHead{display:none!important}
+  #playPans.pair,#editPans.pair,#editPans.stack{display:flex!important;justify-content:center;gap:28px;margin-inline:0}
+  #playPans .pan,#editPans .pan{width:auto;flex:0 1 auto}
+  #playPans svg,#editPans svg{height:calc(100vh - var(--dockH,62px) - 84px);width:auto;max-width:46vw;max-height:none}
+  .drawer{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:var(--dockH,62px);max-height:66vh;z-index:9;background:var(--surface);border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgb(0 0 0 / .45);transition:transform .3s ease,visibility .3s;padding:6px 16px 8px}
+  .drawer.closed{transform:translateY(110%);visibility:hidden}
+  .drawerhead{display:flex;justify-content:space-between;align-items:center;padding-bottom:4px}
+  .drawerhead .btn{min-height:34px;padding:0 14px}
+  #drawerBody{overflow-y:auto;overscroll-behavior:contain}
+  #drawerBody #tlPanel{border:0;background:none;padding:0}
+  #drawerBody #tl{height:130px}
+}
+/* Notes: a page to write on */
+.inkbar{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;gap:6px;padding-block:4px 6px}
+.inkrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ibtn{min-width:40px;min-height:40px;border:1px solid var(--line);background:var(--raised);border-radius:10px;font-size:18px;font-weight:700;display:inline-grid;place-items:center;padding:0 6px}
+.ibtn[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--teal-ink)}
+.ibtn:disabled{opacity:.4}
+.swatches{display:inline-flex;gap:5px}
+.sw{width:31px;height:31px;border-radius:50%;border:3px solid var(--line);padding:0}
+.sw[aria-pressed="true"]{border-color:var(--text);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.pglabel{font-size:14px;color:var(--muted);min-width:96px;text-align:center;font-variant-numeric:tabular-nums}
+.inkmenu{display:flex;gap:6px;flex-wrap:wrap}
+.inkbox{position:relative;height:calc(100vh - var(--dockH,132px) - 130px);min-height:300px;overflow-y:auto;overscroll-behavior:contain;border-radius:14px;border:1px solid var(--line);background:#121d20}
+#ink{display:block;width:100%;touch-action:none}
+@media (orientation:landscape) and (max-height:520px){
+  .inkbar{flex-direction:row;flex-wrap:wrap;column-gap:14px}
+  .inkbox{height:calc(100vh - var(--dockH,62px) - 74px)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<main>
+  <div id="cueTop" class="cuetop">
+    <div class="prog"><i id="progFill"></i></div>
+    <span id="nextChip" class="nextchip" hidden></span>
+    <button class="btn" id="editBtn2">✎ Edit</button>
+  </div>
+  <div id="hwWrap" class="hwwrap">
+    <canvas id="hw" aria-label="Upcoming notes flying in toward the gold play line"></canvas>
+    <button class="btn" id="editBtn">✎ Edit</button>
+  </div>
+  <p id="status" role="status" aria-live="polite"></p>
+
+  <!-- PLAY -->
+  <section class="view" id="view-play">
+    <div id="demoBanner" class="banner" hidden><b>Example cues.</b> Press play to see how highlighting works. Import your recording in Setup to start your own.</div>
+    <div class="stage" id="playStage">
+      <div id="playPans" class="pair"></div>
+      <div class="now">
+        <div id="nowNote" class="idle">Ready when you are</div>
+        <div id="nowWhere"></div>
+        <div id="nowReminder"></div>
+      </div>
+      <div id="nextUp"></div>
+    </div>
+    <div id="slot-play">
+      <div class="panel" id="tlPanel">
+        <div class="tlbar">
+          <h2>Timeline</h2>
+          <span class="zoom"><button class="mini" id="rateBtn" aria-label="Playback speed">1×</button><button class="mini" id="zoomOut" aria-label="Zoom out">−</button><span id="zoomLabel" class="help"></span><button class="mini" id="zoomIn" aria-label="Zoom in">+</button></span>
+        </div>
+        <canvas id="tl" aria-label="Timeline of the recording with your notes underneath"></canvas>
+        <div id="tlTools" class="col" hidden>
+          <div class="snaprow"><span class="lbl">Snap</span>
+            <div class="seg" id="snapSeg"><button data-snap="off">Off</button><button data-snap="1">Beat</button><button data-snap="2">½</button><button data-snap="4">¼</button><button data-snap="hits">Hits</button></div>
+          </div>
+          <div class="row">
+            <button class="btn" id="tempoBtn" aria-expanded="false">♩ Timing</button>
+            <button class="btn" id="selMode" aria-pressed="false">Select</button>
+            <button class="btn" id="selAll" hidden>All</button>
+            <button class="btn primary" id="pasteBtn" hidden>Paste</button>
+            <button class="btn" id="undoBtn" disabled aria-label="Undo">↶ Undo</button>
+            <button class="btn" id="shareTL" aria-label="Save timeline">⤓</button>
+          </div>
+          <div class="gridbox" id="gridBox" hidden>
+            <button class="btn primary" id="tapTempo">Tap on the beat</button>
+            <div class="row bpmrow">
+              <label class="lab grow">Beats per minute<input id="bpm" type="number" inputmode="decimal" min="30" max="300" step="0.5" placeholder="Not set"></label>
+              <button class="mini" id="bpmHalf" aria-label="Half the tempo">÷2</button><button class="mini" id="bpmDouble" aria-label="Double the tempo">×2</button>
+            </div>
+            <div class="lab">Line the grid up with the beat
+              <div class="row"><button class="btn grow" id="gridL">◀ 10 ms</button><button class="btn grow" id="gridR">10 ms ▶</button><button class="btn grow" id="barShift">Move bar line</button></div>
+            </div>
+            <div class="snaprow"><span class="lbl">Beats in a bar</span><div class="seg" id="perBarSeg"><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button></div></div>
+            <div class="snaprow"><span class="lbl">Tap delay fix</span><span class="zoom"><button type="button" class="mini" id="lagMinus" aria-label="Less delay fix">−</button><span id="lagVal" class="help"></span><button type="button" class="mini" id="lagPlus" aria-label="More delay fix">+</button></span></div>
+            <button class="btn danger" id="clearGrid">Remove tempo</button>
+          </div>
+        </div>
+        <div class="selbar" id="selBar" hidden>
+          <strong id="selCount"></strong>
+          <div class="nudge">
+            <button class="btn" id="nudgeL">◀ Earlier</button><button class="btn" id="nudgeR">Later ▶</button>
+            <button class="btn" id="lenMinus">− Shorter</button><button class="btn" id="lenPlus">+ Longer</button>
+          </div>
+          <div class="acts3">
+            <button class="btn" id="snapSel">Snap</button>
+            <button class="btn" id="loopSel">Loop this</button>
+            <button class="btn" id="copySel">Copy</button>
+            <button class="btn" id="repeatSel">Repeat</button>
+            <button class="btn" id="editSel">Edit</button>
+            <button class="btn danger" id="delSel">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="slot-sheet-play">
+      <div class="panel" id="sheetPanel">
+        <div class="tlbar"><h2>Your part <span class="help" id="count"></span></h2>
+          <span class="zoom"><span class="seg mseg" id="sheetSeg"><button data-sv="letters" aria-pressed="true">Letters</button><button data-sv="tab">Pan tab</button></span><button class="mini" id="posBtn" aria-pressed="false" aria-label="Show positions">L/R</button></span></div>
+        <div id="sheet" class="sheet"></div>
+        <div id="markBar" class="markbar" hidden>
+          <div class="mkhead"><strong id="markCount"></strong><button class="btn" id="mkDone">Done</button></div>
+          <div class="mkrow" role="group" aria-label="Mark how it's played">
+            <button class="btn mk" data-fx="roll"><b>r</b> Roll</button>
+            <button class="btn mk" data-fx="strum"><b>s</b> Strum</button>
+            <button class="btn mk" data-fx="drop"><b>d</b> Drop</button>
+            <button class="btn mk" data-fx="">No mark</button>
+          </div>
+          <div class="mkrow">
+            <button class="btn" id="mkNote">✎ Note</button>
+            <button class="btn" id="mkEarlier" aria-label="Earlier">◀</button>
+            <button class="btn" id="mkLater" aria-label="Later">▶</button>
+            <button class="btn danger" id="mkDel">Delete</button>
+          </div>
+          <div class="mkrow" id="mkNoteBox" hidden>
+            <input id="mkNoteIn" type="text" maxlength="200" placeholder="e.g. soft, build up, watch the bass" aria-label="Note for these notes">
+            <button class="btn primary" id="mkNoteSave">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="practicePanel">
+      <h2>Practice tools</h2>
+      <div class="row">
+        <button class="btn grow" id="back5">−5 s</button>
+        <button class="btn grow" id="fwd5">+5 s</button>
+      </div>
+      <div class="lab">Speed
+        <div class="seg" id="speedSeg">
+          <button data-rate="0.5">0.5×</button><button data-rate="0.75">0.75×</button><button data-rate="1" aria-pressed="true">1×</button><button data-rate="1.25">1.25×</button>
+        </div>
+      </div>
+      <div class="lab">Loop a section
+        <div class="row">
+          <button class="btn grow" id="setA">Set start</button>
+          <button class="btn grow" id="setB">Set end</button>
+          <button class="btn grow" id="loopBtn" aria-pressed="false">Loop off</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CUES -->
+  <section class="view" id="view-cues" hidden>
+    <div id="slot-cues"></div>
+    <div class="stage" id="cueStage">
+      <div class="seg" id="entrySeg">
+        <button type="button" data-entry="tap" aria-pressed="true">Tap along</button>
+        <button type="button" data-entry="build">Build a cue</button>
+      </div>
+      <div id="buildHead" class="col" hidden>
+        <h2 id="editorTitle">New cue</h2>
+      </div>
+      <div id="editPans" class="pair"></div>
+      <div id="buildBox" class="col panel" hidden>
+      <div class="chips" id="chips"></div>
+      <form id="form" class="fields" novalidate>
+        <label class="lab">Starts at (seconds)
+          <span class="inline"><input id="start" type="number" inputmode="decimal" min="0" step="0.01" value="0"><button type="button" class="mini" id="startNow">Now</button></span>
+        </label>
+        <label class="lab">Lasts (seconds)
+          <span class="inline"><input id="duration" type="number" inputmode="decimal" min="0.05" step="0.01" value="2"><button type="button" class="mini" id="endNow">End now</button></span>
+        </label>
+        <div class="lab wide">How to light the notes
+          <div class="seg" id="modeSeg">
+            <button type="button" data-mode="sequence" aria-pressed="true">One after another</button>
+            <button type="button" data-mode="together">All together</button>
+          </div>
+        </div>
+        <label class="lab wide">Reminder (optional)
+          <textarea id="note" rows="2" maxlength="1000" placeholder="Come in after the bass. Keep this phrase light."></textarea>
+        </label>
+        <div class="row wide">
+          <button type="submit" class="btn primary grow" id="saveCue">Save cue</button>
+          <button type="button" class="btn" id="clearEditor">Clear</button>
+          <button type="button" class="btn danger" id="delCue" hidden>Delete</button>
+        </div>
+      </form>
+      </div>
+    </div>
+    <div id="slot-sheet-cues"></div>
+  </section>
+
+  <!-- NOTES -->
+  <section class="view" id="view-notes" hidden>
+    <div class="inkbar">
+      <div class="inkrow">
+        <span class="swatches" id="swatches" role="group" aria-label="Pen colour"></span>
+        <button class="ibtn" data-tool="eraser" aria-pressed="false" aria-label="Eraser">⌫</button>
+        <button class="ibtn" data-tool="hand" aria-pressed="false" aria-label="Scroll the page">✋</button>
+        <button class="ibtn" id="inkUndo" aria-label="Undo" disabled>↶</button>
+        <button class="ibtn" id="inkRedo" aria-label="Redo" disabled>↷</button>
+      </div>
+      <div class="inkrow">
+        <button class="ibtn" id="pgPrev" aria-label="Previous page">◀</button>
+        <span id="pgLabel" class="pglabel">Page 1 of 1</span>
+        <button class="ibtn" id="pgNext" aria-label="Next page">▶</button>
+        <button class="ibtn" id="pgAdd" aria-label="New page">＋</button>
+        <button class="ibtn" id="pgMore" aria-expanded="false" aria-label="More">⋯</button>
+      </div>
+      <div class="inkmenu" id="pgMenu" hidden>
+        <button class="btn" id="stylusBtn" aria-pressed="false">Stylus only: off</button>
+        <button class="btn" id="pgSave">Save page as picture</button>
+        <button class="btn danger" id="pgClear">Clear page</button>
+        <button class="btn danger" id="pgDelete">Delete page</button>
+      </div>
+    </div>
+    <div class="inkbox" id="inkBox"><canvas id="ink" aria-label="Practice notes page. Draw with your stylus or finger."></canvas></div>
+  </section>
+
+  <!-- SETUP -->
+  <section class="view" id="view-setup" hidden>
+    <div class="panel">
+      <h2>Recording</h2>
+      <p class="help" id="audioInfo">No recording yet.</p>
+      <label class="btn primary">Choose a recording<input id="audioFile" type="file"></label>
+      <p class="help">In the Claude app this button can't open files. Choose the recording once in Safari or Chrome; after that it loads here by itself.</p>
+      <label class="lab">Name<input id="title" type="text" placeholder="Untitled rehearsal"></label>
+    </div>
+    <div class="panel">
+      <h2>Pan photos</h2>
+      <div class="photoSlot"><span class="thumb" id="thumb-ec"></span><div><strong>E / C pan</strong><span class="help" id="ph-ec">No photo</span></div><label class="btn">Choose<input id="photo-ec" type="file" accept="image/jpeg,image/png,image/webp"></label></div>
+      <div class="photoSlot"><span class="thumb" id="thumb-bf"></span><div><strong>B / F pan</strong><span class="help" id="ph-bf">No photo</span></div><label class="btn">Choose<input id="photo-bf" type="file" accept="image/jpeg,image/png,image/webp"></label></div>
+      <div class="lab">Show pans as
+        <div class="seg" id="lookSeg"><button data-look="photo" aria-pressed="true">Photos</button><button data-look="diagram">Diagram</button></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Pan order</h2>
+      <p class="help" id="orderInfo"></p>
+      <button class="btn" id="swap">⇄ Swap left and right</button>
+    </div>
+    <div class="panel" id="sharePanel">
+      <h2>Share with your band</h2>
+      <div class="lab">What to save
+        <div class="seg" id="expKind"><button data-k="timeline" aria-pressed="true">Timeline</button><button data-k="sheet">Letters</button></div>
+      </div>
+      <div class="col">
+        <button class="btn primary" id="expPdf">Save as PDF</button>
+        <button class="btn" id="expPng">Save as a picture</button>
+        <button class="btn" id="expText">Copy as text</button>
+      </div>
+      <p class="help" id="dlNote" hidden>Saving files isn't available in this view. Copy as text still works.</p>
+      <textarea id="expTextBox" rows="9" readonly hidden aria-label="Your part as text"></textarea>
+      <h3 class="sub">Video with sound</h3>
+      <p class="help">A video of the pans lighting up and the timeline scrolling, with your recording playing. Good for sending to the band.</p>
+      <button class="btn primary" id="vidBtn">🎬 Make a video</button>
+      <h3 class="sub">Backup file</h3>
+      <div class="row">
+        <button class="btn grow" id="expJson">Save backup file</button>
+        <label class="btn grow">Open backup file<input id="impJson" type="file" accept=".json,application/json"></label>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Play along</h2>
+      <div class="lab">Next-note hint on the pans
+        <div class="seg" id="hintSeg"><button data-h="off">Off</button><button data-h="subtle" aria-pressed="true">Subtle</button><button data-h="bold">Bold</button></div>
+      </div>
+      <div class="row"><button class="btn" id="fsBtn2">⛶ Full screen</button><button class="btn on" id="wakeBtn" aria-pressed="true">Keep screen awake: on</button></div>
+    </div>
+    <div class="panel">
+      <h2>Saving</h2>
+      <p class="help" id="saveInfo">Checking…</p>
+      <div class="row">
+        <button class="btn" id="loadDemo">Load example cues</button>
+        <button class="btn danger" id="eraseAll">Erase all cues</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="drawer" class="drawer closed" aria-hidden="true">
+  <div class="drawerhead"><b>Edit timeline</b><button class="btn" id="drawerClose">Done</button></div>
+  <div id="drawerBody"></div>
+</div>
+<div class="dock" id="dock">
+  <div class="dock-in">
+    <div class="transport">
+      <button id="playBtn" aria-label="Play" disabled>▶</button>
+      <div class="scrub">
+        <input id="seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Position in recording" disabled>
+        <div class="times"><span id="recName">No recording</span><span id="clock">0:00.0 / 0:00.0</span></div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-view="play" aria-selected="true">Play</button>
+      <button role="tab" data-view="cues" aria-selected="false">Cues</button>
+      <button role="tab" data-view="notes" aria-selected="false">Notes</button>
+      <button role="tab" data-view="setup" aria-selected="false">Setup</button>
+      <button id="helpBtn" class="helpbtn" aria-label="Help">?</button>
+    </nav>
+  </div>
+</div>
+<div id="vidSheet" class="sheetov" hidden role="dialog" aria-modal="true" aria-labelledby="vidTitle">
+  <div class="sheetbox">
+    <div class="sheethead"><h2 id="vidTitle">Make a video</h2><button class="btn" id="vidClose">Close</button></div>
+    <div class="vidbody">
+      <canvas id="vidCv" width="1280" height="720" aria-label="Video preview"></canvas>
+      <div class="lab" id="vidRangeLab">What to record
+        <div class="seg" id="vidRange"><button data-r="all" aria-pressed="true">Whole song</button><button data-r="loop">Loop section</button><button data-r="here">From gold line</button></div>
+      </div>
+      <div class="lab" id="vidStyleLab">Timeline in the video
+        <div class="seg" id="vidStyle"><button data-s="letters" aria-pressed="true">Letters</button><button data-s="boxes">Boxes</button></div>
+      </div>
+      <p class="help" id="vidMsg"></p>
+      <div class="vidprog" id="vidProg" hidden><div id="vidProgFill"></div></div>
+      <div class="row">
+        <button class="btn primary grow" id="vidGo">● Start recording</button>
+        <button class="btn grow" id="vidStop" hidden>■ Stop and finish</button>
+        <button class="btn primary grow" id="vidSave" hidden>Save video</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="helpSheet" class="sheetov" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="sheetbox">
+    <div class="sheethead"><h2 id="helpTitle">Help</h2><span class="row"><button class="btn" id="fsBtn">⛶ Full screen</button><button class="btn" id="helpClose">Close</button></span></div>
+    <div class="helpbody">
+      <details open><summary>Colours on the pans and timeline</summary>
+        <p><b class="kg">Gold</b> is the note to play right now. A soft outline on a pan note means it's coming up next; set it to Off, Subtle or Bold in Setup → Play along. <b class="kt">Teal</b> boxes on the timeline are notes you've selected.</p></details>
+      <details><summary>Getting your recording in</summary>
+        <p>Go to Setup and tap <b>Choose a recording</b>. It works with MP3, M4A, WAV or a video of the rehearsal. Songs from Apple Music or Spotify can't be chosen because they're locked to those apps; use a recording saved in your Files or Downloads.</p>
+        <p>Your recording stays on this phone, so it's ready next time you open the app.</p>
+        <p>For the pan photos, use the full, uncropped pictures so the highlights line up with the real note areas.</p></details>
+      <details><summary>Landscape: play first, edit after</summary>
+        <p>Turn your phone sideways and the pans fill the screen.</p>
+        <p><b>Play tab:</b> your notes <b>fly in from the right</b> across the top and reach the gold line at the moment you play them; chords arrive stacked.</p>
+        <p><b>Cues tab:</b> just the pans, a thin progress line and a bubble showing the next note, so you can tap along with nothing in the way. Tap <b>✎ Edit</b> to slide the full timeline up for fine-tuning, and <b>Done</b> to put it away.</p>
+        <p>Turn back to portrait any time for the regular layout, including Build a cue.</p></details>
+      <details><summary>Practice notes with your stylus</summary>
+        <p>The <b>Notes</b> tab is a page to write on. Pick a colour and write; pressing harder with a stylus makes the line thicker. <b>⌫</b> erases whole strokes, <b>↶ ↷</b> undo and redo, and <b>＋</b> adds a page. ⋯ has Save page as picture, Clear page and Delete page.</p>
+        <p>As soon as you use a stylus, <b>Stylus only</b> turns on: the pen writes, and your finger or palm scrolls the page instead, so resting your hand won't leave marks. Without a stylus, use <b>✋</b> to scroll. Notes save to your account like everything else.</p></details>
+      <details><summary>Making a video for the band</summary>
+        <p>Setup → Share → <b>Make a video</b> films the pans lighting up in gold, with your part scrolling across the top and your recording as the sound.</p>
+        <p><b>Timeline in the video:</b> <b>Letters</b> shows your part the way you write it (E/C-pan notes orange, B/F-pan notes blue, chords stacked in a dashed box, bar numbers along the top, a wavy line under rolls) sliding past the gold line, and the letter you're on lights up. <b>Boxes</b> shows the note boxes from the Cues timeline instead.</p>
+        <p>Choose <b>Whole song</b>, your <b>Loop section</b>, or <b>From gold line</b> (wherever the playhead is now), then <b>Start recording</b>. The song plays once at normal speed while the video is made, so a 4-minute song takes 4 minutes. Keep the screen on and Pan Notes open the whole time; if you switch apps, the picture freezes.</p>
+        <p><b>Stop and finish</b> ends early and keeps what's been recorded. Then tap <b>Save video</b>. Chrome usually makes an MP4 that plays anywhere; if your phone makes a WebM file instead, it plays on Android and computers, but iPhones may need it sent through WhatsApp or YouTube first.</p></details>
+      <details><summary>Full screen and keeping the screen on</summary>
+        <p><b>⛶ Full screen</b> (here and in Setup) hides the browser bars where your phone allows it. Inside the Claude app it may not be allowed; in Chrome it usually works. While a song is playing, Pan Notes also keeps your screen from going to sleep (Setup → Play along).</p></details>
+      <details><summary>Tap along and chords</summary>
+        <p>In Cues, choose <b>Tap along</b>, press play, and tap each note on the pans as you hear it. Each tap drops that note on the timeline.</p>
+        <p><b>Hold</b> a note to record a <b>roll</b>: it shimmers while you hold, and the roll lasts as long as your finger stays down. Hold two notes for a double roll. A quick tap stays a plain note.</p>
+        <p>For a <b>chord</b>, tap both notes at the same time with two fingers. Taps within a split second of each other become one chord, and one Undo removes the whole chord.</p>
+        <p>Slowing the song to 0.75× (the 1× button by the zoom) makes tapping along much easier.</p></details>
+      <details><summary>Editing on the timeline</summary>
+        <p><b>Tap a note</b> to select it. A panel opens with Earlier / Later, Shorter / Longer, Snap, Loop this, Copy, Repeat, Edit and Delete.</p>
+        <p><b>Drag a note</b> to move it, or drag its <b>right edge</b> to change how long it lasts. Hold near the edge of the timeline while dragging and it scrolls along.</p>
+        <p><b>Pinch with two fingers</b> to zoom, or use − and +. Drag empty space to move through the song; tap empty space to jump there.</p>
+        <p><b>Select</b> lets you pick several notes: tap them, or drag across a stretch to grab a whole phrase. <b>Repeat</b> puts a copy a whole number of bars later; <b>Copy</b> then <b>Paste</b> drops it at the gold line.</p>
+        <p><b>↶ Undo</b> steps back through any change. Quick taps of Earlier / Later / Shorter / Longer undo together.</p></details>
+      <details><summary>Snap and timing</summary>
+        <p><b>Beat, ½, ¼</b> snap notes to the beat, half beat or quarter beat. They need the tempo: tap <b>♩ Timing</b>, play the song, and tap the big button on every beat at least 4 times. Your first tap marks the start of a bar. Use ◀ 10 ms / 10 ms ▶ to line the grid up, and ×2 / ÷2 if the tempo came out double or half.</p>
+        <p><b>Hits</b> snaps notes to the drum hits the app finds in your recording (small teal marks on the timeline). It needs no tempo.</p>
+        <p>With a snap on, Earlier / Later move one snap step (or to the next drum hit), and <b>Snap</b> pulls selected notes into place.</p>
+        <p><b>Tap delay fix</b> (in ♩ Timing): if your taps keep landing late, turn it up; if they land early, turn it down.</p></details>
+      <details><summary>Building a cue by hand</summary>
+        <p>Choose <b>Build a cue</b>, tap the notes in the order you play them (tap a note again to repeat it), set when it starts and how long it lasts, and save. Use this for exact timings or to add a reminder.</p></details>
+      <details><summary>Your part and the abbreviations</summary>
+        <p>"Your part" shows your notes in bars. <b>Letters</b> reads like a written chart: <b>F×4</b> is four in a row, a dashed box is a chord, · is a short rest, and <b>×2</b> after a bar means play it twice. A ↻ line folds up 4 bars you've played before. <b>Tap notes in Letters or Pan tab</b> (a stylus makes this precise) to select them; each tap adds to the selection. A bar appears to mark them <b>r</b> roll, <b>s</b> strum or <b>d</b> drop, add a written note, nudge them earlier or later, or delete them. Rolled notes shimmer on the pans as they play. <b>Pan tab</b> shows one line per pan with notes placed in time. <b>L/R</b> shows where to hit each note. Orange notes are on the E / C pan, blue on the B / F pan. Bars need the tempo (♩ Timing); without it each box is 2 seconds.</p>
+        <p><b>out</b> = outer · <b>in</b> = inner · <b>up / low</b> = upper / lower · <b>L / R</b> = left / right side of the pan.</p></details>
+      <details><summary>Sharing with your band</summary>
+        <p>Setup → Share. <b>Timeline</b> saves the song in lines with the sound wave, bar lines and your notes at their exact times. <b>Part sheet</b> saves your notes in phrases. Both include a labelled pan diagram. Save as PDF to print, or as a picture for a group chat. <b>Copy as text</b> works anywhere.</p>
+        <p>A <b>backup file</b> holds all your cues. A bandmate can open it in their own Pan Notes, or you can restore from it. Backups from the old Pan Notes HTML app open too, recording included.</p></details>
+      <details><summary>Saving and other devices</summary>
+        <p>Cues, tempo and photos save to your Claude account by themselves and follow you to any device. If a device had different cues, it loads your account's version and keeps its own one Undo away.</p></details>
+    </div>
+  </div>
+</div>
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const audio=$('audio');
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+// messages float above the play bar for a few seconds, then fade
+let sayTimer=0;
+const say=t=>{const el=$('status');el.textContent=t;if(!t){el.classList.remove('show');return}el.classList.add('show');clearTimeout(sayTimer);sayTimer=setTimeout(()=>el.classList.remove('show'),Math.min(7000,2500+t.length*35))};
+const fmt=t=>{const n=Math.round(Math.max(0,t||0)*10);return Math.floor(n/600)+':'+((n%600)/10).toFixed(1).padStart(4,'0')};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const PANS=[{"name":"E / C pan","key":"ec","view":"0 0 1536 1356","cx":804,"cy":661,"rx":646,"ry":650,"fields":[["e-low","E","outer left","M218 528 C247 349 344 200 489 173 C582 198 621 287 573 403 C537 507 485 602 420 630 C331 659 226 626 218 528 Z",420,388],["e-top","E","top","M588 118 C627 24 808 15 862 97 C921 195 852 335 745 350 C646 339 585 292 570 235 Z",730,164],["c","C","upper right","M870 103 C970 30 1190 134 1243 251 C1137 309 1094 393 980 402 C870 389 836 341 856 260 Z",1017,227],["fs-low","F♯","outer right","M1154 343 C1240 292 1321 317 1368 418 C1412 516 1440 637 1370 690 C1268 748 1145 713 1101 634 C1057 542 1087 405 1154 343 Z",1255,520],["bb","B♭","lower right","M1071 729 C1174 704 1344 757 1386 844 C1340 991 1209 1108 1082 1145 C1022 1039 999 869 1071 729 Z",1188,895],["d-low","D","bottom","M587 961 C720 934 893 934 999 990 L1083 1163 C981 1270 694 1302 500 1190 Z",737,1103],["gs-low","G♯","lower left","M203 693 C277 647 411 661 486 760 C570 875 533 1073 452 1133 C327 1074 216 898 203 693 Z",400,842],["gs-inner","G♯","inner left","M568 460 C629 390 780 389 805 470 C812 544 749 614 671 646 C573 670 508 581 568 460 Z",688,520],["fs-inner","F♯","inner right","M867 433 C928 384 1030 439 1059 549 C1081 651 1005 691 924 668 C828 628 813 500 867 433 Z",948,536],["d-inner","D","inner lower","M669 699 C747 641 903 669 943 749 C994 846 896 901 799 902 C673 913 584 803 669 699 Z",808,791]]},{"name":"B / F pan","key":"bf","view":"0 0 1536 1386","cx":766,"cy":690,"rx":705,"ry":680,"fields":[["eb-low","E♭","outer left","M137 422 C189 300 359 214 473 248 C561 334 538 524 466 633 C380 731 202 731 126 651 Z",337,444],["eb-top","E♭","upper left","M500 139 C550 61 698 38 786 98 C830 198 781 329 684 361 C556 369 491 266 500 139 Z",637,186],["b","B","top","M815 84 C928 40 1112 122 1181 232 C1137 328 1059 384 945 386 C850 354 799 226 815 84 Z",971,194],["f-low","F","outer right","M1125 327 C1221 272 1322 353 1370 485 C1411 585 1428 690 1341 735 C1222 766 1125 702 1084 571 C1066 461 1072 365 1125 327 Z",1241,501],["a","A","lower right","M1106 791 C1197 736 1347 764 1380 865 C1337 1033 1207 1178 1083 1210 C1004 1106 1008 885 1106 791 Z",1205,956],["cs-low","C♯","bottom","M590 1009 C744 943 958 1003 1047 1118 L1065 1240 C926 1341 667 1358 463 1245 Z",785,1155],["g-low","G","lower left","M123 754 C246 688 391 764 477 899 C538 1006 500 1129 420 1190 C267 1149 136 968 123 754 Z",321,918],["cs-inner","C♯","inner lower","M627 718 C736 656 875 690 925 792 C957 884 875 956 744 956 C620 949 577 832 627 718 Z",781,817],["g-inner","G","inner left","M523 440 C599 371 722 388 760 476 C780 568 706 667 610 690 C502 683 473 537 523 440 Z",630,540],["f-inner","F","inner right","M805 442 C873 396 979 434 1020 531 C1061 626 1005 691 920 698 C816 665 753 527 805 442 Z",906,551]]}];
+const FIELDS=new Map(PANS.flatMap(p=>p.fields.map(f=>[f[0],{label:f[1],pos:f[2],pan:p.name}])));
+// Chords always read in one order: the left pan's notes first, then the right pan's, each pan in a fixed order.
+const ORD=new Map();PANS.forEach((p,pi)=>p.fields.forEach((f,fi)=>ORD.set(f[0],[pi,fi])));
+const chordKey=id=>{const [pi,fi]=ORD.get(id);return (S.swapped?1-pi:pi)*100+fi};
+const byScreen=(a,b)=>chordKey(a)-chordKey(b);
+// how a note is played, marked by hand: r = roll, s = strum, d = drop (hit once)
+const MARKS={roll:'r',strum:'s',drop:'d'},MARK_NAMES={roll:'roll',strum:'strum',drop:'drop'};
+const markOf=c=>c&&MARKS[c.fx]?c.fx:'';
+function normalizeChords(){let changed=false;for(const c of S.cues)if(c.mode==='together'&&c.steps.length>1){const before=c.steps.join();c.steps.sort(byScreen);if(c.steps.join()!==before)changed=true}return changed}
+const desc=id=>FIELDS.get(id).label+' ('+FIELDS.get(id).pos+')';
+
+/* ---------- state ---------- */
+let S={title:'',swapped:false,look:'photo',cues:[],photos:{},grid:null,snap:'off',tapLag:0.08,audioRef:null,sheetView:'letters',sheetPos:false,notePages:[],wake:true,hint:'subtle'};  // audioRef: where the recording is kept in your account  // grid: {bpm, offset (s), perBar}  // photos: {ec:{id}|{data}}
+let isDemo=false, selected=[], editing=null, mode='sequence', chordsTidied=false;
+let hasAudio=false, objUrl=null, A=null, B=null, loop=false, raf=0;
+
+/* ---------- storage ---------- */
+let db=null, userId=null, assets=null, saveTimer=0, storeMode='device';
+const LS='pan-notes-v2';
+function photoSrc(k){const p=S.photos[k];if(!p)return null;return p.id?('/_blob/'+p.id):p.data||null}
+function snapshotForSave(){return{v:2,title:S.title,swapped:S.swapped,look:S.look,grid:S.grid,snap:S.snap,tapLag:S.tapLag,audioRef:S.audioRef,sheetView:S.sheetView,sheetPos:S.sheetPos,notePages:S.notePages,wake:S.wake,hint:S.hint,cues:S.cues,photos:Object.fromEntries(Object.entries(S.photos).filter(([,p])=>p&&p.id).map(([k,p])=>[k,{id:p.id}]))}}
+function save(){
+  if(isDemo)return;
+  try{localStorage.setItem(LS,JSON.stringify({...snapshotForSave(),photos:S.photos}))}catch{try{localStorage.setItem(LS,JSON.stringify(snapshotForSave()))}catch{}}
+  // photos kept on the device can be too big for quick storage, so they also go in the bigger store
+  const devPhotos=Object.fromEntries(Object.entries(S.photos).filter(([,v])=>v&&v.data));
+  const sig=Object.entries(devPhotos).map(([k,v])=>k+v.data.length).join();if(sig!==save.photoSig){save.photoSig=sig;idbPut('photos',devPhotos)}
+  if(!db||!userId)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>pushToAccount(false),700);
+}
+// The account document lives at data/users/<you>/pan (a document path needs an even number of parts).
+const acctDoc=()=>db.doc('data/users/'+userId+'/pan');
+async function pushToAccount(retried){
+  try{await acctDoc().set({...snapshotForSave(),updatedAt:Date.now()})}
+  catch(e){
+    const c=e&&e.code;
+    if(!retried&&(c==='unavailable'||c==='resource_exhausted')){setTimeout(()=>pushToAccount(true),2500+Math.random()*1500);return}
+    say(c==='quota_exceeded'?'Your account storage for this page is full. Your cues are kept on this device.':'Could not save to your account just now ('+(c||'error')+'). Your cues are kept on this device.');
+  }
+}
+function applyLoaded(p){
+  if(!p||!Array.isArray(p.cues))return false;
+  S.title=String(p.title||'');S.swapped=p.swapped===true;S.look=p.look==='diagram'?'diagram':'photo';
+  S.cues=p.cues.filter(c=>c&&Number.isFinite(c.start)&&Number.isFinite(c.duration)&&Array.isArray(c.steps)&&c.steps.every(id=>FIELDS.has(id))).map(c=>({id:c.id||uid(),start:c.start,duration:c.duration,steps:c.steps,mode:c.mode==='together'?'together':'sequence',note:String(c.note||'').slice(0,1000),...(MARKS[c.fx]?{fx:c.fx}:{})})).sort((a,b)=>a.start-b.start);
+  chordsTidied=normalizeChords();
+  const gr=p.grid;S.grid=gr&&gr.bpm>=30&&gr.bpm<=300&&Number.isFinite(gr.offset)&&[2,3,4].includes(gr.perBar)?{bpm:gr.bpm,offset:gr.offset,perBar:gr.perBar}:null;
+  S.snap=['off','1','2','4','hits'].includes(p.snap)?p.snap:'off';S.tapLag=Number.isFinite(p.tapLag)&&p.tapLag>=-0.1&&p.tapLag<=0.35?p.tapLag:0.08;
+  const ar=p.audioRef;S.audioRef=ar&&typeof ar.name==='string'&&Array.isArray(ar.ids)&&ar.ids.length&&ar.ids.length<=12&&ar.ids.every(x=>typeof x==='string')?{name:ar.name,size:+ar.size||0,type:String(ar.type||'audio/mpeg'),ids:ar.ids,urls:Array.isArray(ar.urls)?ar.urls.map(String):null}:null;
+  S.sheetView=p.sheetView==='tab'?'tab':'letters';S.sheetPos=p.sheetPos===true;S.wake=p.wake!==false;S.hint=['off','subtle','bold'].includes(p.hint)?p.hint:'subtle';
+  S.notePages=Array.isArray(p.notePages)?p.notePages.filter(x=>x&&typeof x.id==='string').slice(0,200).map(x=>({id:x.id,created:+x.created||Date.now(),h:Math.max(1414,+x.h||1414)})):[];
+  S.photos={};for(const k of['ec','bf']){const ph=p.photos&&p.photos[k];if(ph&&typeof ph.id==='string')S.photos[k]={id:ph.id};else if(ph&&typeof ph.data==='string'&&/^data:image\/(jpeg|png|webp);base64,/.test(ph.data))S.photos[k]={data:ph.data}}
+  return true;
+}
+async function initStore(){
+  if(!window.claude||typeof window.claude.use!=='function'){storeMode='device';if(window.PAN_APP){downloads=appDownloads();renderShare()}renderSaveInfo();return}
+  try{
+    const [d,u,a,dl]=await Promise.all([claude.use('db'),claude.use('user'),claude.use('assets'),claude.use('downloads')]);
+    assets=a;downloads=dl;renderShare();
+    if(d&&u){const id=await u.id();if(id){db=d;userId=id;storeMode='account'}}
+    if(db){
+      const snap=await acctDoc().get();
+      const localCues=!isDemo&&S.cues.length?JSON.stringify(S.cues):null;
+      if(snap.exists&&applyLoaded(snap.data())){
+        isDemo=false;renderAll();if(chordsTidied)save();
+        // this device had different cues: keep them one Undo away instead of losing them
+        if(localCues&&localCues!==JSON.stringify(S.cues)){undoStack.push(localCues);renderUndo();
+          say('Loaded your cues from your account. This device had different cues: tap Undo in Cues to use those instead.')}
+        else say(hasAudio?'Your cues are loaded.':'Your cues are loaded. Choose your recording in Setup to play along.');
+        if(S.audioRef&&!(curName===S.audioRef.name&&curBlob&&curBlob.size===S.audioRef.size))loadRecordingFromAccount();
+        else if(!S.audioRef&&curBlob&&hasAudio&&curName!=='Example tones')uploadRecording(new File([curBlob],curName,{type:curBlob.type||'audio/mpeg'}));
+      } else if(!isDemo){
+        // first time this account is used: send up what this device has, recording included
+        await pushToAccount(false);
+        if(curBlob&&hasAudio&&curName!=='Example tones')uploadRecording(new File([curBlob],curName,{type:curBlob.type||'audio/mpeg'}));
+      }
+    }
+  }catch(e){if(storeMode==='account')say('Could not reach your account just now. Your cues are kept on this device.')}
+  renderSaveInfo();
+}
+// In the installed app there's no Claude account: files go straight to the phone's Downloads folder.
+function appDownloads(){return{save:async({filename,data})=>{
+  const ext=filename.split('.').pop().toLowerCase(),types={pdf:'application/pdf',png:'image/png',json:'application/json',txt:'text/plain',mp4:'video/mp4',webm:'video/webm'};
+  const blob=data instanceof Blob?data:new Blob([data],{type:types[ext]||'application/octet-stream'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}}}
+function renderSaveInfo(){
+  if(window.PAN_APP){$('saveInfo').textContent='✓ Saving on this phone. Tap Save backup file now and then to keep a copy somewhere safe.';return}
+  $('saveInfo').textContent=storeMode==='account'
+    ?'✓ Saving to your Claude account.'
+    :'Saving on this device only. Sign in to Claude to save to your account.';
+}
+/* Recording cache on this device (IndexedDB). Optional. */
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('pan-notes',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+async function idbPut(k,v){try{const d=await idb();await new Promise((res,rej)=>{const t=d.transaction('files','readwrite');t.objectStore('files').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch{}}
+async function idbGet(k){try{const d=await idb();return await new Promise((res,rej)=>{const r=d.transaction('files').objectStore('files').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch{return null}}
+
+/* ---------- pans ---------- */
+function panSVG(p,interactive){
+  const src=S.look==='photo'?photoSrc(p.key):null,[, ,w,h]=p.view.split(' ');
+  const bg=src?'<image href="'+esc(src)+'" x="0" y="0" width="'+w+'" height="'+h+'" preserveAspectRatio="none"/>'
+    :'<ellipse class="rim" cx="'+p.cx+'" cy="'+p.cy+'" rx="'+p.rx+'" ry="'+p.ry+'"/><ellipse class="bed" cx="'+p.cx+'" cy="'+p.cy+'" rx="'+(p.rx-14)+'" ry="'+(p.ry-14)+'"/>';
+  const zones=p.fields.map(f=>'<g class="field'+(f[2].startsWith('inner')?' inner':'')+'" data-field="'+f[0]+'"'+(interactive?' role="button" tabindex="0" aria-label="'+f[1]+', '+f[2]+', '+p.name+'"':' aria-hidden="true"')+'><path class="zone" d="'+f[3]+'"/><text x="'+f[4]+'" y="'+f[5]+'">'+f[1]+'</text></g>').join('');
+  return '<div class="pan'+(src?' photo':'')+(interactive?' tap':'')+'"><h3>'+p.name+'</h3><svg viewBox="'+p.view+'" role="img" aria-label="'+p.name+'">'+bg+zones+'</svg></div>';
+}
+function renderPans(){
+  const order=S.swapped?[PANS[1],PANS[0]]:PANS;
+  $('playPans').innerHTML=order.map(p=>panSVG(p,false)).join('');
+  $('editPans').innerHTML=order.map(p=>panSVG(p,true)).join('');
+  $('editPans').querySelectorAll('.field').forEach(el=>{
+    const add=()=>{if(entry==='tap'){addTapCue(el.dataset.field,el);return}selected.push(el.dataset.field);renderChips()};
+    // tap along reacts the moment a finger lands, and to two fingers at once for chords
+    el.addEventListener('pointerdown',e=>{if(entry!=='tap')return;e.preventDefault();const cid=addTapCue(el.dataset.field,el);if(cid)holdStart(e.pointerId,cid,el)});
+    el.addEventListener('click',()=>{if(entry!=='tap')add()});
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();add()}});
+  });
+  renderChips();tick();
+}
+function renderChips(){
+  $('chips').innerHTML=selected.length?selected.map((id,i)=>'<button type="button" class="chip" data-i="'+i+'" aria-label="Remove '+esc(desc(id))+'"><b>'+(i+1)+'</b> '+esc(desc(id))+' ✕</button>').join(''):'<span class="help">No notes yet. Tap the pans above, or save a reminder on its own.</span>';
+  $('chips').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{selected.splice(+b.dataset.i,1);renderChips()});
+  $('editPans').querySelectorAll('.field').forEach(el=>el.classList.toggle('chosen',selected.includes(el.dataset.field)));
+}
+
+/* ---------- cues ---------- */
+function setMode(m){mode=m;$('modeSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===m)))}
+$('modeSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+function resetEditor(){selected=[];editing=null;$('start').value=(audio.currentTime||0).toFixed(2);$('duration').value=2;$('note').value='';setMode('sequence');$('editorTitle').textContent='New cue';$('saveCue').textContent='Save cue';$('delCue').hidden=true;renderChips();markSheet()}
+$('clearEditor').onclick=resetEditor;
+$('startNow').onclick=()=>{$('start').value=(audio.currentTime||0).toFixed(2)};
+$('endNow').onclick=()=>{const d=(audio.currentTime||0)-(+$('start').value||0);if(d<0.05){say('Play past the start time first, then tap End now.');return}$('duration').value=d.toFixed(2)};
+$('form').onsubmit=e=>{
+  e.preventDefault();
+  const start=+$('start').value,duration=+$('duration').value,note=$('note').value.trim();
+  if(!selected.length&&!note){say('Tap at least one note, or write a reminder.');return}
+  if(!Number.isFinite(start)||start<0){say('The start time must be 0 or more seconds.');return}
+  if(!Number.isFinite(duration)||duration<0.05){say('The cue needs to last at least 0.05 seconds.');return}
+  if(isDemo){S.cues=[];isDemo=false;undoStack=[]}
+  pushUndo();
+  const c={id:editing||uid(),start,duration,note,steps:mode==='together'?[...selected].sort(byScreen):[...selected],mode};
+  S.cues=S.cues.filter(x=>x.id!==c.id);S.cues.push(c);S.cues.sort((a,b)=>a.start-b.start);
+  const wasEdit=!!editing;resetEditor();renderCues();renderDemo();save();tick();
+  say(wasEdit?'Cue updated.':'Cue saved at '+fmt(start)+'.');
+};
+/* ---------- part sheet: bars as letters or pan tab ---------- */
+const shortPos=p=>p.replace('outer','out').replace('upper','up').replace('lower','low').replace('inner','in').replace(/ left$/,' L').replace(/ right$/,' R');
+function itemLabel(it){return it.ids.map(id=>FIELDS.get(id).label).join('+')}
+function itemPos(it){return it.ids.length>1?'together':shortPos(FIELDS.get(it.ids[0]).pos)}
+const EC_IDS=new Set(PANS[0].fields.map(f=>f[0]));
+const panKey=id=>EC_IDS.has(id)?'ec':'bf';
+// With a tempo, a bar is a real bar split into half beats. Without one, 2-second blocks split into 8.
+function barGrid(){if(S.grid){const beat=beatLen();return{bar:beat*S.grid.perBar,slots:S.grid.perBar*2,o:S.grid.offset,real:true}}return{bar:2,slots:8,o:0,real:false}}
+function buildBars(){
+  const G=barGrid(),slotLen=G.bar/G.slots,map=new Map();
+  const bar=i=>{let b=map.get(i);if(!b){b={i,slots:new Map(),notes:[]};map.set(i,b)}return b};
+  const add=(t,ids,key,cue)=>{
+    const k=Math.round((t-G.o)/slotLen),bi=Math.floor(k/G.slots),sl=k-bi*G.slots,b=bar(bi);
+    let v=b.slots.get(sl);if(!v){v={ids:[],keys:[],cues:new Set(),fx:''};b.slots.set(sl,v)}
+    if(!v.fx&&markOf(cue))v.fx=cue.fx;
+    for(const id of ids)if(!v.ids.includes(id))v.ids.push(id);v.ids.sort(byScreen);v.keys.push(key);v.cues.add(cue.id);
+  };
+  for(const c of S.cues){
+    if(c.note)bar(Math.floor(Math.round((c.start-G.o)/slotLen)/G.slots)).notes.push(c.note);   // same bar as its note
+    if(!c.steps.length)continue;
+    if(c.mode==='sequence'){const n=c.steps.length;c.steps.forEach((id,i)=>add(c.start+i*c.duration/n,[id],c.id+':'+i,c))}
+    else add(c.start,c.steps,c.id+':-1',c);
+  }
+  const arr=[];if(!map.size)return{G,arr};
+  const idx=[...map.keys()],lo=Math.min(...idx),hi=Math.max(...idx);
+  for(let i=lo;i<=hi;i++){const b=map.get(i)||{i,slots:new Map(),notes:[]};
+    b.sig=[...b.slots.entries()].sort((x,y)=>x[0]-y[0]).map(([k,v])=>k+':'+[...v.ids].sort().join('+')+(v.fx?'/'+v.fx:'')).join(',')+'|'+b.notes.join('/');
+    b.empty=!b.slots.size&&!b.notes.length;arr.push(b)}
+  return{G,arr};
+}
+const barLabel=(G,i)=>G.real?(i+1>=1?String(i+1):'·'):fmt(G.o+i*G.bar).replace(/\.0$/,'');
+// Fold the music: identical bars in a row become one bar ×N, a 4-bar section heard before becomes one line, long silences one line.
+function displayList(B){
+  const out=[],src=new Map(),arr=B.arr;
+  for(let k=0;k<arr.length;){
+    const b=arr[k];
+    if(b.empty){let e=k;while(e+1<arr.length&&arr[e+1].empty)e++;out.push({type:'rest',from:b.i,to:arr[e].i});k=e+1;continue}
+    if(B.G.real&&((b.i%4)+4)%4===0&&k+4<=arr.length&&!arr.slice(k,k+4).some(x=>x.empty)){
+      const g=arr.slice(k,k+4).map(x=>x.sig).join('#');let j=-1;
+      for(let q=0;q+4<=k;q++)if(((arr[q].i%4)+4)%4===0&&arr.slice(q,q+4).map(x=>x.sig).join('#')===g){j=q;break}
+      if(j>=0){
+        const root=x=>{while(src.has(x))x=src.get(x);return x};
+        for(let x=0;x<4;x++)src.set(arr[k+x].i,root(arr[j+x].i));
+        const prev=out[out.length-1],sFrom=root(arr[j].i);
+        if(prev&&prev.type==='fold'&&prev.src===sFrom&&prev.to+1===b.i){prev.to=arr[k+3].i;prev.count++}
+        else out.push({type:'fold',src:sFrom,from:b.i,to:arr[k+3].i,count:1});
+        k+=4;continue;
+      }
+    }
+    const prev=out[out.length-1];
+    if(prev&&prev.type==='bar'&&prev.b.sig===b.sig){prev.times++;src.set(b.i,prev.b.i);k++;continue}
+    out.push({type:'bar',b,times:1});k++;
+  }
+  return{out,src};
+}
+let sheetModel=null;   // what's on screen: bars, folds, and which element shows which note
+function noteTok(b,slots,ids,run,cues,pos,fx){
+  const chord=ids.length>1,inner=ids.map(id=>'<span class="'+panKey(id)+'"><span>'+FIELDS.get(id).label+(!chord&&run>1?'<span class="mult">×'+run+'</span>':'')+'</span>'+(pos?'<sub>'+shortPos(FIELDS.get(id).pos)+'</sub>':'')+'</span>').join('');
+  const mk=fx?'<sup class="fx" title="'+MARK_NAMES[fx]+'">'+MARKS[fx]+'</sup>':'';
+  return '<span class="tokw"><button class="tok'+(chord?' chord':'')+'" data-bar="'+b.i+'" data-slots="'+slots.join(' ')+'" data-cues="'+[...cues].join(' ')+'">'+inner+'</button>'+mk+'</span>';
+}
+function lettersBar(b,times,pos){
+  const ent=[...b.slots.entries()].sort((x,y)=>x[0]-y[0]),parts=[];let prevEnd=-1;
+  for(let n=0;n<ent.length;n++){
+    const [sl,v]=ent[n];
+    if(prevEnd>=0&&sl-prevEnd>2)parts.push('<span class="rest" aria-label="rest">·</span>');
+    if(v.ids.length>1){parts.push(noteTok(b,[sl],v.ids,1,v.cues,pos,v.fx));prevEnd=sl;continue}
+    let m=n;const cues=new Set(v.cues);
+    while(m+1<ent.length&&ent[m+1][1].ids.length===1&&ent[m+1][1].ids[0]===v.ids[0]&&ent[m+1][1].fx===v.fx){m++;ent[m][1].cues.forEach(c=>cues.add(c))}
+    parts.push(noteTok(b,ent.slice(n,m+1).map(e=>e[0]),v.ids,m-n+1,cues,pos,v.fx));prevEnd=ent[m][0];n=m;
+  }
+  if(!ent.length)parts.push('<span class="rest">—</span>');
+  return '<span class="lbar" data-bar="'+b.i+'">'+parts.join('')+(times>1?'<span class="btimes">×'+times+'</span>':'')+'</span>';
+}
+function tabSystem(G,items,pos){
+  const order=S.swapped?['bf','ec']:['ec','bf'],K=items.length,BW=170,LX=34,W=LX+K*BW+4,Y1=30,Y2=pos?84:74,H=pos?118:100,bw=BW;
+  const ys={[order[0]]:Y1,[order[1]]:Y2},nm={ec:'E/C',bf:'B/F'};
+  let g='<svg viewBox="0 0 '+W+' '+H+'" class="tabsvg" role="img" aria-label="Bars '+barLabel(G,items[0].b.i)+' onward">';
+  g+='<text x="2" y="'+(Y1+4)+'" class="tlab '+order[0]+'">'+nm[order[0]]+'</text><text x="2" y="'+(Y2+4)+'" class="tlab '+order[1]+'">'+nm[order[1]]+'</text>';
+  g+='<line x1="'+LX+'" x2="'+(W-4)+'" y1="'+Y1+'" y2="'+Y1+'" class="tline"/><line x1="'+LX+'" x2="'+(W-4)+'" y1="'+Y2+'" y2="'+Y2+'" class="tline"/>';
+  items.forEach((it,j)=>{
+    const x0=LX+j*bw,b=it.b;
+    g+='<line x1="'+x0+'" x2="'+x0+'" y1="'+(Y1-14)+'" y2="'+(Y2+14)+'" class="tbar"/><text x="'+(x0+3)+'" y="11" class="tno">'+barLabel(G,b.i)+(it.times>1?'  ×'+it.times:'')+'</text>';
+    for(let k=2;k<G.slots;k+=2){const x=x0+k*bw/G.slots+bw/G.slots/2;g+='<line x1="'+x+'" x2="'+x+'" y1="'+(Y1-4)+'" y2="'+(Y2+4)+'" class="tbeat"/>'}
+    for(const [sl,v] of b.slots){
+      const cx=x0+sl*bw/G.slots+bw/G.slots/2;
+      if(v.fx){const topY=Math.min(...v.ids.map(id=>ys[panKey(id)]-(v.ids.filter(x=>panKey(x)===panKey(id)).length>1?9:0)));g+='<text class="tfx" x="'+(cx+9)+'" y="'+(topY-11)+'">'+MARKS[v.fx]+'</text>'}
+      for(const p of ['ec','bf']){
+        const mine=v.ids.filter(id=>panKey(id)===p);
+        mine.forEach((id,q)=>{const cy=ys[p]+(mine.length>1?(q?9:-9):0);
+          g+='<g class="tnote '+p+'" data-bar="'+b.i+'" data-slots="'+sl+'" data-cues="'+[...v.cues].join(' ')+'"><circle cx="'+cx+'" cy="'+cy+'" r="10.5"/><text x="'+cx+'" y="'+(cy+4)+'">'+FIELDS.get(id).label+'</text>'+(pos?'<text class="tpos" x="'+cx+'" y="'+(cy+21)+'">'+shortPos(FIELDS.get(id).pos)+'</text>':'')+'</g>'});
+      }
+    }
+  });
+  g+='<line x1="'+(W-4)+'" x2="'+(W-4)+'" y1="'+(Y1-14)+'" y2="'+(Y2+14)+'" class="tbar"/></svg>';
+  return g;
+}
+function foldLine(G,f){
+  const a=f.src,b=f.src+3;
+  return '<div class="fold sline" data-from="'+f.from+'" data-to="'+f.to+'"><span class="rp">↻</span><span>'+(G.real?'Bars '+barLabel(G,f.from)+'–'+barLabel(G,f.to)+': same as bars '+barLabel(G,a)+'–'+barLabel(G,b):'Same as before')+(f.count>1?' ('+f.count+' times)':'')+'</span></div>';
+}
+function restLine(G,r){
+  const n=r.to-r.from+1;
+  return '<div class="restline sline" data-from="'+r.from+'" data-to="'+r.to+'"><span>'+(G.real?(n===1?'Bar '+barLabel(G,r.from):'Bars '+barLabel(G,r.from)+'–'+barLabel(G,r.to))+' · rest':barLabel(G,r.from)+' – '+fmt(G.o+(r.to+1)*G.bar).replace(/\.0$/,'')+' · no notes')+'</span></div>';
+}
+function renderCues(){
+  const n=S.cues.reduce((k,c)=>k+Math.max(1,c.steps.length),0);
+  $('count').textContent=n+(n===1?' note':' notes');
+  $('sheetSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sv===S.sheetView)));
+  $('posBtn').classList.toggle('on',S.sheetPos);$('posBtn').setAttribute('aria-pressed',String(S.sheetPos));
+  const B=buildBars(),D=displayList(B),G=B.G,pos=S.sheetPos,tab=S.sheetView==='tab';
+  if(!B.arr.length){$('sheet').innerHTML='<p class="empty">No notes yet. Go to Cues, press play and tap the notes as you hear them.</p>';sheetModel=null;return}
+  const perLine=tab?Math.max(2,Math.floor((($('sheet').clientWidth||340)-34)/170)):4;
+  let h='',run=[];
+  const flush=()=>{
+    for(let q=0;q<run.length;q+=perLine){
+      const items=run.slice(q,q+perLine),first=items[0].b.i,last=items[items.length-1].b.i,notes=items.flatMap(it=>it.b.notes.map(x=>'<p class="pnote">'+(G.real?'Bar '+barLabel(G,it.b.i):barLabel(G,it.b.i))+' · '+esc(x)+'</p>'));
+      h+='<div class="sline'+(tab?' tabline':'')+'" data-from="'+first+'" data-to="'+(last+items[items.length-1].times-1)+'">'
+        +(tab?tabSystem(G,items,pos):'<span class="ln">'+barLabel(G,first)+'</span><div class="lbars">'+items.map(it=>lettersBar(it.b,it.times,pos)).join('')+'</div>')
+        +(notes.length?'<div class="pnotes">'+notes.join('')+'</div>':'')+'</div>';
+    }
+    run=[];
+  };
+  for(const it of D.out){if(it.type==='bar'){run.push(it);continue}flush();h+=it.type==='fold'?foldLine(G,it):restLine(G,it)}
+  flush();
+  $('sheet').innerHTML=h+(B.G.real?'':'<p class="sheetkey">No tempo set, so each box is 2 seconds. Set the tempo in Cues → ♩ Timing to see real bars.</p>');
+  // which element lights up for each note, including notes inside folded or merged bars
+  const elAt=new Map();
+  $('sheet').querySelectorAll('[data-slots]').forEach(el=>{for(const sl of el.dataset.slots.split(' ')){const k=el.dataset.bar+':'+sl;if(!elAt.has(k))elAt.set(k,[]);elAt.get(k).push(el)}});
+  const root=x=>{while(D.src.has(x))x=D.src.get(x);return x},keyEls=new Map();
+  for(const b of B.arr)for(const [sl,v] of b.slots){const els=elAt.get(root(b.i)+':'+sl)||[];for(const k of v.keys)keyEls.set(k,els)}
+  const lines=[...$('sheet').querySelectorAll('.sline')].map(el=>({el,from:+el.dataset.from,to:+el.dataset.to}));
+  sheetModel={G,keyEls,lines,lit:[],curLine:null};
+  markSheet();buildHW();tick();
+}
+function markSheet(){
+  const sel=new Set([...selIds]);
+  $('sheet').querySelectorAll('[data-cues]').forEach(e=>{const cs=e.dataset.cues.split(' ');e.classList.toggle('sel',cs.some(c=>sel.has(c)));e.classList.toggle('editing',!!editing&&cs.includes(editing))});
+  renderMarkBar();
+}
+function renderMarkBar(){
+  const cs=selCues(),bar=$('markBar');bar.hidden=!cs.length;if(!cs.length){$('mkNoteBox').hidden=true;return}
+  const n=noteCount(cs);$('markCount').textContent=n+(n===1?' note':' notes')+' selected';
+  const fxs=new Set(cs.map(markOf));
+  bar.querySelectorAll('.mk').forEach(b=>b.setAttribute('aria-pressed',String(fxs.size===1&&fxs.has(b.dataset.fx))));
+}
+$('markBar').querySelectorAll('.mk').forEach(b=>b.onclick=()=>{
+  const cs=selCues();if(!cs.length)return;pushUndo();
+  for(const c of cs){if(b.dataset.fx)c.fx=b.dataset.fx;else delete c.fx}
+  afterEdit(b.dataset.fx?'Marked '+MARK_NAMES[b.dataset.fx]+' ('+MARKS[b.dataset.fx]+').':'Marks removed.');
+});
+$('mkDone').onclick=()=>{selIds.clear();$('mkNoteBox').hidden=true;renderSel();drawTL()};
+$('mkEarlier').onclick=()=>moveSel(-1);$('mkLater').onclick=()=>moveSel(1);
+$('mkDel').onclick=()=>$('delSel').click();
+$('mkNote').onclick=()=>{const box=$('mkNoteBox');box.hidden=!box.hidden;if(!box.hidden){const c=selCues()[0];$('mkNoteIn').value=c?c.note||'':'';$('mkNoteIn').focus()}};
+$('mkNoteSave').onclick=()=>{const cs=selCues();if(!cs.length)return;pushUndo();cs[0].note=$('mkNoteIn').value.trim().slice(0,1000);$('mkNoteBox').hidden=true;afterEdit(cs[0].note?'Note added.':'Note removed.')};
+$('mkNoteIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('mkNoteSave').click()}});
+function markLive(t,live){
+  const M=sheetModel;if(!M)return;
+  for(const e of M.lit)e.classList.remove('on');M.lit=[];
+  for(const c of live){
+    if(!c.steps.length)continue;
+    const key=c.mode==='together'?c.id+':-1':c.id+':'+Math.min(c.steps.length-1,Math.floor((t-c.start)/c.duration*c.steps.length));
+    for(const e of M.keyEls.get(key)||[]){e.classList.add('on');M.lit.push(e)}
+  }
+  // keep the line being played in view inside the part box while the music runs
+  const bi=Math.floor((t-M.G.o)/M.G.bar),line=M.lines.find(l=>bi>=l.from&&bi<=l.to)||null;
+  if(line!==M.curLine){if(M.curLine)M.curLine.el.classList.remove('cur');M.curLine=line;
+    if(line){line.el.classList.add('cur');const box=$('sheet');if(!audio.paused&&box.scrollHeight>box.clientHeight){const top=line.el.offsetTop-box.offsetTop-box.clientHeight*0.3;box.scrollTo({top:Math.max(0,top),behavior:'smooth'})}}}
+}
+$('sheet').addEventListener('click',e=>{
+  const b=e.target.closest('[data-slots]'),ln=e.target.closest('.sline');if(!b&&!ln)return;
+  const M=sheetModel;if(!M)return;const G=M.G;
+  const t=b?G.o+(+b.dataset.bar*G.slots+ +b.dataset.slots.split(' ')[0])*G.bar/G.slots:G.o+(+ln.dataset.from)*G.bar;
+  const cues=b?b.dataset.cues.split(' ').filter(Boolean):[];
+  if(cues.length){
+    // each tap adds the note to the selection (or takes it out), so several can be marked at once
+    const allIn=cues.every(id=>selIds.has(id));
+    cues.forEach(id=>allIn?selIds.delete(id):selIds.add(id));
+    if(hasAudio&&audio.paused)audio.currentTime=Math.max(0,t);
+    renderSel();tick();return;
+  }
+  if(!hasAudio){say('Choose your recording in Setup first.');return}
+  audio.currentTime=Math.max(0,t);tick();
+});
+$('sheetSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.sheetView=b.dataset.sv;renderCues();save()});
+$('posBtn').onclick=()=>{S.sheetPos=!S.sheetPos;renderCues();save()};
+let sheetW=0;window.addEventListener('resize',()=>{const w=$('sheet').clientWidth;if(S.sheetView==='tab'&&w&&Math.abs(w-sheetW)>40){sheetW=w;renderCues()}});
+$('delCue').onclick=()=>{
+  if(!editing)return;pushUndo();const id=editing;S.cues=S.cues.filter(x=>x.id!==id);selIds.delete(id);
+  resetEditor();renderCues();renderSel();save();tick();say('Cue deleted. Tap Undo to bring it back.');
+};
+
+/* ---------- live highlighting ---------- */
+function activeIds(c,t){if(t<c.start||t>=c.start+c.duration||!c.steps.length)return[];return c.mode==='together'?c.steps:[c.steps[Math.min(c.steps.length-1,Math.floor((t-c.start)/c.duration*c.steps.length))]]}
+const LOOKAHEAD=0.7;   // seconds of warning before a note, shown as a dashed outline on the pans
+function upcoming(t,live){
+  const soon=new Set();
+  for(const c of live)if(c.mode==='sequence'&&c.steps.length>1){const n=c.steps.length,i=Math.floor((t-c.start)/c.duration*n);if(i+1<n)soon.add(c.steps[i+1])}
+  const nxt=S.cues.find(c=>c.start>t&&c.steps.length);
+  if(nxt&&nxt.start-t<=LOOKAHEAD)for(const c of S.cues)if(c.steps.length&&Math.abs(c.start-nxt.start)<0.02)(c.mode==='together'?c.steps:[c.steps[0]]).forEach(id=>soon.add(id));
+  return soon;
+}
+function tick(){
+  let t=playTime();
+  if(loop&&B!==null&&t>=B){audio.currentTime=A;t=A;clk.last=A}
+  viewT=t;
+  const live=S.cues.filter(c=>t>=c.start&&t<c.start+c.duration);
+  const ids=[...new Set(live.flatMap(c=>activeIds(c,t)))].sort(byScreen),soon=upcoming(t,live);
+  const rolling=new Set(live.filter(c=>c.fx==='roll').flatMap(c=>activeIds(c,t)));
+  document.querySelectorAll('.field').forEach(el=>{const f=el.dataset.field,on=ids.includes(f);el.classList.toggle('active',on);el.classList.toggle('rolling',on&&rolling.has(f));el.classList.toggle('soon',!on&&soon.has(f))});
+  markLive(t,live);
+  const nn=$('nowNote');
+  const liveFx=live.map(markOf).find(Boolean);
+  if(ids.length){nn.className='';nn.textContent=ids.map(id=>FIELDS.get(id).label).join(' + ')+(liveFx?'  ·  '+MARK_NAMES[liveFx]:'');$('nowWhere').textContent=ids.map(id=>FIELDS.get(id).pos+' · '+FIELDS.get(id).pan).join('  |  ')}
+  else if(soon.size&&!audio.paused){nn.className='next';nn.textContent='Next: '+[...soon].map(id=>FIELDS.get(id).label).join(' + ');$('nowWhere').textContent=[...soon].map(id=>FIELDS.get(id).pos).join('  |  ')}
+  else{nn.className='idle';nn.textContent=live.length?'Reminder':(!hasAudio?'Ready when you are':audio.paused?'Paused':'Rest…');$('nowWhere').textContent=''}
+  $('nowReminder').textContent=live.map(c=>c.note).filter(Boolean).join('\n');
+  const next=S.cues.find(c=>c.start>t);
+  $('nextUp').innerHTML=next?'Next at <b>'+fmt(next.start)+'</b>: '+esc(next.steps.map(id=>FIELDS.get(id).label).join(next.mode==='sequence'?' → ':' + ')||next.note||'reminder'):(S.cues.length?'No more cues after this point.':'');
+  const d=Number.isFinite(audio.duration)?audio.duration:0;
+  const seek=$('seek');if(document.activeElement!==seek){seek.max=d||1;seek.value=t}
+  $('clock').textContent=fmt(t)+' / '+fmt(d);
+  drawTL();drawHW(t);
+  if(currentView==='cues'&&isStage()){
+    $('progFill').style.width=(d?Math.min(100,t/d*100):0)+'%';
+    const nc=$('nextChip'),nx=S.cues.find(c=>c.start>t&&c.steps.length);
+    if(ids.length){nc.hidden=false;nc.className='nextchip now';nc.textContent=ids.map(id=>FIELDS.get(id).label).join(' + ')}
+    else if(nx){nc.hidden=false;nc.className='nextchip';nc.textContent='Next: '+nx.steps.map(id=>FIELDS.get(id).label).join(nx.mode==='sequence'?' → ':' + ')}
+    else nc.hidden=true;
+  }
+}
+function loopTick(){tick();if(!audio.paused)raf=requestAnimationFrame(loopTick)}
+audio.onplay=()=>{cancelAnimationFrame(raf);$('playBtn').textContent='❚❚';$('playBtn').setAttribute('aria-label','Pause');loopTick()};
+audio.onpause=()=>{cancelAnimationFrame(raf);$('playBtn').textContent='▶';$('playBtn').setAttribute('aria-label','Play');tick()};
+audio.onseeked=tick;audio.onloadedmetadata=tick;
+audio.onended=()=>{if(loop&&A!==null){audio.currentTime=A;audio.play().catch(()=>{})}else tick()};
+audio.onerror=async()=>{
+  if(!hasAudio||!curBlob)return;
+  if(triedData){say('This phone could not play that file. Try saving it as an MP3 or M4A and choose it again.');$('audioInfo').textContent='Could not play: '+curName;return}
+  triedData=true;say('Trying another way to play your recording…');
+  try{const d=await readData(curBlob);audio.src=d;audio.load()}catch{say('Could not read that file. Try choosing it again.')}
+};
+audio.oncanplay=renderAudioInfo;
+$('playBtn').onclick=()=>{if(!hasAudio)return;audio.paused?audio.play().catch(()=>say('Tap play again to start.')):audio.pause()};
+$('seek').oninput=e=>{audio.currentTime=+e.target.value;tick()};
+$('back5').onclick=()=>{if(hasAudio){audio.currentTime=Math.max(0,audio.currentTime-5);tick()}};
+$('fwd5').onclick=()=>{if(hasAudio){audio.currentTime=Math.min(audio.duration||0,audio.currentTime+5);tick()}};
+function renderLoop(){if(typeof renderSel==='function'&&$('selBar'))try{renderSel()}catch{}$('setA').textContent=A===null?'Set start':'Start '+fmt(A);$('setB').textContent=B===null?'Set end':'End '+fmt(B);$('loopBtn').textContent=loop?'Loop on':'Loop off';$('loopBtn').classList.toggle('on',loop);$('loopBtn').setAttribute('aria-pressed',String(loop))}
+$('setA').onclick=()=>{if(!hasAudio)return;A=audio.currentTime;if(B!==null&&B<=A){B=null;loop=false}renderLoop()};
+$('setB').onclick=()=>{if(!hasAudio)return;if(A===null)A=0;if(audio.currentTime<=A+0.05){say('Play past the loop start, then tap Set end.');return}B=audio.currentTime;renderLoop()};
+$('loopBtn').onclick=()=>{if(A===null||B===null){say('Set a start and an end first.');return}loop=!loop;if(loop)audio.currentTime=A;renderLoop()};
+
+/* ---------- recording ---------- */
+let curBlob=null,curName='',triedData=false;
+function loadAudio(blob,name){
+  audio.pause();if(objUrl)URL.revokeObjectURL(objUrl);
+  curBlob=blob;curName=name||'recording';triedData=false;
+  objUrl=URL.createObjectURL(blob);audio.src=objUrl;audio.load();hasAudio=true;A=B=null;loop=false;renderLoop();
+  $('playBtn').disabled=false;$('seek').disabled=false;$('recName').textContent=name||'Recording';
+  $('audioInfo').textContent='Loading '+curName+'…';tick();
+  buildPeaks(blob);
+}
+const AUDIO_EXT=/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|mp4|m4v|mov|webm|caf|aif|aiff|amr|3gp)$/i;
+async function onRecordingPicked(e){
+  const f=e.target.files&&e.target.files[0];e.target.value='';
+  if(!f){say('No file was chosen.');return}
+  const looksAudio=/^(audio|video)\//.test(f.type)||AUDIO_EXT.test(f.name);
+  if(!looksAudio){say('"'+f.name+'" does not look like a music or video file. Choose an MP3, M4A, WAV or video.');return}
+  if(isDemo){S.cues=[];isDemo=false;renderCues();renderDemo()}
+  loadAudio(f,f.name);if(!S.title){S.title=f.name.replace(/\.[^.]+$/,'');$('title').value=S.title}
+  save();idbPut('audio',{blob:f,name:f.name});
+  say('Got "'+f.name+'". Press play to check it, then go to Cues.');
+  uploadRecording(f);
+}
+
+/* ---------- keeping the recording in your account ---------- */
+// The Claude phone app can't open your files, so a recording chosen in a browser
+// is also kept in your account. Audio isn't an accepted storage type, so it is
+// stored as text (base64), split into parts under the 20 MB limit, and rebuilt on load.
+const PART=15000000;   // characters per stored part
+let acctState='';      // '', 'saving', 'saved', 'loading', 'failed'
+function renderAudioInfo(){
+  const ref=S.audioRef,mine=ref&&curName===ref.name&&curBlob&&curBlob.size===ref.size;
+  let t=hasAudio&&curName?'Loaded: '+curName+'.':'No recording yet.';
+  if(acctState==='saving')t+=' Saving it to your account…';
+  else if(acctState==='loading')t='Loading your recording from your account…';
+  else if(mine)t+=' ✓ Saved in your account, so it also loads in the Claude app.';
+  else if(acctState==='failed')t+=' Kept on this phone only.';
+  else if(hasAudio&&curName!=='Example tones')t+=' Kept on this phone.';
+  $('audioInfo').textContent=t;
+}
+async function uploadRecording(file){
+  if(!assets||!db){renderAudioInfo();return}
+  if(file.size>45*1024*1024){acctState='failed';renderAudioInfo();say('Recording ready. It is too big to keep in your account (over 45 MB), so it stays on this phone.');return}
+  acctState='saving';renderAudioInfo();
+  try{
+    const d=await readData(file),b64=d.slice(d.indexOf(',')+1),ids=[],urls=[],n=Math.ceil(b64.length/PART);
+    for(let i=0;i<n;i++){
+      const r=await assets.upload(new Blob([b64.slice(i*PART,(i+1)*PART)],{type:'text/plain'}),{type:'text/plain'});
+      ids.push(r.id);urls.push(r.url);
+      if(n>1)say('Saving the recording to your account… '+Math.round((i+1)/n*100)+'%');
+    }
+    const old=S.audioRef;
+    S.audioRef={name:file.name,size:file.size,type:file.type||'audio/mpeg',ids,urls};save();
+    try{const {assets:all}=await assets.list();for(const a of all)if(a.contentType==='text/plain'&&!ids.includes(a.id))assets.delete(a.id).catch(()=>{})}
+    catch{if(old&&old.ids)for(const id of old.ids)if(!ids.includes(id))assets.delete(id).catch(()=>{})}
+    acctState='saved';renderAudioInfo();say('Recording saved to your account. It will now load in the Claude app too.');
+  }catch(e){
+    acctState='failed';renderAudioInfo();
+    const c=e&&e.code;
+    say(c==='quota_or_state'?'Your account storage for this page is full, so the recording stays on this phone.':'Could not save the recording to your account. It still works on this phone.');
+  }
+}
+async function loadRecordingFromAccount(){
+  const ref=S.audioRef;if(!ref)return false;
+  acctState='loading';renderAudioInfo();say('Loading your recording from your account…');
+  try{
+    let b64='';
+    for(let i=0;i<ref.ids.length;i++){
+      const r=await fetch((ref.urls&&ref.urls[i])||('/_blob/'+ref.ids[i]));if(!r.ok)throw Error('missing');
+      b64+=await r.text();
+    }
+    const raw=atob(b64.replace(/\s+/g,'')),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    const blob=new Blob([bytes],{type:ref.type});
+    acctState='saved';loadAudio(blob,ref.name);idbPut('audio',{blob,name:ref.name});
+    if(isDemo){isDemo=false;renderDemo()}
+    renderAudioInfo();say('Recording loaded from your account. Press play.');return true;
+  }catch{
+    acctState='';renderAudioInfo();say("Couldn't load your recording from your account. Choose it again in Setup.");return false;
+  }
+}
+$('audioFile').onchange=onRecordingPicked;
+$('title').oninput=()=>{S.title=$('title').value;$('recName').textContent=S.title||'Recording';save()};
+
+/* ---------- photos ---------- */
+const readData=b=>new Promise((res,rej)=>{const r=new FileReader;r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b)});
+for(const k of['ec','bf']){
+  $('photo-'+k).onchange=async e=>{
+    const f=e.target.files[0];e.target.value='';if(!f)return;
+    if(!['image/jpeg','image/png','image/webp'].includes(f.type)){say('Choose a JPG, PNG or WebP photo.');return}
+    say('Adding photo…');
+    try{
+      if(assets){const r=await assets.upload(f);S.photos[k]={id:r.id}}
+      else{if(f.size>8*1024*1024){say('That photo is too big to keep on this device. Try one under 8 MB.');return}S.photos[k]={data:await readData(f)}}
+      S.look='photo';renderLook();renderPans();renderPhotos();save();say('Photo added.');
+    }catch(err){say(err&&err.code==='too_large'?'That photo is over 20 MB. Choose a smaller copy.':'Could not add that photo. Try again, or use a JPG.')}
+  };
+}
+function renderPhotos(){for(const k of['ec','bf']){const s=photoSrc(k);$('thumb-'+k).style.backgroundImage=s?'url("'+s.replace(/"/g,'%22')+'")':'none';$('ph-'+k).textContent=s?'Photo added':'No photo — showing the diagram'}}
+function renderLook(){$('lookSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.look===S.look)))}
+$('lookSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.look=b.dataset.look;renderLook();renderPans();save()});
+function renderOrder(){$('orderInfo').textContent='Left: '+(S.swapped?'B / F':'E / C')+' · Right: '+(S.swapped?'E / C':'B / F')}
+$('swap').onclick=()=>{S.swapped=!S.swapped;normalizeChords();renderPans();renderOrder();renderCues();save();say('Pans swapped.')};
+
+/* ---------- example ---------- */
+function makeDemo(){
+  const steps=['e-low','c','fs-low','bb','d-low','gs-low','eb-low','b','f-low','a','cs-low','g-low'],freq=[164.81,130.81,185,233.08,146.83,207.65,155.56,246.94,174.61,220,138.59,196],rate=22050,n=rate*12,buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  const str=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  str(0,'RIFF');v.setUint32(4,buf.byteLength-8,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){const t=i/rate,p=t%1;v.setInt16(44+i*2,Math.sin(2*Math.PI*freq[Math.floor(t)]*t)*Math.min(1,p*100)*Math.exp(-p*5)*8500,true)}
+  isDemo=true;selIds.clear();undoStack=[];S.cues=steps.map((id,i)=>({id:'demo'+i,start:i,duration:0.9,steps:[id],mode:'together',note:i===0?'Example: each note lights up as its tone plays.':''}));
+  loadAudio(new Blob([buf],{type:'audio/wav'}),'Example tones');
+}
+function renderDemo(){$('demoBanner').hidden=!isDemo}
+let eraseArmed=false;
+$('loadDemo').onclick=()=>{if(S.cues.length&&!isDemo){say('Erase your cues first if you want to see the example. Your cues are safe.');return}makeDemo();renderAll();showView('play');say('Example loaded. Press play.')};
+$('eraseAll').onclick=()=>{
+  if(!eraseArmed){eraseArmed=true;$('eraseAll').textContent='Tap again to erase';setTimeout(()=>{eraseArmed=false;$('eraseAll').textContent='Erase all cues'},3500);return}
+  eraseArmed=false;$('eraseAll').textContent='Erase all cues';if(!isDemo)pushUndo();selIds.clear();S.cues=[];isDemo=false;resetEditor();renderAll();save();say('All cues erased.')};
+
+/* ---------- editing a cue ---------- */
+let entry='tap', currentView='play';
+function editCue(c){
+  setEntry('build');
+  editing=c.id;selected=[...c.steps];$('start').value=+c.start.toFixed(2);$('duration').value=+c.duration.toFixed(2);$('note').value=c.note;setMode(c.mode);
+  $('editorTitle').textContent='Edit cue at '+fmt(c.start);$('saveCue').textContent='Update cue';$('delCue').hidden=false;renderChips();markSheet();drawTL();
+}
+function setEntry(m){
+  entry=m;
+  $('entrySeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.entry===m)));
+  $('buildHead').hidden=m!=='build';$('buildBox').hidden=m!=='build';
+  $('editPans').className=m==='tap'?'pair tapmode':'stack';
+  if(m==='tap'){selected=[];editing=null;renderChips()}
+  renderTLHint();
+}
+$('entrySeg').querySelectorAll('button').forEach(b=>b.onclick=()=>setEntry(b.dataset.entry));
+
+/* ---------- smooth playback clock ---------- */
+// Phones report the playback position in coarse steps. This fills the gaps so
+// highlights and the timeline move smoothly and line up with what you hear.
+let clk={ct:-1,t:0,at:0,last:0}, viewT=0;
+function playTime(){
+  const ct=audio.currentTime||0;
+  if(audio.paused||!hasAudio){clk.ct=ct;clk.last=ct;return ct}
+  const now=performance.now();
+  if(ct!==clk.ct){clk.ct=ct;clk.t=ct;clk.at=now}
+  let est=clk.t+(now-clk.at)/1000*(audio.playbackRate||1);
+  if(Math.abs(est-ct)>0.25)est=ct;
+  if(est<clk.last&&clk.last-est<0.06)est=clk.last;
+  clk.last=est;return est;
+}
+audio.addEventListener('seeked',()=>{clk.ct=-1;clk.last=0});
+
+/* ---------- speed ---------- */
+function setRate(r){
+  audio.playbackRate=r;try{audio.preservesPitch=true}catch{}
+  $('speedSeg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.rate===r)));
+  $('rateBtn').textContent=(r===1?'1':String(r).replace(/^0/,''))+'×';
+}
+$('speedSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>setRate(+b.dataset.rate));
+$('rateBtn').onclick=()=>{const order=[1,0.75,0.5],i=order.indexOf(audio.playbackRate);setRate(order[(i+1)%order.length]);say('Speed '+$('rateBtn').textContent)};
+
+/* ---------- beat grid and snapping ---------- */
+let onsets=null;   // times (s) of drum hits found in the recording
+const beatLen=()=>S.grid?60/S.grid.bpm:0;
+const barLen=()=>beatLen()*(S.grid?S.grid.perBar:4);
+function snapStep(){return S.grid&&['1','2','4'].includes(S.snap)?beatLen()/(+S.snap):0}
+function nearestOnset(t){
+  if(!onsets||!onsets.length)return null;
+  let lo=0,hi=onsets.length-1;while(lo<hi){const m=(lo+hi)>>1;if(onsets[m]<t)lo=m+1;else hi=m}
+  let best=onsets[lo];if(lo>0&&Math.abs(onsets[lo-1]-t)<Math.abs(best-t))best=onsets[lo-1];return best;
+}
+function nextOnset(t){if(!onsets)return null;for(const o of onsets)if(o>t)return o;return null}
+function prevOnset(t){if(!onsets)return null;for(let i=onsets.length-1;i>=0;i--)if(onsets[i]<t)return onsets[i];return null}
+function snapTime(t,win=0.12){
+  if(S.snap==='hits'){const o=nearestOnset(t);return(o!==null&&Math.abs(o-t)<=win)?o:t}
+  const st=snapStep();if(!st)return t;const o=S.grid.offset;
+  return Math.max(0,+(o+Math.round((t-o)/st)*st).toFixed(4));
+}
+function gridNeighbour(t,dir){const st=snapStep(),o=S.grid.offset,k=(t-o)/st,tol=0.01/st;return o+(dir>0?Math.floor(k+tol)+1:Math.ceil(k-tol)-1)*st}  // tol: notes within 10 ms count as on the line
+function stepText(){
+  if(S.snap==='hits')return onsets&&onsets.length?'Earlier / Later jump to the previous or next drum hit.':'Still reading the recording for drum hits…';
+  const st=snapStep();
+  if(st)return 'Each tap moves one '+({'1':'beat','2':'half beat','4':'quarter beat'}[S.snap])+' ('+st.toFixed(2)+' s).';
+  return 'Each tap moves 20 ms. Turn on Snap for bigger, musical steps.';
+}
+function renderGrid(){
+  $('snapSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.snap===S.snap)));
+  $('perBarSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(S.grid&&+b.dataset.n===S.grid.perBar)));
+  if(document.activeElement!==$('bpm'))$('bpm').value=S.grid?S.grid.bpm:'';
+  $('tempoBtn').textContent=S.grid?'♩ '+(+S.grid.bpm.toFixed(1))+' BPM':'♩ Timing';
+  $('lagVal').textContent=Math.round(S.tapLag*1000)+' ms';
+  renderSel();drawTL();
+}
+function openGrid(open){$('gridBox').hidden=!open;$('tempoBtn').setAttribute('aria-expanded',String(open))}
+$('tempoBtn').onclick=()=>openGrid($('gridBox').hidden);
+$('snapSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  const v=b.dataset.snap;
+  if(['1','2','4'].includes(v)&&!S.grid){openGrid(true);say('Set the tempo first: play the song and tap the beat button.')}
+  if(v==='hits'&&!(onsets&&onsets.length))say(hasAudio?'Still reading the drum hits in your recording. Try again in a moment.':'Choose a recording first.');
+  S.snap=v;renderGrid();save();
+});
+let tempoTaps=[];
+$('tapTempo').onclick=()=>{
+  if(!hasAudio){say('Choose your recording in Setup first.');return}
+  if(audio.paused){tempoTaps=[];audio.play().catch(()=>{});say('Playing. Now tap on every beat.');return}
+  const t=playTime()-S.tapLag,btn=$('tapTempo');btn.classList.add('pulse');setTimeout(()=>btn.classList.remove('pulse'),90);
+  if(tempoTaps.length&&t-tempoTaps[tempoTaps.length-1]>2.5)tempoTaps=[];
+  tempoTaps.push(t);if(tempoTaps.length>24)tempoTaps.shift();
+  if(tempoTaps.length<4){say('Keep tapping… '+tempoTaps.length);return}
+  const iv=[];for(let i=1;i<tempoTaps.length;i++)iv.push(tempoTaps[i]-tempoTaps[i-1]);
+  const m=[...iv].sort((x,y)=>x-y)[iv.length>>1];
+  // fit a straight line through the taps so one sloppy tap doesn't throw the tempo off
+  const ks=tempoTaps.map(x=>Math.round((x-tempoTaps[0])/m)),n=ks.length,sk=ks.reduce((p,q)=>p+q,0),st=tempoTaps.reduce((p,q)=>p+q,0);
+  const skk=ks.reduce((p,q)=>p+q*q,0),skt=ks.reduce((p,q,i)=>p+q*tempoTaps[i],0),den=n*skk-sk*sk;
+  const beat=den?(n*skt-sk*st)/den:m,first=(st-beat*sk)/n;
+  const bpm=Math.round(60/beat*2)/2;if(!(bpm>=30&&bpm<=300)){say('That tempo looks off. Try tapping again.');return}
+  const perBar=S.grid?S.grid.perBar:4,bar=60/bpm*perBar;
+  S.grid={bpm,offset:+(((first%bar)+bar)%bar).toFixed(4),perBar};
+  if(S.snap==='off')S.snap='1';
+  renderGrid();save();say('Tempo '+bpm+' BPM. Keep tapping to fine-tune it, or stop when the grid lines match the beat.');
+};
+$('bpm').onchange=()=>{const v=+$('bpm').value;if(!(v>=30&&v<=300)){say('Enter a tempo between 30 and 300.');renderGrid();return}
+  S.grid=S.grid?{...S.grid,bpm:v}:{bpm:v,offset:+((audio.currentTime||0)%(60/v*4)).toFixed(4),perBar:4};renderGrid();save()};
+$('bpmHalf').onclick=()=>{if(!S.grid)return;S.grid={...S.grid,bpm:Math.max(30,S.grid.bpm/2)};renderGrid();save()};
+$('bpmDouble').onclick=()=>{if(!S.grid)return;S.grid={...S.grid,bpm:Math.min(300,S.grid.bpm*2)};renderGrid();save()};
+const shiftGrid=d=>{if(!S.grid)return;const bar=barLen();S.grid={...S.grid,offset:+((((S.grid.offset+d)%bar)+bar)%bar).toFixed(4)};renderGrid();save()};
+$('gridL').onclick=()=>shiftGrid(-0.01);$('gridR').onclick=()=>shiftGrid(0.01);
+$('barShift').onclick=()=>{shiftGrid(beatLen());say('Bar line moved one beat later.')};
+$('perBarSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(!S.grid)return;S.grid={...S.grid,perBar:+b.dataset.n};renderGrid();save()});
+$('clearGrid').onclick=()=>{S.grid=null;if(S.snap!=='hits')S.snap='off';tempoTaps=[];renderGrid();save();say('Tempo removed.')};
+$('lagMinus').onclick=()=>{S.tapLag=Math.max(-0.1,+(S.tapLag-0.01).toFixed(2));renderGrid();save()};
+$('lagPlus').onclick=()=>{S.tapLag=Math.min(0.35,+(S.tapLag+0.01).toFixed(2));renderGrid();save()};
+
+/* ---------- tap along ---------- */
+let lastTapId=null, lastTapAt=0;
+const CHORD_WINDOW=150;   // ms: taps closer together than this become one chord
+function flashZone(el){const z=el&&el.querySelector('.zone');if(z){z.style.fill='var(--teal)';setTimeout(()=>{z.style.fill=''},140)}}
+function addTapCue(id,el){
+  if(!hasAudio){say('Choose your recording in Setup first.');return}
+  const now=performance.now(),last=lastTapId&&S.cues.find(c=>c.id===lastTapId);
+  if(last&&now-lastTapAt<=CHORD_WINDOW){
+    // second finger: add to the note just tapped, so both play together
+    if(!last.steps.includes(id)){last.steps.push(id);last.mode='together';last.steps.sort(byScreen)}
+    lastTapAt=now;renderCues();save();tick();flashZone(el);
+    say('Chord '+last.steps.map(x=>FIELDS.get(x).label).join(' + ')+' at '+fmt(last.start));return last.id;
+  }
+  lastTapAt=now;
+  if(isDemo){S.cues=[];isDemo=false;undoStack=[];renderDemo()}
+  pushUndo();
+  const raw=Math.max(0,playTime()-(audio.paused?0:S.tapLag)),t=snapTime(raw,0.15);
+  const prev=lastTapId&&S.cues.find(c=>c.id===lastTapId);
+  if(prev&&t>prev.start&&t<prev.start+prev.duration)prev.duration=Math.max(0.05,+(t-prev.start).toFixed(3));
+  const c={id:uid(),start:+t.toFixed(3),duration:snapStep()||0.5,steps:[id],mode:'together',note:''};
+  S.cues.push(c);S.cues.sort((a,b)=>a.start-b.start);lastTapId=c.id;
+  renderCues();save();tick();flashZone(el);
+  say(FIELDS.get(id).label+' at '+fmt(t)+(t!==raw?' (snapped)':''));
+  return c.id;
+}
+/* Hold = roll: keep a finger (or two, for a chord) on the pan and the note is recorded as a roll
+   lasting as long as you hold. A quick tap stays a plain note. */
+const HOLD_MS=280;
+const holds=new Map(),holdFrom=new Map();   // finger → note being held; note → when the first finger landed
+function holdStart(pid,cueId,el){
+  const now=performance.now();holds.set(pid,{cueId,el});if(!holdFrom.has(cueId))holdFrom.set(cueId,now);
+  setTimeout(()=>{if(holds.has(pid)&&holds.get(pid).cueId===cueId){el.classList.add('holding');say('Rolling…')}},HOLD_MS);
+}
+function holdEnd(e){
+  const h=holds.get(e.pointerId);if(!h)return;holds.delete(e.pointerId);h.el.classList.remove('holding');
+  if([...holds.values()].some(x=>x.cueId===h.cueId))return;   // the other finger of the chord is still down
+  const held=performance.now()-(holdFrom.get(h.cueId)||performance.now());holdFrom.delete(h.cueId);
+  const c=S.cues.find(x=>x.id===h.cueId);if(!c||held<HOLD_MS)return;
+  c.fx='roll';
+  let dur=held/1000*(audio.playbackRate||1);
+  if(snapStep()){const end=snapTime(c.start+dur);dur=Math.max(snapStep(),end-c.start)}
+  c.duration=+Math.max(0.1,dur).toFixed(3);
+  renderCues();save();tick();
+  say('Roll on '+c.steps.map(x=>FIELDS.get(x).label).join(' + ')+' for '+c.duration.toFixed(1)+' s');
+}
+window.addEventListener('pointerup',holdEnd);window.addEventListener('pointercancel',holdEnd);
+
+/* ---------- undo ---------- */
+let undoStack=[];
+function pushUndo(){undoStack.push(JSON.stringify(S.cues));if(undoStack.length>60)undoStack.shift();renderUndo()}
+function renderUndo(){$('undoBtn').disabled=!undoStack.length}
+function undo(){
+  if(!undoStack.length){say('Nothing to undo.');return}
+  S.cues=JSON.parse(undoStack.pop());lastTapId=null;
+  for(const id of[...selIds])if(!S.cues.some(c=>c.id===id))selIds.delete(id);
+  if(editing&&!S.cues.some(c=>c.id===editing))resetEditor();
+  renderCues();renderSel();save();tick();renderUndo();say('Undone.');
+}
+$('undoBtn').onclick=undo;
+
+/* ---------- selecting, nudging, copying ---------- */
+let selectMode=false, selIds=new Set(), clip=null, lastNudge=0;
+const selCues=()=>S.cues.filter(c=>selIds.has(c.id));
+const r3=x=>+x.toFixed(3);
+function noteCount(cs){return cs.reduce((n,c)=>n+Math.max(1,c.steps.length),0)}
+function setSelectMode(on){
+  selectMode=on;if(!on)selIds.clear();
+  $('selMode').classList.toggle('on',on);$('selMode').setAttribute('aria-pressed',String(on));$('selMode').textContent=on?'Done':'Select several';
+  renderSel();renderTLHint();drawTL();
+}
+function renderSel(){
+  const cs=selCues(),cues=currentView==='cues';
+  $('selBar').hidden=!cues||!cs.length;$('selAll').hidden=!selectMode;
+  if(cs.length===1){const c=cs[0];$('selCount').textContent=cueLabel(c)+(c.steps.length===1?' · '+shortPos(FIELDS.get(c.steps[0]).pos):'')+' at '+fmt(c.start)+' · lasts '+c.duration.toFixed(2)+' s'}
+  else if(cs.length){const a=Math.min(...cs.map(c=>c.start)),b=Math.max(...cs.map(c=>c.start+c.duration));$('selCount').textContent=noteCount(cs)+' notes selected · '+fmt(a)+' → '+fmt(b)}
+  $('editSel').hidden=cs.length!==1;
+  $('snapSel').hidden=S.snap==='off';$('snapSel').textContent=S.snap==='hits'?'Snap to hits':'Snap to beat';
+  $('loopSel').textContent=loop?'Stop loop':'Loop this';
+  $('nudgeL').title=$('nudgeR').title=stepText();
+  $('pasteBtn').hidden=!clip;
+  if(clip)$('pasteBtn').textContent='Paste '+noteCount(clip)+(noteCount(clip)===1?' note':' notes');
+  markSheet();
+}
+function afterEdit(msg){S.cues.sort((a,b)=>a.start-b.start);renderCues();renderSel();save();tick();if(msg)say(msg)}
+function nudgeUndo(){const now=Date.now();if(now-lastNudge>1500)pushUndo();lastNudge=now}
+function moveSel(dir){
+  const cs=selCues();if(!cs.length)return;
+  const anchor=cs.reduce((p,c)=>c.start<p.start?c:p);let delta;
+  if(S.snap==='hits'&&onsets&&onsets.length){const tg=dir<0?prevOnset(anchor.start-0.005):nextOnset(anchor.start+0.005);if(tg===null){say('No more drum hits that way.');return}delta=tg-anchor.start}
+  else if(snapStep())delta=gridNeighbour(anchor.start,dir)-anchor.start;
+  else delta=dir*0.02;
+  delta=Math.max(delta,-anchor.start);if(Math.abs(delta)<1e-4)return;
+  nudgeUndo();for(const c of cs)c.start=r3(c.start+delta);
+  if(isDemo){isDemo=false;renderDemo()}
+  afterEdit((cs.length>1?'Moved to ':'Now at ')+fmt(anchor.start)+'.');
+  if(audio.paused&&hasAudio){audio.currentTime=anchor.start;tick()}
+}
+function lenSel(dir){
+  const cs=selCues();if(!cs.length)return;nudgeUndo();
+  for(const c of cs){
+    if(snapStep()){const end=gridNeighbour(c.start+c.duration,dir);c.duration=r3(Math.max(0.05,end-c.start))}
+    else c.duration=r3(Math.max(0.05,c.duration+dir*0.05));
+  }
+  afterEdit(cs.length===1?'Now lasts '+cs[0].duration.toFixed(2)+' s.':'Lengths changed.');
+}
+$('nudgeL').onclick=()=>moveSel(-1);$('nudgeR').onclick=()=>moveSel(1);
+$('lenMinus').onclick=()=>lenSel(-1);$('lenPlus').onclick=()=>lenSel(1);
+$('snapSel').onclick=()=>{
+  const cs=selCues();if(!cs.length)return;
+  if(S.snap==='hits'&&!(onsets&&onsets.length)){say('No drum hits found yet.');return}
+  if(S.snap!=='hits'&&!snapStep()){openGrid(true);say('Set the tempo first.');return}
+  pushUndo();let moved=0;
+  for(const c of cs){const ns=snapTime(c.start,0.3);if(Math.abs(ns-c.start)>1e-3)moved++;
+    if(snapStep()){const ne=snapTime(c.start+c.duration);c.duration=r3(Math.max(snapStep()/2,ne-ns))}
+    c.start=r3(ns)}
+  afterEdit(moved?'Snapped '+moved+(moved===1?' note.':' notes.'):'Already on the '+(S.snap==='hits'?'hits':'beat')+'.');
+};
+$('loopSel').onclick=()=>{
+  if(loop){loop=false;renderLoop();renderSel();say('Loop off.');return}
+  const cs=selCues();if(!cs.length||!hasAudio)return;
+  const a=Math.min(...cs.map(c=>c.start)),b=Math.max(...cs.map(c=>c.start+c.duration));
+  A=Math.max(0,a-1);B=Math.min(audio.duration||b+1,b+0.6);loop=true;audio.currentTime=A;audio.play().catch(()=>{});
+  renderLoop();renderSel();say('Looping '+fmt(A)+' → '+fmt(B)+'. Try 0.75× to hear it closely.');
+};
+$('editSel').onclick=()=>{const cs=selCues();if(cs.length!==1)return;editCue(cs[0]);$('buildHead').scrollIntoView({behavior:'smooth',block:'start'})};
+function toClip(cs){const a=Math.min(...cs.map(c=>c.start));return cs.map(c=>({off:c.start-a,duration:c.duration,steps:[...c.steps],mode:c.mode,note:c.note,fx:markOf(c)}))}
+function pasteAt(t,src){
+  if(isDemo){isDemo=false;renderDemo()}
+  pushUndo();
+  const fresh=src.map(x=>({id:uid(),start:r3(t+x.off),duration:x.duration,steps:[...x.steps],mode:x.mode,note:x.note,...(x.fx?{fx:x.fx}:{})}));
+  S.cues.push(...fresh);selIds=new Set(fresh.map(c=>c.id));
+  afterEdit('Pasted at '+fmt(t)+'. The copy is selected: nudge or drag it to fine-tune.');
+}
+$('selMode').onclick=()=>setSelectMode(!selectMode);
+$('selAll').onclick=()=>{selIds=new Set(S.cues.map(c=>c.id));renderSel();drawTL()};
+$('copySel').onclick=()=>{const cs=selCues();if(!cs.length)return;clip=toClip(cs);renderSel();say('Copied. Move the gold line to where the music repeats, then tap Paste.')};
+$('pasteBtn').onclick=()=>{if(clip)pasteAt(snapTime(audio.currentTime||0,0.2),clip)};
+$('repeatSel').onclick=()=>{
+  const cs=selCues();if(!cs.length)return;
+  const a=Math.min(...cs.map(c=>c.start)),b=Math.max(...cs.map(c=>c.start+c.duration));
+  // with a tempo set, repeats land a whole number of bars later, the way music repeats
+  const bar=barLen(),gap=bar?Math.max(1,Math.ceil((b-a)/bar-0.05))*bar:b-a;
+  pasteAt(a+gap,toClip(cs));
+};
+$('delSel').onclick=()=>{const cs=selCues();if(!cs.length)return;pushUndo();S.cues=S.cues.filter(c=>!selIds.has(c.id));selIds.clear();if(editing&&!S.cues.some(c=>c.id===editing))resetEditor();afterEdit((cs.length===1?'Note':cs.length+' notes')+' removed. Tap Undo to bring '+(cs.length===1?'it':'them')+' back.')};
+
+/* ---------- timeline ---------- */
+let ppsVal=120, peaks=null, peakRate=100, peakToken=0, hits=[], drag=null, colors=null, pinch=null, edgeRaf=0;
+const pps=()=>ppsVal;
+const pointers=new Map();
+function tokens(){const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();
+  return{bg:g('--bg'),line:g('--line'),steel:g('--steel'),muted:g('--muted'),gold:g('--gold'),goldInk:g('--gold-ink'),teal:g('--teal'),tealInk:g('--teal-ink'),raised:g('--raised'),text:g('--text'),ec:g('--ec'),bf:g('--bf')}}
+async function buildPeaks(blob){
+  const my=++peakToken;peaks=null;onsets=null;drawTL();
+  try{
+    const buf=await blob.arrayBuffer();
+    const Ctx=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    const ctx=new Ctx(1,1,44100);
+    const ab=await new Promise((res,rej)=>{const p=ctx.decodeAudioData(buf,res,rej);if(p&&p.then)p.then(res,rej)});
+    if(my!==peakToken)return;
+    const a=ab.getChannelData(0),b=ab.numberOfChannels>1?ab.getChannelData(1):null,sr=ab.sampleRate;
+    const step=Math.max(1,Math.floor(sr/peakRate)),n=Math.ceil(a.length/step),out=new Float32Array(n),env=new Float32Array(n);let max=0;
+    for(let i=0;i<n;i++){let m=0,sq=0,k=0;const e=Math.min(a.length,(i+1)*step);
+      for(let j=i*step;j<e;j+=2){let v=a[j];if(b)v=(v+b[j])/2;const av=Math.abs(v);if(av>m)m=av;sq+=v*v;k++}
+      out[i]=m;env[i]=Math.log1p(1000*Math.sqrt(sq/Math.max(1,k)));if(m>max)max=m}
+    if(max>0)for(let i=0;i<n;i++)out[i]=Math.sqrt(out[i]/max);
+    peaks=out;
+    // drum hits: moments where the loudness jumps up sharply
+    const flux=new Float32Array(n);for(let i=1;i<n;i++)flux[i]=Math.max(0,env[i]-env[i-1]);
+    const W=15,found=[];let sum=0;for(let i=0;i<Math.min(n,2*W+1);i++)sum+=flux[i];let last=-99;
+    for(let i=1;i<n-1;i++){
+      const lo=i-W-1,hi=i+W;if(lo>=0)sum-=flux[lo];if(hi<n&&i>W)sum+=flux[hi];
+      const mean=sum/(2*W+1),thr=mean*1.6+0.05;
+      if(flux[i]>thr&&flux[i]>=flux[i-1]&&flux[i]>=flux[i+1]&&i-last>=6){found.push(+(i/peakRate).toFixed(3));last=i}
+    }
+    onsets=found;renderSel();drawTL();
+  }catch{if(my===peakToken){peaks=null;onsets=null;drawTL()}}
+}
+function totalLen(){const d=Number.isFinite(audio.duration)?audio.duration:0;return Math.max(d,...S.cues.map(c=>c.start+c.duration),0)}
+function rulerLabel(s,major){const m=Math.floor(s/60),r=s-m*60;return m+':'+(major<1?r.toFixed(1).padStart(4,'0'):String(Math.round(r)).padStart(2,'0'))}
+function cueLabel(c){return (c.steps.length?c.steps.map(id=>FIELDS.get(id).label).join(c.mode==='sequence'?' ':'+'):'✎')+(markOf(c)?' '+MARKS[c.fx]:'')}
+function drawTL(){
+  const cv=$('tl');if(!cv||!cv.offsetParent)return;
+  if(!colors)colors=tokens();const C=colors,FF=getComputedStyle(document.body).fontFamily;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);g.fillStyle=C.bg;g.fillRect(0,0,W,H);
+  const P=pps(),cur=audio.paused?(audio.currentTime||0):viewT,mid=W/2,t0=cur-mid/P,t1=cur+mid/P,len=totalLen();
+  const X=t=>mid+(t-cur)*P;
+  // a short timeline (landscape phone) gets a slimmer sound wave so the note rows always fit
+  const compact=H<150,WAVE_Y=compact?30:48,WAVE_H=compact?18:30,RULER_Y=compact?62:92,LANE_Y=compact?72:106,ROW_H=compact?25:30,ROW_GAP=compact?3:4;
+  // loop range
+  if(A!==null&&B!==null&&loop){g.fillStyle=C.teal;g.globalAlpha=.12;g.fillRect(X(A),0,(B-A)*P,H);g.globalAlpha=1}
+  // beat grid
+  if(S.grid){
+    const beat=beatLen(),o=S.grid.offset,pb=S.grid.perBar;
+    if(beat*P>=7){
+      const sub=snapStep()&&snapStep()*P>=9?snapStep():0;
+      if(sub&&sub<beat){g.strokeStyle=C.line;g.globalAlpha=.55;g.setLineDash([2,4]);g.beginPath();
+        for(let k=Math.ceil((t0-o)/sub);o+k*sub<=t1;k++){const x=Math.round(X(o+k*sub))+.5;g.moveTo(x,14);g.lineTo(x,H-4)}g.stroke();g.setLineDash([]);g.globalAlpha=1}
+      for(let k=Math.ceil((t0-o)/beat);o+k*beat<=t1;k++){
+        const tt=o+k*beat;if(tt<0)continue;const x=Math.round(X(tt))+.5,isBar=((k%pb)+pb)%pb===0;
+        g.strokeStyle=isBar?C.steel:C.line;g.globalAlpha=isBar?.45:.9;g.lineWidth=isBar?1.5:1;g.beginPath();g.moveTo(x,14);g.lineTo(x,H-4);g.stroke();g.globalAlpha=1;g.lineWidth=1;
+        if(isBar&&beat*pb*P>=34){g.fillStyle=C.muted;g.font='10px '+FF;g.textAlign='left';g.fillText(String(Math.floor(k/pb)+1),x+3,22)}
+      }
+    }
+  }
+  // waveform
+  const x0=Math.max(0,Math.floor(X(0))),x1=Math.min(W,Math.ceil(X(len||0)));
+  if(hasAudio&&x1>x0){
+    for(let x=x0;x<x1;x+=3){
+      const t=cur+(x-mid)/P;let v=0.06;
+      if(peaks){const i=Math.floor(t*peakRate),k=Math.max(1,Math.ceil(peakRate/P*3));let m=0;for(let j=Math.max(0,i);j<i+k&&j<peaks.length;j++)if(peaks[j]>m)m=peaks[j];v=Math.max(0.04,m)}
+      g.fillStyle=t<cur?C.gold:C.steel;g.globalAlpha=t<cur?.85:.55;
+      const h=v*WAVE_H;g.fillRect(x,WAVE_Y-h,2,h*2);
+    }
+    g.globalAlpha=1;
+  } else if(!hasAudio){g.fillStyle=C.muted;g.font='14px '+FF;g.textAlign='center';g.fillText('Choose a recording in Setup to see it here',mid,WAVE_Y+5)}
+  // drum hits, shown when snapping to them
+  if(S.snap==='hits'&&onsets){g.fillStyle=C.teal;for(const o of onsets){if(o<t0)continue;if(o>t1)break;g.fillRect(Math.round(X(o))-1,RULER_Y-16,2,7)}}
+  // ruler
+  g.strokeStyle=C.line;g.lineWidth=1;g.beginPath();g.moveTo(0,RULER_Y-8.5);g.lineTo(W,RULER_Y-8.5);g.stroke();
+  const major=P>=400?0.5:P>=120?1:P>=60?2:P>=25?5:10,minor=major/(P>=120?4:2);
+  g.font='11px '+FF;g.textAlign='center';
+  for(let s=Math.max(0,Math.floor(t0/minor)*minor);s<=t1;s=+(s+minor).toFixed(4)){
+    const x=Math.round(X(s))+.5,isMaj=Math.abs(s/major-Math.round(s/major))<1e-6;
+    g.strokeStyle=isMaj?C.muted:C.line;g.beginPath();g.moveTo(x,RULER_Y-8);g.lineTo(x,RULER_Y-(isMaj?2:5));g.stroke();
+    if(isMaj){g.fillStyle=C.muted;g.fillText(rulerLabel(s,major),x,RULER_Y+6)}
+  }
+  // note lane — two rows so overlapping notes don't hide each other
+  hits=[];const rowsEnd=[-1e9,-1e9];
+  for(const c of S.cues){
+    let r=rowsEnd[0]<=c.start+1e-6?0:rowsEnd[1]<=c.start+1e-6?1:0;rowsEnd[r]=Math.max(rowsEnd[r],c.start+c.duration);
+    const bx=X(c.start),bw=Math.max(c.duration*P,8),by=LANE_Y+r*(ROW_H+ROW_GAP);
+    if(bx>W||bx+bw<0)continue;
+    hits.push({c,x:bx,y:by,w:bw,h:ROW_H});
+    const n=c.mode==='sequence'&&c.steps.length>1?c.steps.length:1,sw=bw/n,act=activeIds(c,cur),sel=selIds.has(c.id);
+    for(let i=0;i<n;i++){
+      const on=c.mode==='sequence'?act.includes(c.steps[i])&&Math.floor((cur-c.start)/c.duration*n)===i:act.length>0;
+      g.fillStyle=on?C.gold:sel?C.teal:c.steps.length?C.raised:C.bg;g.strokeStyle=on?C.gold:(sel||c.id===editing)?C.teal:C.steel;g.lineWidth=(sel||c.id===editing)?2.5:1;
+      rr(g,bx+i*sw+1,by,Math.max(sw-2,5),ROW_H,6);g.fill();g.stroke();
+      const lab=n>1?FIELDS.get(c.steps[i]).label:cueLabel(c);
+      if(sw>16){g.fillStyle=on?C.goldInk:sel?C.tealInk:C.text;g.font='700 13px '+FF;g.textAlign='center';g.save();g.beginPath();g.rect(bx+i*sw,by,sw,ROW_H);g.clip();g.fillText(lab,bx+i*sw+sw/2,by+ROW_H/2+4.5);g.restore()}
+    }
+    if(currentView==='cues'&&!selectMode&&bw>30){g.fillStyle=sel?C.tealInk:C.steel;g.globalAlpha=.7;g.fillRect(bx+bw-7,by+8,2.5,ROW_H-16);g.globalAlpha=1}
+  }
+  // selection box while dragging across the timeline
+  if(drag&&drag.kind==='range'&&drag.moved&&drag.ta!=null){const a=X(Math.min(drag.ta,drag.tb)),w=Math.abs(drag.tb-drag.ta)*P;g.fillStyle=C.teal;g.globalAlpha=.18;g.fillRect(a,0,w,H);g.globalAlpha=1;g.strokeStyle=C.teal;g.lineWidth=1.5;g.strokeRect(a+.5,.5,w,H-1)}
+  // where a dragged note will land
+  if(drag&&drag.moved&&drag.snapAt!=null){
+    const x=Math.round(X(drag.snapAt))+.5;g.strokeStyle=C.teal;g.lineWidth=2;g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke();g.lineWidth=1;
+    const lab=fmt(drag.snapAt)+(drag.snapped?' ✓':'');g.font='700 12px '+FF;const tw=g.measureText(lab).width+12,lx=Math.min(Math.max(x-tw/2,2),W-tw-2);
+    g.fillStyle=C.teal;rr(g,lx,2,tw,18,5);g.fill();g.fillStyle=C.tealInk;g.textAlign='center';g.fillText(lab,lx+tw/2,15);
+  }
+  // end of recording
+  if(len){const xe=X(len);if(xe<W){g.fillStyle=C.bg;g.globalAlpha=.6;g.fillRect(xe,0,W-xe,H);g.globalAlpha=1}}
+  // playhead
+  g.fillStyle=C.gold;g.fillRect(mid-1,6,2,H-12);g.beginPath();g.moveTo(mid-6,4);g.lineTo(mid+6,4);g.lineTo(mid,11);g.closePath();g.fill();
+}
+function rr(g,x,y,w,h,r){r=Math.min(r,w/2,h/2);g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+function renderTLHint(){
+  $('tlTools').hidden=currentView!=='cues';
+  const secs=($('tl').clientWidth||360)/pps();$('zoomLabel').textContent=(secs<10?secs.toFixed(1):Math.round(secs))+' s';
+  renderSel();
+}
+function setZoom(v){ppsVal=Math.min(640,Math.max(15,v));renderTLHint();drawTL()}
+$('zoomIn').onclick=()=>setZoom(ppsVal*1.5);
+$('zoomOut').onclick=()=>setZoom(ppsVal/1.5);
+window.addEventListener('resize',()=>{renderTLHint();drawTL()});
+function applyDrag(){
+  const d=drag;if(!d)return;
+  const P=pps(),cur=audio.currentTime||0,dt=(d.xc-d.x0)/P+(cur-d.t0);
+  if(d.kind==='scrub'){if(hasAudio)audio.currentTime=Math.min(Math.max(0,d.t0-(d.xc-d.x0)/P),audio.duration||0)}
+  else if(d.kind==='move'){
+    const anchor=d.hit.c,s0=d.starts.get(anchor.id),raw=Math.max(0,s0+dt),tgt=snapTime(raw);
+    let delta=tgt-s0;const earliest=Math.min(...d.starts.values());delta=Math.max(delta,-earliest);
+    for(const c of d.group)c.start=r3(d.starts.get(c.id)+delta);
+    d.snapAt=anchor.start;d.snapped=tgt!==raw;
+    if(editing&&d.starts.has(editing))$('start').value=+S.cues.find(c=>c.id===editing).start.toFixed(2);
+  }
+  else if(d.kind==='resize'){
+    const c=d.hit.c,raw=c.start+d.d0+dt,tgt=snapTime(raw);c.duration=r3(Math.max(0.05,tgt-c.start));
+    d.snapAt=c.start+c.duration;d.snapped=tgt!==raw;if(editing===c.id)$('duration').value=c.duration;
+  }
+  else if(d.kind==='range'){const mid=d.w/2;d.ta=d.t0+(d.x0-mid)/P;d.tb=cur+(d.xc-mid)/P}
+  tick();
+}
+function edgeLoop(){
+  edgeRaf=0;const d=drag;if(!d||!d.moved||d.kind==='scrub'||!audio.paused||!hasAudio)return;
+  const E=40;let v=0;if(d.xc<E)v=-(E-d.xc)/E;else if(d.xc>d.w-E)v=(d.xc-(d.w-E))/E;
+  if(v){audio.currentTime=Math.min(Math.max(0,(audio.currentTime||0)+v*(d.w/pps())*0.012),audio.duration||0);applyDrag()}
+  edgeRaf=requestAnimationFrame(edgeLoop);
+}
+(function(){
+  const cv=$('tl');
+  const pos=e=>{const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top,w:r.width}};
+  const dist=()=>{const [p,q]=[...pointers.values()];return Math.hypot(p.x-q.x,p.y-q.y)||1};
+  const cancelDrag=()=>{if(drag&&drag.pushed){S.cues=JSON.parse(undoStack.pop());renderUndo();renderCues()}drag=null};
+  cv.addEventListener('pointerdown',e=>{
+    const p=pos(e);pointers.set(e.pointerId,p);try{cv.setPointerCapture(e.pointerId)}catch{}
+    if(pointers.size===2){cancelDrag();pinch={d0:dist(),p0:ppsVal};return}
+    if(pointers.size>2)return;
+    const h=[...hits].reverse().find(b=>p.x>=b.x-6&&p.x<=b.x+b.w+6&&p.y>=b.y-3&&p.y<=b.y+b.h+3);
+    const inCues=currentView==='cues';let kind='scrub';
+    if(inCues&&h)kind=(!selectMode&&p.x>h.x+h.w-22&&h.w>30)?'resize':'move';
+    else if(inCues&&selectMode)kind='range';
+    let group=[];
+    if(kind==='move')group=selIds.has(h.c.id)?selCues():[h.c];
+    drag={x0:p.x,xc:p.x,w:p.w,moved:false,hit:h,kind,group,starts:new Map(group.map(c=>[c.id,c.start])),d0:h?h.c.duration:0,t0:audio.currentTime||0,playing:!audio.paused,pushed:false,snapAt:null};
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!pointers.has(e.pointerId))return;const p=pos(e);pointers.set(e.pointerId,p);
+    if(pinch&&pointers.size===2){e.preventDefault();setZoom(pinch.p0*dist()/pinch.d0);return}
+    if(!drag)return;drag.xc=p.x;const dx=p.x-drag.x0;
+    if(!drag.moved){if(Math.abs(dx)<7)return;drag.moved=true;
+      if(drag.kind==='scrub'&&drag.playing)audio.pause();
+      if(drag.kind==='move'||drag.kind==='resize'){pushUndo();drag.pushed=true;
+        if(drag.kind==='move'&&!selIds.has(drag.hit.c.id)&&!selectMode){selIds=new Set([drag.hit.c.id]);renderSel()}}}
+    e.preventDefault();applyDrag();
+    if(!edgeRaf&&drag.kind!=='scrub')edgeRaf=requestAnimationFrame(edgeLoop);
+  });
+  const end=e=>{
+    pointers.delete(e.pointerId);
+    if(pinch){if(pointers.size<2)pinch=null;return}
+    if(!drag)return;const d=drag;drag=null;
+    const inCues=currentView==='cues';
+    if(!d.moved){
+      if(d.hit&&inCues){
+        const id=d.hit.c.id;
+        if(selectMode){selIds.has(id)?selIds.delete(id):selIds.add(id)}
+        else selIds=(selIds.size===1&&selIds.has(id))?new Set():new Set([id]);
+        renderSel();drawTL();return;
+      }
+      if(inCues&&!selectMode&&selIds.size){selIds.clear();renderSel()}
+      if(hasAudio){const t=d.hit?d.hit.c.start:(audio.currentTime||0)+(d.x0-d.w/2)/pps();audio.currentTime=Math.min(Math.max(0,t),audio.duration||0);tick()}
+      return;
+    }
+    if(d.kind==='scrub'){if(d.playing)audio.play().catch(()=>{});return}
+    if(d.kind==='range'){
+      const ta=Math.min(d.ta,d.tb),tb=Math.max(d.ta,d.tb);
+      selIds=new Set(S.cues.filter(c=>c.start<tb&&c.start+c.duration>ta).map(c=>c.id));
+      renderSel();drawTL();say(selIds.size?'Selected '+noteCount(selCues())+' notes.':'No notes in that stretch.');return;
+    }
+    if(isDemo){isDemo=false;renderDemo()}
+    afterEdit(d.kind==='move'?(d.group.length>1?'Moved '+d.group.length+' notes.':'Now at '+fmt(d.hit.c.start)+(d.snapped?' (snapped).':'.')):'Now lasts '+d.hit.c.duration.toFixed(2)+' s.');
+  };
+  cv.addEventListener('pointerup',end);
+  cv.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;cancelDrag();tick()});
+})();
+
+/* ---------- share & export ---------- */
+let downloads=null, storeReady=false;
+function renderShare(){
+  storeReady=true;
+  const ok=!!downloads;
+  for(const id of['expPdf','expPng','expJson','vidBtn'])$(id).disabled=!ok;
+  $('dlNote').hidden=ok;
+}
+const fileBase=()=>(S.title||'pan-part').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,80)||'pan-part';
+async function offerFile(name,data){
+  if(!downloads){say("Saving files isn't available here. Use Copy as text instead.");return false}
+  try{await downloads.save({filename:name,data});say('Saved '+name+'.');return true}
+  catch(e){const c=e&&e.code;
+    say(c==='declined'?'Not saved.':c==='rate_limited'?'A save is already waiting for you. Finish that one first.':c==='too_large'?'That file is too big to save here.':'Could not save the file. Try again in a moment.');return false}
+}
+function barText(b,times,pos){
+  const ent=[...b.slots.entries()].sort((x,y)=>x[0]-y[0]),parts=[];let prevEnd=-1;
+  const one=id=>FIELDS.get(id).label+(pos?'('+shortPos(FIELDS.get(id).pos)+')':'');
+  for(let n=0;n<ent.length;n++){
+    const [sl,v]=ent[n];if(prevEnd>=0&&sl-prevEnd>2)parts.push('·');
+    const mk=v.fx?' '+MARKS[v.fx]:'';
+    if(v.ids.length>1){parts.push('['+v.ids.map(one).join(' ')+']'+mk);prevEnd=sl;continue}
+    let m=n;while(m+1<ent.length&&ent[m+1][1].ids.length===1&&ent[m+1][1].ids[0]===v.ids[0]&&ent[m+1][1].fx===v.fx)m++;
+    parts.push(one(v.ids[0])+(m>n?'×'+(m-n+1):'')+mk);prevEnd=ent[m][0];n=m;
+  }
+  return (parts.join(' ')||'—')+(times>1?' (×'+times+')':'');
+}
+function partText(){
+  const B=buildBars(),D=displayList(B),G=B.G,pos=S.sheetPos,order=S.swapped?'Left: B/F pan · Right: E/C pan':'Left: E/C pan · Right: B/F pan';
+  const lines=[(S.title||'My part').toUpperCase(),'Double guitar · Cello section · '+order+(G.real?' · '+(+S.grid.bpm.toFixed(1))+' BPM':''),'[C E] = together · F×4 = four in a row · · = rest · r = roll, s = strum, d = drop'+(pos?' · out/in = outer/inner, up/low = upper/lower, L/R = left/right side':''),''];
+  let run=[];
+  const flush=()=>{for(let q=0;q<run.length;q+=4){const items=run.slice(q,q+4);lines.push((G.real?'Bar '+barLabel(G,items[0].b.i):barLabel(G,items[0].b.i)).padEnd(7)+'| '+items.map(it=>barText(it.b,it.times,pos)).join(' | ')+' |');
+    for(const it of items)for(const x of it.b.notes)lines.push('        Note: '+x)}run=[]};
+  for(const it of D.out){
+    if(it.type==='bar'){run.push(it);continue}flush();
+    if(it.type==='fold')lines.push('↻ Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to)+': same as bars '+barLabel(G,it.src)+'–'+barLabel(G,it.src+3)+(it.count>1?' ('+it.count+' times)':''));
+    else lines.push(G.real?'Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to)+': rest':barLabel(G,it.from)+' – '+fmt(G.o+(it.to+1)*G.bar)+': no notes');
+  }
+  flush();
+  if(!B.arr.length)lines.push('(No notes yet)');
+  lines.push('','Made with Pan Notes');
+  return lines.join('\n');
+}
+$('expText').onclick=()=>{
+  const txt=partText(),box=$('expTextBox');box.value=txt;
+  const fallback=()=>{box.hidden=false;box.focus();box.select();say('Copy the text in the box below.')};
+  try{navigator.clipboard.writeText(txt).then(()=>{box.hidden=true;say('Copied. Paste it into your group chat.')},fallback)}catch{fallback()}
+};
+async function photoDataUrls(){
+  const out={};
+  for(const k of['ec','bf']){const src=photoSrc(k);if(!src)continue;
+    if(src.startsWith('data:')){out[k]=src;continue}
+    try{const b=await (await fetch(src)).blob();out[k]=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b)})}catch{}}
+  return out;
+}
+$('expJson').onclick=async()=>{
+  const photos=await photoDataUrls();
+  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,swapped:S.swapped,grid:S.grid,cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),savedAt:new Date().toISOString()},null,1);
+  offerFile(fileBase()+' - Pan Notes backup.json',data);
+};
+$('impJson').onchange=async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const p=JSON.parse(await f.text());
+    const okFormat=(p.format==='pan-notes'&&p.version===2)||(p.format==='pan-notes-standalone'&&p.version===1);
+    if(!okFormat||!Array.isArray(p.cues))throw Error('format');
+    const cues=p.cues.filter(c=>c&&Number.isFinite(c.start)&&c.start>=0&&Number.isFinite(c.duration)&&c.duration>=0.05&&Array.isArray(c.steps)&&c.steps.every(id=>FIELDS.has(id)))
+      .map(c=>({id:uid(),start:c.start,duration:c.duration,steps:[...c.steps],mode:c.mode==='together'?'together':'sequence',note:String(c.note||'').slice(0,1000),...(MARKS[c.fx]?{fx:c.fx}:{})}));
+    const wasDemo=isDemo;if(!isDemo)pushUndo();isDemo=false;renderDemo();selIds.clear();
+    S.cues=cues.sort((a,b)=>a.start-b.start);if(p.title)S.title=String(p.title).slice(0,200);S.swapped=p.swapped===true;normalizeChords();
+    const gr=p.grid;if(gr&&gr.bpm>=30&&gr.bpm<=300&&Number.isFinite(gr.offset)&&[2,3,4].includes(gr.perBar))S.grid={bpm:gr.bpm,offset:gr.offset,perBar:gr.perBar};
+    let extra='';
+    // the old HTML app stored the recording and photos inside its backup
+    if(typeof p.audio==='string'&&/^data:[^,]*;base64,/.test(p.audio)){
+      const blob=dataUrlToBlob(p.audio,'audio/mpeg');
+      loadAudio(blob,S.title||'Recording');idbPut('audio',{blob,name:S.title||'Recording'});extra+=' Recording loaded too.';
+    }
+    if(p.photos&&typeof p.photos==='object')for(const k of['ec','bf']){
+      const d=p.photos[k];if(typeof d!=='string'||!/^data:image\/(jpeg|png|webp);base64,/.test(d))continue;
+      try{if(assets){const blob=dataUrlToBlob(d,'image/jpeg');const r=await assets.upload(blob);S.photos[k]={id:r.id}}else S.photos[k]={data:d};extra=extra.includes('photos')?extra:extra+' Pan photos added.'}catch{}
+    }
+    renderAll();save();
+    say('Opened '+cues.length+' cues from the backup.'+extra+(wasDemo?'':' Tap Undo in Cues if you want your old cues back.'));
+  }catch{say("That file isn't a Pan Notes backup. Choose a file saved with Save backup file.")}
+};
+
+function dataUrlToBlob(d,fallbackType){const raw=atob(d.slice(d.indexOf(',')+1)),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return new Blob([bytes],{type:d.slice(5,d.indexOf(';'))||fallbackType})}
+/* Part sheet drawn as a printable page (light paper look), used for PDF and picture */
+const INK='#13282b',SUB='#5b7072',RULE='#c9d4d4',CHIP='#eef3f2',CHIPLINE='#9fb4b5',CHORD='#fff3d6',CHORDLINE='#d9a640',ACCENT='#b9821a';
+function drawPanKey(g,p,x,y,w){
+  const [, ,vw,vh]=p.view.split(' ').map(Number),s=w/vw;
+  g.save();g.translate(x,y);g.scale(s,s);
+  g.fillStyle='#22383c';g.strokeStyle='#7d9598';g.lineWidth=10;g.beginPath();g.ellipse(p.cx,p.cy,p.rx,p.ry,0,0,Math.PI*2);g.fill();g.stroke();
+  for(const f of p.fields){
+    const path=new Path2D(f[3]);g.fillStyle='#e6eeeb';g.fill(path);g.strokeStyle='#2a4245';g.lineWidth=8;g.stroke(path);
+    const inner=f[2].startsWith('inner');
+    g.fillStyle=INK;g.textAlign='center';g.textBaseline='middle';
+    g.font='700 '+(inner?70:96)+'px '+sheetFont();g.fillText(f[1],f[4],f[5]-(inner?18:26));
+    g.font=(inner?40:48)+'px '+sheetFont();g.fillStyle=SUB;g.fillText(shortPos(f[2]),f[4],f[5]+(inner?40:52));
+  }
+  g.restore();return vh*s;
+}
+function sheetFont(){return '"Atkinson Hyperlegible", system-ui, sans-serif'}
+function layoutSheet(W){
+  const M=80,CW=W-2*M,F=sheetFont(),D='"Bricolage Grotesque", system-ui, sans-serif';
+  const mg=document.createElement('canvas').getContext('2d');
+  const blocks=[],order=S.swapped?[PANS[1],PANS[0]]:PANS,nBars=(()=>{const B=buildBars();return B.arr.filter(b=>b.slots.size).length})();
+  const total=S.cues.reduce((k,c)=>k+Math.max(1,c.steps.length),0),len=S.cues.length?Math.max(...S.cues.map(c=>c.start+c.duration)):0;
+  blocks.push({h:150,draw:(g,y)=>{
+    g.textAlign='left';g.textBaseline='alphabetic';
+    g.fillStyle=ACCENT;g.font='700 20px '+F;g.fillText('PAN NOTES · DOUBLE GUITAR · CELLO SECTION',M,y+30);
+    g.fillStyle=INK;g.font='800 54px '+D;g.fillText(S.title||'My part',M,y+92);
+    g.fillStyle=SUB;g.font='24px '+F;g.fillText(total+' notes · '+nBars+(S.grid?' bars':' blocks')+' · runs to '+fmt(len),M,y+130);
+  }});
+  const kw=(CW-60)/2,kh=Math.max(...order.map(p=>{const v=p.view.split(' ').map(Number);return kw*v[3]/v[2]}));
+  blocks.push({h:kh+96,draw:(g,y)=>{
+    g.fillStyle=RULE;g.fillRect(M,y,CW,2);
+    order.forEach((p,i)=>{const x=M+i*(kw+60);g.fillStyle=SUB;g.font='700 20px '+F;g.textAlign='left';g.textBaseline='alphabetic';g.fillText((i?'RIGHT':'LEFT')+' · '+p.name.toUpperCase(),x,y+40);drawPanKey(g,p,x,y+56,kw)});
+  }});
+  const B=buildBars(),Dl=displayList(B),G=B.G,pos=S.sheetPos;
+  blocks.push({h:96,draw:(g,y)=>{g.fillStyle=SUB;g.font='20px '+F;g.textAlign='left';g.textBaseline='alphabetic';
+    g.fillText((G.real?'Bars at '+(+S.grid.bpm.toFixed(1))+' BPM. ':'Each box is 2 seconds. ')+'Dashed box = play together · F×4 = four in a row · • = rest · r roll · s strum · d drop',M,y+30,CW);
+    g.fillText(pos?'out = outer · in = inner · up / low = upper / lower · L / R = left / right side of the pan':'Orange = E / C pan · Blue = B / F pan',M,y+58,CW)}});
+  const EC='#b8561c',BF='#1d64ad',LW=78,X0=M+LW,XM=M+CW,ROW=pos?100:74,PAD=14,GAPT=12;
+  // width of one token, measured the same way drawTok lays it out: each note is as wide as its letter or its position
+  const tokW=t=>{let w=0;t.ids.forEach((id,i)=>{mg.font='700 34px '+F;let lw=mg.measureText(FIELDS.get(id).label).width;
+      if(t.run>1){mg.font='700 20px '+F;lw+=mg.measureText('×'+t.run).width+3}
+      if(pos){mg.font='15px '+F;lw=Math.max(lw,mg.measureText(shortPos(FIELDS.get(id).pos)).width)}w+=lw+(i?10:0)});
+    if(t.fx){mg.font='700 22px '+F;w+=mg.measureText(MARKS[t.fx]).width+6}
+    return w+(t.ids.length>1?18:0)};
+  const barToks=b=>{const ent=[...b.slots.entries()].sort((x,y)=>x[0]-y[0]),out=[];let prevEnd=-1;
+    for(let n=0;n<ent.length;n++){const [sl,v]=ent[n];const rest=prevEnd>=0&&sl-prevEnd>2;
+      if(v.ids.length>1){out.push({ids:v.ids,run:1,rest,fx:v.fx});prevEnd=sl;continue}
+      let m=n;while(m+1<ent.length&&ent[m+1][1].ids.length===1&&ent[m+1][1].ids[0]===v.ids[0]&&ent[m+1][1].fx===v.fx)m++;
+      out.push({ids:v.ids,run:m-n+1,rest,fx:v.fx});prevEnd=ent[m][0];n=m}
+    return out};
+  const drawTok=(g,t,x,y)=>{
+    if(t.ids.length>1){g.strokeStyle=CHORDLINE;g.lineWidth=2;g.setLineDash([7,5]);rr(g,x,y+8,tokW(t),pos?72:50,8);g.stroke();g.setLineDash([]);x+=9}
+    for(const id of t.ids){const lab=FIELDS.get(id).label;g.font='700 34px '+F;g.fillStyle=panKey(id)==='ec'?EC:BF;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(lab,x,y+46);let w=g.measureText(lab).width;
+      if(t.run>1){g.font='700 20px '+F;g.fillStyle=ACCENT;g.fillText('×'+t.run,x+w+3,y+30);w+=g.measureText('×'+t.run).width+3}
+      if(pos){g.font='15px '+F;g.fillStyle=SUB;const p=shortPos(FIELDS.get(id).pos);g.fillText(p,x,y+70);w=Math.max(w,g.measureText(p).width)}
+      x+=w+10}
+    if(t.fx){g.font='700 22px '+F;g.fillStyle=ACCENT;g.textAlign='left';g.fillText(MARKS[t.fx],x-4,y+24)}};
+  const barW=(b,times)=>{const ts=barToks(b);let w=PAD*2+ts.reduce((a,t)=>a+tokW(t)+GAPT+(t.rest?18:0),0)-GAPT;if(!ts.length)w=PAD*2+30;if(times>1){mg.font='700 20px '+F;w+=mg.measureText('×'+times).width+8}return w};
+  const textBlock=(txt,color,dashed)=>blocks.push({h:62,draw:(g,y)=>{g.strokeStyle=RULE;g.lineWidth=2;g.setLineDash(dashed?[8,6]:[]);rr(g,M,y+6,CW,46,10);g.stroke();g.setLineDash([]);g.fillStyle=color;g.font=(dashed?'700 ':'')+'22px '+F;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(txt,M+18,y+37,CW-36)}});
+  let line=[],lx=X0;
+  const flushLine=()=>{if(!line.length)return;const items=line,notes=items.flatMap(it=>it.b.notes.map(x=>(G.real?'Bar '+barLabel(G,it.b.i):barLabel(G,it.b.i))+' · '+x));line=[];lx=X0;
+    blocks.push({h:ROW+16+notes.length*28,draw:(g,y)=>{
+      g.fillStyle=SUB;g.font='700 20px '+F;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(G.real?barLabel(G,items[0].b.i):barLabel(G,items[0].b.i),M,y+42);
+      let x=X0;g.fillStyle='#9fb4b5';g.fillRect(x,y+4,2.5,ROW-8);
+      for(const it of items){const w=barW(it.b,it.times);let tx=x+PAD;
+        for(const t of barToks(it.b)){if(t.rest){g.fillStyle=SUB;g.beginPath();g.arc(tx+5,y+36,4,0,Math.PI*2);g.fill();tx+=18}drawTok(g,t,tx,y);tx+=tokW(t)+GAPT}
+        if(!it.b.slots.size){g.fillStyle=SUB;g.font='700 30px '+F;g.fillText('—',tx,y+46)}
+        if(it.times>1){g.fillStyle=ACCENT;g.font='700 20px '+F;g.textAlign='right';g.fillText('×'+it.times,x+w-6,y+44);g.textAlign='left'}
+        x+=w;g.fillStyle='#9fb4b5';g.fillRect(x,y+4,2.5,ROW-8)}
+      notes.forEach((n,i)=>{g.fillStyle=SUB;g.font='italic 20px '+F;g.textAlign='left';g.fillText(n,X0,y+ROW+18+i*28,CW-LW)});
+    }})};
+  for(const it of Dl.out){
+    if(it.type==='bar'){const w=barW(it.b,it.times);if(line.length&&(lx+w>XM||line.length>=4))flushLine();line.push(it);lx+=w;continue}
+    flushLine();
+    if(it.type==='fold')textBlock('↻  Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to)+': same as bars '+barLabel(G,it.src)+'–'+barLabel(G,it.src+3)+(it.count>1?' ('+it.count+' times)':''),ACCENT,true);
+    else textBlock(G.real?(it.from===it.to?'Bar '+barLabel(G,it.from):'Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to))+' · rest':barLabel(G,it.from)+' – '+fmt(G.o+(it.to+1)*G.bar)+' · no notes',SUB,false);
+  }
+  flushLine();
+  if(!B.arr.length)blocks.push({h:60,draw:(g,y)=>{g.fillStyle=SUB;g.font='24px '+F;g.textAlign='left';g.fillText('No notes yet.',M,y+36)}});
+  return{blocks,M};
+}
+/* Timeline export: the song in lines, waveform on top, your notes underneath at their exact times */
+let expKind='timeline';
+function renderExpKind(){
+  $('expKind').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===expKind)));
+}
+$('expKind').querySelectorAll('button').forEach(b=>b.onclick=()=>{expKind=b.dataset.k;renderExpKind()});
+$('shareTL').onclick=()=>{expKind='timeline';renderExpKind();showView('setup');setTimeout(()=>$('sharePanel').scrollIntoView({behavior:'smooth',block:'start'}),50)};
+function exportItems(){
+  const out=[];
+  for(const c of S.cues){
+    if(c.note)out.push({t:c.start,note:c.note});
+    if(!c.steps.length)continue;
+    if(c.mode==='sequence'){const n=c.steps.length;c.steps.forEach((id,i)=>out.push({t:c.start+i*c.duration/n,d:c.duration/n,ids:[id],fx:markOf(c)}))}
+    else out.push({t:c.start,d:c.duration,ids:[...c.steps],fx:markOf(c)});
+  }
+  return out.sort((a,b)=>a.t-b.t);
+}
+function layoutTimeline(W){
+  const M=80,CW=W-2*M,F=sheetFont(),mg=document.createElement('canvas').getContext('2d');
+  const blocks=layoutSheet(W).blocks.slice(0,2);   // title + pan key
+  const items=exportItems(),notes=items.filter(i=>i.ids),reminders=items.filter(i=>i.note);
+  const len=Math.max(Number.isFinite(audio.duration)?audio.duration:0,...notes.map(i=>i.t+i.d),0);
+  let rowLen,start,bar=0;
+  if(S.grid){bar=barLen();const per=Math.max(1,Math.round(6/bar));rowLen=bar*per;start=S.grid.offset-Math.ceil(S.grid.offset/bar-1e-9)*bar}
+  else{rowLen=6;start=0}
+  const P=CW/rowLen,WAVE_H=60,CELL=58,HEAD=34,GAP=26;   // GAP: room under the sound wave for the time labels
+  blocks.push({h:70,draw:(g,y)=>{g.fillStyle=SUB;g.font='20px '+F;g.textAlign='left';g.textBaseline='alphabetic';
+    g.fillText('Each line is '+(S.grid?Math.round(rowLen/bar)+(Math.round(rowLen/bar)===1?' bar':' bars')+' at '+(+S.grid.bpm.toFixed(1))+' BPM':'6 seconds')+'. Read left to right. The coloured bar under each note shows how long it lasts.',M,y+24,CW);
+    g.fillText('out = outer · in = inner · up / low = upper / lower · L / R = left / right side of the pan · dashed = together',M,y+52,CW)}});
+  let emptyFrom=null;
+  const flushEmpty=(to)=>{if(emptyFrom===null)return;const a=Math.max(0,emptyFrom),b=Math.max(0,to);emptyFrom=null;if(b-a<0.01)return;
+    blocks.push({h:44,draw:(g,y)=>{g.fillStyle=RULE;g.fillRect(M,y+21,CW,1.5);g.fillStyle='#ffffff';const t=fmt(a)+' – '+fmt(b)+'  ·  no notes';g.font='italic 20px '+F;const w=g.measureText(t).width+24;g.fillRect(M+CW/2-w/2,y+8,w,28);g.fillStyle=SUB;g.textAlign='center';g.fillText(t,M+CW/2,y+29)}})};
+  for(let r0=start;r0<len-1e-6;r0+=rowLen){
+    const r1=r0+rowLen,inRow=notes.filter(i=>i.t>=r0-1e-6&&i.t<r1-1e-6),over=notes.filter(i=>i.t<r0-1e-6&&i.t+i.d>r0),rem=reminders.filter(i=>i.t>=r0-1e-6&&i.t<r1-1e-6);
+    if(!inRow.length&&!over.length&&!rem.length){if(emptyFrom===null)emptyFrom=r0;continue}
+    flushEmpty(r0);
+    // stack notes into lanes so their labels never overlap
+    const lanes=[];
+    for(const it of inRow){
+      const lab=itemLabel(it)+(it.fx?' '+MARKS[it.fx]:''),pos=itemPos(it),x=M+(it.t-r0)*P;
+      mg.font='700 26px '+F;const lw=mg.measureText(lab).width;mg.font='15px '+F;const pw=mg.measureText(pos).width;
+      const end=Math.max(x+it.d*P,x+Math.max(lw,pw)+10)+8;
+      let li=lanes.findIndex(e=>e<=x);if(li<0){li=lanes.length;lanes.push(end)}else lanes[li]=end;
+      it._lane=li;it._lab=lab;it._pos=pos;
+    }
+    const nl=Math.max(1,lanes.length),remLines=rem.length,h=HEAD+WAVE_H+GAP+nl*CELL+remLines*28+22;
+    const barNo=bar?Math.round((r0-S.grid.offset)/bar)+1:0;
+    blocks.push({h,draw:(g,y)=>{
+      const X=t=>M+(t-r0)*P,top=y+HEAD,laneTop=top+WAVE_H+GAP,bottom=laneTop+nl*CELL;
+      g.textBaseline='alphabetic';g.textAlign='left';
+      g.fillStyle=INK;g.font='700 22px '+F;g.fillText(fmt(Math.max(0,r0)),M,y+24);
+      if(bar&&barNo>=1){g.fillStyle=SUB;g.font='20px '+F;g.fillText('Bar '+barNo,M+110,y+24)}
+      g.fillStyle='#f3f6f6';rr(g,M,top,CW,WAVE_H,8);g.fill();
+      // grid
+      if(bar){const beat=beatLen(),pb=S.grid.perBar;
+        for(let k=Math.ceil((r0-S.grid.offset)/beat-1e-6);S.grid.offset+k*beat<=r1+1e-6;k++){const t=S.grid.offset+k*beat,x=Math.round(X(t))+.5,isBar=((k%pb)+pb)%pb===0;
+          g.fillStyle=isBar?'#9fb4b5':'#dde5e5';g.fillRect(x-(isBar?1:0.5),top,isBar?2:1,bottom-top);
+          if(isBar){const bn=Math.round((t-S.grid.offset)/bar)+1;if(bn>=1&&x<M+CW-20){g.fillStyle=SUB;g.font='700 15px '+F;g.fillText(String(bn),x+4,top+16)}}}}
+      else{for(let s=Math.ceil(r0);s<=r1;s++){const x=Math.round(X(s))+.5;g.fillStyle='#dde5e5';g.fillRect(x-.5,top,1,bottom-top);if(x>M+4&&x<M+CW-4){g.fillStyle=SUB;g.font='14px '+F;g.textAlign='center';g.fillText(fmt(s).replace(/\.0$/,''),x,top+WAVE_H+18);g.textAlign='left'}}}
+      // waveform
+      if(peaks){g.fillStyle='#d9a640';const mid=top+WAVE_H/2;
+        for(let x=0;x<CW;x+=3){const t=r0+x/P;if(t<0||t>len)continue;const i=Math.floor(t*peakRate),k=Math.max(1,Math.ceil(peakRate/P*3));let m=0;for(let j=Math.max(0,i);j<i+k&&j<peaks.length;j++)if(peaks[j]>m)m=peaks[j];const hh=Math.max(1,m*(WAVE_H/2-6));g.fillRect(M+x,mid-hh,2,hh*2)}}
+      else{g.fillStyle=SUB;g.font='italic 15px '+F;g.fillText('(open the recording on this device to include the sound wave)',M+10,top+WAVE_H/2+5)}
+      // notes carried over from the previous line
+      for(const it of over){const w=Math.min(r1,it.t+it.d)-r0;g.fillStyle=it.ids.length>1?CHORDLINE:'#2f6f73';g.globalAlpha=.5;g.fillRect(M,laneTop+4,w*P,10);g.globalAlpha=1}
+      // notes
+      for(const it of inRow){
+        const x=X(it.t),w=Math.max(6,Math.min(it.d,r1-it.t)*P),cy=laneTop+it._lane*CELL,chord=it.ids.length>1;
+        g.fillStyle=INK;g.fillRect(Math.round(x)-1,cy,2,CELL-6);
+        if(chord){g.strokeStyle=CHORDLINE;g.lineWidth=3;g.setLineDash([7,5]);g.strokeRect(x+1,cy+5,w-2,8);g.setLineDash([]);g.fillStyle=CHORD;g.fillRect(x+1,cy+5,w-2,8)}
+        else{g.fillStyle='#2f6f73';rr(g,x+1,cy+4,w-2,10,4);g.fill()}
+        g.fillStyle=INK;g.font='700 26px '+F;g.textAlign='left';g.fillText(it._lab,x+6,cy+40);
+        g.fillStyle=SUB;g.font='15px '+F;g.fillText(it._pos,x+6,cy+56);
+      }
+      // reminders
+      rem.forEach((it,i)=>{g.fillStyle=SUB;g.font='italic 20px '+F;g.textAlign='left';g.fillText(fmt(it.t)+'  '+it.note,M,bottom+26+i*28,CW)});
+      g.fillStyle=RULE;g.fillRect(M,y+h-6,CW,1.5);
+    }});
+  }
+  flushEmpty(Math.max(start,len));
+  if(!notes.length&&!reminders.length)blocks.push({h:60,draw:(g,y)=>{g.fillStyle=SUB;g.font='24px '+F;g.textAlign='left';g.fillText('No notes yet.',M,y+36)}});
+  return{blocks,M};
+}
+async function sheetCanvases(mode){
+  try{await document.fonts.ready}catch{}
+  const W=1240,{blocks,M}=(expKind==='timeline'?layoutTimeline:layoutSheet)(W),pages=[];
+  if(mode==='pdf'){
+    const H=1754;let page=[],y=M;
+    for(const b of blocks){if(y+b.h>H-M-30&&page.length){pages.push(page);page=[];y=M}page.push({b,y});y+=b.h}
+    if(page.length)pages.push(page);
+    return pages.map((pg,i)=>{const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,W,H);
+      for(const {b,y} of pg)b.draw(g,y);
+      g.fillStyle=SUB;g.font='18px '+sheetFont();g.textAlign='right';g.textBaseline='alphabetic';g.fillText('Page '+(i+1)+' of '+pages.length,W-M,H-40);return cv});
+  }
+  const H=Math.min(16000,blocks.reduce((s,b)=>s+b.h,0)+2*M),cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const g=cv.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,W,H);let y=M;for(const b of blocks){if(y+b.h>H)break;b.draw(g,y);y+=b.h}
+  return[cv];
+}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+async function busy(btn,fn){const t=btn.textContent;btn.disabled=true;btn.textContent='Preparing…';try{await fn()}finally{btn.disabled=!downloads;btn.textContent=t}}
+const kindName=()=>expKind==='timeline'?'timeline':'part';
+$('expPng').onclick=()=>busy($('expPng'),async()=>{
+  const [cv]=await sheetCanvases('png');
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  if(!blob){say('Could not draw the picture. Try the PDF instead.');return}
+  if(cv.height>=16000)say('This song is long, so the picture stops partway. Save as PDF to get all of it.');
+  await offerFile(fileBase()+' - '+kindName()+'.png',blob);
+});
+$('expPdf').onclick=()=>busy($('expPdf'),async()=>{
+  if(!(window.jspdf&&window.jspdf.jsPDF)){
+    try{await loadScript(window.PAN_APP?'jspdf.umd.min.js':'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')}catch{say('Could not prepare the PDF. Check your connection, or save it as a picture instead.');return}
+  }
+  const pages=await sheetCanvases('pdf');
+  const pdf=new window.jspdf.jsPDF({unit:'pt',format:'a4'}),pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,pw,ph)});
+  await offerFile(fileBase()+' - '+kindName()+'.pdf',pdf.output('blob'));
+});
+
+/* ---------- views ---------- */
+/* ---------- practice notes: a page to write on with a stylus ---------- */
+const PAGE_W=1000,INKS=['#eef3f1','#ffc65c','#5fc4c0','#ff8a7a'];
+let inkIdx=0,inkTool='pen',inkColor=0,inkCache=new Map(),inkUndo=[],inkRedo=[],inkSaveT=0,stylusOnly=false,penSeen=false,inkDraw=null,inkScale=1;
+function pages(){if(!S.notePages.length)S.notePages.push({id:uid(),created:Date.now(),h:1414});return S.notePages}
+const curPage=()=>pages()[Math.min(inkIdx,pages().length-1)];
+const pageDoc=id=>db.doc('data/users/'+userId+'/pan/notes/'+id);
+// strokes are stored compactly: "x,y,pressure;x,y,pressure;…" in page units (1000 wide)
+const encInk=st=>st.map(k=>({c:k.c,w:k.w,d:k.p.map(q=>q[0]+','+q[1]+','+q[2]).join(';')}));
+const decInk=arr=>Array.isArray(arr)?arr.filter(k=>k&&typeof k.d==='string').map(k=>({c:+k.c||0,w:+k.w||5,p:k.d.split(';').map(q=>q.split(',').map(Number)).filter(q=>q.length===3&&q.every(Number.isFinite))})):[];
+async function loadInk(id){
+  if(inkCache.has(id))return inkCache.get(id);
+  let st=[];
+  try{if(db&&userId){const snap=await pageDoc(id).get();if(snap.exists)st=decInk(snap.data().strokes)}}catch{}
+  if(!st.length){try{const raw=localStorage.getItem('pan-ink-'+id);if(raw)st=decInk(JSON.parse(raw))}catch{}}
+  inkCache.set(id,st);return st;
+}
+function saveInk(){
+  const pg=curPage(),st=inkCache.get(pg.id)||[];clearTimeout(inkSaveT);
+  inkSaveT=setTimeout(async()=>{
+    const enc=encInk(st),json=JSON.stringify(enc);
+    try{localStorage.setItem('pan-ink-'+pg.id,json)}catch{}
+    if(json.length>230000)say('This page is nearly full. Add a new page with ＋ to keep writing.');
+    if(db&&userId){try{await pageDoc(pg.id).set({strokes:enc,updatedAt:Date.now()})}catch(e){say('Could not save this page to your account ('+((e&&e.code)||'error')+'). It is kept on this device.')}}
+    save();
+  },900);
+}
+function inkSize(){
+  const box=$('inkBox'),cv=$('ink'),pg=curPage(),w=box.clientWidth-2,dpr=window.devicePixelRatio||1;if(w<=0)return;
+  inkScale=w/PAGE_W;const h=Math.round(pg.h*inkScale);
+  cv.style.height=h+'px';cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);
+}
+function strokePath(g,k){
+  const p=k.p;if(!p.length)return;g.strokeStyle=INKS[k.c]||INKS[0];g.fillStyle=g.strokeStyle;g.lineCap='round';g.lineJoin='round';
+  const wd=q=>k.w*(0.35+q[2]/100*1.3);
+  if(p.length===1){g.beginPath();g.arc(p[0][0],p[0][1],wd(p[0])/2,0,Math.PI*2);g.fill();return}
+  for(let i=1;i<p.length;i++){
+    const a=p[i-1],b=p[i],m0=i>1?[(p[i-2][0]+a[0])/2,(p[i-2][1]+a[1])/2]:a,m1=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    g.lineWidth=wd(a);g.beginPath();g.moveTo(m0[0],m0[1]);g.quadraticCurveTo(a[0],a[1],m1[0],m1[1]);g.stroke();
+  }
+  const a=p[p.length-2],b=p[p.length-1];g.lineWidth=wd(b);g.beginPath();g.moveTo((a[0]+b[0])/2,(a[1]+b[1])/2);g.lineTo(b[0],b[1]);g.stroke();
+}
+function drawInk(){
+  const cv=$('ink'),g=cv.getContext('2d'),dpr=window.devicePixelRatio||1,pg=curPage();
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cv.width,cv.height);
+  g.setTransform(dpr*inkScale,0,0,dpr*inkScale,0,0);
+  // faint ruled lines and the date, like a notebook page
+  g.strokeStyle='rgba(196,209,211,.07)';g.lineWidth=2;for(let y=120;y<pg.h;y+=70){g.beginPath();g.moveTo(40,y);g.lineTo(PAGE_W-40,y);g.stroke()}
+  g.fillStyle='rgba(151,174,176,.7)';g.font='600 26px '+getComputedStyle(document.body).fontFamily;g.textBaseline='alphabetic';
+  g.fillText(new Date(pg.created).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'  ·  '+(S.title||'Practice notes'),40,64);
+  for(const k of inkCache.get(pg.id)||[])strokePath(g,k);
+}
+function renderInkTools(){
+  $('swatches').innerHTML=INKS.map((c,i)=>'<button class="sw" data-c="'+i+'" style="background:'+c+'" aria-label="Pen colour '+(i+1)+'" aria-pressed="'+(inkTool==='pen'&&inkColor===i)+'"></button>').join('');
+  $('swatches').querySelectorAll('.sw').forEach(b=>b.onclick=()=>{inkTool='pen';inkColor=+b.dataset.c;renderInkTools()});
+  document.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(inkTool===b.dataset.tool)));
+  $('inkUndo').disabled=!inkUndo.length;$('inkRedo').disabled=!inkRedo.length;
+  const n=pages().length;$('pgLabel').textContent='Page '+(Math.min(inkIdx,n-1)+1)+' of '+n;
+  $('pgPrev').disabled=inkIdx<=0;$('pgNext').disabled=inkIdx>=n-1;
+  $('stylusBtn').textContent='Stylus only: '+(stylusOnly?'on':'off');$('stylusBtn').setAttribute('aria-pressed',String(stylusOnly));$('stylusBtn').classList.toggle('on',stylusOnly);
+}
+async function openNotes(){
+  inkIdx=Math.min(inkIdx,pages().length-1);renderInkTools();
+  await loadInk(curPage().id);inkSize();drawInk();
+}
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{inkTool=inkTool===b.dataset.tool?'pen':b.dataset.tool;renderInkTools()});
+function inkSnapshot(){const pg=curPage();inkUndo.push({id:pg.id,st:[...(inkCache.get(pg.id)||[])]});if(inkUndo.length>60)inkUndo.shift();inkRedo=[]}
+$('inkUndo').onclick=()=>{const u=inkUndo.pop();if(!u)return;inkRedo.push({id:u.id,st:[...(inkCache.get(u.id)||[])]});inkCache.set(u.id,u.st);drawInk();renderInkTools();saveInk()};
+$('inkRedo').onclick=()=>{const r=inkRedo.pop();if(!r)return;inkUndo.push({id:r.id,st:[...(inkCache.get(r.id)||[])]});inkCache.set(r.id,r.st);drawInk();renderInkTools();saveInk()};
+const goPage=async i=>{inkIdx=Math.max(0,Math.min(pages().length-1,i));inkUndo=[];inkRedo=[];await openNotes();$('inkBox').scrollTop=0};
+$('pgPrev').onclick=()=>goPage(inkIdx-1);$('pgNext').onclick=()=>goPage(inkIdx+1);
+$('pgAdd').onclick=()=>{S.notePages.push({id:uid(),created:Date.now(),h:1414});inkCache.set(S.notePages[S.notePages.length-1].id,[]);save();goPage(S.notePages.length-1);say('New page.')};
+$('pgMore').onclick=()=>{const m=$('pgMenu');m.hidden=!m.hidden;$('pgMore').setAttribute('aria-expanded',String(!m.hidden))};
+$('stylusBtn').onclick=()=>{stylusOnly=!stylusOnly;renderInkTools()};
+let clearArmed=0,delArmed=0;
+$('pgClear').onclick=()=>{if(Date.now()-clearArmed>3000){clearArmed=Date.now();$('pgClear').textContent='Tap again to clear';setTimeout(()=>$('pgClear').textContent='Clear page',3000);return}
+  inkSnapshot();inkCache.set(curPage().id,[]);drawInk();renderInkTools();saveInk();$('pgClear').textContent='Clear page';say('Page cleared. ↶ brings it back.')};
+$('pgDelete').onclick=async()=>{if(Date.now()-delArmed>3000){delArmed=Date.now();$('pgDelete').textContent='Tap again to delete';setTimeout(()=>$('pgDelete').textContent='Delete page',3000);return}
+  const pg=curPage();S.notePages=S.notePages.filter(x=>x.id!==pg.id);inkCache.delete(pg.id);try{localStorage.removeItem('pan-ink-'+pg.id)}catch{}
+  if(db&&userId)pageDoc(pg.id).delete().catch(()=>{});save();$('pgDelete').textContent='Delete page';await goPage(Math.max(0,inkIdx-1));say('Page deleted.')};
+$('pgSave').onclick=async()=>{const cv=$('ink'),out=document.createElement('canvas');out.width=cv.width;out.height=cv.height;const g=out.getContext('2d');g.fillStyle='#121d20';g.fillRect(0,0,out.width,out.height);g.drawImage(cv,0,0);
+  const blob=await new Promise(r=>out.toBlob(r,'image/png'));if(blob)offerFile((S.title||'Pan')+' - notes page '+(inkIdx+1)+'.png',blob)};
+(function(){
+  const cv=$('ink'),box=$('inkBox');
+  const pt=e=>{const r=cv.getBoundingClientRect();const pr=e.pointerType==='pen'?(e.pressure||0.5):0.5;return[Math.round((e.clientX-r.left)/inkScale),Math.round((e.clientY-r.top)/inkScale),Math.round(pr*99)]};
+  // distance from the eraser to each segment of a stroke, so long straight lines are caught too
+  const segDist=(q,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy;let t=L?((q[0]-a[0])*dx+(q[1]-a[1])*dy)/L:0;t=Math.max(0,Math.min(1,t));return Math.hypot(q[0]-a[0]-t*dx,q[1]-a[1]-t*dy)};
+  const hitStroke=(k,q,R)=>k.p.length===1?Math.hypot(k.p[0][0]-q[0],k.p[0][1]-q[1])<R:k.p.some((p,i)=>i>0&&segDist(q,k.p[i-1],p)<R);
+  const eraseAt=q=>{const pg=curPage(),st=inkCache.get(pg.id)||[];const keep=st.filter(k=>!hitStroke(k,q,22+k.w));if(keep.length!==st.length){inkCache.set(pg.id,keep);drawInk();inkDraw.changed=true}};
+  cv.addEventListener('pointerdown',e=>{
+    if(inkDraw)return;
+    if(e.pointerType==='pen'&&!penSeen){penSeen=true;stylusOnly=true;renderInkTools();say('Stylus found: the pen writes, your finger scrolls.')}
+    const scroll=inkTool==='hand'||(stylusOnly&&e.pointerType!=='pen');
+    try{cv.setPointerCapture(e.pointerId)}catch{}
+    if(scroll){inkDraw={scroll:true,id:e.pointerId,y0:e.clientY,s0:box.scrollTop};return}
+    e.preventDefault();inkSnapshot();
+    if(inkTool==='eraser'){const q=pt(e);inkDraw={erase:true,id:e.pointerId,changed:false,last:q};eraseAt(q);return}
+    const k={c:inkColor,w:5,p:[pt(e)]};(inkCache.get(curPage().id)||inkCache.set(curPage().id,[]).get(curPage().id)).push(k);
+    inkDraw={k,id:e.pointerId};drawInk();
+  });
+  cv.addEventListener('pointermove',e=>{
+    const d=inkDraw;if(!d||e.pointerId!==d.id)return;
+    if(d.scroll){box.scrollTop=d.s0-(e.clientY-d.y0);return}
+    e.preventDefault();
+    let evs=e.getCoalescedEvents?e.getCoalescedEvents():[];if(!evs.length)evs=[e];   // some browsers return no extra points
+    // erase along the whole path between reported points, so a quick swipe still catches strokes
+    if(d.erase){for(const ev of evs){const q=pt(ev),a=d.last,n=Math.max(1,Math.ceil(Math.hypot(q[0]-a[0],q[1]-a[1])/12));for(let i=1;i<=n;i++)eraseAt([a[0]+(q[0]-a[0])*i/n,a[1]+(q[1]-a[1])*i/n,0]);d.last=q}return}
+    const g=cv.getContext('2d'),dpr=window.devicePixelRatio||1;g.setTransform(dpr*inkScale,0,0,dpr*inkScale,0,0);
+    for(const ev of evs){const q=pt(ev),last=d.k.p[d.k.p.length-1];if(Math.abs(q[0]-last[0])+Math.abs(q[1]-last[1])<2)continue;d.k.p.push(q);
+      g.strokeStyle=INKS[d.k.c];g.lineCap='round';g.lineWidth=d.k.w*(0.35+q[2]/100*1.3);g.beginPath();g.moveTo(last[0],last[1]);g.lineTo(q[0],q[1]);g.stroke()}
+    // grow the page when writing near the bottom
+    const pg=curPage(),y=d.k.p[d.k.p.length-1][1];if(y>pg.h-160){pg.h+=700;inkSize();drawInk()}
+  });
+  const end=e=>{const d=inkDraw;if(!d||e.pointerId!==d.id)return;inkDraw=null;
+    if(d.scroll)return;
+    if(d.erase&&!d.changed){inkUndo.pop();renderInkTools();return}
+    drawInk();renderInkTools();saveInk()};
+  cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+  window.addEventListener('resize',()=>{if(currentView==='notes'){inkSize();drawInk()}});
+})();
+
+/* ---------- video export: pans lighting up + scrolling timeline + the recording ---------- */
+// The song plays once (in real time) into a hidden player; every frame is drawn onto a
+// 1280×720 canvas, and the browser's recorder films that canvas together with the sound.
+const VW=1280,VH=720,V_WIN=6,V_HEAD=0.3;   // 6 seconds of timeline visible, playhead 30% in
+const VC={bg:'#0d1a1d',strip:'#132629',line:'#24403f',wave:'#4d6c70',wavePast:'#8a7a4c',gold:'#f2b13a',goldSoft:'rgba(242,177,58,.55)',text:'#e8f0ee',muted:'#8aa3a5',block:'#2c5a60',blockLine:'#4d8a91',rim:'#2c4a4f',bed:'#18302f',zone:'#d9e5e2',zoneLine:'#29464a',ink:'#13282b'};
+const ZONE_PATHS=new Map(PANS.flatMap(p=>p.fields.map(f=>[f[0],new Path2D(f[3])])));
+let vid=null, vidRangeSel='all';
+function vidMime(){
+  if(!window.MediaRecorder)return null;
+  const list=['video/mp4;codecs=avc1.42E01F,mp4a.40.2','video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  for(const m of list){try{if(MediaRecorder.isTypeSupported(m))return m}catch{}}
+  return '';
+}
+function vidRange(){
+  const d=Number.isFinite(audio.duration)?audio.duration:totalLen();
+  if(vidRangeSel==='loop'&&A!==null&&B!==null)return[A,B];
+  if(vidRangeSel==='here')return[Math.min(audio.currentTime||0,Math.max(0,d-1)),d];
+  return[0,d];
+}
+function loadPanImages(){
+  const out={};
+  if(S.look!=='photo')return Promise.resolve(out);
+  return Promise.all(PANS.map(p=>new Promise(res=>{
+    const src=photoSrc(p.key);if(!src)return res();
+    const im=new Image();im.onload=()=>{out[p.key]=im;res()};im.onerror=()=>res();im.src=src;
+  }))).then(()=>out);
+}
+function roundRect(g,x,y,w,h,r){g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,r);else g.rect(x,y,w,h)}
+
+// Letters strip: every hit as a letter at its moment, chords stacked in a dashed box, bars marked.
+let vidStyle='letters', vidTok=null, vidWinLen=V_WIN;
+const VPAN=['#f2b38a','#8fc7ff'];   // E / C pan notes, B / F pan notes (same as the part view)
+function buildVidTokens(){
+  const out=[];
+  for(const c of S.cues){
+    if(!c.steps.length){out.push({t:c.start,end:c.start+c.duration,ids:[],fx:'',memo:true});continue}
+    if(c.mode==='sequence'){const n=c.steps.length,st=c.duration/n;c.steps.forEach((id,i)=>out.push({t:c.start+i*st,end:c.start+(i+1)*st,ids:[id],fx:markOf(c)}))}
+    else out.push({t:c.start,end:c.start+c.duration,ids:[...c.steps].sort(byScreen),fx:markOf(c)});
+  }
+  out.sort((a,b)=>a.t-b.t);vidTok=out;
+  // pick a zoom so quick runs don't overlap: most gaps between notes get at least ~58 px
+  const ts=[...new Set(out.filter(k=>!k.memo).map(k=>+k.t.toFixed(3)))],gaps=[];
+  for(let i=1;i<ts.length;i++){const d=ts[i]-ts[i-1];if(d>0.02)gaps.push(d)}
+  gaps.sort((a,b)=>a-b);
+  const g15=gaps.length?gaps[Math.floor(gaps.length*0.15)]:1;
+  vidWinLen=Math.max(2,Math.min(8,VW*g15/64));
+  // very quick runs: shrink those letters a little so neighbours never touch
+  const pps=VW/vidWinLen,mg=document.createElement('canvas').getContext('2d'),F=sheetFont(),notes=out.filter(k=>!k.memo);
+  notes.forEach((k,i)=>{
+    const base=k.ids.length>2?30:40;mg.font='700 '+base+'px '+F;
+    const w=Math.max(...k.ids.map(id=>mg.measureText(FIELDS.get(id).label).width))+(k.ids.length>1?20:12);
+    const prev=notes[i-1],next=notes[i+1],room=Math.min(prev&&prev.t<k.t-0.001?(k.t-prev.t)*pps:1e9,next&&next.t>k.t+0.001?(next.t-k.t)*pps:1e9)-8;
+    k.fs=w>room?Math.max(22,Math.floor(base*room/w)):base;
+  });
+}
+function drawLetterStrip(g,t,sy,sh,F){
+  if(!vidTok)buildVidTokens();
+  const win=vidWinLen,pps=VW/win,t0=t-win*V_HEAD,px=s=>(s-t0)*pps;
+  g.fillStyle=VC.strip;g.fillRect(0,sy,VW,sh);
+  // thin waveform along the top
+  const wy=sy+15;
+  if(peaks){for(let x=0;x<VW;x+=3){const s=t0+x/pps;if(s<0)continue;const i=Math.floor(s*peakRate);if(i>=peaks.length)break;
+      const v=Math.max(1,peaks[i]*10);g.fillStyle=x<VW*V_HEAD?VC.wavePast:VC.wave;g.fillRect(x,wy-v,2,v*2)}}
+  // bar lines with bar numbers (or times when no beat grid is set)
+  const G=barGrid();
+  if(G.real){const bl=60/S.grid.bpm;let k=Math.ceil((t0-G.o)/bl);
+    for(;;k++){const bt=G.o+k*bl,x=px(bt);if(x>VW)break;if(bt<0||k%S.grid.perBar===0)continue;g.fillStyle='rgba(232,240,238,.06)';g.fillRect(Math.round(x),sy+30,1,sh-30)}}
+  g.textBaseline='middle';g.textAlign='left';g.font='600 15px '+F;
+  for(let i=Math.floor((t0-G.o)/G.bar);;i++){const bt=G.o+i*G.bar,x=px(bt);if(x>VW)break;if(bt<0)continue;
+    g.fillStyle='rgba(232,240,238,.28)';g.fillRect(Math.round(x),sy+30,2,sh-30);
+    g.fillStyle=VC.muted;g.fillText((G.real?'Bar ':'')+barLabel(G,i),x+6,sy+40)}
+  const mid=sy+30+(sh-30)/2+6;
+  for(const k of vidTok){
+    if(k.end<t0-1||k.t>t0+win+1)continue;
+    const x=px(k.t),act=t>=k.t&&t<k.end,past=!act&&k.end<=t;
+    if(k.memo){g.textAlign='center';g.font='22px '+F;g.fillStyle=VC.muted;g.fillText('✎',x,sy+sh-14);continue}
+    const n=k.ids.length,fs=k.fs||(n>2?30:40),lh=fs*1.05;
+    g.font='700 '+fs+'px '+F;
+    const pad=Math.round(fs*(n>1?0.5:0.3)),w=Math.max(...k.ids.map(id=>g.measureText(FIELDS.get(id).label).width))+pad,h=n*lh+(n>1?12:6);
+    const bx=x-w/2,by=mid-h/2;
+    g.globalAlpha=past?0.4:1;
+    // a roll keeps going: wavy line for as long as it lasts
+    if(k.fx==='roll'){const x2=Math.max(x+w/2,px(k.end));g.strokeStyle=act?VC.gold:'rgba(242,177,58,.6)';g.lineWidth=3;g.beginPath();
+      for(let xx=x+w/2;xx<=x2;xx+=2){const yy=by+h+8+Math.sin(xx/4)*3;xx===x+w/2?g.moveTo(xx,yy):g.lineTo(xx,yy)}g.stroke()}
+    if(act){roundRect(g,bx,by,w,h,10);g.fillStyle=VC.gold;g.fill()}
+    else if(n>1){roundRect(g,bx,by,w,h,10);g.setLineDash([5,4]);g.strokeStyle='rgba(232,240,238,.55)';g.lineWidth=2;g.stroke();g.setLineDash([])}
+    g.textAlign='center';
+    k.ids.forEach((id,i)=>{g.fillStyle=act?VC.ink:VPAN[ORD.get(id)[0]];g.fillText(FIELDS.get(id).label,x,by+(n>1?6:3)+lh*(i+0.5))});
+    if(k.fx){g.font='700 20px '+F;g.fillStyle=VC.gold;g.textAlign='left';g.fillText(MARKS[k.fx],bx+w+3,by+8)}
+    g.globalAlpha=1;
+  }
+}
+function drawVideoFrame(g,t,imgs,range){
+  const F=sheetFont(),D='"Bricolage Grotesque", system-ui, sans-serif';
+  g.setTransform(1,0,0,1,0,0);g.fillStyle=VC.bg;g.fillRect(0,0,VW,VH);
+  const live=S.cues.filter(c=>t>=c.start&&t<c.start+c.duration);
+  const ids=[...new Set(live.flatMap(c=>activeIds(c,t)))].sort(byScreen);
+  const on=new Set(ids),rolling=new Set(live.filter(c=>c.fx==='roll').flatMap(c=>activeIds(c,t)));
+  const soon=S.hint==='off'?new Set():upcoming(t,live);
+  // header: title, what's playing now, time
+  g.textBaseline='middle';g.textAlign='left';g.fillStyle=VC.text;g.font='700 26px '+D;
+  g.fillText((S.title||'My part').slice(0,48),28,30);
+  const fx=live.map(markOf).find(Boolean);
+  const now=ids.length?ids.map(id=>FIELDS.get(id).label).join(' + ')+(fx?'  ·  '+MARK_NAMES[fx]:''):'';
+  g.textAlign='right';g.font='22px '+F;g.fillStyle=VC.muted;
+  const d=Number.isFinite(audio.duration)?audio.duration:range[1];
+  g.fillText(fmt(t)+' / '+fmt(d),VW-28,30);
+  if(now){g.textAlign='center';g.font='700 26px '+F;g.fillStyle=VC.gold;g.fillText(now,VW/2,30)}
+  // timeline strip: your part as letters scrolling past the gold line (or plain boxes)
+  const sy=58,sh=168,hx=VW*V_HEAD;
+  if(vidStyle==='letters'){drawLetterStrip(g,t,sy,sh,F);}else{
+  const pps=VW/V_WIN,t0=t-V_WIN*V_HEAD,px=s=>(s-t0)*pps;
+  g.fillStyle=VC.strip;g.fillRect(0,sy,VW,sh);
+  if(S.grid){const bl=60/S.grid.bpm,per=S.grid.perBar;let k=Math.ceil((t0-S.grid.offset)/bl);
+    for(;;k++){const bt=S.grid.offset+k*bl,x=px(bt);if(x>VW)break;if(bt<0)continue;
+      const bar=((k%per)+per)%per===0;g.fillStyle=bar?'rgba(232,240,238,.22)':'rgba(232,240,238,.07)';g.fillRect(Math.round(x),sy,bar?2:1,sh)}}
+  const wy=sy+52,wh=40;
+  if(peaks){for(let x=0;x<VW;x+=3){const s=t0+x/pps;if(s<0)continue;const i=Math.floor(s*peakRate);if(i>=peaks.length)break;
+      const v=Math.max(1.5,peaks[i]*wh);g.fillStyle=x<hx?VC.wavePast:VC.wave;g.fillRect(x,wy-v,2,v*2)}}
+  else{g.fillStyle=VC.line;g.fillRect(0,wy,VW,1)}
+  const by=sy+102,bh=52;
+  g.textBaseline='middle';g.textAlign='left';g.font='700 22px '+F;
+  for(const c of S.cues){
+    if(c.start+c.duration<t0||c.start>t0+V_WIN)continue;
+    const x=px(c.start),w=Math.max(8,c.duration*pps),act=t>=c.start&&t<c.start+c.duration;
+    roundRect(g,x,by,w,bh,8);
+    if(!c.steps.length){g.setLineDash([6,5]);g.strokeStyle=VC.muted;g.lineWidth=2;g.stroke();g.setLineDash([])}
+    else{g.fillStyle=act?VC.gold:VC.block;g.fill();g.strokeStyle=act?VC.gold:VC.blockLine;g.lineWidth=2;g.stroke()}
+    g.save();g.beginPath();g.rect(Math.max(x,0),by,Math.max(0,Math.min(w,VW-x)),bh);g.clip();
+    g.fillStyle=act?VC.ink:VC.text;g.fillText(cueLabel(c),Math.max(x,0)+10,by+bh/2);g.restore();
+  }
+  }
+  g.fillStyle=VC.gold;g.fillRect(hx-1.5,sy,3,sh);
+  g.beginPath();g.moveTo(hx-9,sy);g.lineTo(hx+9,sy);g.lineTo(hx,sy+11);g.closePath();g.fill();
+  // the two pans
+  const order=S.swapped?[PANS[1],PANS[0]]:PANS,top=sy+sh+14,areaH=VH-top-40,areaW=600;
+  const shimmer=0.55+0.35*Math.sin(performance.now()/60);
+  order.forEach((p,pi)=>{
+    const [, ,vw,vh]=p.view.split(' ').map(Number),s=Math.min(areaW/vw,(areaH-30)/vh),cx=VW/4+pi*VW/2;
+    const x=cx-vw*s/2,y=top+30+(areaH-30-vh*s)/2;
+    g.textAlign='center';g.textBaseline='middle';g.font='600 20px '+F;g.fillStyle=VC.muted;g.fillText(p.name,cx,top+12);
+    g.save();g.translate(x,y);g.scale(s,s);
+    const im=imgs[p.key];
+    if(im)g.drawImage(im,0,0,vw,vh);
+    else{g.fillStyle=VC.bed;g.strokeStyle=VC.rim;g.lineWidth=28;g.beginPath();g.ellipse(p.cx,p.cy,p.rx-14,p.ry-14,0,0,Math.PI*2);g.fill();g.stroke()}
+    for(const f of p.fields){
+      const path=ZONE_PATHS.get(f[0]),act=on.has(f[0]),inner=f[2].startsWith('inner');
+      if(!im){g.fillStyle=act?VC.gold:VC.zone;g.fill(path);g.strokeStyle=VC.zoneLine;g.lineWidth=8;g.stroke(path)}
+      else if(act){g.fillStyle=VC.goldSoft;g.fill(path)}
+      if(act){
+        if(rolling.has(f[0])){g.globalAlpha=shimmer;g.fillStyle='#fff3c8';g.fill(path);g.globalAlpha=1}
+        g.strokeStyle=VC.gold;g.lineWidth=18;g.stroke(path);
+      }else if(soon.has(f[0])){g.setLineDash([28,20]);g.strokeStyle=S.hint==='bold'?'rgba(120,200,210,.95)':'rgba(232,240,238,.55)';g.lineWidth=S.hint==='bold'?14:8;g.stroke(path);g.setLineDash([])}
+      if(!im||act){
+        g.font='700 '+(inner?80:104)+'px '+F;
+        if(im){g.lineWidth=14;g.strokeStyle='rgba(13,26,29,.85)';g.strokeText(f[1],f[4],f[5])}
+        g.fillStyle=im?'#fff':VC.ink;g.fillText(f[1],f[4],f[5]);
+      }
+    }
+    g.restore();
+  });
+  // reminder text for this moment, and a small credit
+  const rem=live.map(c=>c.note).filter(Boolean).join(' · ');
+  g.textBaseline='middle';
+  if(rem){g.textAlign='left';g.font='italic 20px '+F;g.fillStyle=VC.text;g.fillText(rem.slice(0,110),28,VH-18)}
+  g.textAlign='right';g.font='16px '+F;g.fillStyle=VC.muted;g.fillText('Pan Notes',VW-24,VH-18);
+}
+function renderVidSheet(){
+  const busy=vid&&vid.state==='rec',done=vid&&vid.state==='done';
+  $('vidGo').hidden=busy||done;$('vidStop').hidden=!busy;$('vidSave').hidden=!done;
+  $('vidRangeLab').hidden=busy;$('vidStyleLab').hidden=busy;$('vidStyle').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.s===vidStyle)));$('vidProg').hidden=!busy&&!done;
+  const loopOk=A!==null&&B!==null;
+  $('vidRange').querySelectorAll('button').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.r===vidRangeSel));if(b.dataset.r==='loop')b.disabled=!loopOk});
+}
+async function vidPreview(){
+  const g=$('vidCv').getContext('2d'),r=vidRange();
+  const imgs=await loadPanImages();if(vid&&vid.state==='rec')return;
+  drawVideoFrame(g,r[0],imgs,r);
+}
+function openVid(){
+  if(!hasAudio){say('Add your recording in Setup first, then make a video.');return}
+  if(vidMime()===null||!$('vidCv').captureStream){say("This browser can't record video. Try Chrome on your phone or computer.");return}
+  if(vidRangeSel==='loop'&&(A===null||B===null))vidRangeSel='all';
+  if(vid&&vid.state==='done'){vid=null}
+  audio.pause();
+  $('vidMsg').textContent='The song plays once while the video is made, so it takes as long as the song. Keep this screen open and on until it finishes.';
+  $('vidProgFill').style.width='0';
+  buildVidTokens();$('vidSheet').hidden=false;renderVidSheet();vidPreview();
+}
+$('vidBtn').onclick=openVid;
+$('vidRange').querySelectorAll('button').forEach(b=>b.onclick=()=>{vidRangeSel=b.dataset.r;renderVidSheet();vidPreview()});
+$('vidStyle').querySelectorAll('button').forEach(b=>b.onclick=()=>{vidStyle=b.dataset.s;renderVidSheet();vidPreview()});
+$('vidClose').onclick=()=>{if(vid&&vid.state==='rec')vidFinish(true);vid=null;$('vidSheet').hidden=true};
+$('vidStop').onclick=()=>vidFinish(false);
+$('vidGo').onclick=async()=>{
+  const [start,end]=vidRange();
+  if(!(end-start>0.5)){say('That stretch is too short to record.');return}
+  const mime=vidMime();
+  // the sound engine has to start inside the tap, or phones keep it silent
+  let ac;try{ac=new (window.AudioContext||window.webkitAudioContext)();ac.resume()}catch{say("This browser can't record sound with the video. Try Chrome.");return}
+  const v={state:'rec',ac,start,end,chunks:[],mime,player:new Audio(),stopped:false};vid=v;renderVidSheet();
+  $('vidMsg').textContent='Getting ready…';
+  try{
+    const pl=v.player;pl.preload='auto';pl.src=audio.currentSrc||audio.src;pl.playbackRate=1;
+    await new Promise((res,rej)=>{if(pl.readyState>=1)return res();pl.onloadedmetadata=res;pl.onerror=()=>rej(Error('load'));setTimeout(()=>rej(Error('timeout')),15000)});
+    pl.currentTime=start;
+    await new Promise(res=>{if(Math.abs(pl.currentTime-start)<0.05&&!pl.seeking)return res();pl.onseeked=res;setTimeout(res,3000)});
+    const imgs=await loadPanImages();
+    if(vid!==v)return;
+    const src=ac.createMediaElementSource(pl),dest=ac.createMediaStreamDestination();
+    src.connect(dest);src.connect(ac.destination);
+    const cv=$('vidCv'),g=cv.getContext('2d');drawVideoFrame(g,start,imgs,[start,end]);
+    const stream=new MediaStream([...cv.captureStream(30).getVideoTracks(),...dest.stream.getAudioTracks()]);
+    const opts={videoBitsPerSecond:2500000,audioBitsPerSecond:128000};if(mime)opts.mimeType=mime;
+    const rec=new MediaRecorder(stream,opts);v.rec=rec;v.stream=stream;
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)v.chunks.push(e.data)};
+    rec.onstop=()=>vidDone(v);
+    rec.start(1000);
+    await pl.play();
+    v.clock={ct:-1,at:0,last:start};
+    const vt=()=>{const ct=pl.currentTime,n=performance.now();if(ct!==v.clock.ct){v.clock.ct=ct;v.clock.at=n}
+      let e=ct+(n-v.clock.at)/1000;if(e-ct>0.25)e=ct;if(e<v.clock.last)e=v.clock.last;v.clock.last=e;return e};
+    holdAwakeVideo(true);
+    $('vidMsg').textContent='Recording… keep this screen open.';
+    const frame=()=>{
+      if(vid!==v||v.state!=='rec')return;
+      const t=vt();drawVideoFrame(g,Math.min(t,end),imgs,[start,end]);
+      $('vidProgFill').style.width=Math.min(100,(t-start)/(end-start)*100)+'%';
+      $('vidMsg').textContent='Recording… '+fmt(t-start)+' of '+fmt(end-start)+'. Keep this screen open.';
+      if(t>=end||pl.ended){vidFinish(false);return}
+      requestAnimationFrame(frame);
+    };
+    pl.onended=()=>{if(vid===v&&v.state==='rec')vidFinish(false)};
+    requestAnimationFrame(frame);
+  }catch(e){
+    if(vid===v){vidFinish(true);vid=null;renderVidSheet();$('vidMsg').textContent="Couldn't start the video here. Try again, or use Chrome."}
+  }
+};
+function vidFinish(cancel){
+  const v=vid;if(!v||v.stopped)return;v.stopped=true;v.cancel=cancel;
+  try{v.player.pause()}catch{}
+  holdAwakeVideo(false);
+  if(v.rec&&v.rec.state!=='inactive'){$('vidMsg').textContent='Finishing the video…';v.rec.stop()}
+  else vidDone(v);
+}
+function vidDone(v){
+  try{v.stream&&v.stream.getTracks().forEach(t=>t.stop())}catch{}
+  try{v.ac.close()}catch{}
+  try{v.player.removeAttribute('src');v.player.load()}catch{}
+  if(v.cancel||vid!==v){if(vid===v){vid=null;renderVidSheet()}return}
+  const type=(v.rec&&v.rec.mimeType)||v.mime||'video/webm';
+  v.blob=new Blob(v.chunks,{type:type.split(';')[0]});v.chunks=[];
+  v.ext=/mp4/.test(type)?'mp4':'webm';
+  if(!v.blob.size){vid=null;renderVidSheet();$('vidMsg').textContent='Nothing was recorded. Try again and keep this screen open.';return}
+  v.state='done';renderVidSheet();$('vidProgFill').style.width='100%';
+  $('vidMsg').textContent='Your video is ready ('+(v.blob.size/1048576).toFixed(1)+' MB, '+v.ext.toUpperCase()+'). Tap Save video.'+(v.ext==='webm'?' WebM plays on Android and computers; iPhones may need it sent through WhatsApp or YouTube.':'');
+}
+$('vidSave').onclick=async()=>{
+  if(!vid||vid.state!=='done')return;
+  const rng=vidRangeSel==='loop'?' (loop)':vidRangeSel==='here'?' (from '+fmt(vid.start).replace(':','m')+')':'';
+  await offerFile(fileBase()+' - Pan Notes video'+rng+'.'+vid.ext,vid.blob);
+};
+let vidWake=null;
+async function holdAwakeVideo(on){
+  try{if(on&&!vidWake&&navigator.wakeLock){vidWake=await navigator.wakeLock.request('screen');vidWake.addEventListener('release',()=>{vidWake=null})}
+    if(!on&&vidWake){await vidWake.release();vidWake=null}}catch{vidWake=null}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&vid&&vid.state==='rec')holdAwakeVideo(true)});
+
+/* ---------- screen: full screen and staying awake ---------- */
+async function toggleFullscreen(){
+  try{
+    if(document.fullscreenElement||document.webkitFullscreenElement){await (document.exitFullscreen||document.webkitExitFullscreen).call(document);return}
+    const el=document.documentElement,req=el.requestFullscreen||el.webkitRequestFullscreen;
+    if(!req)throw Error('no');await req.call(el,{navigationUI:'hide'});
+  }catch{say("Full screen isn't allowed here. Open Pan Notes in Chrome and try again, or ask Claude about the app version.")}
+}
+$('fsBtn').onclick=$('fsBtn2').onclick=toggleFullscreen;
+let wakeLock=null;
+async function holdAwake(on){
+  try{
+    if(on&&S.wake&&!audio.paused&&!wakeLock&&navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null})}
+    if(!on&&wakeLock){await wakeLock.release();wakeLock=null}
+  }catch{wakeLock=null}
+}
+audio.addEventListener('play',()=>holdAwake(true));audio.addEventListener('pause',()=>holdAwake(false));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')holdAwake(true)});
+function renderHint(){document.body.dataset.hint=S.hint;$('hintSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.h===S.hint)))}
+$('hintSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.hint=b.dataset.h;renderHint();save();say(S.hint==='off'?'Next-note hint off.':'Next-note hint: '+S.hint+'.')});
+function renderWake(){$('wakeBtn').textContent='Keep screen awake: '+(S.wake?'on':'off');$('wakeBtn').classList.toggle('on',S.wake);$('wakeBtn').setAttribute('aria-pressed',String(S.wake))}
+$('wakeBtn').onclick=()=>{S.wake=!S.wake;renderWake();save();holdAwake(S.wake)};
+
+/* ---------- landscape stage: note highway + edit drawer ---------- */
+const stageMQ=window.matchMedia('(orientation:landscape) and (max-height:520px)');
+const isStage=()=>stageMQ.matches;
+function placeTimeline(){
+  const target=isStage()?$('drawerBody'):$('slot-'+currentView);
+  if(target&&$('tlPanel').parentNode!==target)target.appendChild($('tlPanel'));
+  if(!isStage())openDrawer(false);
+  renderTLHint();requestAnimationFrame(()=>{drawTL();drawHW(viewT)});
+}
+function openDrawer(on){
+  const d=$('drawer');d.classList.toggle('closed',!on);d.setAttribute('aria-hidden',String(!on));
+  if(on){renderTLHint();requestAnimationFrame(drawTL)}
+}
+$('editBtn').onclick=$('editBtn2').onclick=()=>{if(currentView!=='cues')showView('cues');openDrawer(true)};
+$('drawerClose').onclick=()=>openDrawer(false);
+stageMQ.addEventListener?stageMQ.addEventListener('change',placeTimeline):stageMQ.addListener(placeTimeline);
+// every note in time order, for the highway
+let hwItems=[];
+function buildHW(){
+  hwItems=[];
+  for(const c of S.cues){if(!c.steps.length)continue;
+    if(c.mode==='sequence'){const n=c.steps.length;c.steps.forEach((id,i)=>hwItems.push({t:c.start+i*c.duration/n,d:c.duration/n,ids:[id],fx:markOf(c)}))}
+    else hwItems.push({t:c.start,d:c.duration,ids:c.steps,fx:markOf(c)})}
+  hwItems.sort((a,b)=>a.t-b.t);
+}
+function drawHW(t){
+  const cv=$('hw');if(!cv||!cv.offsetParent)return;
+  if(!colors)colors=tokens();const C=colors,FF=getComputedStyle(document.body).fontFamily;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const hx=96,P=175,from=t-hx/P,to=t+(W-hx)/P;
+  g.fillStyle=C.gold;g.globalAlpha=.12;g.fillRect(hx-24,0,48,H);g.globalAlpha=1;
+  // find the first note that could be on screen
+  let lo=0,hi=hwItems.length;while(lo<hi){const m=(lo+hi)>>1;if(hwItems[m].t+hwItems[m].d<from)lo=m+1;else hi=m}
+  g.textAlign='center';g.textBaseline='middle';
+  for(let i=lo;i<hwItems.length;i++){
+    const n=hwItems[i];if(n.t>to)break;
+    const x=hx+(n.t-t)*P,past=n.t+n.d<=t,on=n.t<=t&&t<n.t+n.d,two=n.ids.length>1;
+    n.ids.slice(0,3).forEach((id,k)=>{
+      const r=two?13:20,cy=two?H/2+(k-(Math.min(n.ids.length,3)-1)/2)*24:H/2,c=EC_IDS.has(id)?C.ec:C.bf;
+      g.globalAlpha=past?.25:1;g.beginPath();g.arc(x,cy,r,0,Math.PI*2);g.fillStyle=on?C.gold:C.raised;g.fill();
+      g.lineWidth=2.5;g.strokeStyle=on?C.gold:c;g.stroke();
+      g.fillStyle=on?C.goldInk:c;g.font='700 '+(two?12:17)+'px '+FF;g.fillText(FIELDS.get(id).label,x,cy+1);
+    });
+    if(n.fx){const r=n.ids.length>1?13:20;g.fillStyle=C.gold;g.font='700 13px '+FF;g.fillText(MARKS[n.fx],x+r+6,H/2-r+6)}
+    g.globalAlpha=1;
+  }
+  g.fillStyle=C.gold;g.fillRect(hx-1.5,4,3,H-8);
+  if(!hwItems.length){g.fillStyle=C.muted;g.font='14px '+FF;g.fillText('Your notes will fly in here as the song plays',W/2,H/2)}
+}
+function showView(v){
+  currentView=v;
+  for(const n of['play','cues','notes','setup'])$('view-'+n).hidden=n!==v;
+  if(v==='notes')openNotes();
+  document.body.dataset.view=v;
+  placeTimeline();
+  const ss=$('slot-sheet-'+v);if(ss&&$('sheetPanel').parentNode!==ss)ss.appendChild($('sheetPanel'));
+  renderTLHint();requestAnimationFrame(drawTL);
+  document.querySelectorAll('.tabs button[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===v)));
+  window.scrollTo({top:0});
+}
+document.querySelectorAll('.tabs button[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+/* help */
+function openHelp(on){$('helpSheet').hidden=!on;if(on)$('helpClose').focus();else $('helpBtn').focus()}
+$('helpBtn').onclick=()=>openHelp(true);$('helpClose').onclick=()=>openHelp(false);
+$('helpSheet').addEventListener('click',e=>{if(e.target===$('helpSheet'))openHelp(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('helpSheet').hidden)openHelp(false)});
+/* keep the page and messages clear of the play bar, whatever its height */
+function setDockH(){document.documentElement.style.setProperty('--dockH',$('dock').offsetHeight+'px')}
+window.addEventListener('resize',setDockH);setDockH();
+
+function renderAll(){$('title').value=S.title;renderGrid();renderWake();renderHint();renderLook();renderPans();renderCues();renderPhotos();renderOrder();renderDemo();renderLoop();tick()}
+
+/* ---------- start ---------- */
+(async()=>{
+  let loaded=false;
+  try{const raw=localStorage.getItem(LS);if(raw)loaded=applyLoaded(JSON.parse(raw))&&true}catch{}
+  const devPhotos=await idbGet('photos');
+  if(devPhotos)for(const k of['ec','bf'])if(!S.photos[k]&&devPhotos[k]&&devPhotos[k].data)S.photos[k]={data:devPhotos[k].data};
+  const cached=await idbGet('audio');
+  if(cached&&cached.blob){loadAudio(cached.blob,cached.name);if(!S.cues.length&&!loaded)loaded=false}
+  if(!loaded&&!hasAudio)makeDemo();
+  renderAll();resetEditor();setEntry('tap');renderShare();renderExpKind();document.body.dataset.view=currentView;placeTimeline();renderTLHint();requestAnimationFrame(drawTL);
+  say(isDemo?'Showing example cues. Press play to try it.':hasAudio?'Welcome back. Press play to rehearse.':'Choose your recording in Setup to play along.');
+  renderSaveInfo();
+  initStore();
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body></html>
