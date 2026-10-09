@@ -54,19 +54,19 @@ label.btn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;curso
 .rim{fill:#0b1416;stroke:var(--steel);stroke-width:10}
 .bed{fill:#3f5b5f}
 .field{outline:none}
-.tap .field{cursor:pointer}
+#playPans .field,.tap .field{cursor:pointer}
 .zone{fill:#c9d6d0;stroke:#2a4245;stroke-width:8;transition:fill .08s}
 .field text{fill:#163236;font:700 88px var(--body);text-anchor:middle;dominant-baseline:central;pointer-events:none}
 .field.inner text{font-size:62px}
 .tap .field:hover .zone,.tap .field:focus-visible .zone{fill:#fff0c4;stroke:var(--gold)}
 .chosen .zone{fill:var(--teal);stroke:#c6fffb;stroke-width:10}
-.active .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:12}
-.active text{fill:var(--gold-ink)}
+.active .zone,.hit .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:12}
+.active text,.hit text{fill:var(--gold-ink)}
 .photo .zone{fill:transparent;stroke:rgba(255,255,255,.14);stroke-width:5}
 .photo .field text{display:none}
 .photo.tap .field:hover .zone{fill:rgba(255,220,130,.25);stroke:#ffe6aa;stroke-width:9}
 .photo .chosen .zone{fill:rgba(60,200,200,.38);stroke:#a4fffa;stroke-width:10}
-.photo .active .zone{fill:rgba(255,198,92,.7);stroke:#fff4bc;stroke-width:14}
+.photo .hit .zone,.photo .active .zone{fill:rgba(255,198,92,.7);stroke:#fff4bc;stroke-width:14}
 .legend{display:flex;justify-content:center;gap:16px;font-size:13px;color:var(--muted)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 
@@ -579,6 +579,9 @@ body{padding-bottom:calc(var(--dockH,132px) + 16px)}
       <div class="lab">Next-note hint on the pans
         <div class="seg" id="hintSeg"><button data-h="off">Off</button><button data-h="subtle" aria-pressed="true">Subtle</button><button data-h="bold">Bold</button></div>
       </div>
+      <div class="lab">Pan sounds when you tap a note
+        <div class="seg" id="soundSeg"><button data-snd="off">Off</button><button data-snd="paused" aria-pressed="true">When paused</button><button data-snd="always">Always</button></div>
+      </div>
       <div class="row"><button class="btn" id="fsBtn2">⛶ Full screen</button><button class="btn on" id="wakeBtn" aria-pressed="true">Keep screen awake: on</button></div>
     </div>
     <div class="panel">
@@ -658,6 +661,9 @@ body{padding-bottom:calc(var(--dockH,132px) + 16px)}
         <p><b>Timeline in the video:</b> <b>Letters</b> shows your part the way you write it (E/C-pan notes orange, B/F-pan notes blue, chords stacked in a dashed box, bar numbers along the top, a wavy line under rolls) sliding past the gold line, and the letter you're on lights up. <b>Boxes</b> shows the note boxes from the Cues timeline instead.</p>
         <p>Choose <b>Whole song</b>, your <b>Loop section</b>, or <b>From gold line</b> (wherever the playhead is now), then <b>Start recording</b>. The song plays once at normal speed while the video is made, so a 4-minute song takes 4 minutes. Keep the screen on and Pan Notes open the whole time; if you switch apps, the picture freezes.</p>
         <p><b>Stop and finish</b> ends early and keeps what's been recorded. Then tap <b>Save video</b>. Chrome usually makes an MP4 that plays anywhere; if your phone makes a WebM file instead, it plays on Android and computers, but iPhones may need it sent through WhatsApp or YouTube first.</p></details>
+      <details><summary>Hearing the pans when you tap</summary>
+        <p>Tap a note on the pans in <b>Play</b> or <b>Cues</b> and you'll hear it, tuned to the double guitar (C♯3 to G♯4). <b>Hold</b> a note to hear a roll, and use two fingers for a chord.</p>
+        <p>Setup → Play along → <b>Pan sounds</b>: <b>When paused</b> (the usual) plays sounds only while the song is stopped, <b>Always</b> also plays them over the song, and <b>Off</b> keeps it quiet. If you hear nothing, check your phone isn't on silent.</p></details>
       <details><summary>Full screen and keeping the screen on</summary>
         <p><b>⛶ Full screen</b> (here and in Setup) hides the browser bars where your phone allows it. Inside the Claude app it may not be allowed; in Chrome it usually works. While a song is playing, Pan Notes also keeps your screen from going to sleep (Setup → Play along).</p></details>
       <details><summary>Tap along and chords</summary>
@@ -718,7 +724,7 @@ function normalizeChords(){let changed=false;for(const c of S.cues)if(c.mode==='
 const desc=id=>FIELDS.get(id).label+' ('+FIELDS.get(id).pos+')';
 
 /* ---------- state ---------- */
-let S={title:'',swapped:false,look:'photo',cues:[],photos:{},grid:null,snap:'off',tapLag:0.08,audioRef:null,sheetView:'letters',sheetPos:false,notePages:[],wake:true,hint:'subtle'};  // audioRef: where the recording is kept in your account  // grid: {bpm, offset (s), perBar}  // photos: {ec:{id}|{data}}
+let S={title:'',swapped:false,look:'photo',cues:[],photos:{},grid:null,snap:'off',tapLag:0.08,audioRef:null,sheetView:'letters',sheetPos:false,notePages:[],wake:true,hint:'subtle',tapSound:'paused'};  // audioRef: where the recording is kept in your account  // grid: {bpm, offset (s), perBar}  // photos: {ec:{id}|{data}}
 let isDemo=false, selected=[], editing=null, mode='sequence', chordsTidied=false;
 let hasAudio=false, objUrl=null, A=null, B=null, loop=false, raf=0;
 
@@ -726,7 +732,7 @@ let hasAudio=false, objUrl=null, A=null, B=null, loop=false, raf=0;
 let db=null, userId=null, assets=null, saveTimer=0, storeMode='device';
 const LS='pan-notes-v2';
 function photoSrc(k){const p=S.photos[k];if(!p)return null;return p.id?('/_blob/'+p.id):p.data||null}
-function snapshotForSave(){return{v:2,title:S.title,swapped:S.swapped,look:S.look,grid:S.grid,snap:S.snap,tapLag:S.tapLag,audioRef:S.audioRef,sheetView:S.sheetView,sheetPos:S.sheetPos,notePages:S.notePages,wake:S.wake,hint:S.hint,cues:S.cues,photos:Object.fromEntries(Object.entries(S.photos).filter(([,p])=>p&&p.id).map(([k,p])=>[k,{id:p.id}]))}}
+function snapshotForSave(){return{v:2,title:S.title,swapped:S.swapped,look:S.look,grid:S.grid,snap:S.snap,tapLag:S.tapLag,audioRef:S.audioRef,sheetView:S.sheetView,sheetPos:S.sheetPos,notePages:S.notePages,wake:S.wake,hint:S.hint,tapSound:S.tapSound,cues:S.cues,photos:Object.fromEntries(Object.entries(S.photos).filter(([,p])=>p&&p.id).map(([k,p])=>[k,{id:p.id}]))}}
 function save(){
   if(isDemo)return;
   try{localStorage.setItem(LS,JSON.stringify({...snapshotForSave(),photos:S.photos}))}catch{try{localStorage.setItem(LS,JSON.stringify(snapshotForSave()))}catch{}}
@@ -755,7 +761,7 @@ function applyLoaded(p){
   const gr=p.grid;S.grid=gr&&gr.bpm>=30&&gr.bpm<=300&&Number.isFinite(gr.offset)&&[2,3,4].includes(gr.perBar)?{bpm:gr.bpm,offset:gr.offset,perBar:gr.perBar}:null;
   S.snap=['off','1','2','4','hits'].includes(p.snap)?p.snap:'off';S.tapLag=Number.isFinite(p.tapLag)&&p.tapLag>=-0.1&&p.tapLag<=0.35?p.tapLag:0.08;
   const ar=p.audioRef;S.audioRef=ar&&typeof ar.name==='string'&&Array.isArray(ar.ids)&&ar.ids.length&&ar.ids.length<=12&&ar.ids.every(x=>typeof x==='string')?{name:ar.name,size:+ar.size||0,type:String(ar.type||'audio/mpeg'),ids:ar.ids,urls:Array.isArray(ar.urls)?ar.urls.map(String):null}:null;
-  S.sheetView=p.sheetView==='tab'?'tab':'letters';S.sheetPos=p.sheetPos===true;S.wake=p.wake!==false;S.hint=['off','subtle','bold'].includes(p.hint)?p.hint:'subtle';
+  S.sheetView=p.sheetView==='tab'?'tab':'letters';S.sheetPos=p.sheetPos===true;S.wake=p.wake!==false;S.hint=['off','subtle','bold'].includes(p.hint)?p.hint:'subtle';S.tapSound=['off','paused','always'].includes(p.tapSound)?p.tapSound:'paused';
   S.notePages=Array.isArray(p.notePages)?p.notePages.filter(x=>x&&typeof x.id==='string').slice(0,200).map(x=>({id:x.id,created:+x.created||Date.now(),h:Math.max(1414,+x.h||1414)})):[];
   S.photos={};for(const k of['ec','bf']){const ph=p.photos&&p.photos[k];if(ph&&typeof ph.id==='string')S.photos[k]={id:ph.id};else if(ph&&typeof ph.data==='string'&&/^data:image\/(jpeg|png|webp);base64,/.test(ph.data))S.photos[k]={data:ph.data}}
   return true;
@@ -2361,6 +2367,61 @@ async function holdAwakeVideo(on){
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&vid&&vid.state==='rec')holdAwakeVideo(true)});
 
+
+/* ---------- pan sounds: tap a note to hear it, hold to hear a roll ---------- */
+// Double guitar tuning, C#3 to G#4 (from the band's note chart)
+const PITCH={'e-low':'E3','e-top':'E4','c':'C4','fs-low':'F#3','bb':'Bb3','d-low':'D3','gs-low':'G#3','gs-inner':'G#4','fs-inner':'F#4','d-inner':'D4',
+  'eb-low':'Eb3','eb-top':'Eb4','b':'B3','f-low':'F3','a':'A3','cs-low':'C#3','g-low':'G3','g-inner':'G4','f-inner':'F4','cs-inner':'C#4'};
+const midiOf=n=>{const m=/^([A-G])([#b]?)(\d)$/.exec(n);return 12*(+m[3]+1)+{C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0)};
+const pitchHz=id=>440*Math.pow(2,(midiOf(PITCH[id])-69)/12);
+let pac=null,pBus=null,noiseBuf=null;
+function panCtx(){
+  if(!pac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+    pac=new C();const comp=pac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
+    pBus=pac.createGain();pBus.gain.value=0.9;pBus.connect(comp);comp.connect(pac.destination);
+    const len=Math.floor(pac.sampleRate*0.03);noiseBuf=pac.createBuffer(1,len,pac.sampleRate);const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
+  if(pac.state==='suspended')pac.resume();
+  return pac;
+}
+// One mallet strike. A pan note rings with its octave and twelfth above it; lower notes ring longer.
+function strike(id,vel,light){
+  const ac=panCtx();if(!ac||!PITCH[id])return;vel=vel||1;
+  const f=pitchHz(id),t=ac.currentTime+0.003,ring=(light?0.7:1.7)*Math.pow(261.6/f,0.35);
+  const out=ac.createGain();out.connect(pBus);
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(Math.min(9000,f*14),t);lp.frequency.exponentialRampToValueAtTime(Math.max(900,f*5),t+0.35);lp.connect(out);
+  const parts=light?[[1,1,1],[2,0.5,0.6]]:[[1,1,1],[2,0.55,0.6],[3.003,0.18,0.35],[4,0.08,0.22]];
+  for(const [mul,amp,dk] of parts){
+    const o=ac.createOscillator(),g=ac.createGain(),a=amp*vel*0.3,end=t+ring*dk;
+    o.frequency.setValueAtTime(f*mul,t);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(a,t+0.004);g.gain.exponentialRampToValueAtTime(a*0.4,t+0.07);g.gain.exponentialRampToValueAtTime(0.0001,end);
+    o.connect(g);g.connect(lp);o.start(t);o.stop(end+0.02);
+  }
+  const n=ac.createBufferSource(),bp=ac.createBiquadFilter(),ng=ac.createGain();   // the stick touching the steel
+  n.buffer=noiseBuf;bp.type='bandpass';bp.frequency.value=Math.min(6000,f*4);bp.Q.value=1.2;ng.gain.value=0.1*vel;
+  n.connect(bp);bp.connect(ng);ng.connect(out);n.start(t);
+  setTimeout(()=>{try{out.disconnect()}catch{}},ring*1000+400);
+}
+const soundOn=()=>S.tapSound==='always'||(S.tapSound==='paused'&&(audio.paused||!hasAudio));
+const rollers=new Map();   // finger → the roll it's playing
+document.addEventListener('pointerdown',e=>{
+  const el=e.target.closest&&e.target.closest('#playPans .field,#editPans .field');
+  if(!el||!soundOn()||(e.pointerType==='mouse'&&e.button!==0))return;
+  const id=el.dataset.field;strike(id,1);
+  const onPlay=!!el.closest('#playPans');if(onPlay)el.classList.add('hit');
+  // keep holding and it becomes a roll: quick, slightly uneven strikes until you let go
+  const r={el,onPlay,timer:0};
+  const go=()=>{strike(id,0.5+Math.random()*0.25,true);r.timer=setTimeout(go,60+Math.random()*18)};
+  r.timer=setTimeout(go,HOLD_MS);rollers.set(e.pointerId,r);
+},true);
+const stopRoll=e=>{const r=rollers.get(e.pointerId);if(!r)return;clearTimeout(r.timer);if(r.onPlay)setTimeout(()=>r.el.classList.remove('hit'),90);rollers.delete(e.pointerId)};
+window.addEventListener('pointerup',stopRoll);window.addEventListener('pointercancel',stopRoll);
+audio.addEventListener('play',()=>{if(S.tapSound==='paused')for(const [pid,r] of rollers){clearTimeout(r.timer);r.el.classList.remove('hit');rollers.delete(pid)}});
+function renderSound(){$('soundSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.snd===S.tapSound)))}
+$('soundSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tapSound=b.dataset.snd;renderSound();save();
+  if(S.tapSound!=='off'){strike('c',0.8)}
+  say(S.tapSound==='off'?'Pan sounds off.':S.tapSound==='paused'?'Tap the pans to hear them while the song is stopped.':'Pan sounds on, even while the song plays.')});
+
 /* ---------- screen: full screen and staying awake ---------- */
 async function toggleFullscreen(){
   try{
@@ -2379,7 +2440,7 @@ async function holdAwake(on){
 }
 audio.addEventListener('play',()=>holdAwake(true));audio.addEventListener('pause',()=>holdAwake(false));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')holdAwake(true)});
-function renderHint(){document.body.dataset.hint=S.hint;$('hintSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.h===S.hint)))}
+function renderHint(){renderSound();document.body.dataset.hint=S.hint;$('hintSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.h===S.hint)))}
 $('hintSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.hint=b.dataset.h;renderHint();save();say(S.hint==='off'?'Next-note hint off.':'Next-note hint: '+S.hint+'.')});
 function renderWake(){$('wakeBtn').textContent='Keep screen awake: '+(S.wake?'on':'off');$('wakeBtn').classList.toggle('on',S.wake);$('wakeBtn').setAttribute('aria-pressed',String(S.wake))}
 $('wakeBtn').onclick=()=>{S.wake=!S.wake;renderWake();save();holdAwake(S.wake)};
