@@ -5,8 +5,11 @@ import os, re, shutil, hashlib, json
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, "pan-notes.html")
-OUT = os.path.join(HERE, 'site')
+import sys
+# usage: build.py [source.html] [output folder] [app name]
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'pan-notes.html')
+OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'site')
+NAME = sys.argv[3] if len(sys.argv) > 3 else 'Pan Notes'
 VENDOR = os.path.join(HERE, 'vendor')   # fonts + jsPDF, copied in once
 
 src = open(SRC, encoding='utf-8').read()
@@ -32,7 +35,7 @@ head = f'''<!doctype html>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Pan Notes</title>
+<title>{NAME}</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -75,7 +78,7 @@ for size in (192, 512):
     icon(size, True).save(os.path.join(OUT, 'icons', f'maskable-{size}.png'))
 
 manifest = {
-    "name": "Pan Notes", "short_name": "Pan Notes",
+    "name": NAME, "short_name": NAME,
     "description": "Steelpan rehearsal companion: play along, cue your notes, share your part.",
     "id": "./", "start_url": "./", "scope": "./",
     "display": "fullscreen", "display_override": ["fullscreen", "standalone"],
@@ -92,13 +95,14 @@ files = sorted(os.path.relpath(os.path.join(dp, f), OUT).replace(os.sep, '/') fo
 h = hashlib.sha1(b''.join(open(os.path.join(OUT, f), 'rb').read() for f in files)).hexdigest()[:10]
 shell = ['./'] + files
 sw = f'''// Pan Notes offline cache ({h})
-const CACHE='pan-notes-{h}',FILES={json.dumps(shell)};
+const CACHE='{NAME.lower().replace(' ','-')}-{h}',FILES={json.dumps(shell)};
 self.addEventListener('install',e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))}});
-self.addEventListener('activate',e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))}});
+self.addEventListener('activate',e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&/^{re.escape(NAME.lower().replace(' ','-'))}-[0-9a-f]{{10}}$/.test(k)).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))}});
 self.addEventListener('fetch',e=>{{
   if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;
   // the page itself: try for a newer version first, fall back to the saved copy when offline
-  if(e.request.mode==='navigate'){{e.respondWith(fetch(e.request).then(r=>{{const cp=r.clone();caches.open(CACHE).then(c=>c.put('./',cp));return r}}).catch(()=>caches.match('./')));return}}
+  // only this app's own page; another version living in a sub-folder looks after itself
+  if(e.request.mode==='navigate'){{if(new URL(e.request.url).pathname!==new URL('./',location).pathname)return;e.respondWith(fetch(e.request).then(r=>{{const cp=r.clone();caches.open(CACHE).then(c=>c.put('./',cp));return r}}).catch(()=>caches.match('./')));return}}
   e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
 }});
 '''

@@ -1,0 +1,160 @@
+/* ================= Pan Notes "Next" look =================
+   Stage base (dark teal + gold "now"), coral/aqua for the two pans' notes,
+   a calmer layout, and motion that makes every hit feel like a hit. */
+:root{
+  --bg:#0a1416;--surface:#101e21;--raised:#172a2e;--line:#22393d;
+  --steel:#c4d3d2;--text:#eaf2f0;--muted:#8aa3a5;
+  --gold:#f6ba45;--gold-ink:#2a1a00;
+  --teal:#b9a3ff;--teal-ink:#1e1238;          /* selection is lilac now, so it never looks like a B/F note */
+  --ec:#ff9c70;--bf:#5fd3d6;                  /* coral = E / C pan, aqua = B / F pan */
+  --ease:cubic-bezier(.2,.9,.25,1);
+}
+body{padding-inline:16px}
+main{padding-top:0}
+.panel{background:var(--surface);border:1px solid #1a2f33;border-radius:20px;padding:16px}
+.panel h2{font-size:17px;font-weight:700;letter-spacing:-.005em}
+.btn{border:1px solid var(--line);background:var(--raised);border-radius:14px;transition:transform .12s var(--ease),background-color .15s,border-color .15s}
+.btn:active:not(:disabled),.ibtn:active:not(:disabled),.mini:active,.seg button:active,.tile:active:not(:disabled),.iconbtn:active{transform:scale(.96)}
+.mini{border-radius:12px;transition:transform .12s var(--ease)}
+.seg{border-radius:14px;background:#0c191b;border-color:#1c3236}
+.seg button{border-radius:11px;transition:background-color .18s,color .18s}
+.seg button[aria-pressed="true"]{background:var(--raised);box-shadow:inset 0 0 0 1px #2c474b}
+
+/* top bar: song name + share / setup / help */
+.appbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 2px 8px;max-width:760px;margin:0 auto}
+.appbar .ttl{display:flex;flex-direction:column;min-width:0}
+.appbar .eyebrow{font-size:10.5px}
+#appTitle{font:800 21px/1.15 var(--display);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .acts{display:flex;gap:8px;flex:none}
+.iconbtn{width:44px;height:44px;border-radius:22px;border:1px solid var(--line);background:var(--surface);color:var(--steel);display:grid;place-items:center;padding:0;transition:transform .12s var(--ease),background-color .15s}
+.iconbtn svg{width:20px;height:20px}
+.iconbtn[aria-current="page"]{background:var(--raised);color:var(--gold);border-color:#3a4d3f}
+body[data-view="setup"] #setupBtn{color:var(--gold)}
+
+/* pans: a hit squashes, bounces and throws off a glow; the next note breathes */
+.zone{transform-box:fill-box;transform-origin:center}
+.field.active .zone,.field.hit .zone{animation:panStrike .38s var(--ease),panGlow .65s ease-out}
+.photo .field.active .zone,.photo .field.hit .zone{animation:panStrike .38s var(--ease),panGlow .65s ease-out}
+@keyframes panStrike{0%{transform:scale(.92)}45%{transform:scale(1.045)}100%{transform:scale(1)}}
+@keyframes panGlow{0%{filter:drop-shadow(0 0 0 rgb(246 186 69 / .95))}100%{filter:drop-shadow(0 0 70px rgb(246 186 69 / 0))}}
+.field.active.rolling .zone{animation:rollshim .11s linear infinite alternate}
+body[data-hint="subtle"] .soon .zone,body[data-hint="bold"] .soon .zone{animation:panBreathe 1.1s ease-in-out infinite}
+@keyframes panBreathe{0%,100%{stroke-opacity:.35}50%{stroke-opacity:1}}
+.rim{fill:#081113;stroke:#6f8789}
+.bed{fill:#2f4a4e}
+
+/* now playing: big note on the left, the next note counting down on the right */
+#playStage>.now{flex-direction:row;align-items:center;justify-content:space-between;text-align:left;gap:12px;background:var(--surface);border:1px solid #1a2f33;border-radius:20px;padding:14px 16px;min-height:104px}
+#playStage>.now .nowtxt{display:flex;flex-direction:column;gap:3px;min-width:0}
+#nowNote{font-size:clamp(34px,11vw,50px)}
+#nowNote.idle{font-size:20px}
+.nextring{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px}
+.nextring .ring{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font:800 18px var(--display);color:#f8dc9a;border:2px dashed rgb(246 186 69 / .75);animation:panBreathe2 1.2s ease-in-out infinite}
+@keyframes panBreathe2{0%,100%{opacity:.6}50%{opacity:1}}
+.nextring small{font-size:11px;color:var(--muted);white-space:nowrap}
+#nextUp{display:none}
+
+/* the notes flying in, under the pans (Play tab, portrait) */
+body[data-view="play"] .hwwrap{display:block}
+.hwwrap #hw{display:block;width:100%;height:76px;border-radius:18px;background:#0c191b;border:1px solid #1a2f33}
+.hwwrap #editBtn{display:none}
+
+/* practice tools: one tidy card */
+#practicePanel{gap:10px}
+#practicePanel h2{font-size:14px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:var(--body)}
+
+/* part tab: reads like a written chart */
+#view-part .panel{padding:14px 12px}
+.sheet{max-height:none;overflow:visible}
+.sline{padding:10px 6px;border-radius:14px;transition:background-color .2s}
+.sline.cur{background:var(--raised);box-shadow:inset 3px 0 0 var(--gold)}
+.lbar{border-left:2px solid #3a5559}
+.lbar:last-child{border-right:2px solid #3a5559}
+.tok{font-size:21px}
+.tok.on{background:var(--gold);box-shadow:0 0 18px rgb(246 186 69 / .45);transition:box-shadow .2s}
+#view-part .tlbar{position:sticky;top:0;z-index:3;background:var(--surface);padding-block:4px;margin-top:-4px}
+
+/* floating transport + icon tab bar */
+.dock{background:linear-gradient(to top,var(--bg) 70%,rgb(10 20 22 / 0));border-top:0;padding:4px 12px calc(6px + env(safe-area-inset-bottom,0px))}
+.transport{background:var(--raised);border:1px solid #2a4549;border-radius:30px;padding:8px 14px 8px 8px;box-shadow:0 10px 28px rgb(0 0 0 / .4)}
+#playBtn{width:52px;height:52px;transition:transform .12s var(--ease),box-shadow .3s}
+#playBtn:active{transform:scale(.94)}
+body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
+.tabs{grid-template-columns:repeat(4,1fr);gap:2px;padding-top:2px}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:54px;font-size:12px;font-weight:700;border-radius:14px;color:var(--muted);transition:color .18s,background-color .18s}
+.tabs button svg{width:24px;height:24px;transition:transform .2s var(--ease)}
+.tabs button[aria-selected="true"]{background:transparent;color:var(--gold)}
+.tabs button[aria-selected="true"] svg{transform:translateY(-1px) scale(1.06)}
+
+/* screens and sheets glide in instead of popping */
+.view:not([hidden]){animation:viewIn .24s var(--ease)}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sheetov:not([hidden]){animation:fadeIn .2s ease-out}
+.sheetov:not([hidden]) .sheetbox{animation:sheetUp .32s var(--ease)}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:.4}}
+.sheetbox{border-radius:24px 24px 0 0;border-color:#24403f;padding-top:8px}
+.sheetbox::before{content:"";align-self:center;width:40px;height:4px;border-radius:2px;background:#33504f;margin-bottom:8px}
+#status{transform:translate(-50%,10px);transition:opacity .25s,transform .3s var(--ease);border-radius:16px;background:#1d3337}
+#status.show{transform:translate(-50%,0)}
+
+/* share sheet: pick what, then one tile per format */
+.sharebody{overflow:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:4px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:14px;border-radius:18px;border:1px solid var(--line);background:var(--raised);min-height:104px;transition:transform .12s var(--ease),border-color .15s}
+.tile svg{width:24px;height:24px;color:var(--gold)}
+.tile b{font-size:15px}
+.tile span{font-size:12.5px;color:var(--muted);line-height:1.35}
+.tile:disabled{opacity:.45}
+.tile.wide{grid-column:1/-1;flex-direction:row;align-items:center;min-height:0}
+.tile.wide .tx{display:flex;flex-direction:column;gap:2px}
+.sharebody .seg button{min-height:42px}
+.sharelab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* notes tab: one compact toolbar, the ⋯ menu is a small list */
+.inkbar{padding-block:6px 8px}
+.inkrow{gap:6px}
+.ibtn{border-radius:12px;min-width:42px;min-height:42px;transition:transform .12s var(--ease)}
+.inkgrp{display:inline-flex;gap:4px;padding:3px;border-radius:14px;background:var(--surface);border:1px solid #1a2f33}
+.inkgrp .ibtn{border:0;background:transparent}
+.inkgrp .ibtn[aria-pressed="true"]{background:var(--teal);color:var(--teal-ink)}
+.inkspacer{flex:1}
+.pgpill{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:14px;background:var(--surface);border:1px solid #1a2f33}
+.pgpill .ibtn{border:0;background:transparent}
+.pglabel{min-width:62px;font-size:13px}
+.inkmore{position:relative}
+.inkmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:8;flex-direction:column;gap:2px;width:230px;padding:6px;border-radius:16px;background:var(--raised);border:1px solid #2c474b;box-shadow:0 14px 34px rgb(0 0 0 / .5);animation:menuIn .18s var(--ease);transform-origin:top right}
+.inkmenu:not([hidden]){display:flex}
+@keyframes menuIn{from{opacity:0;transform:scale(.94)}}
+.inkmenu .btn{justify-content:flex-start;border:0;background:transparent;min-height:44px;border-radius:10px;font-weight:600;font-size:15px;padding-inline:12px}
+.inkmenu .btn:hover{background:var(--surface)}
+.inkmenu hr{border:0;border-top:1px solid #2c474b;margin:4px 6px;width:auto}
+.inkbox{border-radius:20px;border-color:#1a2f33}
+
+/* setup reads as settings, not a wall of boxes */
+#view-setup .panel{gap:10px}
+
+/* bigger screens in landscape (tablets): pans left, everything else right */
+@media (orientation:landscape) and (min-width:640px){
+  #view-play{grid-template-areas:"banner banner" "pans now" "pans hw" "pans practice";grid-template-rows:auto auto auto 1fr}
+  #playStage>.hwwrap{grid-area:hw}
+  #practicePanel{grid-area:practice}
+}
+/* phone sideways: the pans get the screen, the top bar steps aside */
+@media (orientation:landscape) and (max-height:520px){
+  .appbar{display:none}
+  .transport{padding:4px 10px 4px 4px;box-shadow:none}
+  #playBtn{width:44px;height:44px}
+  .tabs button{flex-direction:row;min-height:40px;gap:6px;font-size:13px}
+  .tabs button svg{width:18px;height:18px}
+  .dock{background:var(--bg)}
+  body[data-view="play"] .hwwrap{order:-1;position:sticky;top:0;z-index:6;margin-inline:-16px;padding-inline:16px;background:var(--bg);padding-block:6px 2px}
+  .hwwrap #hw{height:60px}
+  #playPans svg{height:calc(100vh - var(--dockH,62px) - 90px)}
+  body[data-view="cues"] #editPans svg{height:calc(100vh - var(--dockH,62px) - 30px)}
+  .hwwrap #editBtn{display:inline-flex}
+  #practicePanel,#view-play .now{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){
+  .field.active .zone,.field.hit .zone,.soon .zone,.view,.sheetbox,.sheetov,.nextring .ring,.inkmenu{animation:none!important}
+}
