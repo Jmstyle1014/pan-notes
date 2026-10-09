@@ -4,7 +4,7 @@ Steelpan rehearsal companion for the double guitar pans (E/C and B/F): play alon
 
 **Open the app:** https://jmstyle1014.github.io/pan-notes/ — in Chrome on Android, tap ⋮ → Install app.
 
-**Try the new look (Pan Notes Next):** https://jmstyle1014.github.io/pan-notes/next/ — a separate app you can install alongside the classic one. It uses the same songs and cues on your phone. The classic version is also saved permanently as the `v1-classic` tag.
+**Try the new look (Pan Notes Next):** https://jmstyle1014.github.io/pan-notes/next/ — a separate app you can install alongside the classic one. It uses the same songs and cues on your phone. The classic version is also saved permanently on the `classic` branch.
 
 Your cues, recordings and photos are saved on your own phone, not in this repository.
 
