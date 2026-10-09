@@ -15,6 +15,10 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+/* It's an instrument, not a page of text: pressing and holding (rolls, dragging notes) must never start
+   text selection, the copy/share bubble or the long-press menu. Typing boxes still work normally. */
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 html,body{background:var(--bg)}
 body{color:var(--text);font:16px/1.45 var(--body);padding-inline:16px;padding-block:0 calc(var(--dock) + env(safe-area-inset-bottom,0px) + 16px)}
 main{max-width:760px;margin:0 auto}
@@ -690,6 +694,9 @@ body{padding-bottom:calc(var(--dockH,132px) + 16px)}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
+// no long-press menu (copy, share, save image…) anywhere except where you type
+document.addEventListener('contextmenu',e=>{if(!e.target.closest('input,textarea,[contenteditable]'))e.preventDefault()});
+document.addEventListener('selectstart',e=>{if(!e.target.closest||!e.target.closest('input,textarea,[contenteditable]'))e.preventDefault()});
 const audio=$('audio');
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 // messages float above the play bar for a few seconds, then fade
