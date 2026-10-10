@@ -25,6 +25,7 @@ assert 'fonts.googleapis' not in src
 
 FONTS = [('Bricolage Grotesque', 600, 'bricolage-600.woff2'), ('Bricolage Grotesque', 800, 'bricolage-800.woff2'),
          ('Atkinson Hyperlegible', 400, 'atkinson-400.woff2'), ('Atkinson Hyperlegible', 700, 'atkinson-700.woff2')]
+if 'Unbounded' in src: FONTS.append(('Unbounded', 700, 'unbounded-700.woff2'))   # Panyard's display font
 font_css = ''.join(f"@font-face{{font-family:'{n}';font-weight:{w};font-style:normal;font-display:swap;src:url(fonts/{f}) format('woff2')}}" for n, w, f in FONTS)
 
 head = f'''<!doctype html>

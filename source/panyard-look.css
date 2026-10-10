@@ -1,0 +1,75 @@
+/* ================= Panyard: the night session =================
+   Indigo night, chrome pans with dark steel notes that light up in their pan's colour:
+   coral for the E / C pan, aqua for the B / F pan. Notes fall down two lanes onto a glowing line. */
+:root{
+  --bg:#110c20;--surface:#19132e;--raised:#231b40;--line:#30275a;
+  --steel:#cfc6f2;--text:#efeaff;--muted:#9d93c9;
+  --gold:#ffd166;--gold-ink:#2a1a00;          /* gold = whatever is happening right now */
+  --teal:#ff6fae;--teal-ink:#33001a;          /* selection: hot pink */
+  --ec:#ff8a5c;--bf:#3fd0d4;
+  --display:"Unbounded","Bricolage Grotesque",system-ui,sans-serif;
+}
+html,body{background:var(--bg)}
+body{background-image:radial-gradient(120% 60% at 50% -10%,#2a1e55 0%,rgb(17 12 32 / 0) 60%);background-attachment:fixed}
+.panel{background:var(--surface);border-color:#271f4a}
+.btn{background:var(--raised);border-color:#352b63}
+.seg{background:#140f27;border-color:#2b2352}
+.seg button[aria-pressed="true"]{background:#efeaff;color:#140f24;box-shadow:none}
+.iconbtn{background:var(--surface);border-color:#2e2650;color:var(--steel);border-radius:14px}
+.eyebrow{color:#8f86bd}
+#appTitle{font:700 18px/1.2 var(--display);letter-spacing:.01em}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em}
+.panel h2{font-size:15px}
+
+/* chrome pans, dark steel notes */
+.rim{fill:#b9c3cc;stroke:#eef2f6;stroke-width:12}
+.bed{fill:#221c38}
+.zone{fill:#342d52;stroke:#171230;stroke-width:9}
+.field text{fill:#e9e4ff}
+.tap .field:hover .zone{fill:#463d70;stroke:#efeaff}
+.pan-ec .field.active .zone,.pan-ec .field.hit .zone{fill:var(--ec);stroke:#ffd9c9;animation:panStrike .38s var(--ease),glowEC .7s ease-out}
+.pan-bf .field.active .zone,.pan-bf .field.hit .zone{fill:var(--bf);stroke:#c9fbfc;animation:panStrike .38s var(--ease),glowBF .7s ease-out}
+.field.active text,.field.hit text{fill:#1a1030}
+@keyframes glowEC{0%{filter:drop-shadow(0 0 0 rgb(255 138 92 / .95))}100%{filter:drop-shadow(0 0 80px rgb(255 138 92 / 0))}}
+@keyframes glowBF{0%{filter:drop-shadow(0 0 0 rgb(63 208 212 / .95))}100%{filter:drop-shadow(0 0 80px rgb(63 208 212 / 0))}}
+.pan-ec .field.active.rolling .zone{animation:shimEC .11s linear infinite alternate}
+.pan-bf .field.active.rolling .zone{animation:shimBF .11s linear infinite alternate}
+@keyframes shimEC{from{fill:#ff8a5c}to{fill:#ffc4a8}}
+@keyframes shimBF{from{fill:#3fd0d4}to{fill:#b4f3f4}}
+.photo .zone{fill:transparent;stroke:rgb(255 255 255 / .16)}
+.pan-ec.photo .field.active .zone,.pan-ec.photo .field.hit .zone{fill:rgb(255 138 92 / .7)}
+.pan-bf.photo .field.active .zone,.pan-bf.photo .field.hit .zone{fill:rgb(63 208 212 / .7)}
+.chosen .zone{fill:#ff6fae;stroke:#ffd0e6}
+body[data-hint="subtle"] .soon .zone{stroke:rgb(239 234 255 / .6)!important}
+body[data-hint="bold"] .soon .zone{stroke:#ffd166!important}
+
+/* the lanes: notes fall onto the glowing line just above the pans */
+#lanes{display:block;width:100%;height:clamp(170px,27vh,270px);border-radius:20px 20px 6px 6px}
+body:not([data-view="play"]) #lanes{display:none}
+body[data-view="play"] .hwwrap{display:none}
+#playStage>.now{background:transparent;border:0;padding:4px 4px 0;min-height:0}
+#nowNote{color:var(--text);font:700 clamp(26px,8vw,38px)/1.1 var(--display)}
+#nowNote.idle{font:600 16px var(--body);color:var(--muted)}
+.nextring .ring{border-color:rgb(239 234 255 / .55);color:#efeaff;font-family:var(--display);font-size:15px}
+
+/* the play bar and tabs glow a little */
+.transport{background:#1d1638;border-color:#352b63}
+#playBtn{background:#efeaff;color:#140f24}
+body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(255 138 92 / .25)}
+#seek{accent-color:#ff8a5c}
+.dock{background:linear-gradient(to top,var(--bg) 70%,rgb(17 12 32 / 0))}
+.tabs button[aria-selected="true"]{color:#efeaff}
+.tabs button[aria-selected="true"] svg{color:#ff8a5c;filter:drop-shadow(0 0 8px rgb(255 138 92 / .6))}
+.tile svg{color:#ff8a5c}
+.tok .ec{color:var(--ec)}.tok .bf{color:var(--bf)}
+.tok.on{background:#efeaff;box-shadow:0 0 18px rgb(239 234 255 / .5)}
+.sline.cur{background:var(--raised);box-shadow:inset 3px 0 0 #ff8a5c}
+#status{background:#2a2150;border-color:#3d3270}
+
+/* sideways: the classic highway, in night colours */
+@media (orientation:landscape) and (max-height:520px){
+  body[data-view="play"] .hwwrap{display:block}
+  #lanes{display:none!important}
+  .hwwrap #hw{background:#19132e;border-color:#2b2352}
+}
+@media (prefers-reduced-motion:reduce){.pan-ec .field.active .zone,.pan-bf .field.active .zone,.pan-ec .field.hit .zone,.pan-bf .field.hit .zone{animation:none!important}}
