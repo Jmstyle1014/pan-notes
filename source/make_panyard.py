@@ -20,7 +20,7 @@ rep('      <div id="playPans" class="pair"></div>', '      <canvas id="lanes" ar
 rep("return '<div class=\"pan'+(src?' photo':'')", "return '<div class=\"pan pan-'+p.key+(src?' photo':'')")
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-game.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('      <details><summary>Hearing the pans when you tap</summary>', '''      <details open><summary>Panyard: the lanes and your streak</summary>
-        <p>On <b>Play</b>, your notes fall down two lanes, <b style="color:#ff8a5c">coral</b> for the E / C pan and <b style="color:#3fd0d4">aqua</b> for the B / F pan, and land on the glowing line the moment they're played. Chords land across both lanes together.</p>
+        <p>On <b>Play</b> (in portrait above the pans, sideways right between them), your notes fall down two lanes, <b style="color:#ff8a5c">coral</b> for the E / C pan and <b style="color:#3fd0d4">aqua</b> for the B / F pan, and land on the glowing line the moment they're played. Chords land across both lanes together.</p>
         <p>Play along by tapping the pans while the song plays. Each hit gets <b>Perfect</b>, <b>Great</b>, or <b>Early / Late</b>, and your streak counts up in the corner until you miss one. Your best streak is kept. Jump back in the song and the count starts fresh.</p></details>
       <details><summary>Hearing the pans when you tap</summary>''')
 rep('<details open><summary>Colours on the pans and timeline</summary>', '<details><summary>Colours on the pans and timeline</summary>')

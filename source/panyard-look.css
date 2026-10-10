@@ -66,10 +66,15 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
 .sline.cur{background:var(--raised);box-shadow:inset 3px 0 0 #ff8a5c}
 #status{background:#2a2150;border-color:#3d3270}
 
-/* sideways: the classic highway, in night colours */
+/* sideways: a pan on each side, the lanes falling down between them */
 @media (orientation:landscape) and (max-height:520px){
-  body[data-view="play"] .hwwrap{display:block}
-  #lanes{display:none!important}
+  body[data-view="play"] .hwwrap{display:none!important}
+  body[data-view="play"] #playStage{flex-direction:row!important;align-items:center;justify-content:center;gap:14px;height:calc(100vh - var(--dockH,62px) - 12px);padding-top:6px}
+  body[data-view="play"] #playPans.pair{display:contents!important}
+  body[data-view="play"] #playPans .pan:first-child{order:1}
+  body[data-view="play"] #lanes{display:block!important;order:2;flex:1 1 180px;min-width:150px;max-width:300px;height:calc(100vh - var(--dockH,62px) - 22px);border-radius:18px}
+  body[data-view="play"] #playPans .pan:last-child{order:3}
+  body[data-view="play"] #playPans svg{height:calc(100vh - var(--dockH,62px) - 30px);width:auto;max-width:38vw}
   .hwwrap #hw{background:#19132e;border-color:#2b2352}
 }
 @media (prefers-reduced-motion:reduce){.pan-ec .field.active .zone,.pan-bf .field.active .zone,.pan-ec .field.hit .zone,.pan-bf .field.hit .zone{animation:none!important}}

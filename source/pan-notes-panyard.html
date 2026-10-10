@@ -572,10 +572,15 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
 .sline.cur{background:var(--raised);box-shadow:inset 3px 0 0 #ff8a5c}
 #status{background:#2a2150;border-color:#3d3270}
 
-/* sideways: the classic highway, in night colours */
+/* sideways: a pan on each side, the lanes falling down between them */
 @media (orientation:landscape) and (max-height:520px){
-  body[data-view="play"] .hwwrap{display:block}
-  #lanes{display:none!important}
+  body[data-view="play"] .hwwrap{display:none!important}
+  body[data-view="play"] #playStage{flex-direction:row!important;align-items:center;justify-content:center;gap:14px;height:calc(100vh - var(--dockH,62px) - 12px);padding-top:6px}
+  body[data-view="play"] #playPans.pair{display:contents!important}
+  body[data-view="play"] #playPans .pan:first-child{order:1}
+  body[data-view="play"] #lanes{display:block!important;order:2;flex:1 1 180px;min-width:150px;max-width:300px;height:calc(100vh - var(--dockH,62px) - 22px);border-radius:18px}
+  body[data-view="play"] #playPans .pan:last-child{order:3}
+  body[data-view="play"] #playPans svg{height:calc(100vh - var(--dockH,62px) - 30px);width:auto;max-width:38vw}
   .hwwrap #hw{background:#19132e;border-color:#2b2352}
 }
 @media (prefers-reduced-motion:reduce){.pan-ec .field.active .zone,.pan-bf .field.active .zone,.pan-ec .field.hit .zone,.pan-bf .field.hit .zone{animation:none!important}}
@@ -920,7 +925,7 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
         <p>Choose <b>Whole song</b>, your <b>Loop section</b>, or <b>From gold line</b> (wherever the playhead is now), then <b>Start recording</b>. The song plays once at normal speed while the video is made, so a 4-minute song takes 4 minutes. Keep the screen on and Pan Notes open the whole time; if you switch apps, the picture freezes.</p>
         <p><b>Stop and finish</b> ends early and keeps what's been recorded. Then tap <b>Save video</b>. Chrome usually makes an MP4 that plays anywhere; if your phone makes a WebM file instead, it plays on Android and computers, but iPhones may need it sent through WhatsApp or YouTube first.</p></details>
       <details open><summary>Panyard: the lanes and your streak</summary>
-        <p>On <b>Play</b>, your notes fall down two lanes, <b style="color:#ff8a5c">coral</b> for the E / C pan and <b style="color:#3fd0d4">aqua</b> for the B / F pan, and land on the glowing line the moment they're played. Chords land across both lanes together.</p>
+        <p>On <b>Play</b> (in portrait above the pans, sideways right between them), your notes fall down two lanes, <b style="color:#ff8a5c">coral</b> for the E / C pan and <b style="color:#3fd0d4">aqua</b> for the B / F pan, and land on the glowing line the moment they're played. Chords land across both lanes together.</p>
         <p>Play along by tapping the pans while the song plays. Each hit gets <b>Perfect</b>, <b>Great</b>, or <b>Early / Late</b>, and your streak counts up in the corner until you miss one. Your best streak is kept. Jump back in the song and the count starts fresh.</p></details>
       <details><summary>Hearing the pans when you tap</summary>
         <p>Tap a note on the pans in <b>Play</b> or <b>Cues</b> and you'll hear it, tuned to the double guitar (C♯3 to G♯4). <b>Hold</b> a note to hear a roll, and use two fingers for a chord.</p>
