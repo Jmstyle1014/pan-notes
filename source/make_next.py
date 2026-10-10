@@ -82,7 +82,7 @@ share_sheet = '''<div id="shareSheet" class="sheetov" hidden role="dialog" aria-
     <div class="sheethead"><h2 id="shareTitle">Share with your band</h2><button class="btn" id="shareClose">Close</button></div>
     <div class="sharebody">
       <div class="lab"><span class="sharelab">What to share</span>
-        <div class="seg" id="expKind"><button data-k="timeline" aria-pressed="true">Timeline</button><button data-k="sheet">Letters</button></div>
+        <div class="seg" id="expKind"><button data-k="sheet" aria-pressed="true">Letters</button><button data-k="timeline">Timeline</button></div>
       </div>
       <div class="tiles">
         <button class="tile" id="expPdf">''' + IC['pdf'] + '''<b>PDF</b><span>Pages to print or send</span></button>

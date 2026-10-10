@@ -1,5 +1,5 @@
-// Pan Notes offline cache (de4f610e33)
-const CACHE='pan-notes-next-de4f610e33',FILES=["./", "fonts/atkinson-400.woff2", "fonts/atkinson-700.woff2", "fonts/bricolage-600.woff2", "fonts/bricolage-800.woff2", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-192.png", "icons/maskable-512.png", "index.html", "jspdf.umd.min.js", "manifest.webmanifest"];
+// Pan Notes offline cache (b16624d53e)
+const CACHE='pan-notes-next-b16624d53e',FILES=["./", "fonts/atkinson-400.woff2", "fonts/atkinson-700.woff2", "fonts/bricolage-600.woff2", "fonts/bricolage-800.woff2", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-192.png", "icons/maskable-512.png", "index.html", "jspdf.umd.min.js", "manifest.webmanifest"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&/^pan\-notes\-next-[0-9a-f]{10}$/.test(k)).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{

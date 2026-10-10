@@ -877,7 +877,7 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
     <div class="sheethead"><h2 id="shareTitle">Share with your band</h2><button class="btn" id="shareClose">Close</button></div>
     <div class="sharebody">
       <div class="lab"><span class="sharelab">What to share</span>
-        <div class="seg" id="expKind"><button data-k="timeline" aria-pressed="true">Timeline</button><button data-k="sheet">Letters</button></div>
+        <div class="seg" id="expKind"><button data-k="sheet" aria-pressed="true">Letters</button><button data-k="timeline">Timeline</button></div>
       </div>
       <div class="tiles">
         <button class="tile" id="expPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h4"/></svg><b>PDF</b><span>Pages to print or send</span></button>
@@ -2076,71 +2076,91 @@ function drawPanKey(g,p,x,y,w){
 }
 function sheetFont(){return '"Atkinson Hyperlegible", system-ui, sans-serif'}
 function layoutSheet(W){
-  const M=80,CW=W-2*M,F=sheetFont(),D='"Bricolage Grotesque", system-ui, sans-serif';
+  // Your part the way the Letters screen shows it: bars with letters, chords stacked in a dashed box,
+  // ×N for repeats, repeated sections folded into one line. Sized for letter paper.
+  const M=60,CW=W-2*M,F=sheetFont(),D='"Bricolage Grotesque", system-ui, sans-serif';
   const mg=document.createElement('canvas').getContext('2d');
-  const blocks=[],order=S.swapped?[PANS[1],PANS[0]]:PANS,nBars=(()=>{const B=buildBars();return B.arr.filter(b=>b.slots.size).length})();
-  const total=S.cues.reduce((k,c)=>k+Math.max(1,c.steps.length),0),len=S.cues.length?Math.max(...S.cues.map(c=>c.start+c.duration)):0;
-  blocks.push({h:150,draw:(g,y)=>{
-    g.textAlign='left';g.textBaseline='alphabetic';
-    g.fillStyle=ACCENT;g.font='700 20px '+F;g.fillText('PAN NOTES · DOUBLE GUITAR · CELLO SECTION',M,y+30);
-    g.fillStyle=INK;g.font='800 54px '+D;g.fillText(S.title||'My part',M,y+92);
-    g.fillStyle=SUB;g.font='24px '+F;g.fillText(total+' notes · '+nBars+(S.grid?' bars':' blocks')+' · runs to '+fmt(len),M,y+130);
-  }});
-  const kw=(CW-60)/2,kh=Math.max(...order.map(p=>{const v=p.view.split(' ').map(Number);return kw*v[3]/v[2]}));
-  blocks.push({h:kh+96,draw:(g,y)=>{
-    g.fillStyle=RULE;g.fillRect(M,y,CW,2);
-    order.forEach((p,i)=>{const x=M+i*(kw+60);g.fillStyle=SUB;g.font='700 20px '+F;g.textAlign='left';g.textBaseline='alphabetic';g.fillText((i?'RIGHT':'LEFT')+' · '+p.name.toUpperCase(),x,y+40);drawPanKey(g,p,x,y+56,kw)});
-  }});
   const B=buildBars(),Dl=displayList(B),G=B.G,pos=S.sheetPos;
-  blocks.push({h:96,draw:(g,y)=>{g.fillStyle=SUB;g.font='20px '+F;g.textAlign='left';g.textBaseline='alphabetic';
-    g.fillText((G.real?'Bars at '+(+S.grid.bpm.toFixed(1))+' BPM. ':'Each box is 2 seconds. ')+'Dashed box = play together · F×4 = four in a row · • = rest · r roll · s strum · d drop',M,y+30,CW);
-    g.fillText(pos?'out = outer · in = inner · up / low = upper / lower · L / R = left / right side of the pan':'Orange = E / C pan · Blue = B / F pan',M,y+58,CW)}});
-  const EC='#b8561c',BF='#1d64ad',LW=78,X0=M+LW,XM=M+CW,ROW=pos?100:74,PAD=14,GAPT=12;
-  // width of one token, measured the same way drawTok lays it out: each note is as wide as its letter or its position
-  const tokW=t=>{let w=0;t.ids.forEach((id,i)=>{mg.font='700 34px '+F;let lw=mg.measureText(FIELDS.get(id).label).width;
-      if(t.run>1){mg.font='700 20px '+F;lw+=mg.measureText('×'+t.run).width+3}
-      if(pos){mg.font='15px '+F;lw=Math.max(lw,mg.measureText(shortPos(FIELDS.get(id).pos)).width)}w+=lw+(i?10:0)});
-    if(t.fx){mg.font='700 22px '+F;w+=mg.measureText(MARKS[t.fx]).width+6}
-    return w+(t.ids.length>1?18:0)};
-  const barToks=b=>{const ent=[...b.slots.entries()].sort((x,y)=>x[0]-y[0]),out=[];let prevEnd=-1;
-    for(let n=0;n<ent.length;n++){const [sl,v]=ent[n];const rest=prevEnd>=0&&sl-prevEnd>2;
+  // the same note colours as the screen, darkened so they print well on white
+  const ink=v=>{const c=getComputedStyle(document.documentElement).getPropertyValue(v).trim(),m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return v==='--ec'?'#b8561c':'#1d64ad';
+    const n=parseInt(m[1],16);return 'rgb('+[(n>>16)&255,(n>>8)&255,n&255].map(x=>Math.round(x*.68)).join(',')+')'};
+  const EC=ink('--ec'),BF=ink('--bf'),FS=30,LH=33,LW=70,PAD=12,GAP=12;
+  const blocks=[],order=S.swapped?[PANS[1],PANS[0]]:PANS;
+  const total=S.cues.reduce((k,c)=>k+Math.max(1,c.steps.length),0),len=S.cues.length?Math.max(...S.cues.map(c=>c.start+c.duration)):0;
+  const nBars=B.arr.filter(b=>b.slots.size).length;
+  // header: title on the left, a small key of both pans on the right
+  const kw=170,kh=Math.max(...order.map(p=>{const v=p.view.split(' ').map(Number);return kw*v[3]/v[2]}));
+  blocks.push({h:Math.max(150,kh+40),draw:(g,y)=>{
+    g.textAlign='left';g.textBaseline='alphabetic';
+    g.fillStyle=ACCENT;g.font='700 15px '+F;g.fillText('PAN NOTES · DOUBLE GUITAR · CELLO SECTION',M,y+22);
+    g.fillStyle=INK;g.font='800 40px '+D;g.fillText(S.title||'My part',M,y+66,CW-2*kw-60);
+    g.fillStyle=SUB;g.font='18px '+F;
+    g.fillText(total+' notes · '+(G.real?nBars+' bars at '+(+S.grid.bpm.toFixed(1))+' BPM':nBars+' blocks of 2 seconds')+' · '+fmt(len),M,y+96,CW-2*kw-60);
+    order.forEach((p,i)=>{const x=W-M-(2-i)*kw-(1-i)*16;drawPanKey(g,p,x,y+22,kw);g.fillStyle=SUB;g.font='700 12px '+F;g.textAlign='center';g.fillText((i?'RIGHT · ':'LEFT · ')+p.name.toUpperCase(),x+kw/2,y+14);g.textAlign='left'});
+  }});
+  blocks.push({h:52,draw:(g,y)=>{
+    g.fillStyle=RULE;g.fillRect(M,y+4,CW,2);g.textAlign='left';g.textBaseline='alphabetic';g.font='16px '+F;let x=M;
+    const seg=(t,c)=>{g.fillStyle=c;g.fillText(t,x,y+34);x+=g.measureText(t).width};
+    seg('E / C pan ',EC);seg('● ',EC);seg('   B / F pan ',BF);seg('● ',BF);
+    seg('   Dashed box = together · F×4 = four in a row · • = rest · r roll · s strum · d drop',SUB);
+  }});
+  // one "token" per note or chord, measured exactly as it is drawn
+  const toks=b=>{const ent=[...b.slots.entries()].sort((x,y)=>x[0]-y[0]),out=[];let prevEnd=-1;
+    for(let n=0;n<ent.length;n++){const [sl,v]=ent[n],rest=prevEnd>=0&&sl-prevEnd>2;
       if(v.ids.length>1){out.push({ids:v.ids,run:1,rest,fx:v.fx});prevEnd=sl;continue}
       let m=n;while(m+1<ent.length&&ent[m+1][1].ids.length===1&&ent[m+1][1].ids[0]===v.ids[0]&&ent[m+1][1].fx===v.fx)m++;
       out.push({ids:v.ids,run:m-n+1,rest,fx:v.fx});prevEnd=ent[m][0];n=m}
     return out};
-  const drawTok=(g,t,x,y)=>{
-    if(t.ids.length>1){g.strokeStyle=CHORDLINE;g.lineWidth=2;g.setLineDash([7,5]);rr(g,x,y+8,tokW(t),pos?72:50,8);g.stroke();g.setLineDash([]);x+=9}
-    for(const id of t.ids){const lab=FIELDS.get(id).label;g.font='700 34px '+F;g.fillStyle=panKey(id)==='ec'?EC:BF;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(lab,x,y+46);let w=g.measureText(lab).width;
-      if(t.run>1){g.font='700 20px '+F;g.fillStyle=ACCENT;g.fillText('×'+t.run,x+w+3,y+30);w+=g.measureText('×'+t.run).width+3}
-      if(pos){g.font='15px '+F;g.fillStyle=SUB;const p=shortPos(FIELDS.get(id).pos);g.fillText(p,x,y+70);w=Math.max(w,g.measureText(p).width)}
-      x+=w+10}
-    if(t.fx){g.font='700 22px '+F;g.fillStyle=ACCENT;g.textAlign='left';g.fillText(MARKS[t.fx],x-4,y+24)}};
-  const barW=(b,times)=>{const ts=barToks(b);let w=PAD*2+ts.reduce((a,t)=>a+tokW(t)+GAPT+(t.rest?18:0),0)-GAPT;if(!ts.length)w=PAD*2+30;if(times>1){mg.font='700 20px '+F;w+=mg.measureText('×'+times).width+8}return w};
-  const textBlock=(txt,color,dashed)=>blocks.push({h:62,draw:(g,y)=>{g.strokeStyle=RULE;g.lineWidth=2;g.setLineDash(dashed?[8,6]:[]);rr(g,M,y+6,CW,46,10);g.stroke();g.setLineDash([]);g.fillStyle=color;g.font=(dashed?'700 ':'')+'22px '+F;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(txt,M+18,y+37,CW-36)}});
-  let line=[],lx=X0;
-  const flushLine=()=>{if(!line.length)return;const items=line,notes=items.flatMap(it=>it.b.notes.map(x=>(G.real?'Bar '+barLabel(G,it.b.i):barLabel(G,it.b.i))+' · '+x));line=[];lx=X0;
-    blocks.push({h:ROW+16+notes.length*28,draw:(g,y)=>{
-      g.fillStyle=SUB;g.font='700 20px '+F;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(G.real?barLabel(G,items[0].b.i):barLabel(G,items[0].b.i),M,y+42);
-      let x=X0;g.fillStyle='#9fb4b5';g.fillRect(x,y+4,2.5,ROW-8);
-      for(const it of items){const w=barW(it.b,it.times);let tx=x+PAD;
-        for(const t of barToks(it.b)){if(t.rest){g.fillStyle=SUB;g.beginPath();g.arc(tx+5,y+36,4,0,Math.PI*2);g.fill();tx+=18}drawTok(g,t,tx,y);tx+=tokW(t)+GAPT}
-        if(!it.b.slots.size){g.fillStyle=SUB;g.font='700 30px '+F;g.fillText('—',tx,y+46)}
-        if(it.times>1){g.fillStyle=ACCENT;g.font='700 20px '+F;g.textAlign='right';g.fillText('×'+it.times,x+w-6,y+44);g.textAlign='left'}
-        x+=w;g.fillStyle='#9fb4b5';g.fillRect(x,y+4,2.5,ROW-8)}
-      notes.forEach((n,i)=>{g.fillStyle=SUB;g.font='italic 20px '+F;g.textAlign='left';g.fillText(n,X0,y+ROW+18+i*28,CW-LW)});
+  const tokSize=t=>{
+    let w=0;for(const id of t.ids){mg.font='700 '+FS+'px '+F;let lw=mg.measureText(FIELDS.get(id).label).width;
+      if(pos){mg.font='12px '+F;lw=Math.max(lw,mg.measureText(shortPos(FIELDS.get(id).pos)).width)}w=Math.max(w,lw)}
+    if(t.run>1){mg.font='700 16px '+F;w+=mg.measureText('×'+t.run).width+2}
+    const chord=t.ids.length>1,h=t.ids.length*(LH+(pos?13:0))+(chord?10:0);
+    let fw=0;if(t.fx){mg.font='700 17px '+F;fw=mg.measureText(MARKS[t.fx]).width+3}
+    return{w:w+(chord?16:0)+fw,h,body:w+(chord?16:0)}};
+  const drawTok=(g,t,x,top)=>{
+    const z=tokSize(t),chord=t.ids.length>1;
+    if(chord){g.strokeStyle='#8fa3a4';g.lineWidth=1.6;g.setLineDash([5,4]);rr(g,x,top,z.body,z.h,7);g.stroke();g.setLineDash([])}
+    let yy=top+(chord?5:0);
+    t.ids.forEach(id=>{const lab=FIELDS.get(id).label;g.font='700 '+FS+'px '+F;g.fillStyle=panKey(id)==='ec'?EC:BF;g.textAlign=chord?'center':'left';g.textBaseline='alphabetic';
+      g.fillText(lab,chord?x+z.body/2:x,yy+LH-6);
+      if(pos){g.font='12px '+F;g.fillStyle=SUB;g.fillText(shortPos(FIELDS.get(id).pos),chord?x+z.body/2:x,yy+LH+8)}
+      yy+=LH+(pos?13:0)});
+    g.textAlign='left';
+    if(t.run>1){g.font='700 16px '+F;g.fillStyle=ACCENT;g.fillText('×'+t.run,x+z.body-(g.measureText('×'+t.run).width),top+LH-6)}
+    if(t.fx){g.font='700 17px '+F;g.fillStyle=ACCENT;g.fillText(MARKS[t.fx],x+z.body+2,top+14)}};
+  const barSize=it=>{const ts=toks(it.b);let w=PAD*2,h=LH;
+    ts.forEach((t,i)=>{const z=tokSize(t);w+=z.w+(i?GAP:0)+(t.rest?16:0);h=Math.max(h,z.h)});
+    if(!ts.length)w+=24;if(it.times>1){mg.font='700 18px '+F;w+=mg.measureText('×'+it.times).width+10}
+    return{w,h}};
+  let line=[];
+  const flushLine=()=>{if(!line.length)return;const items=line;line=[];
+    const rowH=Math.max(...items.map(it=>barSize(it).h))+16,notes=items.flatMap(it=>it.b.notes.map(x=>(G.real?'Bar '+barLabel(G,it.b.i):barLabel(G,it.b.i))+' · '+x));
+    blocks.push({h:rowH+notes.length*24+6,draw:(g,y)=>{
+      g.textAlign='left';g.textBaseline='alphabetic';g.fillStyle=SUB;g.font='15px '+F;g.fillText(barLabel(G,items[0].b.i),M,y+8+LH*.7);
+      let x=M+LW;const bl=xx=>{g.fillStyle='#7f9596';g.fillRect(xx,y+4,2,rowH-10)};bl(x);
+      for(const it of items){const z=barSize(it);let tx=x+PAD;
+        toks(it.b).forEach((t,i)=>{if(i)tx+=GAP;if(t.rest){g.fillStyle=SUB;g.beginPath();g.arc(tx+5,y+8+LH*.55,3,0,Math.PI*2);g.fill();tx+=16}drawTok(g,t,tx,y+8);tx+=tokSize(t).w});
+        if(!it.b.slots.size){g.fillStyle=SUB;g.font='700 24px '+F;g.fillText('—',tx,y+8+LH-6)}
+        if(it.times>1){g.fillStyle=ACCENT;g.font='700 18px '+F;g.textAlign='right';g.fillText('×'+it.times,x+z.w-6,y+8+LH-8);g.textAlign='left'}
+        x+=z.w;bl(x)}
+      notes.forEach((n,i)=>{g.fillStyle=SUB;g.font='italic 16px '+F;g.fillText(n,M+LW,y+rowH+14+i*24,CW-LW)});
     }})};
+  const textLine=(txt,color,dashed)=>blocks.push({h:46,draw:(g,y)=>{g.strokeStyle=RULE;g.lineWidth=1.6;g.setLineDash(dashed?[7,5]:[]);rr(g,M+LW,y+6,CW-LW,34,8);g.stroke();g.setLineDash([]);
+    g.fillStyle=color;g.font=(dashed?'700 ':'')+'16px '+F;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(txt,M+LW+14,y+29,CW-LW-28)}});
+  let lw=0;const maxW=CW-LW;
   for(const it of Dl.out){
-    if(it.type==='bar'){const w=barW(it.b,it.times);if(line.length&&(lx+w>XM||line.length>=4))flushLine();line.push(it);lx+=w;continue}
-    flushLine();
-    if(it.type==='fold')textBlock('↻  Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to)+': same as bars '+barLabel(G,it.src)+'–'+barLabel(G,it.src+3)+(it.count>1?' ('+it.count+' times)':''),ACCENT,true);
-    else textBlock(G.real?(it.from===it.to?'Bar '+barLabel(G,it.from):'Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to))+' · rest':barLabel(G,it.from)+' – '+fmt(G.o+(it.to+1)*G.bar)+' · no notes',SUB,false);
+    if(it.type==='bar'){const w=barSize(it).w;if(line.length&&lw+w>maxW){flushLine();lw=0}line.push(it);lw+=w;continue}
+    flushLine();lw=0;
+    if(it.type==='fold')textLine('↻  Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to)+': same as bars '+barLabel(G,it.src)+'–'+barLabel(G,it.src+3)+(it.count>1?' ('+it.count+' times)':''),ACCENT,true);
+    else textLine(G.real?(it.from===it.to?'Bar '+barLabel(G,it.from):'Bars '+barLabel(G,it.from)+'–'+barLabel(G,it.to))+' · rest':barLabel(G,it.from)+' – '+fmt(G.o+(it.to+1)*G.bar).replace(/\.0$/,'')+' · no notes',SUB,false);
   }
   flushLine();
-  if(!B.arr.length)blocks.push({h:60,draw:(g,y)=>{g.fillStyle=SUB;g.font='24px '+F;g.textAlign='left';g.fillText('No notes yet.',M,y+36)}});
+  if(!B.arr.length)blocks.push({h:60,draw:(g,y)=>{g.fillStyle=SUB;g.font='22px '+F;g.textAlign='left';g.fillText('No notes yet.',M,y+36)}});
   return{blocks,M};
 }
 /* Timeline export: the song in lines, waveform on top, your notes underneath at their exact times */
-let expKind='timeline';
+let expKind='sheet';   // Letters first: it's the one that reads like your written part
 function renderExpKind(){
   $('expKind').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===expKind)));
 }
@@ -2228,17 +2248,21 @@ function layoutTimeline(W){
 }
 async function sheetCanvases(mode){
   try{await document.fonts.ready}catch{}
-  const W=1240,{blocks,M}=(expKind==='timeline'?layoutTimeline:layoutSheet)(W),pages=[];
-  if(mode==='pdf'){
-    const H=1754;let page=[],y=M;
-    for(const b of blocks){if(y+b.h>H-M-30&&page.length){pages.push(page);page=[];y=M}page.push({b,y});y+=b.h}
-    if(page.length)pages.push(page);
-    return pages.map((pg,i)=>{const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,W,H);
-      for(const {b,y} of pg)b.draw(g,y);
-      g.fillStyle=SUB;g.font='18px '+sheetFont();g.textAlign='right';g.textBaseline='alphabetic';g.fillText('Page '+(i+1)+' of '+pages.length,W-M,H-40);return cv});
-  }
-  const H=Math.min(16000,blocks.reduce((s,b)=>s+b.h,0)+2*M),cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  const g=cv.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,W,H);let y=M;for(const b of blocks){if(y+b.h>H)break;b.draw(g,y);y+=b.h}
+  // US letter (8.5 × 11 in) at 150 dots per inch
+  const W=1275,H=1650,{blocks,M}=(expKind==='timeline'?layoutTimeline:layoutSheet)(W),pages=[];
+  let page=[],y=M;
+  for(const b of blocks){if(y+b.h>H-M-24&&page.length){pages.push(page);page=[];y=M}page.push({b,y});y+=b.h}
+  if(page.length)pages.push(page);
+  const cvs=pages.map((pg,i)=>{const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,W,H);
+    for(const {b,y} of pg)b.draw(g,y);
+    g.fillStyle=SUB;g.font='15px '+sheetFont();g.textBaseline='alphabetic';
+    g.textAlign='left';if(i)g.fillText(S.title||'My part',M,H-30);
+    g.textAlign='right';g.fillText('Page '+(i+1)+' of '+pages.length,W-M,H-30);return cv});
+  if(mode==='pdf')return cvs;
+  // one picture: the pages one under the other, with a thin gap between them
+  const GAPY=24,cv=document.createElement('canvas');cv.width=W;cv.height=Math.min(16000,cvs.length*H+(cvs.length-1)*GAPY);
+  const g=cv.getContext('2d');g.fillStyle='#d5dddd';g.fillRect(0,0,cv.width,cv.height);
+  cvs.forEach((c,i)=>{if((i+1)*H+i*GAPY<=cv.height)g.drawImage(c,0,i*(H+GAPY))});
   return[cv];
 }
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
@@ -2256,7 +2280,7 @@ $('expPdf').onclick=()=>busy($('expPdf'),async()=>{
     try{await loadScript(window.PAN_APP?'jspdf.umd.min.js':'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')}catch{say('Could not prepare the PDF. Check your connection, or save it as a picture instead.');return}
   }
   const pages=await sheetCanvases('pdf');
-  const pdf=new window.jspdf.jsPDF({unit:'pt',format:'a4'}),pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  const pdf=new window.jspdf.jsPDF({unit:'pt',format:'letter'}),pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
   pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,pw,ph)});
   await offerFile(fileBase()+' - '+kindName()+'.pdf',pdf.output('blob'));
 });
