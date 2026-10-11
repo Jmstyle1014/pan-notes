@@ -242,6 +242,11 @@ body{padding-bottom:calc(var(--dockH,132px) + 16px)}
 .recpans .photo .recorded .zone{fill:rgb(111 211 164 / .55)}
 .recpans .chosen .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:14}
 .recpans .chosen text{fill:var(--gold-ink)}
+.profbox{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.profrow select,#profNameIn{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:12px;min-height:44px;padding:0 12px;color:var(--text);font-size:16px}
+.profbox input[type=range]{width:100%;accent-color:var(--gold);height:32px}
+.profbox input.rev{direction:rtl}
+.profbox .tl{display:flex;justify-content:space-between}.profbox .tl b{color:var(--text)}
 .tunebox{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
 #recWave{display:block;width:100%;height:96px;border-radius:12px;border:1px solid var(--line);touch-action:none;cursor:ew-resize}
 .tunebox input[type=range]{width:100%;accent-color:var(--gold);height:32px}
@@ -911,7 +916,20 @@ body[data-game="ready"] #gmResults,body[data-game="done"] #gmReady{display:none}
       <div class="lab">Sound of the pans when you tap
         <div class="seg" id="voiceSeg"><button data-v="synth" aria-pressed="true">Built-in tone</button><button data-v="mine">My recordings</button></div>
       </div>
-      <button class="btn primary" id="recOpen">🎙 Record your pans</button>
+      <button class="btn" id="recOpen">🎙 Record your pans</button>
+      <div class="profbox">
+        <h3 class="sub">Sound profile</h3>
+        <div class="row profrow"><select id="profSel" aria-label="Sound profile"></select><button class="btn" id="profNew">Save as new</button></div>
+        <div class="row" id="profName" hidden><input type="text" id="profNameIn" maxlength="40" aria-label="Profile name"><button class="btn primary" id="profNameOk">Save</button><button class="btn" id="profNameCancel">Cancel</button></div>
+        <button class="btn primary" id="profBest">✨ Make my pans sound their best</button>
+        <div class="lab">Space
+          <div class="seg" id="spaceSeg"><button data-sp="dry">Dry</button><button data-sp="room">Room</button><button data-sp="yard">Panyard</button><button data-sp="hall">Hall</button></div>
+        </div>
+        <label class="lab"><span class="tl">Reverb <b id="fxMixV"></b></span><input type="range" id="fxMix" min="0" max="0.6" step="0.02"></label>
+        <label class="lab"><span class="tl">Brightness <b id="fxBrightV"></b></span><input type="range" id="fxBright" min="-6" max="6" step="0.5"></label>
+        <label class="lab"><span class="tl">Low end <b id="fxWarmV"></b></span><input type="range" id="fxWarm" min="60" max="260" step="10" class="rev"></label>
+        <div class="row"><button class="btn grow" id="profTry">▶ Hear it</button><button class="btn" id="profRen">Rename</button><button class="btn danger" id="profDel">Delete</button></div>
+      </div>
     </div>
     <div class="panel">
       <h2>Saving</h2>
@@ -1056,6 +1074,8 @@ body[data-game="ready"] #gmResults,body[data-game="done"] #gmReady{display:none}
       <details><summary>Recording your own pan sounds</summary>
         <p>Setup → <b>Your pan sounds</b> → <b>Record your pans</b>. Tap a note on the drawing, tap <b>Record</b>, and hit that note once on your real pan. Let it ring; Pan Notes waits for the hit, keeps about 2½ seconds, trims the silence and evens out the volume. It also tells you which note it heard, so you know you hit the right one.</p>
         <p>Recorded notes turn green. <b>Next ▶</b> jumps to the next note you haven't done. Not happy with one? Tap it and <b>Record again</b>, or <b>Delete</b> it. You can also pick a recording you already have with <b>Use a file instead</b>.</p>
+        <p><b>✨ Make my pans sound their best</b> (Setup → Your pan sounds) does the tidy-up for you: trims every note to the hit and its ring, tunes any that are sharp or flat, evens out the volumes, and puts them in a <b>Panyard</b> space with a little reverb. Then tweak anything you like.</p>
+        <p><b>Sound profiles</b> save all of it: the space (Dry, Room, Panyard, Hall), reverb, brightness and low end, plus every note's trim, volume and tuning. <b>Save as new</b> to keep a version and try another; switch between them from the list. The built-in tone uses the same space.</p>
         <p><b>Fine-tune:</b> tap a recorded note to open its controls. Drag the gold handles on the sound picture to trim where it starts and stops, set its <b>Volume</b>, how long the <b>Fade at the end</b> is, and its <b>Tuning</b> in cents (100 cents = one semitone). The app tells you if a recording is sharp or flat; <b>Tune it for me</b> fixes it. <b>Even out the volume of all notes</b> makes them all about as loud as each other. <b>Reset</b> takes a note back to the original take.</p>
         <p>Once you've recorded, <b>Sound of the pans</b> switches to <b>My recordings</b>: tapping the pans plays your real notes, holding plays a roll, and any note you haven't recorded uses the built-in tone. Your sounds stay on this phone and go into backup files, so they move with you.</p></details>
       <details><summary>Full screen and keeping the screen on</summary>
@@ -2148,7 +2168,7 @@ async function photoDataUrls(){
 $('expJson').onclick=async()=>{
   const photos=await photoDataUrls(),sounds={};
   for(const [id,b] of Object.entries(SAMPLES.wav)){try{sounds[id]=await readData(b)}catch{}}
-  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,swapped:S.swapped,grid:S.grid,cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune}:{}),savedAt:new Date().toISOString()},null,1);
+  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,swapped:S.swapped,grid:S.grid,cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune,soundProfiles:PROF}:{}),savedAt:new Date().toISOString()},null,1);
   offerFile(fileBase()+' - Pan Notes backup.json',data);
 };
 $('impJson').onchange=async e=>{
@@ -2174,6 +2194,9 @@ $('impJson').onchange=async e=>{
     }
     if(p.sounds&&typeof p.sounds==='object'){let k=0;for(const [id,d] of Object.entries(p.sounds))if(FIELDS.has(id)&&typeof d==='string'&&/^data:audio\/[a-z0-9.+-]+;base64,/i.test(d)){SAMPLES.wav[id]=dataUrlToBlob(d,'audio/wav');delete SAMPLES.buf[id];k++}
       if(p.soundTune&&typeof p.soundTune==='object')for(const [id,v] of Object.entries(p.soundTune))if(SAMPLES.wav[id]&&v&&typeof v==='object')SAMPLES.tune[id]={start:+v.start||0,end:Number.isFinite(+v.end)&&v.end!==null?+v.end:null,db:Math.max(-12,Math.min(12,+v.db||0)),fade:Math.max(0.05,Math.min(1.2,+v.fade||0.15)),cents:Math.max(-100,Math.min(100,+v.cents||0))};
+      const sp=p.soundProfiles;
+      if(sp&&Array.isArray(sp.list)&&sp.list.length){PROF={active:String(sp.active||''),list:sp.list.filter(x=>x&&typeof x.id==='string').slice(0,30).map(x=>({id:x.id,name:String(x.name||'Profile').slice(0,40),fx:{...FX0,...(x.fx||{})},tune:x.tune&&typeof x.tune==='object'?x.tune:{}}))};
+        if(PROF.list.length){SAMPLES.tune=profNow().tune;PROF.active=profNow().id;applyFx();renderProfiles();extra+=' Sound profiles added.'}}
       if(k){saveSamples();saveTune();S.panVoice='mine';renderVoice();extra+=' '+k+' pan sounds added.'}}
     renderAll();save();
     say('Opened '+cues.length+' cues from the backup.'+extra+(wasDemo?'':' Tap Undo in Cues if you want your old cues back.'));
@@ -2808,7 +2831,7 @@ let pac=null,pBus=null,noiseBuf=null;
 function panCtx(){
   if(!pac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
     pac=new C();const comp=pac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
-    pBus=pac.createGain();pBus.gain.value=0.9;pBus.connect(comp);comp.connect(pac.destination);
+    pBus=pac.createGain();pBus.gain.value=0.9;fxBuild(pac,pBus,comp);comp.connect(pac.destination);
     const len=Math.floor(pac.sampleRate*0.03);noiseBuf=pac.createBuffer(1,len,pac.sampleRate);const d=noiseBuf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
   if(pac.state==='suspended')pac.resume();
@@ -3010,8 +3033,126 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('recSheet').hidd
 SAMPLES.tune={};
 const TUNE0={start:0,end:null,db:0,fade:0.15,cents:0};
 const tuneOf=id=>Object.assign({},TUNE0,SAMPLES.tune[id]||{});
-const saveTune=()=>idbPut('sampleTune',{...SAMPLES.tune});
-idbGet('sampleTune').then(t=>{if(t&&typeof t==='object')for(const [id,v] of Object.entries(t))if(FIELDS.has(id)&&v&&typeof v==='object')SAMPLES.tune[id]=v});
+
+/* ---------- sound profiles: the room your pans play in, plus every note's fine-tuning ---------- */
+// A profile = a "space" (reverb, brightness, warmth) + the trims, volumes and tunings of each note.
+// Switch between them any time; the built-in tone goes through the same space.
+const SPACES={
+  dry:  {name:'Dry',     mix:0,    decay:0.6, lowcut:90,  bright:0},
+  room: {name:'Room',    mix:0.14, decay:0.9, lowcut:110, bright:1},
+  yard: {name:'Panyard', mix:0.24, decay:1.9, lowcut:140, bright:2},
+  hall: {name:'Hall',    mix:0.34, decay:3.2, lowcut:120, bright:1.5}
+};
+const FX0={space:'yard',mix:0.24,decay:1.9,lowcut:140,bright:2};
+let PROF={active:null,list:[]};
+const profNow=()=>PROF.list.find(p=>p.id===PROF.active)||PROF.list[0];
+const fxNow=()=>Object.assign({},FX0,(profNow()||{}).fx||{});
+function saveProfiles(){idbPut('soundProfiles',JSON.parse(JSON.stringify(PROF)))}
+const saveTune=()=>{const p=profNow();if(p)p.tune=SAMPLES.tune;saveProfiles()};
+async function loadProfiles(){
+  const saved=await idbGet('soundProfiles');
+  if(saved&&Array.isArray(saved.list)&&saved.list.length)PROF=saved;
+  else{const old=await idbGet('sampleTune');PROF={active:'p1',list:[{id:'p1',name:'My pans',fx:{...FX0},tune:old&&typeof old==='object'?old:{}}]}}
+  const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});
+  applyFx();renderProfiles();
+}
+/* the effects chain: everything you tap goes through it */
+const FX={};
+function makeIR(ac,decay){
+  const sr=ac.sampleRate,n=Math.max(1,Math.round(sr*decay)),ir=ac.createBuffer(2,n,sr),pre=Math.round(sr*0.012);
+  for(let c=0;c<2;c++){const d=ir.getChannelData(c);let lp=0;
+    for(let i=pre;i<n;i++){const t=(i-pre)/sr,k=0.55-0.45*Math.min(1,t/decay);lp+=k*((Math.random()*2-1)-lp);d[i]=lp*Math.pow(1-(i-pre)/(n-pre),2)*Math.exp(-t*3/decay)}}
+  return ir;
+}
+function fxBuild(ac,bus,comp){
+  FX.hp=ac.createBiquadFilter();FX.hp.type='highpass';FX.hp.Q.value=0.6;
+  FX.shelf=ac.createBiquadFilter();FX.shelf.type='highshelf';FX.shelf.frequency.value=4200;
+  FX.dry=ac.createGain();FX.wet=ac.createGain();FX.conv=ac.createConvolver();
+  bus.connect(FX.hp);FX.hp.connect(FX.shelf);FX.shelf.connect(FX.dry);FX.dry.connect(comp);
+  FX.shelf.connect(FX.conv);FX.conv.connect(FX.wet);FX.wet.connect(comp);
+  FX.ac=ac;FX.decay=null;applyFx();
+}
+function applyFx(){
+  if(!FX.ac)return;const f=fxNow(),t=FX.ac.currentTime;
+  FX.hp.frequency.setTargetAtTime(f.lowcut,t,0.03);FX.shelf.gain.setTargetAtTime(f.bright,t,0.03);
+  FX.dry.gain.setTargetAtTime(1-f.mix*0.5,t,0.03);FX.wet.gain.setTargetAtTime(f.mix*1.6,t,0.03);
+  if(f.mix>0&&FX.decay!==f.decay){FX.conv.buffer=makeIR(FX.ac,f.decay);FX.decay=f.decay}
+}
+function setFx(patch){const p=profNow();if(!p)return;p.fx=Object.assign(fxNow(),patch);saveProfiles();applyFx();renderProfiles()}
+/* one tap: tidy every recorded note and give them a space */
+async function makeBest(){
+  const ids=Object.keys(SAMPLES.wav);if(!ids.length){say('Record some notes first, then try this.');return}
+  const btn=$('profBest'),t0=btn.textContent;btn.disabled=true;btn.textContent='Working on your sounds…';
+  try{
+    await Promise.all(ids.map(sampleBuf));
+    let tuned=0;const loud={};
+    for(const id of ids){
+      const b=SAMPLES.buf[id];if(!b)continue;const d=b.getChannelData(0),sr=b.sampleRate;
+      let peak=0;for(const v of d)peak=Math.max(peak,Math.abs(v));
+      // where it starts: the hit itself
+      let on=0;while(on<d.length&&Math.abs(d[on])<peak*0.2)on++;const start=Math.max(0,(on/sr)-0.004);
+      // where it really ends: when the ring has died away (about -44 dB), smoothed so a stray click doesn't count
+      const win=Math.round(sr*0.02);let end=d.length;
+      for(let i=d.length-win;i>on;i-=win){let m=0;for(let j=i;j<i+win;j++)m=Math.max(m,Math.abs(d[j]));if(m>peak*0.006){end=i+win;break}}
+      const endS=Math.min(b.duration,end/sr+0.05,start+2.5),len=endS-start;
+      const T={...TUNE0,start:+start.toFixed(3),end:+endS.toFixed(3),fade:+Math.min(0.35,Math.max(0.08,len*0.25)).toFixed(2)};
+      SAMPLES.tune[id]=T;
+      const off=centsOff(id);if(off!==null&&Math.abs(off)>4){T.cents=Math.max(-60,Math.min(60,-Math.round(off)));tuned++}
+      const a=Math.round((start+0.02)*sr),z=Math.min(d.length,a+Math.round(0.3*sr));let s=0;for(let i=a;i<z;i++)s+=d[i]*d[i];loud[id]=Math.sqrt(s/Math.max(1,z-a));
+    }
+    const vals=Object.values(loud).filter(v=>v>0).sort((x,y)=>x-y),target=vals[Math.floor(vals.length/2)];
+    for(const [id,v] of Object.entries(loud))if(v>0){const lowLift=midiOf(PITCH[id])<55?1:0;SAMPLES.tune[id].db=Math.max(-12,Math.min(12,Math.round((20*Math.log10(target/v)+lowLift)*2)/2))}
+    const p=profNow();p.fx={...FX0};saveTune();applyFx();
+    if(S.panVoice!=='mine'){S.panVoice='mine';save()}
+    renderProfiles();renderVoice();if(!$('recSheet').hidden)renderTune();
+    say('Done: trimmed '+ids.length+' notes, tuned '+tuned+', evened the volumes and added a Panyard space. Tap the pans to hear it.');
+    demoPhrase();
+  }finally{btn.disabled=false;btn.textContent=t0}
+}
+// a short phrase through the current sound: up the E/C pan, then a chord
+function demoPhrase(){
+  const seq=['d-low','e-low','fs-low','gs-low','bb','c','d-inner','e-top'];
+  seq.forEach((id,i)=>setTimeout(()=>strike(id,0.9),i*170));
+  setTimeout(()=>{strike('c',1);strike('g-low',1)},seq.length*170+200);
+}
+/* profile list */
+function renderProfiles(){
+  const sel=$('profSel');if(!sel)return;
+  sel.innerHTML=PROF.list.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===PROF.active?' selected':'')+'>'+esc(p.name)+'</option>').join('');
+  const f=fxNow();
+  $('spaceSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sp===f.space)));
+  $('fxMix').value=f.mix;$('fxMixV').textContent=Math.round(f.mix*100)+'%';
+  $('fxBright').value=f.bright;$('fxBrightV').textContent=(f.bright>0?'+':'')+f.bright+' dB';
+  $('fxWarm').value=f.lowcut;$('fxWarmV').textContent=f.lowcut<=100?'full':f.lowcut<=150?'clean':'light';
+  $('profDel').disabled=PROF.list.length<2;
+}
+function switchProfile(id){
+  const p=PROF.list.find(x=>x.id===id);if(!p)return;PROF.active=id;SAMPLES.tune=p.tune||(p.tune={});
+  saveProfiles();applyFx();renderProfiles();if(!$('recSheet').hidden)renderTune();say('Sound profile: '+p.name);demoPhrase();
+}
+$('profSel').onchange=e=>switchProfile(e.target.value);
+$('profNew').onclick=()=>{
+  const cur=profNow(),box=$('profName');box.hidden=false;box.dataset.mode='new';$('profNameIn').value=(cur?cur.name:'My pans')+' 2';$('profNameIn').focus();$('profNameIn').select()};
+$('profRen').onclick=()=>{const cur=profNow();if(!cur)return;const box=$('profName');box.hidden=false;box.dataset.mode='rename';$('profNameIn').value=cur.name;$('profNameIn').focus();$('profNameIn').select()};
+$('profNameOk').onclick=()=>{
+  const name=$('profNameIn').value.trim().slice(0,40)||'My pans',box=$('profName'),cur=profNow();
+  if(box.dataset.mode==='rename'){cur.name=name;say('Renamed to '+name+'.')}
+  else{const id='p'+Date.now().toString(36);PROF.list.push({id,name,fx:JSON.parse(JSON.stringify(cur.fx||FX0)),tune:JSON.parse(JSON.stringify(cur.tune||{}))});PROF.active=id;SAMPLES.tune=profNow().tune;say('Saved as a new profile: '+name+'. Changes now go into this one.')}
+  box.hidden=true;saveProfiles();renderProfiles();
+};
+$('profNameCancel').onclick=()=>{$('profName').hidden=true};
+$('profDel').onclick=()=>{
+  if(PROF.list.length<2)return;const cur=profNow(),b=$('profDel');
+  if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Tap again to delete';setTimeout(()=>{b.dataset.armed='';b.textContent='Delete'},3000);return}
+  b.dataset.armed='';b.textContent='Delete';PROF.list=PROF.list.filter(p=>p!==cur);switchProfile(PROF.list[0].id);say('Deleted '+cur.name+'.');
+};
+$('spaceSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{const sp=SPACES[b.dataset.sp];setFx({space:b.dataset.sp,mix:sp.mix,decay:sp.decay,lowcut:sp.lowcut,bright:sp.bright});demoPhrase()});
+$('fxMix').oninput=e=>setFx({mix:+e.target.value});$('fxMix').onchange=demoPhrase;
+$('fxBright').oninput=e=>setFx({bright:+e.target.value});$('fxBright').onchange=demoPhrase;
+$('fxWarm').oninput=e=>setFx({lowcut:+e.target.value});$('fxWarm').onchange=demoPhrase;
+$('profBest').onclick=makeBest;
+$('profTry').onclick=demoPhrase;
+loadProfiles();
 // how far a recording is from the note it should be, in cents (100 cents = one semitone), ignoring octave
 function centsOff(id){
   const b=SAMPLES.buf[id];if(!b)return null;const T=tuneOf(id),sr=b.sampleRate,d=b.getChannelData(0);
