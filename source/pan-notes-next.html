@@ -242,6 +242,10 @@ body{padding-bottom:calc(var(--dockH,132px) + 16px)}
 .recpans .photo .recorded .zone{fill:rgb(111 211 164 / .55)}
 .recpans .chosen .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:14}
 .recpans .chosen text{fill:var(--gold-ink)}
+.tunebox{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+#recWave{display:block;width:100%;height:96px;border-radius:12px;border:1px solid var(--line);touch-action:none;cursor:ew-resize}
+.tunebox input[type=range]{width:100%;accent-color:var(--gold);height:32px}
+.tunebox .tl{display:flex;justify-content:space-between}.tunebox .tl b{color:var(--text);font-variant-numeric:tabular-nums}
 .recnow{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
 .recnow .col0{display:flex;flex-direction:column;gap:2px;min-width:0}
 #recNote{font:800 28px/1.1 var(--display)}
@@ -818,6 +822,17 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
         <label class="btn grow">Use a file instead<input id="recFile" type="file" accept="audio/*,.m4a,.mp3,.wav"></label>
         <button class="btn danger" id="recDel" disabled>Delete</button>
       </div>
+      <div id="tuneBox" class="tunebox" hidden>
+        <h3 class="sub">Fine-tune <span id="tuneNote"></span></h3>
+        <canvas id="recWave" aria-label="The recording. Drag the gold handles to trim where the note starts and stops."></canvas>
+        <p class="help">Drag the gold handles to trim the start and end. Every change plays the note so you can hear it.</p>
+        <label class="lab"><span class="tl">Volume <b id="tuneDbV"></b></span><input type="range" id="tuneDb" min="-12" max="12" step="0.5"></label>
+        <label class="lab"><span class="tl">Fade at the end <b id="tuneFadeV"></b></span><input type="range" id="tuneFade" min="0.05" max="1.2" step="0.05"></label>
+        <label class="lab"><span class="tl">Tuning <b id="tuneCentsV"></b></span><input type="range" id="tuneCents" min="-100" max="100" step="1"></label>
+        <p class="help" id="tuneHeard"></p>
+        <div class="row"><button class="btn grow" id="tuneAuto">Tune it for me</button><button class="btn" id="tuneReset">Reset</button></div>
+        <button class="btn" id="tuneLevel">Even out the volume of all notes</button>
+      </div>
     </div>
   </div>
 </div>
@@ -889,6 +904,7 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
       <details><summary>Recording your own pan sounds</summary>
         <p>Setup → <b>Your pan sounds</b> → <b>Record your pans</b>. Tap a note on the drawing, tap <b>Record</b>, and hit that note once on your real pan. Let it ring; Pan Notes waits for the hit, keeps about 2½ seconds, trims the silence and evens out the volume. It also tells you which note it heard, so you know you hit the right one.</p>
         <p>Recorded notes turn green. <b>Next ▶</b> jumps to the next note you haven't done. Not happy with one? Tap it and <b>Record again</b>, or <b>Delete</b> it. You can also pick a recording you already have with <b>Use a file instead</b>.</p>
+        <p><b>Fine-tune:</b> tap a recorded note to open its controls. Drag the gold handles on the sound picture to trim where it starts and stops, set its <b>Volume</b>, how long the <b>Fade at the end</b> is, and its <b>Tuning</b> in cents (100 cents = one semitone). The app tells you if a recording is sharp or flat; <b>Tune it for me</b> fixes it. <b>Even out the volume of all notes</b> makes them all about as loud as each other. <b>Reset</b> takes a note back to the original take.</p>
         <p>Once you've recorded, <b>Sound of the pans</b> switches to <b>My recordings</b>: tapping the pans plays your real notes, holding plays a roll, and any note you haven't recorded uses the built-in tone. Your sounds stay on this phone and go into backup files, so they move with you.</p></details>
       <details><summary>Full screen and keeping the screen on</summary>
         <p><b>⛶ Full screen</b> (here and in Setup) hides the browser bars where your phone allows it. Inside the Claude app it may not be allowed; in Chrome it usually works. While a song is playing, Pan Notes also keeps your screen from going to sleep (Setup → Play along).</p></details>
@@ -1980,7 +1996,7 @@ async function photoDataUrls(){
 $('expJson').onclick=async()=>{
   const photos=await photoDataUrls(),sounds={};
   for(const [id,b] of Object.entries(SAMPLES.wav)){try{sounds[id]=await readData(b)}catch{}}
-  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,swapped:S.swapped,grid:S.grid,cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds}:{}),savedAt:new Date().toISOString()},null,1);
+  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,swapped:S.swapped,grid:S.grid,cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune}:{}),savedAt:new Date().toISOString()},null,1);
   offerFile(fileBase()+' - Pan Notes backup.json',data);
 };
 $('impJson').onchange=async e=>{
@@ -2005,7 +2021,8 @@ $('impJson').onchange=async e=>{
       try{if(assets){const blob=dataUrlToBlob(d,'image/jpeg');const r=await assets.upload(blob);S.photos[k]={id:r.id}}else S.photos[k]={data:d};extra=extra.includes('photos')?extra:extra+' Pan photos added.'}catch{}
     }
     if(p.sounds&&typeof p.sounds==='object'){let k=0;for(const [id,d] of Object.entries(p.sounds))if(FIELDS.has(id)&&typeof d==='string'&&/^data:audio\/[a-z0-9.+-]+;base64,/i.test(d)){SAMPLES.wav[id]=dataUrlToBlob(d,'audio/wav');delete SAMPLES.buf[id];k++}
-      if(k){saveSamples();S.panVoice='mine';renderVoice();extra+=' '+k+' pan sounds added.'}}
+      if(p.soundTune&&typeof p.soundTune==='object')for(const [id,v] of Object.entries(p.soundTune))if(SAMPLES.wav[id]&&v&&typeof v==='object')SAMPLES.tune[id]={start:+v.start||0,end:Number.isFinite(+v.end)&&v.end!==null?+v.end:null,db:Math.max(-12,Math.min(12,+v.db||0)),fade:Math.max(0.05,Math.min(1.2,+v.fade||0.15)),cents:Math.max(-100,Math.min(100,+v.cents||0))};
+      if(k){saveSamples();saveTune();S.panVoice='mine';renderVoice();extra+=' '+k+' pan sounds added.'}}
     renderAll();save();
     say('Opened '+cues.length+' cues from the backup.'+extra+(wasDemo?'':' Tap Undo in Cues if you want your old cues back.'));
   }catch{say("That file isn't a Pan Notes backup. Choose a file saved with Save backup file.")}
@@ -2703,9 +2720,12 @@ async function sampleBuf(id){
 }
 function playSample(id,vel,light){
   const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;
-  const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003;
-  src.buffer=b;src.connect(g);g.connect(pBus);g.gain.setValueAtTime((vel||1)*(light?0.7:1),t);
-  if(light){g.gain.setTargetAtTime(0.0001,t+0.16,0.07);src.start(t);src.stop(t+0.6)}else src.start(t);
+  const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003,T=tuneOf(id);
+  const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=end-start,v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
+  src.buffer=b;if(src.detune)src.detune.value=T.cents;else src.playbackRate.value=Math.pow(2,T.cents/1200);
+  src.connect(g);g.connect(pBus);g.gain.setValueAtTime(v,t);
+  if(light){g.gain.setTargetAtTime(0.0001,t+0.16,0.07);src.start(t,start);src.stop(t+0.6)}
+  else{g.gain.setValueAtTime(v,t+Math.max(0.01,len-T.fade));g.gain.linearRampToValueAtTime(0.0001,t+len);src.start(t,start,len+0.02)}
   return true;
 }
 // strike() asks this first: true means your recording played
@@ -2744,6 +2764,7 @@ function storeTake(id,x,sr){
   const y=x.slice(start,end),gain=0.9/peak,fade=Math.min(Math.round(sr*0.2),Math.round(y.length*0.2)),fin=Math.round(sr*0.001);
   for(let i=0;i<y.length;i++){let g=gain;if(i<fin)g*=i/fin;if(i>y.length-fade)g*=(y.length-i)/fade;y[i]*=g}
   SAMPLES.wav[id]=encodeWav(y,sr);delete SAMPLES.buf[id];saveSamples();
+  if(SAMPLES.tune[id]){delete SAMPLES.tune[id];saveTune()}   // a new take starts from scratch
   const first=S.panVoice!=='mine';if(first){S.panVoice='mine';save()}
   const f=detectPitch(y.subarray(Math.min(y.length-1,Math.round(sr*0.06))),sr),want=FIELDS.get(id).label;
   const heard=f?PC_NAMES[pcOfHz(f)]:'',ok=f&&pcOfHz(f)===pcOfId(id);
@@ -2773,6 +2794,7 @@ function renderRec(){
   $('recWhere').textContent=recSel?FIELDS.get(recSel).pos+' · '+FIELDS.get(recSel).pan+' · '+PITCH[recSel].replace('#','♯').replace(/([A-G])b/,'$1♭'):'';
   $('recGo').disabled=!recSel;$('recPlay').disabled=!has||!!recLive;$('recDel').disabled=!has||!!recLive;$('recFile').disabled=!recSel||!!recLive;
   $('recGo').textContent=recLive?'■ Stop':(has?'● Record again':'● Record');$('recGo').classList.toggle('on',!!recLive);
+  renderTune();
 }
 function openRec(on){
   if(!on&&recLive)recLive.stop(false);
@@ -2816,7 +2838,7 @@ async function recordNote(){
 $('recGo').onclick=recordNote;
 $('recPlay').onclick=()=>{if(recSel)sampleBuf(recSel).then(()=>playSample(recSel,1,false))};
 $('recNext').onclick=()=>{if(recLive)return;const i=REC_ORDER.indexOf(recSel),nx=REC_ORDER.slice(i+1).concat(REC_ORDER.slice(0,i+1)).find(id=>!SAMPLES.wav[id]);recSel=nx||REC_ORDER[(i+1)%REC_ORDER.length];recMsg('');renderRec()};
-$('recDel').onclick=()=>{if(!recSel||!SAMPLES.wav[recSel])return;delete SAMPLES.wav[recSel];delete SAMPLES.buf[recSel];saveSamples();recMsg('Deleted. '+FIELDS.get(recSel).label+' uses the built-in tone again.');renderRec();renderVoice()};
+$('recDel').onclick=()=>{if(!recSel||!SAMPLES.wav[recSel])return;delete SAMPLES.wav[recSel];delete SAMPLES.buf[recSel];delete SAMPLES.tune[recSel];saveSamples();saveTune();recMsg('Deleted. '+FIELDS.get(recSel).label+' uses the built-in tone again.');renderRec();renderVoice()};
 $('recFile').onchange=async e=>{
   const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||!recSel)return;
   const ac=panCtx();if(!ac)return;
@@ -2830,6 +2852,93 @@ $('recOpen').onclick=()=>openRec(true);$('recClose').onclick=()=>openRec(false);
 $('voiceSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.panVoice=b.dataset.v;renderVoice();save();
   if(S.panVoice==='mine'&&!Object.keys(SAMPLES.wav).length){say('No recordings yet. Tap Record your pans to make some.')}else strike(S.panVoice==='mine'?(Object.keys(SAMPLES.wav)[0]||'c'):'c',0.9)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('recSheet').hidden)openRec(false)});
+
+/* ---------- fine-tune a recorded note: trim, volume, fade, tuning ---------- */
+// Changes are kept as settings next to the recording, so you can always reset to the original take.
+SAMPLES.tune={};
+const TUNE0={start:0,end:null,db:0,fade:0.15,cents:0};
+const tuneOf=id=>Object.assign({},TUNE0,SAMPLES.tune[id]||{});
+const saveTune=()=>idbPut('sampleTune',{...SAMPLES.tune});
+idbGet('sampleTune').then(t=>{if(t&&typeof t==='object')for(const [id,v] of Object.entries(t))if(FIELDS.has(id)&&v&&typeof v==='object')SAMPLES.tune[id]=v});
+// how far a recording is from the note it should be, in cents (100 cents = one semitone), ignoring octave
+function centsOff(id){
+  const b=SAMPLES.buf[id];if(!b)return null;const T=tuneOf(id),sr=b.sampleRate,d=b.getChannelData(0);
+  const from=Math.min(d.length-1,Math.round((T.start+0.06)*sr)),f=detectPitch(d.subarray(from,from+4096),sr);if(!f)return null;
+  let c=1200*Math.log2(f/pitchHz(id));c=((c+600)%1200+1200)%1200-600;return c;
+}
+let tuneSel=null,tunePlayT=0,waveDrag=null;
+function renderTune(){
+  const id=recSel,box=$('tuneBox');
+  if(!id||!SAMPLES.wav[id]||recLive){box.hidden=true;return}
+  box.hidden=false;
+  if(!SAMPLES.buf[id]){sampleBuf(id).then(()=>{if(recSel===id)renderTune()});return}
+  const T=tuneOf(id),b=SAMPLES.buf[id];
+  $('tuneNote').textContent=FIELDS.get(id).label;
+  $('tuneDb').value=T.db;$('tuneDbV').textContent=(T.db>0?'+':'')+T.db+' dB';
+  $('tuneFade').value=T.fade;$('tuneFadeV').textContent=T.fade.toFixed(2)+' s';
+  $('tuneCents').value=T.cents;$('tuneCentsV').textContent=(T.cents>0?'+':'')+T.cents+' cents';
+  const off=centsOff(id);
+  if(off===null)$('tuneHeard').textContent="Couldn't hear a clear pitch in this recording.";
+  else{const r=Math.round(off),after=Math.round(off+T.cents),desc=c=>Math.abs(c)<=5?'in tune ✓':Math.abs(c)+' cents '+(c>0?'sharp (high)':'flat (low)');
+    $('tuneHeard').textContent='Your recording is '+desc(r)+'.'+(T.cents?' With your tuning: '+desc(after)+'.':'')}
+  drawWave();
+}
+function drawWave(){
+  const id=recSel,b=SAMPLES.buf[id],cv=$('recWave');if(!b||!cv.offsetParent)return;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  if(!colors)colors=tokens();const C=colors,T=tuneOf(id),d=b.getChannelData(0),dur=b.duration,end=T.end??dur,X=t=>t/dur*W;
+  g.fillStyle=C.bg;g.fillRect(0,0,W,H);
+  const step=d.length/W;
+  for(let x=0;x<W;x++){let m=0;const i0=Math.floor(x*step),i1=Math.min(d.length,Math.floor((x+1)*step));for(let i=i0;i<i1;i++){const v=Math.abs(d[i]);if(v>m)m=v}
+    const t=x/W*dur,inside=t>=T.start&&t<=end;g.fillStyle=inside?C.gold:C.line;const h=Math.max(1,m*(H/2-6));g.fillRect(x,H/2-h,1,h*2)}
+  // the fade at the end
+  const fx0=X(Math.max(T.start,end-T.fade)),fx1=X(end);g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.moveTo(fx0,0);g.lineTo(fx1,H/2);g.lineTo(fx0,H);g.closePath();g.globalAlpha=.6;g.fill();g.globalAlpha=1;
+  // handles
+  for(const x of [X(T.start),X(end)]){g.fillStyle=C.gold;g.fillRect(x-1.5,0,3,H);g.beginPath();g.arc(x,10,8,0,Math.PI*2);g.fill()}
+  g.fillStyle=C.muted;g.font='12px '+getComputedStyle(document.body).fontFamily;g.textAlign='right';g.fillText((end-T.start).toFixed(2)+' s',W-6,H-6);
+}
+function setTune(id,patch,play){
+  const T=Object.assign(tuneOf(id),patch);SAMPLES.tune[id]=T;saveTune();renderTune();
+  if(play){clearTimeout(tunePlayT);tunePlayT=setTimeout(()=>playSample(id,1,false),120)}
+}
+(()=>{
+  const cv=$('recWave');
+  const tAt=e=>{const r=cv.getBoundingClientRect(),b=SAMPLES.buf[recSel];return b?Math.max(0,Math.min(b.duration,(e.clientX-r.left)/r.width*b.duration)):0};
+  cv.addEventListener('pointerdown',e=>{
+    const id=recSel,b=SAMPLES.buf[id];if(!b)return;e.preventDefault();cv.setPointerCapture(e.pointerId);
+    const T=tuneOf(id),t=tAt(e),end=T.end??b.duration;
+    waveDrag={id,which:Math.abs(t-T.start)<Math.abs(t-end)?'start':'end'};
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!waveDrag)return;const b=SAMPLES.buf[waveDrag.id],T=tuneOf(waveDrag.id),t=tAt(e),end=T.end??b.duration;
+    if(waveDrag.which==='start')SAMPLES.tune[waveDrag.id]=Object.assign(T,{start:Math.min(t,end-0.2)});
+    else SAMPLES.tune[waveDrag.id]=Object.assign(T,{end:Math.max(t,T.start+0.2)});
+    drawWave();
+  });
+  const up=()=>{if(!waveDrag)return;const id=waveDrag.id;waveDrag=null;saveTune();renderTune();playSample(id,1,false)};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+})();
+$('tuneDb').oninput=e=>setTune(recSel,{db:+e.target.value},false);
+$('tuneDb').onchange=()=>playSample(recSel,1,false);
+$('tuneFade').oninput=e=>setTune(recSel,{fade:+e.target.value},false);
+$('tuneFade').onchange=()=>playSample(recSel,1,false);
+$('tuneCents').oninput=e=>setTune(recSel,{cents:+e.target.value},false);
+$('tuneCents').onchange=()=>playSample(recSel,1,false);
+$('tuneAuto').onclick=()=>{const off=centsOff(recSel);if(off===null){recMsg("Couldn't hear a clear pitch to tune.");return}
+  const c=Math.max(-100,Math.min(100,-Math.round(off)));setTune(recSel,{cents:c},true);recMsg(c?'Tuned '+FIELDS.get(recSel).label+' '+(c>0?'up':'down')+' by '+Math.abs(c)+' cents.':FIELDS.get(recSel).label+' was already in tune.')};
+$('tuneReset').onclick=()=>{delete SAMPLES.tune[recSel];saveTune();renderTune();playSample(recSel,1,false);recMsg('Back to the original recording.')};
+$('tuneLevel').onclick=async()=>{
+  const ids=Object.keys(SAMPLES.wav);if(ids.length<2){recMsg('Record at least two notes first.');return}
+  await Promise.all(ids.map(sampleBuf));
+  const loud={};
+  for(const id of ids){const b=SAMPLES.buf[id];if(!b)continue;const T=tuneOf(id),d=b.getChannelData(0),sr=b.sampleRate,a=Math.round((T.start+0.02)*sr),z=Math.min(d.length,a+Math.round(0.33*sr));let s=0;for(let i=a;i<z;i++)s+=d[i]*d[i];loud[id]=Math.sqrt(s/Math.max(1,z-a))}
+  const vals=Object.values(loud).filter(v=>v>0).sort((x,y)=>x-y),target=vals[Math.floor(vals.length/2)];
+  for(const [id,v] of Object.entries(loud))if(v>0){const T=tuneOf(id);T.db=Math.max(-12,Math.min(12,Math.round(20*Math.log10(target/v)*2)/2));SAMPLES.tune[id]=T}
+  saveTune();renderTune();recMsg('Evened out the volume of all '+vals.length+' notes. Tap around the pans to hear them.');
+};
+window.addEventListener('resize',()=>{if(!$('recSheet').hidden)drawWave()});
 loadSamples();
 
 /* ---------- screen: full screen and staying awake ---------- */

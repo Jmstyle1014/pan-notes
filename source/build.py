@@ -51,6 +51,10 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 </body></html>
 '''
 
+# safety: only ever clear a folder this script made (never the repository or a folder with other things in it)
+_o=os.path.abspath(OUT)
+if os.path.exists(os.path.join(_o,'.git')) or _o in ('/',os.path.abspath(HERE),os.path.abspath(os.path.join(HERE,'..'))) or (os.path.isdir(_o) and not os.path.exists(os.path.join(_o,'sw.js'))and os.listdir(_o)):
+    sys.exit('Refusing to clear '+_o+': build into a fresh folder (e.g. site, next, panyard) and copy the files across.')
 if os.path.exists(OUT): shutil.rmtree(OUT)
 os.makedirs(os.path.join(OUT, 'fonts')); os.makedirs(os.path.join(OUT, 'icons'))
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(head + src + tail)
