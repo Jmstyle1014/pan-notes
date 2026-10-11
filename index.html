@@ -2504,7 +2504,9 @@ let pac=null,pBus=null,noiseBuf=null;
 function panCtx(){
   if(!pac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
     pac=new C();const comp=pac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
-    pBus=pac.createGain();pBus.gain.value=0.9;fxBuild(pac,pBus,comp);comp.connect(pac.destination);
+    pBus=pac.createGain();pBus.gain.value=0.8;fxBuild(pac,pBus,comp);
+    const lim=pac.createDynamicsCompressor();lim.threshold.value=-3;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.002;lim.release.value=0.12;
+    comp.connect(lim);lim.connect(pac.destination);
     const len=Math.floor(pac.sampleRate*0.03);noiseBuf=pac.createBuffer(1,len,pac.sampleRate);const d=noiseBuf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
   if(pac.state==='suspended')pac.resume();
@@ -2525,7 +2527,7 @@ function strike(id,vel,light){
     o.connect(g);g.connect(lp);o.start(t);o.stop(end+0.02);
   }
   const n=ac.createBufferSource(),bp=ac.createBiquadFilter(),ng=ac.createGain();   // the stick touching the steel
-  n.buffer=noiseBuf;bp.type='bandpass';bp.frequency.value=Math.min(6000,f*4);bp.Q.value=1.2;ng.gain.value=0.1*vel;
+  n.buffer=noiseBuf;bp.type='bandpass';bp.frequency.value=Math.min(6000,f*4);bp.Q.value=1.2;ng.gain.value=0.05*vel;
   n.connect(bp);bp.connect(ng);ng.connect(out);n.start(t);
   setTimeout(()=>{try{out.disconnect()}catch{}},ring*1000+400);
 }
@@ -2566,14 +2568,23 @@ async function sampleBuf(id){
   const w=SAMPLES.wav[id],ac=panCtx();if(!w||!ac)return null;
   try{const ab=await w.arrayBuffer();const b=await new Promise((res,rej)=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});SAMPLES.buf[id]=b;return b}catch{return null}
 }
+const VOICES=new Map();
 function playSample(id,vel,light){
   const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;
   const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003,T=tuneOf(id);
   const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=end-start,v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
   src.buffer=b;if(src.detune)src.detune.value=T.cents;else src.playbackRate.value=Math.pow(2,T.cents/1200);
-  src.connect(g);g.connect(pBus);g.gain.setValueAtTime(v,t);
-  if(light){g.gain.setTargetAtTime(0.0001,t+0.16,0.07);src.start(t,start);src.stop(t+0.6)}
-  else{g.gain.setValueAtTime(v,t+Math.max(0.01,len-T.fade));g.gain.linearRampToValueAtTime(0.0001,t+len);src.start(t,start,len+0.02)}
+  src.connect(g);g.connect(pBus);
+  // a 4 ms fade-in: starting a sound partway through a wave is what makes a click
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.004);
+  let stopAt;
+  if(light){const e=Math.min(len,0.45);g.gain.setValueAtTime(v,t+0.12);g.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+0.01;src.start(t,start)}
+  else{g.gain.setValueAtTime(v,t+Math.max(0.01,len-T.fade));g.gain.linearRampToValueAtTime(0,t+len);stopAt=t+len+0.01;src.start(t,start)}
+  src.stop(stopAt);
+  // the same note hit again: the older ring is damped quickly (like a real pan), never cut off
+  const prev=VOICES.get(id);
+  if(prev&&prev.end>t){try{prev.g.gain.cancelScheduledValues(t);prev.g.gain.setValueAtTime(prev.g.gain.value,t);prev.g.gain.linearRampToValueAtTime(0,t+0.03);prev.src.stop(t+0.04)}catch{}}
+  VOICES.set(id,{src,g,end:stopAt});
   return true;
 }
 // strike() asks this first: true means your recording played
@@ -2601,6 +2612,18 @@ function detectPitch(x,sr){
 }
 const pcOfHz=f=>((Math.round(12*Math.log2(f/440))+9)%12+12)%12;
 const pcOfId=id=>midiOf(PITCH[id])%12;
+// clicks in a recording (a dropped bit of sound, a bump on the phone) show up as sudden jumps between
+// neighbouring samples. Smooth those over, but leave the real hit at the start alone.
+function declick(x,sr,from){
+  let fixed=0,avg=0;const W=64,guard=Math.round(sr*0.04);
+  for(let i=1;i<Math.min(x.length,W);i++)avg+=Math.abs(x[i]-x[i-1])/W;
+  for(let i=W;i<x.length-8;i++){
+    const d=Math.abs(x[i]-x[i-1]);
+    if(i>from+guard&&d>0.04&&d>avg*10){const a=Math.max(0,i-6),b=Math.min(x.length-1,i+6),xa=x[a],xb=x[b];for(let k=a+1;k<b;k++)x[k]=xa+(xb-xa)*(k-a)/(b-a);fixed++;i=b;continue}
+    avg+=(d-avg)/W;
+  }
+  return fixed;
+}
 // trim to the hit, keep the ring, level it, fade the tail
 function storeTake(id,x,sr){
   let peak=0;for(const v of x)peak=Math.max(peak,Math.abs(v));
@@ -2609,7 +2632,7 @@ function storeTake(id,x,sr){
   const start=Math.max(0,on-Math.round(sr*0.004));
   let end=x.length-1;while(end>start&&Math.abs(x[end])<peak*0.003)end--;
   end=Math.min(x.length,end+Math.round(sr*0.05),start+Math.round(sr*2.5));
-  const y=x.slice(start,end),gain=0.9/peak,fade=Math.min(Math.round(sr*0.2),Math.round(y.length*0.2)),fin=Math.round(sr*0.001);
+  const y=x.slice(start,end);declick(y,sr,on-start);const gain=0.9/peak,fade=Math.min(Math.round(sr*0.2),Math.round(y.length*0.2)),fin=Math.round(sr*0.001);
   for(let i=0;i<y.length;i++){let g=gain;if(i<fin)g*=i/fin;if(i>y.length-fade)g*=(y.length-i)/fade;y[i]*=g}
   SAMPLES.wav[id]=encodeWav(y,sr);delete SAMPLES.buf[id];saveSamples();
   if(SAMPLES.tune[id]){delete SAMPLES.tune[id];saveTune()}   // a new take starts from scratch
@@ -2658,18 +2681,30 @@ async function recordNote(){
   try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}
   catch(e){recMsg(e&&e.name==='NotAllowedError'?'Pan Notes needs the microphone to record. Allow it when your phone asks (or in Chrome\'s site settings), then try again.':"Couldn't start the microphone. Try again, or use Choose a file.");return}
   try{await ac.resume()}catch{}
-  const sr=ac.sampleRate,src=ac.createMediaStreamSource(stream),sp=ac.createScriptProcessor(2048,1,1),mute=ac.createGain();mute.gain.value=0;
-  src.connect(sp);sp.connect(mute);mute.connect(ac.destination);
+  // The sound is captured off the main screen work (an "audio worklet") so nothing is dropped while the
+  // screen updates; dropped bits of sound are what put ticks into a recording. Older browsers use the old way.
+  const sr=ac.sampleRate,src=ac.createMediaStreamSource(stream),mute=ac.createGain();mute.gain.value=0;
+  let node=null,sp=null;
+  try{
+    if(ac.audioWorklet&&window.AudioWorkletNode){
+      if(!recordNote.wk){const code="class R extends AudioWorkletProcessor{process(i){const c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true}}registerProcessor('pn-rec',R)";
+        await ac.audioWorklet.addModule(URL.createObjectURL(new Blob([code],{type:'application/javascript'})));recordNote.wk=true}
+      node=new AudioWorkletNode(ac,'pn-rec');
+    }
+  }catch{node=null}
+  if(!node)sp=ac.createScriptProcessor(2048,1,1);
+  const tap=node||sp;src.connect(tap);tap.connect(mute);mute.connect(ac.destination);
   const pre=[],take=[];let state='listen',noise=0.002,chunks=0,got=0;const need=Math.round(sr*2.7),began=performance.now();
-  const stop=ok=>{if(!recLive)return;sp.onaudioprocess=null;try{src.disconnect();sp.disconnect();mute.disconnect()}catch{}
+  const acc=[];let accLen=0;
+  const stop=ok=>{if(!recLive)return;if(node)node.port.onmessage=null;if(sp)sp.onaudioprocess=null;try{src.disconnect();tap.disconnect();mute.disconnect()}catch{}
     stream.getTracks().forEach(t=>t.stop());recLive=null;$('recLevel').style.width='0';
     if(ok){const all=new Float32Array(got);let o=0;for(const c of take){all.set(c,o);o+=c.length}storeTake(id,all,sr)}
     else if(ok===null)recMsg("Didn't hear a note. Tap Record and hit "+FIELDS.get(id).label+" again, with the phone a little closer.");
     else recMsg('Stopped.');
     renderRec()};
   recLive={stop};
-  sp.onaudioprocess=e=>{
-    const x=new Float32Array(e.inputBuffer.getChannelData(0));let s=0;for(let i=0;i<x.length;i++)s+=x[i]*x[i];const rms=Math.sqrt(s/x.length);
+  const handle=x=>{
+    let s=0;for(let i=0;i<x.length;i++)s+=x[i]*x[i];const rms=Math.sqrt(s/x.length);
     $('recLevel').style.width=Math.min(100,rms*400)+'%';
     if(state==='listen'){
       pre.push(x);if(pre.length>3)pre.shift();chunks++;
@@ -2681,6 +2716,9 @@ async function recordNote(){
     }
     take.push(x);got+=x.length;if(got>=need)stop(true);
   };
+  // gather the tiny worklet pieces into the same 2048-sample blocks the listener expects
+  const feed=c=>{if(!recLive)return;acc.push(c);accLen+=c.length;if(accLen>=2048){const x=new Float32Array(accLen);let o=0;for(const q of acc){x.set(q,o);o+=q.length}acc.length=0;accLen=0;handle(x)}};
+  if(node)node.port.onmessage=e=>feed(e.data);else sp.onaudioprocess=e=>feed(new Float32Array(e.inputBuffer.getChannelData(0)));
   recMsg('Listening… hit '+FIELDS.get(id).label+' once and let it ring.');renderRec();
 }
 $('recGo').onclick=recordNote;
@@ -2758,12 +2796,13 @@ async function makeBest(){
   const btn=$('profBest'),t0=btn.textContent;btn.disabled=true;btn.textContent='Working on your sounds…';
   try{
     await Promise.all(ids.map(sampleBuf));
-    let tuned=0;const loud={};
+    let tuned=0,clicks=0,fixedWav=false;const loud={};
     for(const id of ids){
       const b=SAMPLES.buf[id];if(!b)continue;const d=b.getChannelData(0),sr=b.sampleRate;
       let peak=0;for(const v of d)peak=Math.max(peak,Math.abs(v));
       // where it starts: the hit itself
       let on=0;while(on<d.length&&Math.abs(d[on])<peak*0.2)on++;const start=Math.max(0,(on/sr)-0.004);
+      {const dd=new Float32Array(d),n=declick(dd,sr,on);if(n){clicks+=n;SAMPLES.wav[id]=encodeWav(dd,sr);const nb=FX.ac.createBuffer(1,dd.length,sr);nb.copyToChannel(dd,0);SAMPLES.buf[id]=nb;d.set(dd);fixedWav=true}}
       // where it really ends: when the ring has died away (about -44 dB), smoothed so a stray click doesn't count
       const win=Math.round(sr*0.02);let end=d.length;
       for(let i=d.length-win;i>on;i-=win){let m=0;for(let j=i;j<i+win;j++)m=Math.max(m,Math.abs(d[j]));if(m>peak*0.006){end=i+win;break}}
@@ -2775,10 +2814,11 @@ async function makeBest(){
     }
     const vals=Object.values(loud).filter(v=>v>0).sort((x,y)=>x-y),target=vals[Math.floor(vals.length/2)];
     for(const [id,v] of Object.entries(loud))if(v>0){const lowLift=midiOf(PITCH[id])<55?1:0;SAMPLES.tune[id].db=Math.max(-12,Math.min(12,Math.round((20*Math.log10(target/v)+lowLift)*2)/2))}
+    if(fixedWav)saveSamples();
     const p=profNow();p.fx={...FX0};saveTune();applyFx();
     if(S.panVoice!=='mine'){S.panVoice='mine';save()}
     renderProfiles();renderVoice();if(!$('recSheet').hidden)renderTune();
-    say('Done: trimmed '+ids.length+' notes, tuned '+tuned+', evened the volumes and added a Panyard space. Tap the pans to hear it.');
+    say('Done: trimmed '+ids.length+' notes, tuned '+tuned+(clicks?', removed the clicks':'')+', evened the volumes and added a Panyard space. Tap the pans to hear it.');
     demoPhrase();
   }finally{btn.disabled=false;btn.textContent=t0}
 }
