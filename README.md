@@ -4,7 +4,7 @@ Steelpan rehearsal companion for the double guitar pans (E/C and B/F): play alon
 
 **Open the app:** https://jmstyle1014.github.io/pan-notes/ — in Chrome on Android, tap ⋮ → Install app.
 
-**Panyard (night session, with falling lanes and a play-along streak):** https://jmstyle1014.github.io/pan-notes/panyard/
+**Panyard (night session, with falling lanes, a play-along streak and a Game tab to play songs for a score):** https://jmstyle1014.github.io/pan-notes/panyard/
 
 **Try the new look (Pan Notes Next):** https://jmstyle1014.github.io/pan-notes/next/ — a separate app you can install alongside the classic one. It uses the same songs and cues on your phone. The classic version is also saved permanently on the `classic` branch.
 
