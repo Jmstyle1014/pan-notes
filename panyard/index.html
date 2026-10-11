@@ -596,6 +596,47 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
   .hwwrap #hw{background:#19132e;border-color:#2b2352}
 }
 @media (prefers-reduced-motion:reduce){.pan-ec .field.active .zone,.pan-bf .field.active .zone,.pan-ec .field.hit .zone,.pan-bf .field.hit .zone{animation:none!important}}
+
+/* ---------- the Game tab ---------- */
+.tabs{grid-template-columns:repeat(5,1fr)}
+@media (min-width:900px){.tabs{width:480px}}
+#gmHud,#gmPanel{display:none}
+body.gametab #practicePanel,body.gametab #demoBanner,body.gametab #playStage>.now,body.gametab #nextUp{display:none!important}
+body.gametab:not([data-game="run"]) #playStage{display:none!important}
+body.gametab #gmPanel{display:block}
+body.gametab[data-game="run"] #gmPanel{display:none}
+body.gametab[data-game="run"] #gmHud{display:block}
+body[data-game="ready"] #gmResults,body[data-game="done"] #gmReady{display:none}
+.gmsong{font-size:22px!important;margin:2px 0 0;line-height:1.2}
+.gmbest{margin:4px 0 0;color:var(--muted);font-size:14px}
+.gmhelp{margin:0;color:var(--muted);font-size:14px}
+.gmneed{color:var(--gold)}
+.gmgo{background:linear-gradient(135deg,var(--ec),#ff6fae);border:0;color:#1a1030;font:700 16px var(--display);min-height:52px;box-shadow:0 0 30px rgb(255 111 174 / .3)}
+.gmgo:disabled{opacity:.4;box-shadow:none}
+#gmHud{padding:2px 2px 8px}
+.gmtop{display:flex;align-items:center;gap:10px}
+#gmLive{font:700 22px var(--display);flex:1;font-variant-numeric:tabular-nums}
+#gmMult{font:700 13px var(--display);color:var(--gold);background:var(--raised);border-radius:99px;padding:4px 10px;white-space:nowrap}
+#gmQuit{min-height:34px;padding:4px 12px;font-size:13px}
+.gmbar{height:6px;background:var(--raised);border-radius:9px;overflow:hidden;margin-top:8px}
+#gmBar{height:100%;width:0;background:linear-gradient(90deg,var(--ec),var(--bf))}
+#gmCount{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:20;font:700 120px var(--display);color:#efeaff;text-shadow:0 0 40px rgb(255 111 174 / .7)}
+#gmCount[hidden]{display:none}
+.gmcard{text-align:center}
+.gmscore{font:700 40px/1.1 var(--display);margin-top:6px;font-variant-numeric:tabular-nums}
+.gmstars{font-size:40px;letter-spacing:8px;margin:4px 0;color:#30275a}
+.gmstars .lit{color:var(--gold);text-shadow:0 0 16px rgb(255 209 102 / .6)}
+.gmgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gmgrid div{background:var(--raised);border-radius:14px;padding:8px 12px;font-size:13px;color:var(--muted)}
+.gmgrid b{display:block;font:700 20px var(--display);color:var(--text)}
+.gmgrid b.gold{color:var(--gold)}.gmgrid b.dim{color:var(--muted)}
+.gmpb{margin:0;text-align:center;font-size:14px;color:var(--muted)}
+.gmpb.pb{font:700 14px var(--display);color:#ff6fae}
+@media (orientation:landscape) and (max-height:520px){
+  body.gametab[data-game="run"] #gmHud{position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:8;width:min(300px,40vw);background:rgb(17 12 32 / .85);border-radius:14px;padding:6px 10px}
+  #gmLive{font-size:16px}
+  .tabs button{font-size:12px}
+}
 </style>
 <header class="appbar"><div class="ttl"><span class="eyebrow">Panyard · night session</span><span id="appTitle">Pan Notes</span></div><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
 <main>
@@ -609,6 +650,8 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
   <!-- PLAY -->
   <section class="view" id="view-play">
     <div id="demoBanner" class="banner" hidden><b>Example cues.</b> Press play to see how highlighting works. Import your recording in Setup to start your own.</div>
+    <div id="gmHud"><div class="gmtop"><span id="gmLive">0</span><span id="gmMult">×1 · streak 0</span><button class="btn" id="gmQuit">Quit</button></div><div class="gmbar"><div id="gmBar"></div></div></div>
+    <div id="gmCount" hidden aria-live="assertive"></div>
     <div class="stage" id="playStage">
       <canvas id="lanes" aria-label="Your notes falling down two lanes, one per pan, onto the line where you play them"></canvas>
       <div id="playPans" class="pair"></div>
@@ -625,6 +668,24 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
     <canvas id="hw" aria-label="Upcoming notes flying in toward the gold play line"></canvas>
     <button class="btn" id="editBtn">✎ Edit</button>
   </div>
+    </div>
+    <div id="gmPanel">
+      <div class="panel" id="gmReady">
+        <div><span class="eyebrow">Challenge</span><h2 id="gmSong" class="gmsong">Your song</h2><p class="gmbest" id="gmBest"></p></div>
+        <div class="lab">Speed<div class="seg" id="gmSpeed"><button data-v="slow">Slow (0.75×)</button><button data-v="normal" aria-pressed="true">Normal</button></div></div>
+        <div class="lab">Timing<div class="seg" id="gmTiming"><button data-v="relaxed">Relaxed</button><button data-v="strict" aria-pressed="true">Strict</button></div></div>
+        <p class="gmhelp">Tap the pans as each note lands on the line. Keep your streak going to multiply your points: ×2 at 10 in a row, ×3 at 25, ×4 at 50.</p>
+        <p class="gmhelp gmneed" id="gmNeed" hidden></p>
+        <button class="btn gmgo" id="gmStart">Start · 3, 2, 1</button>
+      </div>
+      <div class="panel" id="gmResults">
+        <div class="gmcard"><span class="eyebrow">Song complete</span><div id="gmScore" class="gmscore">0</div><div id="gmStars" class="gmstars"></div><p id="gmPct" class="gmbest"></p></div>
+        <div class="gmgrid"><div>Perfect<b id="gmPerfect" class="gold">0</b></div><div>Great<b id="gmGreat">0</b></div><div>Early / Late<b id="gmOk">0</b></div><div>Missed<b id="gmMiss" class="dim">0</b></div></div>
+        <p id="gmPB" class="gmpb"></p>
+        <button class="btn gmgo" id="gmAgain">Play again</button>
+        <button class="btn" id="gmHard">Practise the hard parts</button>
+        <button class="btn" id="gmBack">Change speed or timing</button>
+      </div>
     </div>
     <div class="panel" id="practicePanel">
       <h2>Practice</h2>
@@ -866,6 +927,7 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
     </div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-view="play" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor"/></svg>Play</button>
+      <button role="tab" data-view="game" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3M12 14v3M8 20h8"/></svg>Game</button>
       <button role="tab" data-view="cues" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h10M3 18h14"/><circle cx="18" cy="12" r="2"/></svg>Write</button>
       <button role="tab" data-view="part" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M9 5v14M14 5v14"/></svg>Part</button>
       <button role="tab" data-view="notes" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>Notes</button>
@@ -937,6 +999,9 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(239 234 255 / .14),0 0 30px rgb(2
       <details open><summary>Panyard: the lanes and your streak</summary>
         <p>On <b>Play</b> (in portrait above the pans, sideways right between them), your notes fall down two lanes, <b style="color:#ff8a5c">coral</b> for the E / C pan and <b style="color:#3fd0d4">aqua</b> for the B / F pan, and land on the glowing line the moment they're played. Chords land across both lanes together.</p>
         <p>Play along by tapping the pans while the song plays. Each hit gets <b>Perfect</b>, <b>Great</b>, or <b>Early / Late</b>, and your streak counts up in the corner until you miss one. Your best streak is kept. Jump back in the song and the count starts fresh.</p></details>
+      <details><summary>Panyard: the Game tab</summary>
+        <p>Open <b>Game</b> to play a whole song for a score. Choose <b>Slow</b> (0.75×) or <b>Normal</b> speed, and <b>Relaxed</b> or <b>Strict</b> timing, then tap Start. After a 3-2-1 count-in the notes fall just like on Play.</p>
+        <p>Perfect is 100 points, Great 70, Early / Late 30. Your streak multiplies them: ×2 at 10 in a row, ×3 at 25, ×4 at 50. At the end you get up to three stars (60%, 80% and 95% of notes hit), and your best score for each song and speed is kept on this phone. <b>Practise the hard parts</b> loops the stretch where you missed the most, slowed down, on Play.</p></details>
       <details><summary>Hearing the pans when you tap</summary>
         <p>Tap a note on the pans in <b>Play</b> or <b>Cues</b> and you'll hear it, tuned to the double guitar (C♯3 to G♯4). <b>Hold</b> a note to hear a roll, and use two fingers for a chord.</p>
         <p>Setup → Play along → <b>Pan sounds</b>: <b>When paused</b> (the usual) plays sounds only while the song is stopped, <b>Always</b> also plays them over the song, and <b>Off</b> keeps it quiet. If you hear nothing, check your phone isn't on silent.</p></details>
@@ -2838,9 +2903,10 @@ function renderAll(){$('title').value=S.title;renderGrid();renderWake();renderHi
 // Two lanes, one per pan (in the order they sit on screen). Each note falls and lands on the glowing
 // line at the moment it's played. Tap the right note on the pans while the song plays to score:
 // Perfect / Great / Good, with a streak that keeps counting until you miss one.
-const GAME={judged:new Set(),streak:0,best:0,hits:0,notes:0,pops:[],lastTap:-1e9,lastT:0};
+const GAME={judged:new Set(),hitKeys:new Set(),streak:0,best:0,hits:0,notes:0,pops:[],lastTap:-1e9,lastT:0};
 try{GAME.best=+localStorage.getItem('panyard-best')||0}catch{}
 const LANE_COL={ec:'#ff8a5c',bf:'#3fd0d4'};
+const NOTE_W=54;   // how wide a falling note is, in pixels
 function laneOf(id){const k=EC_IDS.has(id)?'ec':'bf';return (S.swapped?(k==='ec'?1:0):(k==='ec'?0:1))}
 function drawLanes(t){
   const cv=$('lanes');if(!cv||!cv.offsetParent)return;
@@ -2865,7 +2931,8 @@ function drawLanes(t){
     const perLane=[[],[]];n.ids.forEach(id=>perLane[laneOf(id)].push(id));
     const xs=[];
     perLane.forEach((ids,L)=>ids.forEach((id,k)=>{
-      const sub=(lw-16)/ids.length,x=L*(lw+gap)+8+k*sub+2,w=sub-4,y=yHit-len;
+      // notes are a fixed size, centred in their lane (side by side when a pan plays two at once)
+      const w=Math.min(NOTE_W,(lw-16)/ids.length-6),x=L*(lw+gap)+(lw-(ids.length*w+(ids.length-1)*6))/2+k*(w+6),y=yHit-len;
       const col=LANE_COL[keys[L]],done=GAME.judged.has(i+':'+id);
       g.globalAlpha=past?.18:1;
       // how long it lasts: a thin trail behind the note (wavy for a roll)
@@ -2886,37 +2953,138 @@ function drawLanes(t){
   // ratings floating up from the line, and the streak
   const now=performance.now();GAME.pops=GAME.pops.filter(p=>now-p.at<700);
   for(const p of GAME.pops){const a=(now-p.at)/700;g.globalAlpha=1-a;g.fillStyle=p.col;g.font='700 '+(p.big?20:15)+'px '+DF;g.textAlign='center';g.fillText(p.text,p.x,hitY-34-a*40);g.globalAlpha=1}
-  if(GAME.streak>1||GAME.best){g.textAlign='center';g.textBaseline='top';
+  if(GM.state!=='run'&&(GAME.streak>1||GAME.best)){g.textAlign='center';g.textBaseline='top';
     if(GAME.streak>1){g.font='700 15px '+DF;const tw=g.measureText('×'+GAME.streak).width+18;g.fillStyle='rgba(17,12,32,.85)';g.beginPath();g.roundRect?g.roundRect(W/2-tw/2,6,tw,24,12):g.rect(W/2-tw/2,6,tw,24);g.fill();
       g.fillStyle='#ffd166';g.fillText('×'+GAME.streak,W/2,10)}
     g.font='600 10px '+FF;g.fillStyle='#9d93c9';g.fillText('best '+GAME.best,W/2,GAME.streak>1?34:10)}
   if(!hwItems.length){g.fillStyle='#9d93c9';g.font='14px '+FF;g.textAlign='center';g.fillText('Your notes will fall here as the song plays',W/2,H/2)}
-  // notes that went past while you were playing along count as missed
-  if(!audio.paused&&now-GAME.lastTap<4000){
-    for(let i=lo;i<hwItems.length;i++){const n=hwItems[i];if(n.t>t-0.3)break;
+  // notes that went past while you were playing along count as missed (in a challenge, always)
+  if(!audio.paused&&(GM.state==='run'||now-GAME.lastTap<4000)){
+    const late=win().ok+0.04;
+    for(let i=lo;i<hwItems.length;i++){const n=hwItems[i];if(n.t>t-late)break;
       for(const id of n.ids){const k=i+':'+id;if(!GAME.judged.has(k)&&n.t>GAME.lastT-1){GAME.judged.add(k);GAME.streak=0;GAME.notes++;pop('miss',laneOf(id),'#7d73ad')}}}
   }
-  if(t<GAME.lastT-0.5){GAME.judged.clear();GAME.streak=0}   // jumped back: start counting again
+  if(t<GAME.lastT-0.5){GAME.judged.clear();GAME.hitKeys.clear();GAME.streak=0}   // jumped back: start counting again
   GAME.lastT=t;
 }
 function pop(text,L,col,big){const cv=$('lanes');const W=cv?cv.clientWidth:300,lw=(W-8)/2;GAME.pops.push({text,col,big,at:performance.now(),x:L*(lw+8)+lw/2})}
+// how close a tap has to be (seconds) for each rating; Relaxed timing in a challenge gives more leeway
+function win(){return GM.state==='run'&&GM.timing==='relaxed'?{perfect:0.12,great:0.22,ok:0.35}:{perfect:0.08,great:0.16,ok:0.26}}
 document.addEventListener('pointerdown',e=>{
   const el=e.target.closest&&e.target.closest('#playPans .field');if(!el||audio.paused||!hasAudio)return;
-  const id=el.dataset.field,t=playTime()-(S.tapLag||0);GAME.lastTap=performance.now();
+  const id=el.dataset.field,t=playTime()-(S.tapLag||0),W=win();GAME.lastTap=performance.now();
   el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),160);
   let best=null,bd=1e9;
-  for(let i=0;i<hwItems.length;i++){const n=hwItems[i];if(n.t>t+0.4)break;if(n.t<t-0.4||!n.ids.includes(id)||GAME.judged.has(i+':'+id))continue;
+  for(let i=0;i<hwItems.length;i++){const n=hwItems[i];if(n.t>t+W.ok+0.1)break;if(n.t<t-W.ok-0.1||!n.ids.includes(id)||GAME.judged.has(i+':'+id))continue;
     const d=Math.abs(n.t-t);if(d<bd){bd=d;best=i}}
   const L=laneOf(id);
-  if(best===null||bd>0.26){GAME.streak=0;pop('✕',L,'#7d73ad');return}
-  GAME.judged.add(best+':'+id);GAME.notes++;GAME.hits++;GAME.streak++;
+  if(best===null||bd>W.ok){GAME.streak=0;pop('✕',L,'#7d73ad');return}
+  GAME.judged.add(best+':'+id);GAME.hitKeys.add(best+':'+id);GAME.notes++;GAME.hits++;GAME.streak++;
   if(GAME.streak>GAME.best){GAME.best=GAME.streak;try{localStorage.setItem('panyard-best',GAME.best)}catch{}}
-  const early=hwItems[best].t>t;
-  if(bd<=0.08)pop('Perfect',L,'#ffd166',true);else if(bd<=0.16)pop('Great',L,LANE_COL[EC_IDS.has(id)?'ec':'bf']);else pop(early?'Early':'Late',L,'#cfc6f2');
+  const early=hwItems[best].t>t,kind=bd<=W.perfect?'perfect':bd<=W.great?'great':'ok';
+  if(kind==='perfect')pop('Perfect',L,'#ffd166',true);else if(kind==='great')pop('Great',L,LANE_COL[EC_IDS.has(id)?'ec':'bf']);else pop(early?'Early':'Late',L,'#cfc6f2');
   if(GAME.streak&&GAME.streak%10===0)pop(GAME.streak+' streak!',L===0?1:0,'#ff6fae',true);
+  if(GM.state==='run')gameHit(kind);
 },true);
-{const _drawHW=drawHW;drawHW=function(t){_drawHW(t);drawLanes(t)}}
+
+/* ---------- Panyard: the Game tab (play a whole song for a score) ---------- */
+// Pick a speed and how strict the timing is, count in 3-2-1, play the song through, get a score and stars.
+// Points: Perfect 100, Great 70, Early/Late 30, multiplied by your streak (x2 at 10, x3 at 25, x4 at 50).
+// Stars: 1 at 60% of notes hit, 2 at 80%, 3 at 95%. Best scores are kept on this phone, per song and speed.
+const GM={state:'ready',speed:'normal',timing:'strict',score:0,counts:{perfect:0,great:0,ok:0},maxStreak:0,total:0,end:0,countAt:0,prevRate:1,result:null,hard:null};
+const PTS={perfect:100,great:70,ok:30};
+try{const o=JSON.parse(localStorage.getItem('panyard-game-opts')||'{}');if(o.speed==='slow')GM.speed='slow';if(o.timing==='relaxed')GM.timing='relaxed'}catch{}
+const mult=s=>s>=50?4:s>=25?3:s>=10?2:1;
+function gameBests(){try{return JSON.parse(localStorage.getItem('panyard-game-best')||'{}')||{}}catch{return{}}}
+const songName=()=>S.title||(isDemo?'Example tones':'Untitled song');
+const bestKey=()=>songName()+'|'+GM.speed;
+const starsFor=pct=>pct>=0.95?3:pct>=0.8?2:pct>=0.6?1:0;
+const starTxt=n=>'★'.repeat(n)+'☆'.repeat(3-n);
+function setGameState(st){GM.state=st;document.body.dataset.game=st;renderGame()}
+function renderGame(){
+  const b=gameBests()[bestKey()];
+  $('gmSong').textContent=songName();
+  $('gmBest').textContent=b?'Best: '+b.score.toLocaleString()+' · '+starTxt(b.stars):'No score yet at this speed';
+  $('gmSpeed').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===GM.speed)));
+  $('gmTiming').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===GM.timing)));
+  const ok=hasAudio&&hwItems.length;$('gmStart').disabled=!ok;
+  $('gmNeed').hidden=!!ok;$('gmNeed').textContent=!hasAudio?'Choose your recording in Setup first, then come back to play.':'Write some cues for this song first, then come back to play.';
+  if(GM.state==='done'&&GM.result){const r=GM.result;
+    $('gmScore').textContent=r.score.toLocaleString();
+    $('gmStars').innerHTML=[0,1,2].map(i=>'<span class="'+(i<r.stars?'lit':'')+'">★</span>').join('');
+    $('gmPct').textContent=Math.round(r.pct*100)+'% of notes hit'+(GM.speed==='slow'?' · slow speed':'');
+    $('gmPerfect').textContent=r.counts.perfect;$('gmGreat').textContent=r.counts.great;$('gmOk').textContent=r.counts.ok;$('gmMiss').textContent=r.miss;
+    $('gmPB').textContent=r.pb?'★ New personal best! Longest streak '+r.maxStreak:'Longest streak '+r.maxStreak;$('gmPB').classList.toggle('pb',!!r.pb);
+    $('gmHard').hidden=!GM.hard;
+  }
+}
+function gameHud(t){
+  if(GM.state!=='run')return;
+  $('gmLive').textContent=GM.score.toLocaleString();
+  $('gmMult').textContent='×'+mult(GAME.streak)+' · streak '+GAME.streak;
+  $('gmBar').style.width=Math.max(0,Math.min(100,t/GM.end*100))+'%';
+}
+function gameHit(kind){
+  GM.counts[kind]++;GM.score+=PTS[kind]*mult(GAME.streak);GM.maxStreak=Math.max(GM.maxStreak,GAME.streak);
+}
+function startGame(){
+  if(!hasAudio||!hwItems.length){renderGame();return}
+  try{localStorage.setItem('panyard-game-opts',JSON.stringify({speed:GM.speed,timing:GM.timing}))}catch{}
+  audio.pause();loop=false;renderLoop();
+  GM.prevRate=audio.playbackRate||1;setRate(GM.speed==='slow'?0.75:1);
+  GM.score=0;GM.counts={perfect:0,great:0,ok:0};GM.maxStreak=0;GM.result=null;GM.hard=null;
+  GM.total=hwItems.reduce((a,n)=>a+n.ids.length,0);
+  GM.end=Math.min(audio.duration||1e9,Math.max(...hwItems.map(n=>n.t+n.d))+1.5);
+  GAME.judged.clear();GAME.hitKeys.clear();GAME.streak=0;GAME.pops=[];
+  audio.currentTime=0;GAME.lastT=0;
+  setGameState('run');gameHud(0);
+  GM.countAt=performance.now();countIn();
+}
+// 3, 2, 1: the first notes fall in while you count, so they land on the line right as the song starts
+function countIn(){
+  if(GM.state!=='run'||!GM.countAt)return;
+  const left=3-(performance.now()-GM.countAt)/1000;
+  if(left<=0){GM.countAt=0;$('gmCount').hidden=true;audio.play().catch(()=>say('Tap play to start.'));return}
+  $('gmCount').hidden=false;$('gmCount').textContent=Math.ceil(left);
+  drawLanes(-left*(audio.playbackRate||1));requestAnimationFrame(countIn);
+}
+function finishGame(){
+  if(GM.state!=='run')return;
+  audio.pause();
+  const hits=GM.counts.perfect+GM.counts.great+GM.counts.ok,pct=GM.total?hits/GM.total:0,stars=starsFor(pct);
+  // the hard part: the 8 seconds with the most missed notes
+  const missed=[];hwItems.forEach((n,i)=>n.ids.forEach(id=>{if(!GAME.hitKeys.has(i+':'+id))missed.push(n.t)}));
+  let hard=null,most=0;for(const m of missed){const c=missed.filter(x=>x>=m&&x<m+8).length;if(c>most){most=c;hard=m}}
+  GM.hard=most>=2?hard:null;
+  const all=gameBests(),k=bestKey(),old=all[k],pb=!old||GM.score>old.score;
+  if(pb){all[k]={score:GM.score,stars,streak:GM.maxStreak};try{localStorage.setItem('panyard-game-best',JSON.stringify(all))}catch{}}
+  GM.result={score:GM.score,stars,pct,counts:{...GM.counts},miss:GM.total-hits,maxStreak:GM.maxStreak,pb:pb&&GM.score>0&&!!old};
+  setRate(GM.prevRate);setGameState('done');window.scrollTo({top:0});
+}
+function quitGame(){GM.countAt=0;$('gmCount').hidden=true;if(GM.state==='run'){audio.pause();setRate(GM.prevRate)}setGameState('ready')}
+function practiseHard(){
+  if(GM.hard===null)return;
+  A=Math.max(0,GM.hard-1);B=Math.min(audio.duration||GM.hard+9,GM.hard+8);loop=true;renderLoop();
+  setRate(0.75);setGameState('ready');showView('play');audio.currentTime=A;audio.play().catch(()=>{});
+  say('Looping '+fmt(A)+' → '+fmt(B)+' at 0.75×, where you missed the most notes.');
+}
+$('gmSpeed').querySelectorAll('button').forEach(b=>b.onclick=()=>{GM.speed=b.dataset.v;renderGame()});
+$('gmTiming').querySelectorAll('button').forEach(b=>b.onclick=()=>{GM.timing=b.dataset.v;renderGame()});
+$('gmStart').onclick=startGame;$('gmAgain').onclick=startGame;$('gmQuit').onclick=quitGame;$('gmHard').onclick=practiseHard;
+$('gmBack').onclick=()=>setGameState('ready');
+// the song reaching its end (or the last note going by) finishes the challenge
+audio.addEventListener('ended',finishGame);
+// Game is its own tab, but it uses the Play screen's lanes and pans
+{const _show=showView;showView=function(v){
+  const game=v==='game';if(!game)quitGame();
+  _show(game?'play':v);document.body.classList.toggle('gametab',game);
+  document.querySelectorAll('.tabs button[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===v)));
+  if(game)renderGame();
+}}
+document.querySelector('.tabs button[data-view="game"]').onclick=()=>showView('game');
+{const _drawHW=drawHW;drawHW=function(t){_drawHW(t);drawLanes(t);if(GM.state==='run'&&!audio.paused){gameHud(t);if(t>=GM.end)finishGame()}}}
 window.addEventListener('resize',()=>drawLanes(viewT));
+setGameState('ready');
 
 /* ---------- start ---------- */
 (async()=>{
