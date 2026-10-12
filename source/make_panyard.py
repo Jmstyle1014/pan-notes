@@ -56,5 +56,42 @@ rep('      <details><summary>Hearing the pans when you tap</summary>', '''      
         <p>Open <b>Game</b> to play a whole song for a score. Choose <b>Slow</b> (0.75×) or <b>Normal</b> speed, and <b>Relaxed</b> or <b>Strict</b> timing, then tap Start. After a 3-2-1 count-in the notes fall just like on Play.</p>
         <p>Perfect is 100 points, Great 70, Early / Late 30. Your streak multiplies them: ×2 at 10 in a row, ×3 at 25, ×4 at 50. At the end you get up to three stars (60%, 80% and 95% of notes hit), and your best score for each song and speed is kept on this phone. <b>Practise the hard parts</b> loops the stretch where you missed the most, slowed down, on Play.</p></details>
       <details><summary>Hearing the pans when you tap</summary>''')
+
+# Mallet Lab: test and calibrate a game controller (Retroid etc.) for playing the pans
+rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + open(os.path.join(HERE, 'panyard-lab.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
+rep('      <div class="row"><button class="btn" id="fsBtn2">', '      <button class="btn" id="labOpen">🎮 Mallet Lab · play with a controller (test)</button>\n      <div class="row"><button class="btn" id="fsBtn2">')
+rep('<div id="helpSheet" class="sheetov"', """<div id="labSheet" class="labov" hidden role="dialog" aria-modal="true" aria-labelledby="labTitle">
+ <div class="labbox">
+  <div class="labhead"><div><span class="eyebrow">Panyard · test lab</span><h2 id="labTitle">Mallet Lab</h2></div><span id="labPad" class="labpad">Press any button on your controller</span><button class="btn" id="labClose">Close</button></div>
+  <div class="labstage">
+    <div class="labpan" id="lab-left" data-pan=""></div>
+    <div class="labmid">
+      <div class="labsticks">
+        <div class="labst"><canvas id="labStickL" aria-label="Left stick"></canvas><button class="btn" id="labHitL">Hit</button><small id="labLInfo">—</small></div>
+        <div class="labst"><canvas id="labStickR" aria-label="Right stick"></canvas><button class="btn" id="labHitR">Hit</button><small id="labRInfo">—</small></div>
+      </div>
+      <div id="labBtns" class="labbtns" aria-label="Controller buttons"></div>
+      <p class="help" id="labAxes"></p>
+    </div>
+    <div class="labpan" id="lab-right" data-pan=""></div>
+  </div>
+  <p id="labMsg" class="help" role="status" aria-live="polite"></p>
+  <div class="labctl">
+    <div class="lab">How you strike<div class="seg" id="labMode"><button data-m="aim">Aim + strike</button><button data-m="flick">Flick</button></div></div>
+    <div class="labmaps"><span>Left mallet: <b id="labMapL"></b></span><span>Right mallet: <b id="labMapR"></b></span></div>
+    <label class="lab"><span class="tl">Dead zone <b id="labDzV"></b></span><input type="range" id="labDz" min="0.02" max="0.4" step="0.01"></label>
+    <label class="lab"><span class="tl">Reach <b id="labReachV"></b></span><input type="range" id="labReach" min="0.5" max="1.1" step="0.02"></label>
+    <label class="lab" id="labFlickRow"><span class="tl">Flick distance <b id="labFlickV"></b></span><input type="range" id="labFlick" min="0.6" max="1" step="0.02"></label>
+    <div class="row"><button class="btn primary" id="labCal">🎯 Calibrate</button><button class="btn" id="labInv" aria-pressed="false">Flip up/down</button><button class="btn" id="labReset">Reset</button></div>
+  </div>
+  <div id="labWiz" class="labwiz" hidden><span class="eyebrow" id="labWizStep"></span><b id="labWizText"></b><div class="vidprog"><div id="labWizBar"></div></div><button class="btn" id="labWizCancel">Cancel</button></div>
+ </div>
+</div>
+<div id="helpSheet" class="sheetov\"""")
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-lab.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('      <details><summary>Hearing the pans when you tap</summary>', """      <details><summary>Mallet Lab: playing with a controller (test)</summary>
+        <p>Setup → Play along → <b>Mallet Lab</b>. Connect a game controller, or use a handheld like the Retroid, and press any button so the app can see it. The <b>left stick</b> is your left mallet over the left pan and the <b>right stick</b> your right mallet over the right pan; a gold ring shows where each one is pointing.</p>
+        <p><b>Aim + strike</b>: point, then hit with your mallet buttons (L1 / R1 to start; analog triggers play softer or harder depending on how quickly you pull them). Hold to roll. <b>Flick</b>: push a stick out quickly to strike where it points, then let it come back. Tap <b>Calibrate</b> to measure your sticks and pick your mallet buttons. No controller? Drag inside the stick circles and hold <b>Hit</b>.</p></details>
+      <details><summary>Hearing the pans when you tap</summary>""")
 open(OUT, 'w', encoding='utf-8').write(s)
 print('wrote', OUT)

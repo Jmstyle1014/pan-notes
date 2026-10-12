@@ -1,0 +1,27 @@
+/* Mallet Lab */
+.labov{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto}
+.labbox{max-width:1200px;margin:0 auto;padding:10px 14px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.labhead{display:flex;align-items:center;gap:10px}.labhead>div{flex:1;min-width:0}
+.labpad{font-size:13px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);max-width:40vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.labpad.on{color:#3fd0d4;border-color:#3fd0d4}
+.labstage{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,300px) minmax(0,1fr);gap:12px;align-items:center}
+.labpan svg{width:100%;height:auto;max-height:62vh;display:block}
+.labsticks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.labst{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.labst canvas{width:100%;aspect-ratio:1;touch-action:none;border-radius:50%;background:#19132e}
+.labst .btn{min-height:40px;width:100%}
+.labst small{font-size:12px;color:var(--muted);white-space:nowrap}
+.labbtns{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px}
+.lbtn{font:700 11px var(--body);padding:4px 7px;border-radius:7px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.lbtn.on{background:#ffd166;color:#2a1a00;border-color:#ffd166}
+.labcur{fill:rgb(255 209 102 / .22);stroke:#ffd166;stroke-width:8;pointer-events:none}
+.labpan .field.aim .zone{stroke:#ffd166;stroke-width:16}
+.labctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end}
+.labctl input[type=range]{width:100%;accent-color:#ffd166;height:32px}
+.labctl .tl{display:flex;justify-content:space-between}.labctl .tl b{color:var(--text)}
+.labmaps{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted)}.labmaps b{color:var(--text)}
+.labwiz{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:31;width:min(92vw,460px);display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:20px;background:var(--raised);border:1px solid #ffd166;box-shadow:0 20px 60px rgb(0 0 0 / .6)}
+.labwiz b{font:700 18px/1.35 var(--display)}
+#labWizBar{height:100%;width:0;background:#ffd166;transition:width .1s linear}
+@media (max-width:700px){.labstage{grid-template-columns:1fr 1fr}.labmid{grid-column:1/-1;order:3}}
+.labctl .row{flex-wrap:nowrap}.labctl .row .btn{padding-inline:12px}
