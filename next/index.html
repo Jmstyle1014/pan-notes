@@ -246,6 +246,25 @@ body{padding-bottom:calc(var(--dockH,132px) + 16px)}
 .sheetov{position:fixed;inset:0;background:rgb(0 0 0 / .55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
 .sheetbox{background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;max-width:760px;max-height:88%;display:flex;flex-direction:column;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px))}
 .sheethead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px}
+.songsbody{overflow:auto;display:flex;flex-direction:column;gap:10px}
+.songlist{display:flex;flex-direction:column;gap:6px}
+.songrow{display:flex;gap:6px;align-items:stretch}
+.songopen{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--raised);min-width:0;color:var(--text)}
+.songopen b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.songopen span{font-size:12.5px;color:var(--muted)}
+.songrow.cur .songopen{border-color:var(--gold)}
+.songdel{width:auto;padding:0 12px}
+.checklist{gap:8px}
+.ckhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.ckhead b{display:block;font-size:16px}.ckhead .mini{width:auto;padding:0 10px}
+.ckrow{display:flex;align-items:center;gap:10px;min-height:44px}
+.ckmark{width:28px;height:28px;border-radius:14px;display:grid;place-items:center;font-weight:700;font-size:13px;border:1.5px solid var(--line);color:var(--muted);flex:none}
+.ckrow.ok .ckmark{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.ckrow.ok .cktxt{color:var(--muted);text-decoration:line-through}
+.cktxt{flex:1}.ckrow .btn{min-height:38px;padding:0 12px}
+.secchips{display:flex;flex-wrap:wrap;gap:6px}
+.secchip{display:inline-flex;align-items:baseline;gap:6px;border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:8px 12px;font-weight:700;font-size:14px;color:var(--text)}
+.secchip small{font-weight:400;color:var(--muted);font-size:11px}
+.secchip.on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}.secchip.on small{color:var(--gold-ink)}
+@media (orientation:landscape) and (max-height:520px){#checklist{display:none!important}}
 .chartbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px}
 .chart{display:flex;flex-direction:column;gap:12px}
 .csec{border-radius:14px;padding:6px 8px;transition:background-color .2s}
@@ -567,9 +586,15 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
 @media (prefers-reduced-motion:reduce){
   .field.active .zone,.field.hit .zone,.soon .zone,.view,.sheetbox,.sheetov,.nextring .ring,.inkmenu{animation:none!important}
 }
+
+/* the song name at the top opens your songs */
+.songbtn{background:none;border:0;padding:0;text-align:left;color:inherit;min-width:0;cursor:pointer}
+.songname{display:flex;align-items:center;gap:4px;min-width:0}
+.songname svg{flex:none;color:var(--muted);transition:transform .2s}
+.songbtn:active .songname svg{transform:translateY(2px)}
 </style>
 
-<header class="appbar"><div class="ttl"><span class="eyebrow">Now rehearsing</span><span id="appTitle">Pan Notes</span></div><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
+<header class="appbar"><button class="ttl songbtn" data-open-songs aria-label="Your songs"><span class="eyebrow">Now rehearsing</span><span class="songname"><span id="appTitle">Pan Notes</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
 <main>
   <div id="cueTop" class="cuetop">
     <div class="prog"><i id="progFill"></i></div>
@@ -580,6 +605,7 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
 
   <!-- PLAY -->
   <section class="view" id="view-play">
+    <div id="checklist" class="panel checklist" hidden></div>
     <div id="demoBanner" class="banner" hidden><b>Example cues.</b> Press play to see how highlighting works. Import your recording in Setup to start your own.</div>
     <div class="stage" id="playStage">
       <div id="playPans" class="pair"></div>
@@ -599,6 +625,9 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
     </div>
     <div class="panel" id="practicePanel">
       <h2>Practice</h2>
+      <div class="lab" id="secLab" hidden>Loop a section
+        <div class="secchips" id="secChips"></div>
+      </div>
       <div class="row">
         <button class="btn grow" id="back5">−5 s</button>
         <button class="btn grow" id="fwd5">+5 s</button>
@@ -640,7 +669,8 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
             <button class="btn" id="shareTL" aria-label="Save timeline">⤓</button>
           </div>
           <div class="gridbox" id="gridBox" hidden>
-            <button class="btn primary" id="tapTempo">Tap on the beat</button>
+            <button class="btn primary" id="autoTempo">✨ Find the tempo for me</button>
+            <button class="btn" id="tapTempo">Or tap on the beat</button>
             <div class="row bpmrow">
               <label class="lab grow">Beats per minute<input id="bpm" type="number" inputmode="decimal" min="30" max="300" step="0.5" placeholder="Not set"></label>
               <button class="mini" id="bpmHalf" aria-label="Half the tempo">÷2</button><button class="mini" id="bpmDouble" aria-label="Double the tempo">×2</button>
@@ -778,7 +808,7 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
   <!-- SETUP -->
   <section class="view" id="view-setup" hidden>
     <div class="panel">
-      <h2>Recording</h2>
+      <div class="row" style="justify-content:space-between"><h2>Recording</h2><button class="btn" data-open-songs>♫ Your songs</button></div>
       <p class="help" id="audioInfo">No recording yet.</p>
       <label class="btn primary">Choose a recording<input id="audioFile" type="file"></label>
       <p class="help">In the Claude app this button can't open files. Choose the recording once in Safari or Chrome; after that it loads here by itself.</p>
@@ -857,9 +887,9 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
       </div>
     </div>
     <nav class="tabs" role="tablist">
-      <button role="tab" data-view="play" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor"/></svg>Play</button>
+      <button role="tab" data-view="play" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor"/></svg>Practice</button>
       <button role="tab" data-view="cues" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h10M3 18h14"/><circle cx="18" cy="12" r="2"/></svg>Write</button>
-      <button role="tab" data-view="part" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M9 5v14M14 5v14"/></svg>Part</button>
+      <button role="tab" data-view="part" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M9 5v14M14 5v14"/></svg>Chart</button>
       <button role="tab" data-view="notes" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>Notes</button>
     </nav>
   </div>
@@ -893,6 +923,16 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
         <div class="row"><button class="btn grow" id="tuneAuto">Tune it for me</button><button class="btn" id="tuneReset">Reset</button></div>
         <button class="btn" id="tuneLevel">Even out the volume of all notes</button>
       </div>
+    </div>
+  </div>
+</div>
+<div id="songsSheet" class="sheetov" hidden role="dialog" aria-modal="true" aria-labelledby="songsTitle">
+  <div class="sheetbox">
+    <div class="sheethead"><h2 id="songsTitle">Your songs</h2><button class="btn" id="songsClose">Close</button></div>
+    <div class="songsbody">
+      <button class="btn primary" id="songNew">＋ New song</button>
+      <div id="songList" class="songlist"></div>
+      <p class="help">Each song keeps its own recording, cues, tempo, chart and sections. Songs are kept on this phone; Save backup file saves the song that's open.</p>
     </div>
   </div>
 </div>
@@ -971,6 +1011,10 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
       <details><summary>Your chart: sections, chords and repeats</summary>
         <p>The <b>Chart</b> view (in your part) writes the song the way you write it on paper. Notes played together are <b>stacked</b>, left pan on top; a <b>×2</b> under a stack means it's played for 2 beats. <b>×2</b> after a run of notes means play that run twice. A small <b>r</b> is a roll. The song is split into <b>sections</b> wherever there's a break; each has its time, <b>▶</b> to jump there and <b>⟲ Loop</b> to practise just that part.</p>
         <p>Tap <b>✎ Edit chart</b> to change anything. Type it like your notebook: <b>E/B x2</b> (together, 2 beats), <b>E G B G E x2</b> (repeat), <b>F#r</b> (roll), <b>|</b> bar line, <b>[need to check the roll]</b> a comment. Put the song at the start of a part and tap <b>+ Verse</b>, <b>+ Chorus</b> and so on to add a section there, or rename one by changing the word after <b>#</b>. <b>Save chart</b> keeps your version; <b>Rebuild from cues</b> starts again from what you tapped in. Share → <b>Chart</b> prints it like this too.</p></details>
+      <details><summary>Songs, tempo and getting a song ready</summary>
+        <p><b>Your songs</b> (Setup, or tap the song name at the top): each song keeps its own recording, cues, tempo, chart and sections. <b>＋ New song</b> starts a fresh one; tap a song to open it.</p>
+        <p><b>✨ Find the tempo for me</b> (Write → ♩ Timing, or the checklist) listens to the drum hits in your recording, works out the beats per minute and puts the bar lines on the strong beat. If they're a little off, nudge them with ◀ ▶ or Move bar line.</p>
+        <p>A new song shows a short <b>Get this song ready</b> list on the practice screen: add the recording, find the tempo, tap in your notes, name your sections, practise a section. Each step ticks itself off. Your sections also show as chips under Practice (tap one to loop it) and as gold labels along the timeline.</p></details>
       <details><summary>Full screen and keeping the screen on</summary>
         <p><b>⛶ Full screen</b> (here and in Setup) hides the browser bars where your phone allows it. Inside the Claude app it may not be allowed; in Chrome it usually works. While a song is playing, Pan Notes also keeps your screen from going to sleep (Setup → Play along).</p></details>
       <details><summary>Tap along and chords</summary>
@@ -3302,7 +3346,7 @@ function chartHTML(secs,live){
 function renderChartView(){
   const box=$('sheet');if(chartEditing)return;
   const text=chartText(),secs=parseChart(text);
-  box.innerHTML='<div class="chartbar"><button class="btn" data-ch="edit">✎ Edit chart</button><span class="help">'+(S.chart&&S.chart.edited?'Your edited chart':'Made from your cues')+(S.grid?'':' · set the tempo for tidier counts')+'</span></div>'+chartHTML(secs,true);
+  box.innerHTML='<div class="chartbar"><button class="btn" data-ch="edit">✎ Edit chart</button><button class="btn" data-ch="share">Share</button><span class="help">'+(S.chart&&S.chart.edited?'Your edited chart':'Made from your cues')+(S.grid?'':' · set the tempo for tidier counts')+'</span></div>'+chartHTML(secs,true);
   chartModel={secs:secs.map((s,i)=>({t:s.t,el:box.querySelector('.csec[data-i="'+i+'"]')})).filter(x=>x.t!==null),cur:null};
 }
 function chartLive(t){
@@ -3332,6 +3376,7 @@ function openChartEditor(){
 $('sheet').addEventListener('click',e=>{
   const b=e.target.closest('[data-ch]');if(!b)return;const act=b.dataset.ch;
   if(act==='edit'){openChartEditor();return}
+  if(act==='share'){expKind='chart';renderExpKind();if(typeof openShare==='function')openShare(true);else{showView('setup');setTimeout(()=>$('sharePanel').scrollIntoView({behavior:'smooth',block:'start'}),60)}return}
   if(act==='cancel'){chartEditing=false;renderCues();return}
   if(act==='save'){S.chart={text:$('chartIn').value.slice(0,40000),edited:true};chartEditing=false;save();renderCues();say('Chart saved. It will stay as you wrote it.');return}
   if(act==='rebuild'){
@@ -3407,6 +3452,164 @@ function chartPlainText(){
   for(const s of secs){if(s.name||s.t!==null)out.push((s.name||'Section').toUpperCase()+(s.t!==null?' ('+tShort(s.t)+')':''));for(const l of s.lines)out.push('  '+l.map(tt).join('  '));out.push('')}
   out.push('Made with Pan Notes');return out.join('\n');
 }
+
+
+/* ---------- songs, auto tempo, sections everywhere, and the get-ready checklist ---------- */
+/* Your songs: the open song uses the usual storage; the others wait on this device until you open them */
+const SONG_KEYS=['title','cues','grid','chart','audioRef'];
+let SONGS=null;
+const newSongId=()=>'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+function songsInit(){
+  if(SONGS)return SONGS;
+  try{const x=JSON.parse(localStorage.getItem('pan-songs')||'null');if(x&&Array.isArray(x.list)&&x.list.length)SONGS=x}catch{}
+  if(!SONGS){const id=newSongId();SONGS={active:id,list:[{id,title:S.title||'My song',n:isDemo?0:S.cues.length,rec:!!hasAudio,updated:Date.now(),done:{}}]};songsSave()}
+  return SONGS;
+}
+const songsSave=()=>{try{localStorage.setItem('pan-songs',JSON.stringify(SONGS))}catch{}};
+const songNow=()=>{songsInit();return SONGS.list.find(s=>s.id===SONGS.active)||SONGS.list[0]};
+function songTouch(){if(isDemo)return;const s=songNow();if(!s)return;s.title=S.title||s.title||'Untitled song';s.n=S.cues.length;s.rec=!!hasAudio;s.updated=Date.now();songsSave()}
+{const _save=save;save=function(){_save();songTouch()}}
+function unloadAudio(){
+  audio.pause();if(objUrl){URL.revokeObjectURL(objUrl);objUrl=null}
+  audio.removeAttribute('src');try{audio.load()}catch{}
+  hasAudio=false;curBlob=null;curName='';peakToken++;peaks=null;onsets=null;A=B=null;loop=false;renderLoop();
+  $('playBtn').disabled=true;$('seek').disabled=true;$('recName').textContent='No recording';$('audioInfo').textContent='No recording yet.';tick();
+}
+async function songStash(){
+  const cur={};SONG_KEYS.forEach(k=>cur[k]=S[k]);
+  const a=await idbGet('audio');
+  await idbPut('song:'+SONGS.active,{data:JSON.parse(JSON.stringify(cur)),audio:a&&a.blob?a:null});
+}
+async function songOpen(id,fresh){
+  songsInit();if(id===SONGS.active&&!fresh)return;
+  audio.pause();if(!isDemo)await songStash();
+  const st=fresh?null:await idbGet('song:'+id);
+  const d=(st&&st.data)||{};
+  S.title=String(d.title||(SONGS.list.find(s=>s.id===id)||{}).title||'');S.cues=Array.isArray(d.cues)?d.cues:[];S.grid=d.grid||null;S.chart=d.chart||null;S.audioRef=d.audioRef||null;
+  SONGS.active=id;songsSave();
+  isDemo=false;undoStack=[];if(typeof selIds!=='undefined')selIds.clear();chartEditing=false;
+  if(st&&st.audio&&st.audio.blob){await idbPut('audio',st.audio);loadAudio(st.audio.blob,st.audio.name)}
+  else{await idbPut('audio',null);unloadAudio();if(S.audioRef&&typeof loadRecordingFromAccount==='function')loadRecordingFromAccount()}
+  renderAll();renderDemo();save();renderSongs();renderChecklist();
+  say(fresh?'New song. Add its recording to get started.':'Opened '+(S.title||'your song')+'.');
+}
+async function songNew(){songsInit();const id=newSongId();SONGS.list.unshift({id,title:'New song',n:0,rec:false,updated:Date.now(),done:{}});songsSave();await songOpen(id,true);S.title='New song';$('title').value=S.title;save();showView('setup')}
+async function songDelete(id){
+  songsInit();if(SONGS.list.length<2){say('This is your only song.');return}
+  if(id===SONGS.active){const other=SONGS.list.find(s=>s.id!==id);await songOpen(other.id)}
+  SONGS.list=SONGS.list.filter(s=>s.id!==id);songsSave();await idbPut('song:'+id,null);renderSongs();say('Song deleted.');
+}
+function renderSongs(){
+  const box=$('songList');if(!box||$('songsSheet').hidden)return;songsInit();songTouch();
+  box.innerHTML=SONGS.list.slice().sort((a,b)=>(b.id===SONGS.active)-(a.id===SONGS.active)||b.updated-a.updated).map(s=>
+    '<div class="songrow'+(s.id===SONGS.active?' cur':'')+'"><button class="songopen" data-song="'+esc(s.id)+'"><b>'+esc(s.title||'Untitled song')+'</b><span>'+(s.n||0)+' cues · '+(s.rec?'recording ✓':'no recording')+(s.id===SONGS.active?' · open now':'')+'</span></button>'
+    +'<button class="mini songdel" data-del="'+esc(s.id)+'" aria-label="Delete '+esc(s.title||'song')+'">🗑</button></div>').join('');
+}
+function openSongs(on){$('songsSheet').hidden=!on;if(on){songsInit();renderSongs()}}
+$('songList').addEventListener('click',e=>{
+  const o=e.target.closest('[data-song]');if(o){openSongs(false);songOpen(o.dataset.song);return}
+  const d=e.target.closest('[data-del]');if(d){if(d.dataset.armed!=='1'){d.dataset.armed='1';d.textContent='Delete?';setTimeout(()=>{d.dataset.armed='';d.textContent='🗑'},3000);return}songDelete(d.dataset.del)}
+});
+$('songNew').onclick=()=>{openSongs(false);songNew()};
+$('songsClose').onclick=()=>openSongs(false);
+$('songsSheet').addEventListener('click',e=>{if(e.target===$('songsSheet'))openSongs(false)});
+document.querySelectorAll('[data-open-songs]').forEach(b=>b.addEventListener('click',()=>openSongs(true)));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('songsSheet').hidden)openSongs(false)});
+
+/* Find the tempo: line a beat grid up with the drum hits in your recording */
+function findTempo(){
+  const on=(onsets||[]).filter(t=>t>0.2);if(on.length<16)return null;
+  const N=on.length,SIG=0.025,G2=2*SIG*SIG;
+  // louder hits count more, so the beat lands on the drums rather than the light off-beat sounds
+  const lvl=t=>{if(!peaks)return 1;let m=0;const i=Math.round(t*peakRate);for(let j=i-2;j<=i+2;j++)if(peaks[j]>m)m=peaks[j];return 0.2+m*m};
+  const W=on.map(lvl),WS=W.reduce((a,b)=>a+b,0);
+  const fit=(bpm,step)=>{const b=60/bpm;let best=-1,ph=0;for(let p=0;p<b;p+=step){let s=0;for(let k=0;k<N;k++){const t=on[k],d=((t-p)%b+b)%b,e=Math.min(d,b-d);s+=W[k]*Math.exp(-e*e/G2)}if(s>best){best=s;ph=p}}
+    // compared with what random hits would score, so faster tempos don't win just by having more beats
+    return {s:best/WS/(SIG*2.5066/b),ph}};
+  let top=null;
+  for(let bpm=70;bpm<=180;bpm+=0.5){const f=fit(bpm,0.01),prior=Math.exp(-Math.pow(Math.log2(bpm/112),2)/0.5),v=f.s*prior;if(!top||v>top.v)top={bpm,v,ph:f.ph}}
+  for(let bpm=top.bpm-0.6;bpm<=top.bpm+0.6;bpm+=0.05){const f=fit(bpm,0.004),v=f.s*Math.exp(-Math.pow(Math.log2(bpm/112),2)/0.5);if(v>top.v)top={bpm,v,ph:f.ph}}
+  const b=60/top.bpm;
+  // the bar line: of the four beats, the one where the music is loudest
+  const loud=t=>{if(!peaks)return 0;let m=0;const i=Math.round(t*peakRate);for(let j=i-3;j<=i+3;j++)if(peaks[j]>m)m=peaks[j];return m};
+  let bestJ=0,bestL=-1;
+  for(let j=0;j<4;j++){let L=0;for(let t=top.ph+j*b;t<(peaks?peaks.length/peakRate:on[N-1]);t+=4*b)L+=loud(t);if(L>bestL){bestL=L;bestJ=j}}
+  const bar=4*b,off=((top.ph+bestJ*b)%bar+bar)%bar;
+  return {bpm:Math.round(top.bpm*10)/10,offset:+off.toFixed(4),perBar:4,conf:top.v};
+}
+function runAutoTempo(){
+  if(!hasAudio){say('Add the recording first, then the app can find its tempo.');return}
+  if(!onsets){say('Still listening to your recording. Try again in a moment.');return}
+  const g=findTempo();if(!g){say("Couldn't hear a steady beat in this recording. Tap the tempo in by hand instead.");return}
+  S.grid={bpm:g.bpm,offset:g.offset,perBar:g.perBar};renderGrid();renderCues();drawTL();save();renderChecklist();
+  say('Found about '+g.bpm+' BPM and set the bar lines. If they look off, nudge them with ◀ ▶ or Move bar line in Timing.');
+}
+
+/* Sections everywhere: from your chart, each with its start and end */
+function sectionsNow(){
+  const all=parseChart(chartText()).filter(s=>s.t!==null),d=Number.isFinite(audio.duration)?audio.duration:totalLen();
+  return all.map((s,i)=>({name:s.name||'Section '+(i+1),t:s.t,end:all[i+1]?all[i+1].t:d}));
+}
+function loopSection(sec){
+  if(!hasAudio){say('Add your recording in Setup to loop sections.');return}
+  const on=loop&&A!==null&&Math.abs(A-sec.t)<0.05&&Math.abs(B-sec.end)<0.05;
+  if(on){loop=false;renderLoop();say('Loop off.');return}
+  A=sec.t;B=sec.end;loop=true;renderLoop();audio.currentTime=A;audio.play().catch(()=>{});
+  markDone('practised');say('Looping '+sec.name+' ('+tShort(A)+'–'+tShort(B)+').');
+}
+function renderSecChips(){
+  const box=$('secChips');if(!box)return;const secs=sectionsNow();
+  $('secLab').hidden=!secs.length;
+  box.innerHTML=secs.map((s,i)=>{const on=loop&&A!==null&&Math.abs(A-s.t)<0.05&&Math.abs(B-s.end)<0.05;
+    return '<button class="secchip'+(on?' on':'')+'" data-sec="'+i+'" aria-pressed="'+on+'">'+(on?'⟲ ':'')+esc(s.name)+'<small>'+tShort(s.t)+'</small></button>'}).join('');
+}
+$('secChips').addEventListener('click',e=>{const b=e.target.closest('[data-sec]');if(!b)return;const s=sectionsNow()[+b.dataset.sec];if(s)loopSection(s)});
+{const _rl=renderLoop;renderLoop=function(){_rl();try{renderSecChips()}catch{}}}
+{const _rc=renderCues;renderCues=function(){_rc();try{renderSecChips();renderChecklist()}catch{}}}
+// section names along the top of the timeline
+{const _dt=drawTL;drawTL=function(){_dt();try{
+  const cv=$('tl');if(!cv||!cv.offsetParent)return;const secs=sectionsNow();if(!secs.length)return;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight,g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  const P=pps(),cur=audio.paused?(audio.currentTime||0):viewT,X=t=>W/2+(t-cur)*P;if(!colors)colors=tokens();
+  g.font='700 11px '+getComputedStyle(document.body).fontFamily;g.textBaseline='top';g.textAlign='left';
+  for(const s of secs){const x=X(s.t);if(x>W||X(s.end)<0)continue;
+    g.fillStyle=colors.gold;g.globalAlpha=.85;g.fillRect(x,0,2,H);g.globalAlpha=1;
+    const lab=s.name.toUpperCase(),w=g.measureText(lab).width+10,lx=Math.max(x,Math.min(X(s.end)-w,2));
+    g.fillStyle='rgba(0,0,0,.55)';g.fillRect(lx,2,w,15);g.fillStyle=colors.gold;g.fillText(lab,lx+5,4)}
+}catch{}}}
+
+/* Getting a song ready: five steps, each ticks itself off */
+function markDone(k){const s=songNow();if(!s)return;s.done=s.done||{};if(!s.done[k]){s.done[k]=Date.now();songsSave();renderChecklist()}}
+function checkSteps(){
+  const secs=parseChart(chartText()),named=S.chart&&S.chart.edited&&secs.some(s=>s.name&&!/^(Section \d+|New section)/.test(s.name));
+  const s=songNow()||{};
+  return [
+    {k:'rec',t:'Add the recording',ok:hasAudio,go:'Choose',act:()=>{showView('setup');setTimeout(()=>$('audioFile').closest('.panel').scrollIntoView({behavior:'smooth',block:'start'}),60)}},
+    {k:'tempo',t:'Find the tempo',ok:!!S.grid,go:'Find it',act:runAutoTempo},
+    {k:'cues',t:'Tap in your notes',ok:!isDemo&&S.cues.length>=8,go:'Write',act:()=>showView('cues')},
+    {k:'secs',t:'Name your sections',ok:!!named,go:'Chart',act:()=>{showView($('view-part')?'part':'play');S.sheetView='chart';renderCues();setTimeout(()=>{openChartEditor();$('sheet').scrollIntoView({behavior:'smooth'})},60)}},
+    {k:'practised',t:'Practise a section',ok:!!(s.done&&s.done.practised),go:'Practise',act:()=>{showView('play');setTimeout(()=>{const c=$('secChips');if(c)c.scrollIntoView({behavior:'smooth',block:'center'})},60)}}
+  ];
+}
+function renderChecklist(){
+  const box=$('checklist');if(!box)return;const s=songNow();
+  if(isDemo||!s){box.hidden=true;return}
+  const steps=checkSteps(),n=steps.filter(x=>x.ok).length;
+  if(n===steps.length||(s.done&&s.done.hideList)){box.hidden=true;return}
+  box.hidden=false;
+  box.innerHTML='<div class="ckhead"><div><span class="eyebrow">Get this song ready</span><b>'+esc(S.title||'Your song')+' · '+n+' of '+steps.length+'</b></div><button class="mini" data-ck="hide" aria-label="Hide the checklist">Hide</button></div>'
+    +'<div class="vidprog"><div style="height:100%;width:'+(n/steps.length*100)+'%;background:var(--gold)"></div></div>'
+    +steps.map((x,i)=>'<div class="ckrow'+(x.ok?' ok':'')+'"><span class="ckmark" aria-hidden="true">'+(x.ok?'✓':i+1)+'</span><span class="cktxt">'+x.t+'</span>'+(x.ok?'':'<button class="btn" data-ck="'+i+'">'+x.go+'</button>')+'</div>').join('');
+}
+$('checklist').addEventListener('click',e=>{
+  const b=e.target.closest('[data-ck]');if(!b)return;
+  if(b.dataset.ck==='hide'){markDone('hideList');say('Checklist hidden for this song.');return}
+  const st=checkSteps()[+b.dataset.ck];if(st)st.act();
+});
+audio.addEventListener('loadedmetadata',()=>{renderChecklist();renderSecChips()});
+{const _rg=renderGrid;renderGrid=function(){_rg();try{renderChecklist()}catch{}}}
+$('autoTempo').onclick=runAutoTempo;
+setTimeout(()=>{songsInit();songTouch();renderChecklist();renderSecChips()},1500);
 
 /* ---------- screen: full screen and staying awake ---------- */
 async function toggleFullscreen(){

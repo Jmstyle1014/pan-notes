@@ -90,13 +90,14 @@ document.addEventListener('pointerdown',e=>{
 // Pick a speed and how strict the timing is, count in 3-2-1, play the song through, get a score and stars.
 // Points: Perfect 100, Great 70, Early/Late 30, multiplied by your streak (x2 at 10, x3 at 25, x4 at 50).
 // Stars: 1 at 60% of notes hit, 2 at 80%, 3 at 95%. Best scores are kept on this phone, per song and speed.
-const GM={state:'ready',speed:'normal',timing:'strict',score:0,counts:{perfect:0,great:0,ok:0},maxStreak:0,total:0,end:0,countAt:0,prevRate:1,result:null,hard:null};
+const GM={sec:-1,start:0,state:'ready',speed:'normal',timing:'strict',score:0,counts:{perfect:0,great:0,ok:0},maxStreak:0,total:0,end:0,countAt:0,prevRate:1,result:null,hard:null};
 const PTS={perfect:100,great:70,ok:30};
 try{const o=JSON.parse(localStorage.getItem('panyard-game-opts')||'{}');if(o.speed==='slow')GM.speed='slow';if(o.timing==='relaxed')GM.timing='relaxed'}catch{}
 const mult=s=>s>=50?4:s>=25?3:s>=10?2:1;
 function gameBests(){try{return JSON.parse(localStorage.getItem('panyard-game-best')||'{}')||{}}catch{return{}}}
 const songName=()=>S.title||(isDemo?'Example tones':'Untitled song');
-const bestKey=()=>songName()+'|'+GM.speed;
+const gmSecs=()=>{try{return sectionsNow()}catch{return []}};
+const bestKey=()=>songName()+'|'+GM.speed+(GM.sec>=0&&gmSecs()[GM.sec]?'|'+gmSecs()[GM.sec].name:'');
 const starsFor=pct=>pct>=0.95?3:pct>=0.8?2:pct>=0.6?1:0;
 const starTxt=n=>'★'.repeat(n)+'☆'.repeat(3-n);
 function setGameState(st){GM.state=st;document.body.dataset.game=st;renderGame()}
@@ -106,6 +107,10 @@ function renderGame(){
   $('gmBest').textContent=b?'Best: '+b.score.toLocaleString()+' · '+starTxt(b.stars):'No score yet at this speed';
   $('gmSpeed').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===GM.speed)));
   $('gmTiming').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===GM.timing)));
+  // play the whole song, or just one of your sections
+  const secs=gmSecs();if(GM.sec>=secs.length)GM.sec=-1;
+  $('gmSecLab').hidden=!secs.length;
+  $('gmSecs').innerHTML='<button class="secchip'+(GM.sec<0?' on':'')+'" data-gs="-1">Whole song</button>'+secs.map((x,i)=>'<button class="secchip'+(GM.sec===i?' on':'')+'" data-gs="'+i+'">'+esc(x.name)+'<small>'+tShort(x.t)+'</small></button>').join('');
   const ok=hasAudio&&hwItems.length;$('gmStart').disabled=!ok;
   $('gmNeed').hidden=!!ok;$('gmNeed').textContent=!hasAudio?'Choose your recording in Setup first, then come back to play.':'Write some cues for this song first, then come back to play.';
   if(GM.state==='done'&&GM.result){const r=GM.result;
@@ -121,7 +126,7 @@ function gameHud(t){
   if(GM.state!=='run')return;
   $('gmLive').textContent=GM.score.toLocaleString();
   $('gmMult').textContent='×'+mult(GAME.streak)+' · streak '+GAME.streak;
-  $('gmBar').style.width=Math.max(0,Math.min(100,t/GM.end*100))+'%';
+  $('gmBar').style.width=Math.max(0,Math.min(100,(t-GM.start)/Math.max(0.1,GM.end-GM.start)*100))+'%';
 }
 function gameHit(kind){
   GM.counts[kind]++;GM.score+=PTS[kind]*mult(GAME.streak);GM.maxStreak=Math.max(GM.maxStreak,GAME.streak);
@@ -132,10 +137,12 @@ function startGame(){
   audio.pause();loop=false;renderLoop();
   GM.prevRate=audio.playbackRate||1;setRate(GM.speed==='slow'?0.75:1);
   GM.score=0;GM.counts={perfect:0,great:0,ok:0};GM.maxStreak=0;GM.result=null;GM.hard=null;
-  GM.total=hwItems.reduce((a,n)=>a+n.ids.length,0);
-  GM.end=Math.min(audio.duration||1e9,Math.max(...hwItems.map(n=>n.t+n.d))+1.5);
+  const sec=GM.sec>=0?gmSecs()[GM.sec]:null,inR=n=>!sec||(n.t>=sec.t-0.05&&n.t<sec.end-0.05);
+  GM.start=sec?sec.t:0;GM.inR=inR;
+  GM.total=hwItems.filter(inR).reduce((a,n)=>a+n.ids.length,0);
+  GM.end=sec?Math.min(sec.end,audio.duration||1e9):Math.min(audio.duration||1e9,Math.max(...hwItems.map(n=>n.t+n.d))+1.5);
   GAME.judged.clear();GAME.hitKeys.clear();GAME.streak=0;GAME.pops=[];
-  audio.currentTime=0;GAME.lastT=0;
+  audio.currentTime=GM.start;GAME.lastT=GM.start;
   setGameState('run');gameHud(0);
   GM.countAt=performance.now();countIn();
 }
@@ -145,14 +152,15 @@ function countIn(){
   const left=3-(performance.now()-GM.countAt)/1000;
   if(left<=0){GM.countAt=0;$('gmCount').hidden=true;audio.play().catch(()=>say('Tap play to start.'));return}
   $('gmCount').hidden=false;$('gmCount').textContent=Math.ceil(left);
-  drawLanes(-left*(audio.playbackRate||1));requestAnimationFrame(countIn);
+  drawLanes(GM.start-left*(audio.playbackRate||1));requestAnimationFrame(countIn);
 }
 function finishGame(){
   if(GM.state!=='run')return;
   audio.pause();
   const hits=GM.counts.perfect+GM.counts.great+GM.counts.ok,pct=GM.total?hits/GM.total:0,stars=starsFor(pct);
   // the hard part: the 8 seconds with the most missed notes
-  const missed=[];hwItems.forEach((n,i)=>n.ids.forEach(id=>{if(!GAME.hitKeys.has(i+':'+id))missed.push(n.t)}));
+  const missed=[];hwItems.forEach((n,i)=>{if(GM.inR&&!GM.inR(n))return;n.ids.forEach(id=>{if(!GAME.hitKeys.has(i+':'+id))missed.push(n.t)})});
+  if(typeof markDone==='function')markDone('practised');
   let hard=null,most=0;for(const m of missed){const c=missed.filter(x=>x>=m&&x<m+8).length;if(c>most){most=c;hard=m}}
   GM.hard=most>=2?hard:null;
   const all=gameBests(),k=bestKey(),old=all[k],pb=!old||GM.score>old.score;
@@ -171,6 +179,7 @@ $('gmSpeed').querySelectorAll('button').forEach(b=>b.onclick=()=>{GM.speed=b.dat
 $('gmTiming').querySelectorAll('button').forEach(b=>b.onclick=()=>{GM.timing=b.dataset.v;renderGame()});
 $('gmStart').onclick=startGame;$('gmAgain').onclick=startGame;$('gmQuit').onclick=quitGame;$('gmHard').onclick=practiseHard;
 $('gmBack').onclick=()=>setGameState('ready');
+$('gmSecs').addEventListener('click',e=>{const b=e.target.closest('[data-gs]');if(!b)return;GM.sec=+b.dataset.gs;renderGame()});
 // the song reaching its end (or the last note going by) finishes the challenge
 audio.addEventListener('ended',finishGame);
 // Game is its own tab, but it uses the Play screen's lanes and pans

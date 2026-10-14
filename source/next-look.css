@@ -158,3 +158,9 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
 @media (prefers-reduced-motion:reduce){
   .field.active .zone,.field.hit .zone,.soon .zone,.view,.sheetbox,.sheetov,.nextring .ring,.inkmenu{animation:none!important}
 }
+
+/* the song name at the top opens your songs */
+.songbtn{background:none;border:0;padding:0;text-align:left;color:inherit;min-width:0;cursor:pointer}
+.songname{display:flex;align-items:center;gap:4px;min-width:0}
+.songname svg{flex:none;color:var(--muted);transition:transform .2s}
+.songbtn:active .songname svg{transform:translateY(2px)}

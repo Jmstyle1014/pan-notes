@@ -26,7 +26,7 @@ rep('      <details><summary>Hearing the pans when you tap</summary>', '''      
 rep('<details open><summary>Colours on the pans and timeline</summary>', '<details><summary>Colours on the pans and timeline</summary>')
 
 # the Game tab: a button next to Play, a score bar above the lanes, and the start / results cards below
-PLAY_TAB = 'aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor"/></svg>Play</button>'
+PLAY_TAB = 'aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor"/></svg>Practice</button>'
 rep(PLAY_TAB, PLAY_TAB + '''
       <button role="tab" data-view="game" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3M12 14v3M8 20h8"/></svg>Game</button>''')
 rep('    <div class="stage" id="playStage">\n', '''    <div id="gmHud"><div class="gmtop"><span id="gmLive">0</span><span id="gmMult">×1 · streak 0</span><button class="btn" id="gmQuit">Quit</button></div><div class="gmbar"><div id="gmBar"></div></div></div>
@@ -38,6 +38,7 @@ rep('    <div class="panel" id="practicePanel">', '''    <div id="gmPanel">
         <div><span class="eyebrow">Challenge</span><h2 id="gmSong" class="gmsong">Your song</h2><p class="gmbest" id="gmBest"></p></div>
         <div class="lab">Speed<div class="seg" id="gmSpeed"><button data-v="slow">Slow (0.75×)</button><button data-v="normal" aria-pressed="true">Normal</button></div></div>
         <div class="lab">Timing<div class="seg" id="gmTiming"><button data-v="relaxed">Relaxed</button><button data-v="strict" aria-pressed="true">Strict</button></div></div>
+        <div class="lab" id="gmSecLab" hidden>Play<div class="secchips" id="gmSecs"></div></div>
         <p class="gmhelp">Tap the pans as each note lands on the line. Keep your streak going to multiply your points: ×2 at 10 in a row, ×3 at 25, ×4 at 50.</p>
         <p class="gmhelp gmneed" id="gmNeed" hidden></p>
         <button class="btn gmgo" id="gmStart">Start · 3, 2, 1</button>

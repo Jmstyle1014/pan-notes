@@ -30,7 +30,7 @@ IC = {
 
 # --- styles: the new look goes after the old rules so it wins ---
 rep('</style>\n\n<main>', '</style>\n<style>\n' + open(os.path.join(HERE, 'next-look.css'), encoding='utf-8').read() + '</style>\n\n'
-    + '<header class="appbar"><div class="ttl"><span class="eyebrow">Now rehearsing</span><span id="appTitle">Pan Notes</span></div>'
+    + '<header class="appbar"><button class="ttl songbtn" data-open-songs aria-label="Your songs"><span class="eyebrow">Now rehearsing</span><span class="songname"><span id="appTitle">Pan Notes</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button>'
     + '<div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band">' + IC['share'] + '</button>'
     + '<button class="iconbtn" id="setupBtn" aria-label="Setup">' + IC['setup'] + '</button>'
     + '<button class="iconbtn" id="helpBtn" aria-label="Help">' + IC['help'] + '</button></div></header>\n<main>')
@@ -104,9 +104,9 @@ rep('''      <button role="tab" data-view="play" aria-selected="true">Play</butt
       <button role="tab" data-view="notes" aria-selected="false">Notes</button>
       <button role="tab" data-view="setup" aria-selected="false">Setup</button>
       <button id="helpBtn" class="helpbtn" aria-label="Help">?</button>''',
-'''      <button role="tab" data-view="play" aria-selected="true">''' + IC['play'] + '''Play</button>
+'''      <button role="tab" data-view="play" aria-selected="true">''' + IC['play'] + '''Practice</button>
       <button role="tab" data-view="cues" aria-selected="false">''' + IC['write'] + '''Write</button>
-      <button role="tab" data-view="part" aria-selected="false">''' + IC['part'] + '''Part</button>
+      <button role="tab" data-view="part" aria-selected="false">''' + IC['part'] + '''Chart</button>
       <button role="tab" data-view="notes" aria-selected="false">''' + IC['notes'] + '''Notes</button>''')
 
 # --- notes toolbar: grouped tools, page pill, ⋯ opens a small menu ---
