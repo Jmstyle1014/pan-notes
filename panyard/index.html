@@ -2391,8 +2391,6 @@ function layoutSheet(W){
     g.textAlign='left';g.textBaseline='alphabetic';
     g.fillStyle=ACCENT;g.font='700 15px '+F;g.fillText('PAN NOTES · DOUBLE GUITAR · CELLO SECTION',M,y+22);
     g.fillStyle=INK;g.font='800 40px '+D;g.fillText(S.title||'My part',M,y+66,CW-2*kw-60);
-    g.fillStyle=SUB;g.font='18px '+F;
-    g.fillText(total+' notes · '+(G.real?nBars+' bars at '+(+S.grid.bpm.toFixed(1))+' BPM':nBars+' blocks of 2 seconds')+' · '+fmt(len),M,y+96,CW-2*kw-60);
     order.forEach((p,i)=>{const x=W-M-(2-i)*kw-(1-i)*16;drawPanKey(g,p,x,y+22,kw);g.fillStyle=SUB;g.font='700 12px '+F;g.textAlign='center';g.fillText((i?'RIGHT · ':'LEFT · ')+p.name.toUpperCase(),x+kw/2,y+14);g.textAlign='left'});
   }});
   blocks.push({h:52,draw:(g,y)=>{
@@ -3609,9 +3607,7 @@ function layoutChart(W){
   const ink=v=>{const c=getComputedStyle(document.documentElement).getPropertyValue(v).trim(),m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return v==='--ec'?'#b8561c':'#1d64ad';const n=parseInt(m[1],16);return 'rgb('+[(n>>16)&255,(n>>8)&255,n&255].map(x=>Math.round(x*.68)).join(',')+')'};
   const COL={ec:ink('--ec'),bf:ink('--bf'),bad:'#c0392b'},FS=34,LH=36;
   const secs=parseChart(chartText()),blocks=layoutSheet(W).blocks.slice(0,1);
-  blocks.push({h:46,draw:(g,y)=>{g.fillStyle=RULE;g.fillRect(M,y+4,CW,2);g.font='16px '+F;g.textAlign='left';g.textBaseline='alphabetic';let x=M;
-    const seg=(t,c)=>{g.fillStyle=c;g.fillText(t,x,y+32);x+=g.measureText(t).width};
-    seg('E / C pan ●  ',COL.ec);seg('B / F pan ●   ',COL.bf);seg('Stacked = together, ×N under = beats · ×N after a run = repeat · r roll · s strum · d drop',SUB)}});
+  blocks.push({h:22,draw:(g,y)=>{g.fillStyle=RULE;g.fillRect(M,y+4,CW,2)}});
   // size of a token: width and how far it reaches below the letter line
   const size=t=>{
     if(t.type==='note'){mg.font='700 '+FS+'px '+F;let w=mg.measureText(t.lab).width;if(t.fx)w+=12;if(t.n>1){mg.font='700 18px '+F;w+=mg.measureText('×'+t.n).width+4}return{w,h:LH}}

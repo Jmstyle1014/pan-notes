@@ -178,9 +178,7 @@ function layoutChart(W){
   const ink=v=>{const c=getComputedStyle(document.documentElement).getPropertyValue(v).trim(),m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return v==='--ec'?'#b8561c':'#1d64ad';const n=parseInt(m[1],16);return 'rgb('+[(n>>16)&255,(n>>8)&255,n&255].map(x=>Math.round(x*.68)).join(',')+')'};
   const COL={ec:ink('--ec'),bf:ink('--bf'),bad:'#c0392b'},FS=34,LH=36;
   const secs=parseChart(chartText()),blocks=layoutSheet(W).blocks.slice(0,1);
-  blocks.push({h:46,draw:(g,y)=>{g.fillStyle=RULE;g.fillRect(M,y+4,CW,2);g.font='16px '+F;g.textAlign='left';g.textBaseline='alphabetic';let x=M;
-    const seg=(t,c)=>{g.fillStyle=c;g.fillText(t,x,y+32);x+=g.measureText(t).width};
-    seg('E / C pan ●  ',COL.ec);seg('B / F pan ●   ',COL.bf);seg('Stacked = together, ×N under = beats · ×N after a run = repeat · r roll · s strum · d drop',SUB)}});
+  blocks.push({h:22,draw:(g,y)=>{g.fillStyle=RULE;g.fillRect(M,y+4,CW,2)}});
   // size of a token: width and how far it reaches below the letter line
   const size=t=>{
     if(t.type==='note'){mg.font='700 '+FS+'px '+F;let w=mg.measureText(t.lab).width;if(t.fx)w+=12;if(t.n>1){mg.font='700 18px '+F;w+=mg.measureText('×'+t.n).width+4}return{w,h:LH}}
