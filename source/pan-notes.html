@@ -3055,7 +3055,11 @@ function lineTokens(evs){
     if(labs.length===1){run.push({lab:labs[0],fx:e.fx});continue}
     flush();
     let n=1;const key=labs.join('/')+e.fx;
+    const t0=e.t;
     while(i+1<evs.length&&evs[i+1].ids&&evs[i+1].ids.map(id=>FIELDS.get(id).label).join('/')+evs[i+1].fx===key){n++;i++}
+    // quick repeated hits are strums: three hits make one strum, so six quick hits read x2
+    const bt=S.grid?60/S.grid.bpm:0.5;
+    if(n>=3&&(evs[i].t-t0)/(n-1)<bt*0.6)n=Math.max(1,Math.round(n/3));
     toks.push({type:'chord',labs,fx:e.fx,n});
   }
   flush();return toks;
