@@ -62,3 +62,25 @@ body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="ho
 .subtabs button{flex:1;min-height:44px;font-weight:700}
 body[data-view="home"] .subtabs{display:none}
 @media (max-height:620px){.subtabs{margin-bottom:6px}.subtabs button{min-height:36px}body[data-view="studio"].st-inst .subtabs{display:none}}
+/* ---------- Play, pans first (panyard-stage.js) ---------- */
+body.pfmode .appbar,body.pfmode #cueTop,body.pfmode #checklist,body.pfmode #demoBanner,body.pfmode #safeInline,
+body.pfmode #playStage .now,body.pfmode #nextUp,body.pfmode #hwWrap,body.pfmode .hwwrap{display:none!important}
+body.pfmode main{padding-top:0}
+body.pfmode #playStage.pf{position:fixed!important;left:0;right:0;top:0;height:var(--pfH,100vh);display:block!important;margin:0;padding:0;z-index:3;
+  background:radial-gradient(ellipse at 50% 40%,#1b1436,#110c20 70%)}
+body.pfmode #playStage.pf #playPans{position:absolute;inset:0;display:block!important;margin:0}
+body.pfmode #playStage.pf #playPans .pan{width:100%;height:100%;margin:0}
+body.pfmode #playStage.pf #playPans .pan h3{display:none}
+body.pfmode #playStage.pf #playPans svg{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;display:block}
+body.pfmode #playStage.pf #lanes{position:absolute!important;inset:0;width:100%!important;height:100%!important;max-width:none!important;border-radius:0;pointer-events:none;z-index:2;order:0;display:block!important;background:none}
+/* everything except the pans stays small and in the corners */
+body.pfmode #subTabs{position:fixed;top:8px;left:max(10px,env(safe-area-inset-left));z-index:6;margin:0;width:auto;transform:scale(.82);transform-origin:top left;opacity:.92}
+body.pfmode #subTabs button{min-height:36px;padding:0 12px}
+.pfbtn{display:none}
+body.pfmode .pfbtn{display:grid;place-items:center;position:absolute;top:8px;right:max(10px,env(safe-area-inset-right));z-index:6;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgb(25 19 46 / .85);color:var(--muted);font-size:13px;letter-spacing:1px;cursor:pointer}
+body.pfmode.pf-tools .pfbtn{color:var(--gold);border-color:var(--gold)}
+body.pfmode #practicePanel{display:none}
+body.pfmode.pf-tools #practicePanel{display:flex!important;flex-direction:column;position:fixed;top:54px;right:max(10px,env(safe-area-inset-right));z-index:20;width:min(360px,calc(100vw - 20px));max-height:calc(var(--pfH,100vh) - 64px);overflow:auto;box-shadow:0 14px 40px rgb(0 0 0 / .55)}
+body.pfmode #gmHud{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:6;width:min(320px,40vw)}
+body.pfmode #gmCount{z-index:7}
+body.pfmode #status{top:10px;bottom:auto;max-width:min(360px,50vw);font-size:13px;padding:6px 12px}

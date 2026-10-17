@@ -5,7 +5,7 @@
 const GAME={judged:new Set(),hitKeys:new Set(),streak:0,best:0,hits:0,notes:0,pops:[],lastTap:-1e9,lastT:0};
 try{GAME.best=+localStorage.getItem('panyard-best')||0}catch{}
 const LANE_COL={ec:'#ff8a5c',bf:'#3fd0d4'};
-const NOTE_W=54;   // how wide a falling note is, in pixels
+const NOTE_W=40;   // how wide a falling note is, in pixels (small, so you can read ahead)
 // two lanes, one per mallet: the guitar's two pans, and on every other pan its left and right side
 // (left 3 drums / right 3 on the six bass, left 2 / right 2 on the four cello). Notes keep their ring or drum colour.
 const SIDE={};
@@ -25,24 +25,31 @@ function drawLanes(t){
   if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
   const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
   const FF=getComputedStyle(document.body).fontFamily,DF='Unbounded, '+FF;
-  const keys=laneKeys(),NL=keys.length,gap=NL>3?4:8,lw=(W-gap*(NL-1))/NL,hitY=H-16,P=(hitY-10)/2.2;   // 2.2 seconds of notes on screen
+  // the pans-first stage can put the lanes anywhere on the canvas (between the pans, or either side of one pan)
+  const GEO=cv._geo&&cv._geo.lanes&&cv._geo.lanes.length===2?cv._geo:null;
+  const keys=laneKeys(),NL=keys.length,gap=NL>3?4:8,lw0=(W-gap*(NL-1))/NL,top=GEO?GEO.top:0,bot=GEO?GEO.bottom:H,hitY=bot-16,P=(hitY-top-10)/2.2;   // 2.2 seconds of notes on screen
+  const LX=L=>GEO?GEO.lanes[L].x:L*(lw0+gap),LW=L=>GEO?GEO.lanes[L].w:lw0;
+  cv._lx=[0,1].map(L=>LX(L)+LW(L)/2);
+  const MX=GEO?(LX(0)+LX(1)+LW(1))/2:W/2,MY=top;
   // lane floors
-  for(let L=0;L<NL;L++){const x=L*(lw+gap);
-    g.fillStyle='#1a1430';g.beginPath();g.roundRect?g.roundRect(x,0,lw,H,[18,18,6,6]):g.rect(x,0,lw,H);g.fill();
+  for(let L=0;L<NL;L++){const x=LX(L),lw=LW(L);
+    g.fillStyle=GEO?'rgba(26,20,48,.82)':'#1a1430';g.beginPath();g.roundRect?g.roundRect(x,top,lw,bot-top,[14,14,6,6]):g.rect(x,top,lw,bot-top);g.fill();
     g.fillStyle=laneCol(keys[L]);g.globalAlpha=.07;g.fillRect(x,hitY-60,lw,60);g.globalAlpha=1;
-    g.fillStyle=laneCol(keys[L]);g.globalAlpha=.55;g.font='700 10px '+DF;g.textAlign='center';g.textBaseline='top';g.fillText(laneName(L),x+lw/2,10,lw-4);g.globalAlpha=1}
+    g.fillStyle=laneCol(keys[L]);g.globalAlpha=.55;g.font='700 10px '+DF;g.textAlign='center';g.textBaseline='top';g.fillText(lw<84?['L','R'][L]:laneName(L),x+lw/2,top+8,lw-4);g.globalAlpha=1}
   // notes
   const from=t-0.35,to=t+(hitY+40)/P;
   let lo=0,hi=hwItems.length;while(lo<hi){const m=(lo+hi)>>1;if(hwItems[m].t+hwItems[m].d<from)lo=m+1;else hi=m}
   g.textBaseline='middle';
+  if(GEO){g.save();g.beginPath();for(let L=0;L<NL;L++)g.rect(LX(L),top,LW(L),bot-top+2);g.clip()}
   for(let i=lo;i<hwItems.length;i++){
     const n=hwItems[i];if(n.t>to)break;
-    const yHit=hitY-(n.t-t)*P,len=30,tail=Math.min(n.d*P,220),on=n.t<=t&&t<n.t+n.d,past=n.t+n.d<=t;
+    const yHit=hitY-(n.t-t)*P,len=22,tail=Math.min(n.d*P,220),on=n.t<=t&&t<n.t+n.d,past=n.t+n.d<=t;
     const perLane=keys.map(()=>[]);n.ids.forEach(id=>perLane[laneOf(id)].push(id));
     const xs=[];
     perLane.forEach((ids,L)=>ids.forEach((id,k)=>{
       // notes are a fixed size, centred in their lane (side by side when a pan plays two at once)
-      const w=Math.max(10,Math.min(NOTE_W,(lw-(NL>3?6:16))/ids.length-(NL>3?2:6))),x=L*(lw+gap)+(lw-(ids.length*w+(ids.length-1)*6))/2+k*(w+6),y=yHit-len;
+      const lw=LW(L),w=Math.max(10,Math.min(NOTE_W,(lw-(NL>3?6:12))/ids.length-(NL>3?2:5))),x=LX(L)+(lw-(ids.length*w+(ids.length-1)*5))/2+k*(w+5),y=yHit-len;
+      if(y+len<top-4)return;
       const col=noteCol(id,L),done=GAME.judged.has(i+':'+id);
       g.globalAlpha=past?.18:1;
       // how long it lasts: a thin trail behind the note (wavy for a roll)
@@ -51,23 +58,25 @@ function drawLanes(t){
       g.beginPath();g.roundRect?g.roundRect(x,y,w,len,10):g.rect(x,y,w,len);
       if(on||done){g.fillStyle=col;g.shadowColor=col;g.shadowBlur=on?22:0;g.fill();g.shadowBlur=0}
       else{g.fillStyle='rgba(26,20,48,.9)';g.fill();g.lineWidth=2.5;g.strokeStyle=col;g.stroke()}
-      g.fillStyle=on||done?'#1a1030':col;g.font='700 '+(ids.length>1?13:16)+'px '+DF;g.textAlign='center';
-      g.fillText(FIELDS.get(id).label,x+w/2,yHit-15);
+      g.fillStyle=on||done?'#1a1030':col;g.font='700 '+(ids.length>1?11:13)+'px '+DF;g.textAlign='center';
+      g.fillText(FIELDS.get(id).label,x+w/2,yHit-11);
       if(n.fx){g.font='700 11px '+FF;g.fillStyle='#ffd166';g.fillText(MARKS[n.fx],x+w-8,y+10)}
       xs.push(x+w/2);g.globalAlpha=1;
     }));
     if(xs.length>1&&perLane[0].length&&perLane[1].length){g.globalAlpha=past?.15:.6;g.strokeStyle='#efeaff';g.lineWidth=2;g.beginPath();g.moveTo(Math.min(...xs),yHit-2);g.lineTo(Math.max(...xs),yHit-2);g.stroke();g.globalAlpha=1}
   }
+  if(GEO)g.restore();
   // the line you play on
-  g.shadowColor='#efeaff';g.shadowBlur=14;g.fillStyle='#efeaff';g.fillRect(0,hitY-1.5,W,3);g.shadowBlur=0;
+  g.shadowColor='#efeaff';g.shadowBlur=14;g.fillStyle='#efeaff';if(GEO)for(let L=0;L<NL;L++)g.fillRect(LX(L)+3,hitY-1.5,LW(L)-6,3);else g.fillRect(0,hitY-1.5,W,3);g.shadowBlur=0;
+
   // ratings floating up from the line, and the streak
   const now=performance.now();GAME.pops=GAME.pops.filter(p=>now-p.at<700);
   for(const p of GAME.pops){const a=(now-p.at)/700;g.globalAlpha=1-a;g.fillStyle=p.col;g.font='700 '+(p.big?20:15)+'px '+DF;g.textAlign='center';g.fillText(p.text,p.x,hitY-34-a*40);g.globalAlpha=1}
   if(GM.state!=='run'&&(GAME.streak>1||GAME.best)){g.textAlign='center';g.textBaseline='top';
-    if(GAME.streak>1){g.font='700 15px '+DF;const tw=g.measureText('×'+GAME.streak).width+18;g.fillStyle='rgba(17,12,32,.85)';g.beginPath();g.roundRect?g.roundRect(W/2-tw/2,6,tw,24,12):g.rect(W/2-tw/2,6,tw,24);g.fill();
-      g.fillStyle='#ffd166';g.fillText('×'+GAME.streak,W/2,10)}
-    g.font='600 10px '+FF;g.fillStyle='#9d93c9';g.fillText('best '+GAME.best,W/2,GAME.streak>1?34:10)}
-  if(!hwItems.length){g.fillStyle='#9d93c9';g.font='14px '+FF;g.textAlign='center';g.fillText('Your notes will fall here as the song plays',W/2,H/2)}
+    if(GAME.streak>1){g.font='700 15px '+DF;const tw=g.measureText('×'+GAME.streak).width+18;g.fillStyle='rgba(17,12,32,.85)';g.beginPath();g.roundRect?g.roundRect(MX-tw/2,MY+6,tw,24,12):g.rect(MX-tw/2,MY+6,tw,24);g.fill();
+      g.fillStyle='#ffd166';g.fillText('×'+GAME.streak,MX,MY+10)}
+    g.font='600 10px '+FF;g.fillStyle='#9d93c9';g.fillText('best '+GAME.best,MX,MY+(GAME.streak>1?34:10))}
+  if(!hwItems.length&&!GEO){g.fillStyle='#9d93c9';g.font='14px '+FF;g.textAlign='center';g.fillText('Your notes will fall here as the song plays',MX,H/2)}
   // notes that went past while you were playing along count as missed (in a challenge, always)
   if(!audio.paused&&(GM.state==='run'||now-GAME.lastTap<4000)){
     const late=win().ok+0.04;
@@ -77,7 +86,7 @@ function drawLanes(t){
   if(t<GAME.lastT-0.5){GAME.judged.clear();GAME.hitKeys.clear();GAME.streak=0}   // jumped back: start counting again
   GAME.lastT=t;
 }
-function pop(text,L,col,big){const cv=$('lanes');const W=cv?cv.clientWidth:300,NL=laneKeys().length,gap=NL>3?4:8,lw=(W-gap*(NL-1))/NL;GAME.pops.push({text,col,big,at:performance.now(),x:L*(lw+gap)+lw/2})}
+function pop(text,L,col,big){const cv=$('lanes');const W=cv?cv.clientWidth:300,NL=laneKeys().length,gap=NL>3?4:8,lw=(W-gap*(NL-1))/NL;GAME.pops.push({text,col,big,at:performance.now(),x:cv&&cv._lx?cv._lx[L]:L*(lw+gap)+lw/2})}
 // how close a tap has to be (seconds) for each rating; Relaxed timing in a challenge gives more leeway
 function win(){return GM.state==='run'&&GM.timing==='relaxed'?{perfect:0.12,great:0.22,ok:0.35}:{perfect:0.08,great:0.16,ok:0.26}}
 document.addEventListener('pointerdown',e=>{
