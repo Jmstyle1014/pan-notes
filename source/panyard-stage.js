@@ -54,11 +54,11 @@ const STAGE={
       const strip=Math.min(96,W*.24),R=Math.min((W-strip-28)/4,(H-2*pad)/6.3),gy=R*2.08,used=gy*2+2.1*R,y0=(H-used)/2+R;
       [[2,0],[1,1],[0,2],[3,0],[4,1],[5,2]].forEach(([di,row])=>{const left=di<3;place[di]=[W/2+(left?-1:1)*(strip/2+6+R+(row===1?6:0)),y0+row*gy,R]});
       lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=y0-R;
-    }else{   // four cello: the top two pans either side of the strip, the bottom two close together underneath
-      const strip=Math.min(130,W*.14),R=Math.min((H-2*pad)/4.25,(W-2*side-strip-30)/4),y1=pad+R*1.02,y2=H-pad-R*1.15;
-      place.push([W/2-strip/2-8-R,y1,R],[W/2+strip/2+8+R,y1,R],[W/2-R-8,y2,R],[W/2+R+8,y2,R]);
-      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=pad+4;
-      return{ds,place,lanes,top,bottom:y1+R*.95};
+    }else{   // four cello: the top two pans together in the middle, the bottom two wider, notes falling below the top pans
+      const strip=Math.min(130,W*.15),R=Math.min((H-2*pad)/4.25,(W-2*side-strip-40)/4),y1=pad+R*1.0,y2=H-pad-R*1.15;
+      place.push([W/2-R-4,y1,R],[W/2+R+4,y1,R],[W/2-strip/2-10-R,y2,R],[W/2+strip/2+10+R,y2,R]);
+      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});
+      return{ds,place,lanes,top:y1+R*1.0,bottom:Math.min(H-pad,y2+R*.55)};
     }
     return{ds,place,lanes,top,bottom:Math.max(top+120,hitB)};
   },
