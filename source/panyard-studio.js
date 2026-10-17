@@ -310,7 +310,7 @@ function toggleRec(){
   if(tr.type!=='pan'){say('Choose a Mic or Pan taps track to record into, or add one with + Add track.');return}
   if(!AC())return;pushHistory();T.take++;T.recTid=tr.id;T.rec=true;
   if(!T.playing)play(song.countIn);else renderTransport();
-  const pans=q('#stPans');if(pans)pans.scrollIntoView({behavior:'smooth',block:'end'});
+  setView('inst');
 }
 const held=new Map();   // finger → the note it's holding (hold for a roll)
 function panDown(e,el){
@@ -363,7 +363,7 @@ async function micStart(tr){
   if(T.playing)stop(false);
   const cap=await capture(stream);micBusy=false;
   pushHistory();T.mic={tr,cap,stream};T.rec=true;T.recTid=tr.id;T.noCyc=true;
-  play(song.countIn);renderInst();
+  play(song.countIn);setView('inst');
 }
 async function micStop(){
   const m=T.mic;if(!m)return;T.mic=null;T.rec=false;T.recTid=null;
@@ -528,7 +528,7 @@ function renderTimeline(){
   h+='<div class="st-ph" id="stPh" style="left:'+hd+'px"></div></div>';
   tl.innerHTML=h;tl.scrollLeft=keep[0];tl.scrollTop=keep[1];
   tl.querySelectorAll('canvas[data-peaks]').forEach(c=>drawPeaks(c,trById(c.dataset.peaks)));
-  const sb=q('#stSel');sb.innerHTML=SEL?selBarHTML():'';sb.hidden=!SEL;
+  const sb=q('#stSel');sb.innerHTML=SEL?selBarHTML():'';sb.hidden=!SEL||VIEW!=='tracks';
   updatePlayhead();
 }
 function updatePlayhead(){
@@ -586,7 +586,9 @@ function regionOp(op){
 /* the instrument for the chosen track */
 function renderInst(){
   const el=q('#stInst');if(!el||!song)return;const tr=selTr(),recNow=T.mic&&T.mic.tr===tr;
-  let h='<div class="st-ihead"><span class="eyebrow">'+KIND[tr.type]+'</span>'+(tr.type==='practice'?'<h2>'+esc(tr.name)+'</h2>':'<input class="st-rename" value="'+esc(tr.name)+'" maxlength="28" aria-label="Track name"><button class="btn sm danger" data-st="deltrack">Delete track</button>')+'</div>';
+  let h='<div class="st-tchips" role="group" aria-label="Choose a track">'+song.tracks.map(t=>'<button class="chip'+(t.id===tr.id?' on':'')+'" data-st="ipick" data-tid="'+t.id+'" aria-pressed="'+(t.id===tr.id)+'">'+ICON[t.type]+' '+esc(t.name)+'</button>').join('')+'<button class="chip st-addchip" data-st="addsheet">+ Add</button></div>';
+  const headAt=h.length;
+  h+='<div class="st-ihead"><span class="eyebrow">'+KIND[tr.type]+'</span>'+(tr.type==='practice'?'<h2>'+esc(tr.name)+'</h2>':'<input class="st-rename" value="'+esc(tr.name)+'" maxlength="28" aria-label="Track name"><button class="btn sm danger" data-st="deltrack">Delete track</button>')+'</div>';
   if(tr.type==='practice'){
     h+=pBuf?'<p class="help"><b>'+esc(curName)+'</b> · '+fmt(pBuf.duration)+'. It plays from bar 1 in time with ♩ Timing'+(grid()?'':', which isn\'t set yet: set it in Write → ♩ Timing (or ✨ Find the tempo for me) so the bars match your song')+'.</p>'
       :'<p class="help">Add your song\'s recording in <b>Setup</b> and it appears here as track 1, so you can record over it.</p>';
@@ -602,13 +604,14 @@ function renderInst(){
       +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>';
   }else if(tr.type==='pan'){
     const order=S.swapped?[PANS[1],PANS[0]]:PANS;
-    h+='<div class="pair st-pans" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
+    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
     h+='<p class="help">Tap <b>● Rec</b> and play along on the pans. Hold a note to roll. '+(mine('c')||Object.keys(SAMPLES.wav).some(mine)?'Your recorded pan sounds are used.':'Record your own pan sounds in Setup to hear your real pans here.')+'</p>';
     h+='<div class="row"><div class="seg st-mode" role="group" aria-label="Recording"><button data-st="mode" data-v="add" aria-pressed="'+(song.recMode!=='replace')+'">Add on top</button><button data-st="mode" data-v="replace" aria-pressed="'+(song.recMode==='replace')+'">Replace</button></div>'
       +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
-      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>';
+      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'+head.replace('st-ihead','st-ihead st-iend')+'<div><div>'+'</div></div>';
   }else h+=seqHTML(tr);
   el.innerHTML=h;
+  requestAnimationFrame(fitPans);
   el.querySelectorAll('#stPans .field').forEach(f=>f.addEventListener('pointerdown',e=>panDown(e,f)));
 }
 function seqHTML(tr){
@@ -627,7 +630,22 @@ function seqHTML(tr){
 const seqGridOpen=()=>!!q('#stGrid');let lastCol=-1;
 function renderSeqNow(){const tr=selTr();if(tr.type!=='beats')return;const col=T.playing?((Math.floor(beatNow()*4)%tr.len)+tr.len)%tr.len:-1;if(col===lastCol)return;lastCol=col;
   q('#stGrid').querySelectorAll('.stc.now').forEach(c=>c.classList.remove('now'));if(col>=0)q('#stGrid').querySelectorAll('.stc[data-c="'+col+'"]').forEach(c=>c.classList.add('now'))}
-function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs();renderTimeline();renderInst();renderUndo()}
+let VIEW='tracks';
+function fitPans(){
+  const pans=q('#stPans');if(!pans||VIEW!=='inst'||!pans.offsetParent)return;
+  const dock=$('dock').getBoundingClientRect().top,svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
+  const top=svgs[0].getBoundingClientRect().top,room=Math.max(140,Math.floor(dock-top-10));
+  svgs.forEach(s=>{s.style.maxHeight=room+'px'});
+}
+const INST_LABEL={practice:'♪ Recording',audio:'🎙 Mic',pan:'◉ Pans',part:'✎ My part',beats:'▦ Beat'};
+function setView(v){VIEW=v;document.body.classList.toggle('st-inst',v==='inst');renderViews();window.scrollTo({top:0});if(v==='inst')renderInst();else renderTimeline()}
+function renderViews(){
+  const t=q('#stViews');if(!t||!song)return;const tr=selTr();
+  t.querySelector('[data-sv="inst"]').textContent=INST_LABEL[tr.type];
+  t.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.sv===VIEW)));
+  q('.st-tlp').hidden=VIEW!=='tracks';q('#stInst').hidden=VIEW!=='inst';q('#stSel').hidden=VIEW!=='tracks'||!SEL;
+}
+function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs();renderTimeline();renderInst();renderUndo();renderViews()}
 
 /* ---- sheets: add a track, mixer, export, timing fix, note editor ---- */
 const SH={kind:null,arg:null};
@@ -680,7 +698,7 @@ function addTrack(kind){
   if(kind==='part'){const ex=song.tracks.find(t=>t.type==='part');if(ex){H.u.pop();song.sel=ex.id;closeSheet();say('My part is already here, linked to Write.');return}tr=trk('part')}
   else tr=trk(kind);
   const same=song.tracks.filter(t=>t.type===tr.type).length;if(same&&kind!=='part')tr.name+=' '+(same+1);
-  song.tracks.push(tr);song.sel=tr.id;dirty();closeSheet();
+  song.tracks.push(tr);song.sel=tr.id;dirty();closeSheet();setView('inst');
   if(kind==='beats')AC()&&warmDrums();
   say(kind==='part'?'Added My part, linked to your cues in Write.':'Added '+tr.name+'.');
 }
@@ -840,13 +858,15 @@ function onClick(e){
     if(!on){T.pos=a*BPB();restartIfPlaying()}renderAll();say(on?'Loop off.':'Looping '+b.textContent+'.');return}
   const act=b.dataset.st,row=b.closest('[data-tid]'),tr=row?trById(row.dataset.tid):null;
   switch(act){
-    case 'pick':song.sel=tr.id;SEL=null;dirty();renderAll();break;
+    case 'pick':if(song.sel===tr.id){setView('inst');break}song.sel=tr.id;SEL=null;dirty();renderAll();break;
+    case 'ipick':song.sel=b.dataset.tid;dirty();renderInst();renderViews();break;
     case 'lane':break;
     case 'mute':case 'solo':pushHistory();tr[act]=!tr[act];refreshGains();dirty();if(SH.kind==='mixer')renderSheet();renderTimeline();break;
     case 'close':closeSheet();break;
     case 'addk':addTrack(b.dataset.v);break;
     case 'deltrack':{const t=selTr();if(t.type==='practice')break;if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Tap again to delete';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='Delete track'}},3000);break}
       pushHistory();song.tracks=song.tracks.filter(x=>x!==t);song.sel='practice';SEL=null;dirty();renderAll();say('Deleted '+t.name+'. Undo brings it back.');break}
+    case 'addsheet':openSheet('add');break;
     case 'mic':micStart(selTr());break;
     case 'bars':BARS.open(SEL&&SEL.tid===selTr().id?{a:origin()+SEL.a*BPB()*spb(),b:origin()+SEL.b*BPB()*spb()-1e-3}:null);break;
     case 'towrite':showView('cues');break;
@@ -886,7 +906,8 @@ function onChange(e){
 function init(){
   BARS.onChange(()=>{partCache=null;if(song&&document.body.dataset.view==='studio')renderAll()});
   const v=q('#view-studio');if(!v)return;
-  v.addEventListener('click',onClick);v.addEventListener('input',onInput);v.addEventListener('change',onChange);
+  v.addEventListener('click',onClick);
+  q('#stViews').addEventListener('click',e=>{const b=e.target.closest('[data-sv]');if(b)setView(b.dataset.sv)});v.addEventListener('input',onInput);v.addEventListener('change',onChange);
   v.addEventListener('pointerdown',e=>{const row=e.target.closest('.st-row[data-tid]');if(row&&e.target.closest('.st-lane')&&!e.target.closest('button'))laneTap(e,row)});
   q('#stRuler')||0;
   v.addEventListener('click',e=>{const r=e.target.closest('#stRuler');if(r){const x=e.clientX-r.getBoundingClientRect().left;seek(Math.floor(x/zoomPx())*BPB())}});
@@ -906,7 +927,7 @@ function init(){
   q('#stAdd').onclick=()=>openSheet('add');q('#stMix').onclick=()=>{AC();openSheet('mixer')};q('#stExp').onclick=()=>openSheet('export');q('#stTime').onclick=()=>{AC();openSheet('timing')};
   q('#stZin').onclick=()=>{PR.zoom=Math.min(3,(PR.zoom||1)*1.25);savePR();renderTimeline()};q('#stZout').onclick=()=>{PR.zoom=Math.max(.4,(PR.zoom||1)/1.25);savePR();renderTimeline()};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!q('#stSheet').hidden)closeSheet()});
-  window.addEventListener('resize',()=>{if(document.body.dataset.view==='studio')renderTimeline()});
+  window.addEventListener('resize',()=>{if(document.body.dataset.view==='studio'){renderTimeline();fitPans()}});
   // a different song opened from the songs list: its own studio comes with it
   if(typeof songOpen==='function'){const _o=songOpen;songOpen=async function(id,fresh){const r=await _o(id,fresh);if(document.body.dataset.view==='studio')enter();else{song=null;songKey=null}return r}}
 }

@@ -117,3 +117,30 @@ body.st-recording .st-tl{box-shadow:0 0 0 2px #e5484d}
 #view-studio input[type=range],.st-sheet input[type=range]{accent-color:var(--gold);width:100%}
 @media (min-width:700px){.st-bar{flex-direction:row;align-items:center}.st-tp{flex:none}.st-tp .st-lcd{order:-1;margin:0 4px 0 0}.st-tools{flex:1;flex-wrap:wrap;overflow:visible}}
 @media (orientation:landscape) and (max-height:520px){.st-tl{max-height:none}.st-bar{position:static}}
+.st-views{max-width:420px}
+.st-views button[aria-selected="true"]{background:var(--gold);color:var(--gold-ink);box-shadow:none}
+.st-tlp[hidden],#stInst[hidden]{display:none}
+.st-tchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.st-tchips::-webkit-scrollbar{display:none}
+.st-tchips .chip{flex:none;min-height:36px;white-space:nowrap;border-color:var(--line)}
+.st-tchips .chip.on{background:var(--raised);border-color:var(--gold);color:var(--gold)}
+/* the pans fill the screen under the controls, without scrolling */
+.st-pans{justify-content:center}
+.st-pans .pan{min-width:0}
+.st-pans svg{min-height:140px;width:100%;height:auto}
+.st-pans .pan h3{margin:0 0 2px;font-size:12px}
+.st-iend{margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
+/* short screens (a phone or tablet held sideways): everything on one line so the pans get the room */
+@media (max-height:620px){
+  .st-bar{flex-direction:row!important;flex-wrap:nowrap;align-items:center;padding:6px 8px;gap:6px}
+  .st-tp{flex:none;gap:6px}.st-tp .btn{min-height:40px;min-width:42px;font-size:16px;padding:6px 10px}
+  .st-lcd{padding:3px 8px;min-width:70px}.st-lcd b{font-size:15px}.st-lcd span{font-size:11px}
+  .st-tools{flex:1;flex-wrap:nowrap!important;overflow-x:auto!important;min-width:0}
+  .st-tools .btn{min-height:36px;padding:5px 9px}
+  .st-views{flex:none;width:auto}.st-views button{min-height:36px;padding:0 10px}
+  body.st-inst #stSecs{display:none}
+  body.st-inst #stInst{padding:8px 10px;gap:6px}
+  #view-studio{gap:8px}
+}
+.st-views button{white-space:nowrap}
+body.st-inst #stSecs{display:none}

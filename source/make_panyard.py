@@ -119,6 +119,7 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
         <button class="btn" id="stExp">Export</button>
         <button class="btn" id="stTime">Timing fix</button>
       </div>
+      <div class="seg st-views" id="stViews" role="tablist" aria-label="Studio view"><button data-sv="tracks" role="tab" aria-selected="true">☰ Tracks</button><button data-sv="inst" role="tab" aria-selected="false">◉ Pans</button></div>
     </div>
     <div class="st-secs" id="stSecs" hidden></div>
     <div class="panel st-tlp">
@@ -135,7 +136,7 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-studio.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('      <details><summary>Hearing the pans when you tap</summary>', """      <details><summary>Studio: recording in layers</summary>
         <p>Open <b>Studio</b> to record over your song. Your practice recording is track 1, and the bars come from ♩ Timing in Write, so everything lines up with your notes and sections.</p>
-        <p><b>+ Add track</b> gives you a <b>Mic</b> track (record yourself or import a file), a <b>Pan taps</b> track (play the pans on screen; every hit becomes a note), a <b>Beat</b> (soca, calypso and more, or your own pattern), or <b>Your part from Write</b>. Choose a track, tap <b>● Rec</b>, and a bar of clicks counts you in while everything else plays. Use headphones for mic takes.</p>
+        <p><b>+ Add track</b> gives you a <b>Mic</b> track (record yourself or import a file), a <b>Pan taps</b> track (play the pans on screen; every hit becomes a note), a <b>Beat</b> (soca, calypso and more, or your own pattern), or <b>Your part from Write</b>. Choose a track, tap <b>● Rec</b> (the screen switches to the pans or mic for you), and a bar of clicks counts you in while everything else plays. Use headphones for mic takes.</p>
         <p>Tap a lane to select bars: move, copy, repeat, snap or delete them, <b>Edit notes</b> on a grid, or loop them. The section buttons loop a whole Verse or Chorus. <b>Mixer</b> sets each track's volume, left/right and reverb; <b>Export</b> saves the song (or each track) as MP3 or WAV. Run <b>Timing fix</b> once so taps and mic takes land on the beat. Studio tracks are kept on this phone with each song; they're not in backup files.</p></details>
       <details><summary>Hearing the pans when you tap</summary>""")
 open(OUT, 'w', encoding='utf-8').write(s)
