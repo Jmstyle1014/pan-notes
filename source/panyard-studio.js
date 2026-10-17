@@ -637,7 +637,7 @@ function renderSeqNow(){const tr=selTr();if(tr.type!=='beats')return;const col=T
 let VIEW='tracks';
 function fitPans(){
   const pans=q('#stPans');if(!pans||VIEW!=='inst'||!pans.offsetParent)return;
-  const dock=$('dock').getBoundingClientRect().top,svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
+  const tp=q('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9,dock=Math.min($('dock').getBoundingClientRect().top,tpTop),svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
   const top=svgs[0].getBoundingClientRect().top,room=Math.max(140,Math.floor(dock-top-10));
   svgs.forEach(s=>{s.style.maxHeight=room+'px'});
 }
@@ -931,28 +931,40 @@ function init(){
   q('#stCount').onclick=()=>{song.countIn=song.countIn===false;dirty();renderTransport()};
   q('#stLoop').onclick=()=>{pushHistory();if(cycOn())song.cycle.on=false;else song.cycle=SEL?{on:true,s:SEL.a,e:SEL.b}:song.cycle&&song.cycle.e>song.cycle.s?{...song.cycle,on:true}:{on:true,s:0,e:Math.min(4,bars())};dirty();restartIfPlaying();renderAll()};
   q('#stUndo').onclick=undo;q('#stRedo').onclick=redo;
-  q('#stAdd').onclick=()=>openSheet('add');q('#stMix').onclick=()=>{AC();openSheet('mixer')};q('#stExp').onclick=()=>openSheet('export');q('#stTime').onclick=()=>{AC();openSheet('timing')};
+  q('#stAdd').onclick=()=>openSheet('add');q('#stMix').onclick=()=>{AC();openSheet('mixer')};q('#stExp').onclick=()=>{if(typeof openShare==='function'){openShare(true);const t=$('expStudio');if(t)t.focus()}else openSheet('export')};q('#stTime').onclick=()=>{AC();openSheet('timing')};
   q('#stZin').onclick=()=>{PR.zoom=Math.min(3,(PR.zoom||1)*1.25);savePR();renderTimeline()};q('#stZout').onclick=()=>{PR.zoom=Math.max(.4,(PR.zoom||1)/1.25);savePR();renderTimeline()};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!q('#stSheet').hidden)closeSheet()});
   window.addEventListener('resize',()=>{if(document.body.dataset.view==='studio'){renderTimeline();fitPans()}});
   // a different song opened from the songs list: its own studio comes with it
   if(typeof songOpen==='function'){const _o=songOpen;songOpen=async function(id,fresh){const r=await _o(id,fresh);if(document.body.dataset.view==='studio')enter();else{song=null;songKey=null}return r}}
 }
+// one loop: Studio's loop and the play bar's loop are the same thing, kept in step as you come and go
+function loopFromApp(){if(!grid()||!song)return;const bb=spb()*BPB(),o=origin();
+  if(loop&&A!==null&&B!==null&&B>A){song.cycle={on:true,s:Math.max(0,Math.floor((A-o)/bb+1e-6)),e:Math.max(1,Math.ceil((B-o)/bb-1e-6))};LOOP_IN={s:song.cycle.s,e:song.cycle.e,A,B}}
+  else{if(song.cycle)song.cycle.on=false;LOOP_IN=null}}
+let LOOP_IN=null;   // the loop as it came in, so an untouched loop goes back out exactly (a section, not rounded to bars)
+function loopToApp(){if(!grid()||!song)return;const bb=spb()*BPB(),o=origin();
+  if(cycOn()){const same=LOOP_IN&&LOOP_IN.s===song.cycle.s&&LOOP_IN.e===song.cycle.e;A=same?LOOP_IN.A:Math.max(0,o+song.cycle.s*bb);B=same?LOOP_IN.B:o+song.cycle.e*bb;loop=true}else loop=false;renderLoop()}
 async function enter(){
-  audio.pause();await load();await practiceLoad();
+  audio.pause();await load();await practiceLoad();loopFromApp();
   // keep only the takes this song still uses
   renderAll();
 }
-function leave(){if(song&&T.playing)stop(false)}
+function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{enter,leave,get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{enter,leave,exportSheet:()=>openSheet('export'),get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
+// the Studio mix lives in the one Share sheet, next to the chart, picture and video
+{const tiles=document.querySelector('#shareSheet .tiles');if(tiles){const b=document.createElement('button');b.className='tile';b.id='expStudio';
+  b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v16M12 4v16M19 4v16"/><rect x="3" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="17" y="11" width="4" height="3" rx="1" fill="currentColor"/></svg><b>Studio mix</b><span>Your tracks as MP3 or WAV</span>';
+  b.onclick=()=>{openShare(false);if(document.body.dataset.view!=='studio')showView('studio');let n=0;const go=()=>{if(STUDIO.song)STUDIO.exportSheet();else if(n++<40)setTimeout(go,100)};go()};tiles.appendChild(b)}}
 {const _show=showView;showView=function(v){
   const st=v==='studio';if(!st)STUDIO.leave();
   _show(st?'setup':v);
   $('view-studio').hidden=!st;
   if(st){$('view-setup').hidden=true;document.body.dataset.view='studio';$('setupBtn').setAttribute('aria-current','false');
     document.querySelectorAll('.tabs button[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view==='studio')));STUDIO.enter()}
+  try{setDockH()}catch{}
 }}
 document.querySelector('.tabs button[data-view="studio"]').onclick=()=>showView('studio');

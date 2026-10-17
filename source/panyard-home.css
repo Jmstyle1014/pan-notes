@@ -53,3 +53,4 @@ body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="ho
 .hm-chev{color:var(--muted);font-size:22px;line-height:1}
 @media (max-width:380px){.hm-acts button{flex-direction:column;justify-content:center;text-align:center;gap:5px}.hm-bar{display:none}}
 @media (min-width:700px){.hm-top h1{font-size:36px}}
+.appbar .eyebrow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
