@@ -20,10 +20,11 @@ function trk(type,extra){
   if(type==='audio'){t.take=null;t.start=0;t.dur=0;t.peaks=null;t.lagMs=0;t.name='Mic'}
   if(type==='beats'){t.len=16;t.swing=0;t.unit=8;t.off=[];t.rows=[36,38,42,46].map(m=>({m,steps:Array(16).fill(0)}));t.name='Beat'}
   if(type==='practice')t.name='Your recording';
+  if(type==='part')t.name='My part';
   return Object.assign(t,extra||{});
 }
 const blank=()=>({v:1,bpm:100,metro:false,countIn:true,recMode:'add',snap:'off',snapRec:false,cycle:null,master:.85,sel:'practice',minBars:8,tracks:[trk('practice')]});
-const MIXDEF={practice:.04,audio:.08,pan:.22,beats:.05},DECAY={practice:1.2,audio:1.4,pan:1.9,beats:.9};
+const MIXDEF={practice:.04,audio:.08,pan:.22,part:.22,beats:.05},DECAY={practice:1.2,audio:1.4,pan:1.9,part:1.9,beats:.9};
 const mixOf=tr=>tr.mix==null?MIXDEF[tr.type]:tr.mix;
 const grid=()=>S.grid&&Number.isFinite(S.grid.bpm)&&S.grid.bpm>=30&&S.grid.bpm<=300?S.grid:null;
 const bpm=()=>grid()?grid().bpm:song.bpm;
@@ -37,13 +38,29 @@ const trById=id=>song.tracks.find(t=>t.id===id);
 
 /* ---- recordings kept in memory: the practice recording and every take ---- */
 const buffers={};let pBuf=null,pKey='',pPeaks=null;
+// "My part" is linked to your cues in Write: its notes are worked out from them whenever they change
+let partCache=null;
+{const _save=save;save=function(){_save();partCache=null}}
+function partNotes(){
+  if(partCache&&partCache.bpm===bpm()&&partCache.o===origin())return partCache.notes;
+  const o=origin(),sp=spb(),notes=[];
+  for(const e of BARS.events()){const b=(e.t-o)/sp,d=+Math.min(4,Math.max(.1,e.d/sp)).toFixed(3);if(b<0)continue;
+    if(e.fx==='roll'){notes.push({t:+b.toFixed(3),d:Math.max(d,.25),p:e.p,v:.95});for(let k=0,x=.07;x<e.d-.03;x+=.072,k++)notes.push({t:+(b+x/sp).toFixed(3),d:.25,p:e.p,v:+(.55+((k*37)%11)/50).toFixed(2),roll:1})}
+    else notes.push({t:+b.toFixed(3),d,p:e.p,v:.95,strum:e.fx==='strum'})}
+  // a strum: the notes of a chord fall just after each other, low to high
+  const byT=new Map();notes.forEach(n=>{if(n.strum){if(!byT.has(n.t))byT.set(n.t,[]);byT.get(n.t).push(n)}});
+  for(const g of byT.values())g.sort((x,y)=>midiOf(PITCH[x.p])-midiOf(PITCH[y.p])).forEach((n,i)=>{n.t=+(n.t+i*.03/sp).toFixed(3)});
+  notes.sort((x,y)=>x.t-y.t);partCache={bpm:bpm(),o,notes};return notes;
+}
+const notesOf=tr=>tr.type==='part'?partNotes():tr.notes||[];
+const isPanish=tr=>tr.type==='pan'||tr.type==='part';
 const audioOf=tr=>tr.type==='practice'?pBuf:tr.type==='audio'&&tr.take?buffers[tr.take]:null;
 const startOf=tr=>tr.type==='practice'?pracStart():tr.start||0;
 function contentEnd(){let e=0;
   for(const tr of song.tracks){
     const a=audioOf(tr);if(a)e=Math.max(e,startOf(tr)+a.duration/spb());
     else if(tr.type==='audio'&&tr.dur)e=Math.max(e,tr.start+tr.dur/spb());
-    if(tr.type==='pan')for(const n of tr.notes)e=Math.max(e,n.t+n.d);
+    if(isPanish(tr))for(const n of notesOf(tr))e=Math.max(e,n.t+n.d);
   }return e}
 const bars=()=>Math.max(song.minBars||8,Math.ceil(contentEnd()/BPB()-1e-6)+1);
 const L=()=>bars()*BPB();
@@ -252,6 +269,7 @@ function scheduleRange(a,b,off){
       if(st>=a&&st<b)startSrc(tr,u2t(st+off),0,endT);
       else if(wrapped&&st<a&&st+buf.duration/sp>a)startSrc(tr,u2t(a+off),(a-st)*sp,endT);   // the loop came round partway into this recording
       continue}
+    if(tr.type==='part'){for(const n of partNotes())if(n.t>=a&&n.t<b)panVoice(c.play,n.p,u2t(n.t+off),n.v);continue}
     if(tr.type!=='pan')continue;
     // Replace mode: just before the playhead gets there, older notes on the track being recorded are wiped
     if(T.rec&&song.recMode==='replace'&&tr.id===T.recTid)tr.notes=tr.notes.filter(n=>!(n.t>=a&&n.t<b&&n.tk!==T.take));
@@ -288,6 +306,7 @@ function toggleRec(){
   if(T.rec){T.rec=false;endNoteRec();renderTransport();return}
   const tr=selTr();
   if(tr.type==='audio'){micStart(tr);return}
+  if(tr.type==='part'){say('My part comes from Write. To record pans over it, add a Pan taps track; to change it, use ▦ Edit in bars.');return}
   if(tr.type!=='pan'){say('Choose a Mic or Pan taps track to record into, or add one with + Add track.');return}
   if(!AC())return;pushHistory();T.take++;T.recTid=tr.id;T.rec=true;
   if(!T.playing)play(song.countIn);else renderTransport();
@@ -445,8 +464,8 @@ async function practiceLoad(){
 let SEL=null;   // selected bars on one track: {tid,anchor,a,b}, b exclusive
 const zoomPx=()=>Math.round((innerWidth<560?64:92)*(PR.zoom||1));
 const HDW=()=>innerWidth<560?112:150;
-const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',beats:'Beat'};
-const ICON={practice:'♪',audio:'🎙',pan:'◉',beats:'▦'};
+const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'My part · linked to Write',beats:'Beat'};
+const ICON={practice:'♪',audio:'🎙',pan:'◉',part:'✎',beats:'▦'};
 function renderTransport(){
   const p=q('#stPlay'),r=q('#stRec');if(!p)return;
   p.textContent=T.playing?'■':'▶';p.setAttribute('aria-label',T.playing?'Stop':'Play');
@@ -470,7 +489,7 @@ function trackRegions(tr){
   if(tr.type==='beats'){if(!tr.rows.some(r=>r.steps.some(Boolean)))return[];const off=new Set(tr.off||[]),out=[];for(let b=0;b<n;b++){if(off.has(b))continue;if(out.length&&out[out.length-1][1]===b)out[out.length-1][1]=b+1;else out.push([b,b+1])}return out}
   const a=audioOf(tr);
   if(tr.type==='practice'||tr.type==='audio'){const dur=a?a.duration:tr.dur;if(!dur)return[];const s=startOf(tr)/BPB();return[[s,Math.min(n,s+dur/spb()/BPB())]]}
-  const used=new Set(tr.notes.map(x=>Math.floor(x.t/BPB()))),out=[];
+  const used=new Set(notesOf(tr).map(x=>Math.floor(x.t/BPB()))),out=[];
   for(let b=0;b<n;b++)if(used.has(b)){if(out.length&&out[out.length-1][1]===b)out[out.length-1][1]=b+1;else out.push([b,b+1])}
   return out;
 }
@@ -480,7 +499,7 @@ function regionsHTML(tr,bar){
   return regs.map(([s,e])=>{
     let inner='';
     if(tr.type==='practice'||tr.type==='audio')inner='<canvas data-peaks="'+tr.id+'" width="'+Math.max(1,Math.round((e-s)*bar))+'" height="64"></canvas>';
-    else if(tr.type==='pan'){for(const n of tr.notes)if(n.t>=s*BPB()&&n.t<e*BPB()){const y=PIDS.indexOf(n.p);inner+='<i class="pn-'+(NOTE_PAN[(FIELDS.get(n.p)||{}).label]||'')+'" style="left:'+((n.t-s*BPB())*beat).toFixed(1)+'px;top:'+(16+y*2.1).toFixed(1)+'px;width:'+Math.max(3,Math.min(n.d,e*BPB()-n.t)*beat-1).toFixed(1)+'px"></i>'}}
+    else if(isPanish(tr)){for(const n of notesOf(tr))if(n.t>=s*BPB()&&n.t<e*BPB()){const y=PIDS.indexOf(n.p);inner+='<i class="pn-'+(NOTE_PAN[(FIELDS.get(n.p)||{}).label]||'')+'" style="left:'+((n.t-s*BPB())*beat).toFixed(1)+'px;top:'+(16+y*2.1).toFixed(1)+'px;width:'+Math.max(3,Math.min(n.d,e*BPB()-n.t)*beat-1).toFixed(1)+'px"></i>'}}
     else{const rh=Math.min(7,42/Math.max(1,tr.rows.length));for(let b=s;b<e;b++){const base=(b*BPB()*4)%tr.len;tr.rows.forEach((row,r)=>{for(let i=0;i<BPB()*4;i++)if(row.steps[(base+i)%tr.len])inner+='<i style="left:'+((b-s)*bar+i*beat/4+1).toFixed(1)+'px;top:'+(16+r*rh).toFixed(1)+'px;width:'+Math.max(2,beat/4-2).toFixed(1)+'px"></i>'})}}
     return '<div class="st-region" style="left:'+(s*bar+1)+'px;width:'+Math.max(4,(e-s)*bar-2)+'px">'+inner+'</div>';
   }).join('');
@@ -521,9 +540,9 @@ function frame(){if(!T.playing)return;updatePlayhead();if(seqGridOpen())renderSe
 function selBarHTML(){
   const tr=trById(SEL.tid);if(!tr)return '';const range=SEL.b-SEL.a>1?'Bars '+(SEL.a+1)+'–'+SEL.b:'Bar '+(SEL.a+1);
   const b=(act,label)=>'<button class="btn sm" data-st="r-'+act+'">'+label+'</button>';
-  const n=tr.type==='pan'?' · '+selNotes(tr).length+' notes':'';
+  const n=isPanish(tr)?' · '+selNotes(tr).filter(x=>!x.roll).length+' notes':'';
   let tools=b('loop','Loop these bars');
-  if(tr.type==='pan')tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy')+b('repeat','Repeat to end')+b('snap','Snap')+b('notes','Edit notes')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
+  if(isPanish(tr))tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy')+b('repeat','Repeat to end')+b('snap','Snap')+b('notes','Edit notes')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
   if(tr.type==='audio'&&tr.take)tools=b('left','◀ Bar')+b('right','Bar ▶')+tools+'<button class="btn sm danger" data-st="r-delete">Remove take</button>';
   if(tr.type==='beats')tools=b('silence',(tr.off||[]).includes(SEL.a)?'Play these bars':'Silence these bars')+tools;
   return '<div class="st-selin" role="toolbar" aria-label="Edit '+esc(range)+' of '+esc(tr.name)+'"><span class="st-selinfo"><b>'+range+'</b> · '+esc(tr.name)+n+'</span>'+tools+'<button class="btn sm" data-st="r-close" aria-label="Clear selection">✕</button></div>';
@@ -531,17 +550,26 @@ function selBarHTML(){
 const SNAPS=[['off','Free'],['0.25','¼ beat'],['0.5','½ beat'],['1','Beat']];
 const snapBeat=(t,gq)=>Math.max(0,Math.round(t/gq)*gq);
 const gridOf=()=>song.snap&&song.snap!=='off'?+song.snap:.25;
-const selNotes=tr=>{const A=SEL.a*BPB(),B=SEL.b*BPB();return tr.notes.filter(n=>n.t>=A&&n.t<B)};
+const selNotes=tr=>{const A=SEL.a*BPB(),B=SEL.b*BPB();return notesOf(tr).filter(n=>n.t>=A&&n.t<B)};
 function regionOp(op){
   const tr=trById(SEL.tid);if(!tr)return;const len=SEL.b-SEL.a,bpb=BPB(),A=SEL.a*bpb,B=SEL.b*bpb;
   if(op==='close'){SEL=null;renderTimeline();return}
   if(op==='loop'){pushHistory();song.cycle={on:true,s:SEL.a,e:SEL.b};dirty();restartIfPlaying();renderTimeline();renderTransport();renderSecs();say('Looping bars '+(SEL.a+1)+'–'+SEL.b+'.');return}
-  if(op==='notes'){openNotes(tr,SEL.a,SEL.b);return}
+  if(op==='notes'){if(tr.type==='part'){BARS.open({a:origin()+A*spb(),b:origin()+B*spb()-1e-3,grid:true});return}openNotes(tr,SEL.a,SEL.b);return}
   if(tr.type==='beats'&&op==='silence'){pushHistory();const off=new Set(tr.off||[]),on=off.has(SEL.a);for(let b=SEL.a;b<SEL.b;b++)on?off.delete(b):off.add(b);tr.off=[...off].sort((x,y)=>x-y);dirty();renderTimeline();return}
   if(tr.type==='audio'){
     if(op==='left'||op==='right'){const d=op==='left'?-1:1;if(tr.start+d*bpb<0){say("That's the start of the song.");return}pushHistory();tr.start=+(tr.start+d*bpb).toFixed(4);SEL.a+=d;SEL.b+=d;SEL.anchor+=d}
     else if(op==='delete'){pushHistory();Object.assign(tr,{take:null,dur:0,peaks:null,file:''});SEL=null;say('Removed the take from '+tr.name+'. Undo brings it back.')}
     dirty();renderAll();return;
+  }
+  if(tr.type==='part'){
+    const sa=origin()+A*spb(),sb=origin()+B*spb(),bs=bpb*spb();let msg='';
+    if(op==='left'||op==='right'){const d=op==='left'?-1:1;if(SEL.a+d<0){say("That's the start of the song.");return}if(BARS.shift(sa,sb,d*bs)){SEL.a+=d;SEL.b+=d;SEL.anchor+=d;msg='Moved. Your cues in Write moved too.'}else msg='There are no notes in those bars.'}
+    else if(op==='copy'){if(!BARS.copyTo(sa,sb,sb)){say('There are no notes in those bars to copy.');return}SEL={tid:tr.id,anchor:SEL.b,a:SEL.b,b:SEL.b+len};msg='Copied, in Write too. The copy is selected.'}
+    else if(op==='repeat'){const k=BARS.repeat(sa,sb,origin()+bars()*bs);msg=k?'Repeated to the end of the song ('+k+' time'+(k===1?'':'s')+'), in Write too.':'There are no notes in those bars to repeat.'}
+    else if(op==='snap'){const k=BARS.snap(sa,sb,gridOf()*spb());msg=k?'Snapped '+k+' cue'+(k===1?'':'s')+'.':'There are no notes in those bars.'}
+    else if(op==='delete'){const k=BARS.del(sa,sb);msg=k?'Deleted '+k+' cue'+(k===1?'':'s')+'. Undo is in ▦ Edit in bars.':'There are no notes in those bars.'}
+    renderAll();if(msg)say(msg);return;
   }
   if(tr.type!=='pan')return;
   const inSel=selNotes(tr);
@@ -567,6 +595,11 @@ function renderInst(){
     h+='<p class="help">'+(recNow?'Recording… tap ■ or ● Rec to stop.':tr.take?'<b>'+esc(tr.file||'Take')+'</b> · '+(tr.dur||0).toFixed(1)+' s · starts at bar '+(Math.floor(tr.start/BPB())+1)+'.':'Tap <b>● Rec</b> to record from the microphone. Everything else plays while you record, after a bar of clicks. Headphones stop the song leaking into your take.')+'</p>';
     if(!recNow)h+='<div class="row"><button class="btn primary" data-st="mic">● '+(tr.take?'Record a new take':'Record from the mic')+'</button><button class="btn" data-st="import">'+(tr.take?'Replace with a file':'Import an audio file')+'</button></div>';
     if(tr.take&&!recNow)h+='<div class="row st-nudge"><span class="help">Timing</span><button class="btn sm" data-st="nudge" data-v="-10">◀ 10 ms earlier</button><button class="btn sm" data-st="nudge" data-v="10">10 ms later ▶</button><span class="help">'+(tr.lagMs?(tr.lagMs>0?'+':'')+tr.lagMs+' ms':'')+'</span></div>';
+  }else if(tr.type==='part'){
+    const n=BARS.events().length;
+    h+='<p class="help">'+(n?'This is your part from Write ('+n+' notes), played with your pan sounds. It\'s linked: change it here or in Write and both follow, along with your chart, the game and the lanes.':'Your part from Write plays here. Write some cues (or tap along) and they appear on this track.')+'</p>'
+      +'<div class="row"><button class="btn primary" data-st="bars">▦ Edit in bars</button><button class="btn" data-st="towrite">Go to Write</button></div>'
+      +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>';
   }else if(tr.type==='pan'){
     const order=S.swapped?[PANS[1],PANS[0]]:PANS;
     h+='<div class="pair st-pans" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
@@ -610,7 +643,7 @@ function renderSheet(){
       +'<button class="st-add" data-st="addk" data-v="audio"><b>🎙 Mic or audio file</b><span>Record yourself, a singer, or another pan. Or bring in a file.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="pan"><b>◉ Pan taps</b><span>Play the two pans on screen; every hit is recorded as a note you can edit.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="beats"><b>▦ Beat</b><span>A drum pattern: soca, calypso, panorama jam and more, or build your own.</span></button>'
-      +'<button class="st-add" data-st="addk" data-v="part"'+(cues?'':' disabled')+'><b>✎ Your part from Write</b><span>'+(cues?'Turns your '+cues+' cues into a pan track that plays your part.':'Write some cues first, then bring them in here.')+'</span></button></div>';
+      +'<button class="st-add" data-st="addk" data-v="part"><b>✎ Your part from Write</b><span>'+(cues?'Your '+cues+' cues as a pan track, linked: edit it here or in Write and both follow.':'Linked to your cues in Write; write some cues and they play here.')+'</span></button></div>';
   }else if(SH.kind==='mixer'){
     h=head('Mixer')+'<div class="st-mix">'+song.tracks.map(tr=>'<div class="st-mrow k-'+tr.type+'" data-tid="'+tr.id+'"><div class="st-mname"><b>'+esc(tr.name)+'</b><span class="st-ms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'">M</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'">S</button></span></div>'
       +'<label class="lab">Volume<input type="range" data-mk="vol" min="0" max="1.2" step=".01" value="'+tr.vol+'"></label>'
@@ -644,12 +677,12 @@ function meters(){
 }
 function addTrack(kind){
   pushHistory();let tr;
-  if(kind==='part'){tr=partTrack();if(!tr){H.u.pop();say('There are no pan notes in your cues yet.');return}}
+  if(kind==='part'){const ex=song.tracks.find(t=>t.type==='part');if(ex){H.u.pop();song.sel=ex.id;closeSheet();say('My part is already here, linked to Write.');return}tr=trk('part')}
   else tr=trk(kind);
   const same=song.tracks.filter(t=>t.type===tr.type).length;if(same&&kind!=='part')tr.name+=' '+(same+1);
   song.tracks.push(tr);song.sel=tr.id;dirty();closeSheet();
   if(kind==='beats')AC()&&warmDrums();
-  say(kind==='part'?'Added your part as a pan track. It plays the notes you wrote.':'Added '+tr.name+'.');
+  say(kind==='part'?'Added My part, linked to your cues in Write.':'Added '+tr.name+'.');
 }
 // your cues (Write) as pan notes, on the studio's bars
 function partTrack(){
@@ -714,7 +747,7 @@ function neAct(act,v){
 
 /* ---- export: the whole song, or each track, as MP3 or WAV ---- */
 const EXP={fmt:'mp3',what:'mix'};
-const hasContent=tr=>tr.type==='beats'?tr.rows.some(r=>r.steps.some(Boolean)):tr.type==='pan'?tr.notes.length>0:!!audioOf(tr);
+const hasContent=tr=>tr.type==='beats'?tr.rows.some(r=>r.steps.some(Boolean)):isPanish(tr)?notesOf(tr).length>0:!!audioOf(tr);
 async function renderSong(only,onProgress){
   AC();await warmDrums();await warmPans();
   const live={ctx,master,meterM,reverbs,PV},saved=new Map(chans);
@@ -726,7 +759,7 @@ async function renderSong(only,onProgress){
       if(only?tr!==only:!audible(tr)||!hasContent(tr))continue;
       const c=channel(tr).play;c.gain.value=1;
       if(tr.type==='beats'){for(const [bt,mm,v] of beatHits(tr,0,Lb)){const t=T0+bt*sp;ev.push({t,fn:()=>playDrum(mm,c,t,v)})}}
-      else if(tr.type==='pan'){for(const n of tr.notes)if(n.t<Lb){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v)})}}
+      else if(isPanish(tr)){for(const n of notesOf(tr))if(n.t<Lb){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v)})}}
       else{const b=audioOf(tr);if(b){let t=T0+startOf(tr)*sp,o=0;if(t<0){o=-t;t=0}ev.push({t,fn:()=>{const s=off.createBufferSource();s.buffer=b;s.connect(c);s.start(t,o);s.stop(T0+Lb*sp)}})}}
     }
     ev.sort((x,y)=>x.t-y.t);
@@ -815,6 +848,8 @@ function onClick(e){
     case 'deltrack':{const t=selTr();if(t.type==='practice')break;if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Tap again to delete';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='Delete track'}},3000);break}
       pushHistory();song.tracks=song.tracks.filter(x=>x!==t);song.sel='practice';SEL=null;dirty();renderAll();say('Deleted '+t.name+'. Undo brings it back.');break}
     case 'mic':micStart(selTr());break;
+    case 'bars':BARS.open(SEL&&SEL.tid===selTr().id?{a:origin()+SEL.a*BPB()*spb(),b:origin()+SEL.b*BPB()*spb()-1e-3}:null);break;
+    case 'towrite':showView('cues');break;
     case 'import':q('#stFile').click();break;
     case 'nudge':{const t=selTr(),ms=+b.dataset.v;pushHistory();t.lagMs=(t.lagMs||0)+ms;t.start=+(t.start+ms/1000/spb()).toFixed(5);if(t.start<0)t.start=0;dirty();restartIfPlaying();renderInst();renderTimeline();break}
     case 'mode':pushHistory();song.recMode=b.dataset.v;dirty();renderInst();break;
@@ -849,6 +884,7 @@ function onChange(e){
   if(t.id==='stFile'){const f=t.files&&t.files[0];t.value='';if(f)importFile(selTr(),f)}
 }
 function init(){
+  BARS.onChange(()=>{partCache=null;if(song&&document.body.dataset.view==='studio')renderAll()});
   const v=q('#view-studio');if(!v)return;
   v.addEventListener('click',onClick);v.addEventListener('input',onInput);v.addEventListener('change',onChange);
   v.addEventListener('pointerdown',e=>{const row=e.target.closest('.st-row[data-tid]');if(row&&e.target.closest('.st-lane')&&!e.target.closest('button'))laneTap(e,row)});

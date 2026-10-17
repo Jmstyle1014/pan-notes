@@ -1,0 +1,45 @@
+/* your part in bars */
+.bx .bxbox{max-width:1000px;max-height:94%;overflow:auto;gap:10px}
+.bx .btn.sm{min-height:36px;padding:6px 10px;font-size:13px}
+.bx .btn.sm.on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.bxtop{gap:6px;align-items:center}
+.bxplay{min-width:56px;font-size:18px}
+.bxpos{font:700 16px var(--display);color:var(--gold);min-width:74px;font-variant-numeric:tabular-nums}
+.bxzoom{display:flex;gap:4px;margin-left:auto}
+.bxtl{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg);position:relative;-webkit-overflow-scrolling:touch}
+.bxin{position:relative}
+.bxrow{display:flex;border-bottom:1px solid var(--line)}
+.bxhd{position:sticky;left:0;z-index:2;flex:none;width:96px;background:var(--surface);border-right:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;padding:0 8px}
+.bxpan.pn-ec .bxhd{color:var(--ec)}.bxpan.pn-bf .bxhd{color:var(--bf)}
+.bxl{position:relative;flex:none;background-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--bp) - 1px),var(--line) 0 var(--bp))}
+.bxruler{height:34px}.bxruler .bxl{cursor:pointer}
+.bxrec{height:48px}.bxrec canvas{position:absolute;inset:2px 0;width:100%;height:44px;pointer-events:none}
+.bxpan{height:68px}
+.bxn{position:absolute;top:4px;font-size:11px;color:var(--muted);padding-left:4px}
+.bxsec{position:absolute;bottom:1px;font-size:10px;font-weight:700;color:var(--gold);background:var(--surface);padding:0 4px;border-left:2px solid var(--gold);white-space:nowrap;pointer-events:none}
+.bxloop{position:absolute;top:2px;height:6px;border-radius:3px;background:var(--gold);pointer-events:none}
+.bxpan i{position:absolute;height:5px;border-radius:3px;pointer-events:none}
+.bxpan.pn-ec i{background:var(--ec)}.bxpan.pn-bf i{background:var(--bf)}
+.bxpan i.fx{background-image:repeating-linear-gradient(90deg,rgb(0 0 0 / .45) 0 2px,transparent 2px 5px)}
+.bxsel{position:absolute;top:1px;bottom:1px;border:2px solid var(--teal);border-radius:8px;background:color-mix(in srgb,var(--teal) 14%,transparent);pointer-events:none}
+.bxph{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);box-shadow:0 0 8px var(--gold);z-index:3;pointer-events:none}
+.bxselbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--raised);border:1px solid var(--teal);border-radius:14px;padding:8px}
+.bxinfo{flex:1 1 100%;font-size:13px;color:var(--muted)}.bxinfo b{color:var(--text)}
+.bxsnap{gap:8px;align-items:center}.bxsnap .seg{flex:1;max-width:420px}
+.bxgridwrap{display:flex;flex-direction:column;gap:8px}
+.bxgt{font-size:14px}
+.bxgw{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;max-height:50vh}
+.bxglabs{flex:none;width:48px;overflow:hidden;background:var(--surface);border-right:1px solid var(--line)}
+.bxglabs div{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border-bottom:1px solid var(--line)}
+.bxglabs .pn-ec{color:var(--ec)}.bxglabs .pn-bf{color:var(--bf)}
+.bxgs{flex:1;overflow:auto;background:var(--bg)}
+.bxgrid{position:relative}
+.bxgr{position:absolute;left:0;height:26px;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.bxgr.pn-bf{background:color-mix(in srgb,var(--bf) 5%,transparent)}
+.bxgl{position:absolute;top:0;width:1px;background:color-mix(in srgb,var(--line) 70%,transparent)}
+.bxgl.bar{background:var(--line);width:2px}
+.bxgn{position:absolute;border:0;border-radius:6px;padding:0;font-size:11px;font-weight:700;color:#0008;background:var(--ec)}
+.bxgn.pn-bf{background:var(--bf)}
+.bxgn.dim{opacity:.3;pointer-events:none}
+.bxgn.on{outline:3px solid var(--gold);outline-offset:1px}
+.bxgtools{gap:6px}
