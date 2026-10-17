@@ -144,6 +144,7 @@ rep('      <details><summary>Hearing the pans when you tap</summary>', """      
 # Home: the screen you open on, and the hanging pans
 rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + open(os.path.join(HERE, 'panyard-home.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-home.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-tabs.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep("  renderSaveInfo();\n  initStore();\n})();", "  renderSaveInfo();\n  initStore();\n  showView('home');\n})();")
 open(OUT, 'w', encoding='utf-8').write(s)
 print('wrote', OUT)

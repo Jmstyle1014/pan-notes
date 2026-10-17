@@ -54,3 +54,11 @@ body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="ho
 @media (max-width:380px){.hm-acts button{flex-direction:column;justify-content:center;text-align:center;gap:5px}.hm-bar{display:none}}
 @media (min-width:700px){.hm-top h1{font-size:36px}}
 .appbar .eyebrow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* four tabs (panyard-tabs.js) */
+.tabs.four{grid-template-columns:repeat(4,1fr)!important}
+.tabs.four button{font-size:12px!important}
+.subtabs{max-width:760px;margin:0 auto 12px;display:flex}
+.subtabs[hidden]{display:none}
+.subtabs button{flex:1;min-height:44px;font-weight:700}
+body[data-view="home"] .subtabs{display:none}
+@media (max-height:620px){.subtabs{margin-bottom:6px}.subtabs button{min-height:36px}body[data-view="studio"].st-inst .subtabs{display:none}}
