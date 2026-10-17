@@ -94,5 +94,49 @@ rep('      <details><summary>Hearing the pans when you tap</summary>', """      
         <p>Setup → Play along → <b>Mallet Lab</b>. Connect a game controller, or use a handheld like the Retroid, and press any button so the app can see it. The <b>left stick</b> is your left mallet over the left pan and the <b>right stick</b> your right mallet over the right pan; a gold ring shows where each one is pointing.</p>
         <p><b>Aim + strike</b>: point, then hit with your mallet buttons (L1 / R1 to start; analog triggers play softer or harder depending on how quickly you pull them). Hold to roll. <b>Flick</b>: push a stick out quickly to strike where it points, then let it come back. Tap <b>Calibrate</b> to measure your sticks and pick your mallet buttons. No controller? Drag inside the stick circles and hold <b>Hit</b>.</p></details>
       <details><summary>Hearing the pans when you tap</summary>""")
+
+# Studio: record in layers over the practice recording (the multi-track recorder from Pocket Band)
+rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + open(os.path.join(HERE, 'panyard-studio.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
+GAME_TAB = '</svg>Game</button>'
+rep(GAME_TAB, GAME_TAB + '''
+      <button role="tab" data-view="studio" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v16M12 4v16M19 4v16"/><rect x="3" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="17" y="11" width="4" height="3" rx="1" fill="currentColor"/></svg>Studio</button>''')
+rep('  <!-- CUES -->', '''  <!-- STUDIO -->
+  <section class="view" id="view-studio" hidden aria-label="Studio">
+    <div class="panel st-bar">
+      <div class="st-tp">
+        <button class="btn" id="stHome" aria-label="Back to the start">⏮</button>
+        <button class="btn primary st-play" id="stPlay" aria-label="Play">▶</button>
+        <button class="btn st-rec" id="stRec" aria-pressed="false">● Rec</button>
+        <div class="st-lcd"><b id="stPos">1.1</b><span id="stTempo"></span></div>
+      </div>
+      <div class="st-tools">
+        <button class="btn" id="stMetro" aria-pressed="false">Click</button>
+        <button class="btn" id="stCount" aria-pressed="true">Count-in</button>
+        <button class="btn" id="stLoop" aria-pressed="false">⟲ Loop</button>
+        <button class="btn" id="stUndo" disabled aria-label="Undo">↶</button>
+        <button class="btn" id="stRedo" disabled aria-label="Redo">↷</button>
+        <button class="btn" id="stMix">Mixer</button>
+        <button class="btn" id="stExp">Export</button>
+        <button class="btn" id="stTime">Timing fix</button>
+      </div>
+    </div>
+    <div class="st-secs" id="stSecs" hidden></div>
+    <div class="panel st-tlp">
+      <div class="st-tl" id="stTl"></div>
+      <div class="st-tlrow"><button class="btn primary" id="stAdd">+ Add track</button><button class="btn sm" id="stZout" aria-label="Zoom out">−</button><button class="btn sm" id="stZin" aria-label="Zoom in">+</button>
+        <span class="help">Tap a track's name to choose it. Tap its lane to select a bar, then another bar to select the bars between. Tap the bar numbers to move the playhead.</span></div>
+    </div>
+    <div id="stSel" class="st-selbar" hidden></div>
+    <div class="panel" id="stInst"></div>
+    <input type="file" id="stFile" accept="audio/*,video/*" hidden>
+  </section>
+
+  <!-- CUES -->''')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-studio.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('      <details><summary>Hearing the pans when you tap</summary>', """      <details><summary>Studio: recording in layers</summary>
+        <p>Open <b>Studio</b> to record over your song. Your practice recording is track 1, and the bars come from ♩ Timing in Write, so everything lines up with your notes and sections.</p>
+        <p><b>+ Add track</b> gives you a <b>Mic</b> track (record yourself or import a file), a <b>Pan taps</b> track (play the pans on screen; every hit becomes a note), a <b>Beat</b> (soca, calypso and more, or your own pattern), or <b>Your part from Write</b>. Choose a track, tap <b>● Rec</b>, and a bar of clicks counts you in while everything else plays. Use headphones for mic takes.</p>
+        <p>Tap a lane to select bars: move, copy, repeat, snap or delete them, <b>Edit notes</b> on a grid, or loop them. The section buttons loop a whole Verse or Chorus. <b>Mixer</b> sets each track's volume, left/right and reverb; <b>Export</b> saves the song (or each track) as MP3 or WAV. Run <b>Timing fix</b> once so taps and mic takes land on the beat. Studio tracks are kept on this phone with each song; they're not in backup files.</p></details>
+      <details><summary>Hearing the pans when you tap</summary>""")
 open(OUT, 'w', encoding='utf-8').write(s)
 print('wrote', OUT)

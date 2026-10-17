@@ -60,6 +60,7 @@ os.makedirs(os.path.join(OUT, 'fonts')); os.makedirs(os.path.join(OUT, 'icons'))
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(head + src + tail)
 for _, _, f in FONTS: shutil.copy(os.path.join(VENDOR, f), os.path.join(OUT, 'fonts', f))
 shutil.copy(os.path.join(VENDOR, 'jspdf.umd.min.js'), os.path.join(OUT, 'jspdf.umd.min.js'))
+if 'lame.min.js' in src: shutil.copy(os.path.join(VENDOR, 'lame.min.js'), os.path.join(OUT, 'lame.min.js'))   # MP3 export (Studio)
 
 # icons: a gold pan on the dark stage colour
 def icon(size, maskable):
