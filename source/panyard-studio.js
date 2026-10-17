@@ -8,15 +8,18 @@ const uid=()=>Date.now().toString(36).slice(-4)+Math.random().toString(36).slice
 let PR={latency:0,micLag:null,zoom:1};
 try{Object.assign(PR,JSON.parse(localStorage.getItem('panyard-studio')||'{}'))}catch{}
 const savePR=()=>{try{localStorage.setItem('panyard-studio',JSON.stringify(PR))}catch{}};
-const PIDS=Object.keys(PITCH).sort((a,b)=>midiOf(PITCH[b])-midiOf(PITCH[a]));   // high to low
-const pname=id=>{const f=FIELDS.get(id);return (f?f.label:id)+PITCH[id].slice(-1)};
+// each Pan taps track plays one pan set (the song's pan unless you choose another); My part plays the song's
+const trSet=tr=>tr&&tr.type==='pan'?(SETS[tr.panSet]?tr.panSet:'guitar'):setKey();
+const pidsOf=tr=>SETS[trSet(tr)].views.flatMap(p=>p.fields.map(f=>f[0])).sort((a,b)=>midiOf(PITCH[b])-midiOf(PITCH[a]));   // high to low
+const gcol=id=>'var(--'+grpOf(id)+')';
+const pname=id=>{const f=FIELDS.get(id);return (f?f.label.replace(/[\u0307\u0308\u0323\u0324]/g,''):id)+PITCH[id].slice(-1)};
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 
 /* ---- the studio song: one per Panyard song ---- */
 let song=null,songKey=null,loading=null;
 function trk(type,extra){
   const t={id:type==='practice'?'practice':uid(),type,vol:.85,pan:0,mute:false,solo:false,mix:null};
-  if(type==='pan'){t.notes=[];t.name='Pan taps'}
+  if(type==='pan'){t.notes=[];t.panSet=setKey();t.name=SETS[t.panSet].name}
   if(type==='audio'){t.take=null;t.start=0;t.dur=0;t.peaks=null;t.lagMs=0;t.name='Mic'}
   if(type==='beats'){t.len=16;t.swing=0;t.unit=8;t.off=[];t.rows=[36,38,42,46].map(m=>({m,steps:Array(16).fill(0)}));t.name='Beat'}
   if(type==='practice')t.name='Your recording';
@@ -499,7 +502,7 @@ function regionsHTML(tr,bar){
   return regs.map(([s,e])=>{
     let inner='';
     if(tr.type==='practice'||tr.type==='audio')inner='<canvas data-peaks="'+tr.id+'" width="'+Math.max(1,Math.round((e-s)*bar))+'" height="64"></canvas>';
-    else if(isPanish(tr)){for(const n of notesOf(tr))if(n.t>=s*BPB()&&n.t<e*BPB()){const y=PIDS.indexOf(n.p);inner+='<i class="pn-'+(NOTE_PAN[(FIELDS.get(n.p)||{}).label]||'')+'" style="left:'+((n.t-s*BPB())*beat).toFixed(1)+'px;top:'+(16+y*2.1).toFixed(1)+'px;width:'+Math.max(3,Math.min(n.d,e*BPB()-n.t)*beat-1).toFixed(1)+'px"></i>'}}
+    else if(isPanish(tr)){const ps=pidsOf(tr),sc=44/Math.max(1,ps.length);for(const n of notesOf(tr))if(n.t>=s*BPB()&&n.t<e*BPB()){const y=ps.indexOf(n.p);inner+='<i style="background:'+gcol(n.p)+';left:'+((n.t-s*BPB())*beat).toFixed(1)+'px;top:'+(16+y*sc).toFixed(1)+'px;width:'+Math.max(3,Math.min(n.d,e*BPB()-n.t)*beat-1).toFixed(1)+'px"></i>'}}
     else{const rh=Math.min(7,42/Math.max(1,tr.rows.length));for(let b=s;b<e;b++){const base=(b*BPB()*4)%tr.len;tr.rows.forEach((row,r)=>{for(let i=0;i<BPB()*4;i++)if(row.steps[(base+i)%tr.len])inner+='<i style="left:'+((b-s)*bar+i*beat/4+1).toFixed(1)+'px;top:'+(16+r*rh).toFixed(1)+'px;width:'+Math.max(2,beat/4-2).toFixed(1)+'px"></i>'})}}
     return '<div class="st-region" style="left:'+(s*bar+1)+'px;width:'+Math.max(4,(e-s)*bar-2)+'px">'+inner+'</div>';
   }).join('');
@@ -603,8 +606,9 @@ function renderInst(){
       +'<div class="row"><button class="btn primary" data-st="bars">▦ Edit in bars</button><button class="btn" data-st="towrite">Go to Write</button></div>'
       +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>';
   }else if(tr.type==='pan'){
-    const order=S.swapped?[PANS[1],PANS[0]]:PANS;
-    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
+    const sk=trSet(tr),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
+    const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';
+    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>'+pick;
     h+='<p class="help">Tap <b>● Rec</b> and play along on the pans. Hold a note to roll. '+(mine('c')||Object.keys(SAMPLES.wav).some(mine)?'Your recorded pan sounds are used.':'Record your own pan sounds in Setup to hear your real pans here.')+'</p>';
     h+='<div class="row"><div class="seg st-mode" role="group" aria-label="Recording"><button data-st="mode" data-v="add" aria-pressed="'+(song.recMode!=='replace')+'">Add on top</button><button data-st="mode" data-v="replace" aria-pressed="'+(song.recMode==='replace')+'">Replace</button></div>'
       +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
@@ -724,10 +728,10 @@ const RH=28;
 function notesHTML(){
   const tr=trById(NE.tid);if(!tr)return '';
   const gq=gridOf(),A=NE.a*BPB(),B=NE.b*BPB(),cols=Math.round((B-A)/gq),cw=Math.max(18,Math.min(34,Math.round(28*Math.sqrt(.25/gq)))),W=cols*cw;
-  let gr='';PIDS.forEach((id,i)=>{gr+='<div class="ne-r pn-'+NOTE_PAN[(FIELDS.get(id)||{}).label]+'" style="top:'+i*RH+'px;width:'+W+'px"></div>'});
+  const PIDS=pidsOf(tr);let gr='';PIDS.forEach((id,i)=>{gr+='<div class="ne-r pn-'+grpOf(id)+'" style="top:'+i*RH+'px;width:'+W+'px"></div>'});
   for(let c=0;c<=cols;c++){const bt=A+c*gq;if(Math.abs(bt-Math.round(bt))<1e-6)gr+='<div class="ne-l'+(Math.round(bt)%BPB()===0?' bar':'')+'" style="left:'+c*cw+'px;height:'+PIDS.length*RH+'px"></div>'}
-  const nh=tr.notes.map((n,i)=>({n,i})).filter(({n})=>n.t>=A&&n.t<B&&PIDS.includes(n.p)).map(({n,i})=>'<button class="ne-n pn-'+NOTE_PAN[(FIELDS.get(n.p)||{}).label]+(NE.sel===i?' on':'')+'" data-i="'+i+'" style="left:'+((n.t-A)/gq*cw).toFixed(1)+'px;top:'+(PIDS.indexOf(n.p)*RH+3)+'px;width:'+Math.max(10,Math.min(n.d,B-n.t)/gq*cw-2).toFixed(1)+'px;height:'+(RH-6)+'px" aria-label="'+esc(pname(n.p))+' at beat '+(n.t+1).toFixed(2)+'"></button>').join('');
-  const labels=PIDS.map(id=>'<div class="ne-lab pn-'+NOTE_PAN[(FIELDS.get(id)||{}).label]+'" style="height:'+RH+'px">'+esc(pname(id))+'</div>').join('');
+  const nh=tr.notes.map((n,i)=>({n,i})).filter(({n})=>n.t>=A&&n.t<B&&PIDS.includes(n.p)).map(({n,i})=>'<button class="ne-n pn-'+grpOf(n.p)+(NE.sel===i?' on':'')+'" style="background:'+gcol(n.p)+'" data-i="'+i+'" style="left:'+((n.t-A)/gq*cw).toFixed(1)+'px;top:'+(PIDS.indexOf(n.p)*RH+3)+'px;width:'+Math.max(10,Math.min(n.d,B-n.t)/gq*cw-2).toFixed(1)+'px;height:'+(RH-6)+'px" aria-label="'+esc(pname(n.p))+' at beat '+(n.t+1).toFixed(2)+'"></button>').join('');
+  const labels=PIDS.map(id=>'<div class="ne-lab pn-'+grpOf(id)+'" style="height:'+RH+'px;color:'+gcol(id)+'">'+esc(pname(id))+'</div>').join('');
   const range=NE.b-NE.a>1?'Bars '+(NE.a+1)+'–'+NE.b:'Bar '+(NE.a+1),has=NE.sel!=null&&tr.notes[NE.sel];
   return '<div class="sheethead"><h2>'+esc(tr.name)+' · '+range+'</h2><button class="btn" data-st="close">Done</button></div>'
     +'<div class="row"><div class="seg" role="group" aria-label="Snap">'+SNAPS.map(([v,l])=>'<button data-st="ne-snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div>'
@@ -738,7 +742,7 @@ function notesHTML(){
 }
 function afterNotes(){
   const sc=q('#neScroll'),lab=q('#neLabels'),tr=trById(NE.tid);if(!sc||!tr)return;
-  if(NE.top==null){const idx=tr.notes.filter(n=>n.t>=NE.a*BPB()&&n.t<NE.b*BPB()).map(n=>PIDS.indexOf(n.p));NE.top=idx.length?Math.max(0,Math.min(...idx)*RH-RH):0}
+  const PIDS=pidsOf(tr);if(NE.top==null){const idx=tr.notes.filter(n=>n.t>=NE.a*BPB()&&n.t<NE.b*BPB()).map(n=>PIDS.indexOf(n.p));NE.top=idx.length?Math.max(0,Math.min(...idx)*RH-RH):0}
   sc.scrollTop=NE.top;sc.scrollLeft=NE.left;lab.scrollTop=sc.scrollTop;
   sc.onscroll=()=>{lab.scrollTop=sc.scrollTop;NE.top=sc.scrollTop;NE.left=sc.scrollLeft};
 }
@@ -747,7 +751,7 @@ function neTap(e){
   const tr=trById(NE.tid);if(!tr)return;const note=e.target.closest('.ne-n');
   if(note){NE.sel=+note.dataset.i;const n=tr.notes[NE.sel];if(n)audition(tr,n.p);renderSheet();return}
   const gridEl=q('#neGrid'),r=gridEl.getBoundingClientRect(),gq=gridOf(),cols=Math.round((NE.b-NE.a)*BPB()/gq),cw=parseFloat(gridEl.style.width)/cols;
-  const id=PIDS[Math.floor((e.clientY-r.top)/RH)],col=Math.floor((e.clientX-r.left)/cw);if(!id||col<0||col>=cols)return;
+  const PIDS=pidsOf(tr),id=PIDS[Math.floor((e.clientY-r.top)/RH)],col=Math.floor((e.clientX-r.left)/cw);if(!id||col<0||col>=cols)return;
   pushHistory();const t=+(NE.a*BPB()+col*gq).toFixed(3);tr.notes.push({t,d:Math.max(.25,gq),p:id,v:.9});tr.notes.sort((x,y)=>x.t-y.t);
   NE.sel=tr.notes.findIndex(n=>n.p===id&&Math.abs(n.t-t)<1e-6);audition(tr,id);dirty();renderSheet();
 }
@@ -758,7 +762,7 @@ function neAct(act,v){
   if(act==='ne-del'){tr.notes.splice(NE.sel,1);NE.sel=null}
   else if(act==='ne-nudge')n.t=+Math.max(NE.a*BPB(),Math.min(NE.b*BPB()-gq,n.t+(+v)*gq)).toFixed(3);
   else if(act==='ne-len')n.d=+Math.max(gq/2,n.d+(+v)*gq).toFixed(3);
-  else if(act==='ne-pitch'){const i=PIDS.indexOf(n.p);n.p=PIDS[Math.max(0,Math.min(PIDS.length-1,i-(+v)))]}
+  else if(act==='ne-pitch'){const PIDS=pidsOf(tr),i=PIDS.indexOf(n.p);n.p=PIDS[Math.max(0,Math.min(PIDS.length-1,i-(+v)))]}
   if(act!=='ne-del'){tr.notes.sort((x,y)=>x.t-y.t);NE.sel=tr.notes.indexOf(n);audition(tr,n.p)}
   dirty();renderSheet();
 }
@@ -901,6 +905,9 @@ function onChange(e){
   if(t.id==='stStyle'&&t.value){const tr=selTr(),st=STYLES[t.value];pushHistory();Object.assign(tr,{rows:styleRows(st),len:st.len,swing:st.swing,unit:st.unit,style:t.value});dirty();renderInst();renderTimeline();
     say('Loaded '+st.name+'.'+(Math.abs(bpm()-st.bpm)>8?' It usually sits around '+st.bpm+' bpm; here it plays at your song\'s tempo.':''));AC()&&warmDrums()}
   if(t.id==='stAddRow'&&t.value){const tr=selTr();pushHistory();tr.rows.push({m:+t.value,steps:Array(tr.len).fill(0)});dirty();renderInst()}
+  if(t.matches('[data-st-set]')){const tr=selTr(),k=t.value;if(tr.type!=='pan'||k===trSet(tr))return;
+    if(tr.notes.length&&!confirm(tr.name+' has '+tr.notes.length+' notes on the '+SETS[trSet(tr)].name+'. Switch to the '+SETS[k].name+' and clear them? (Undo brings them back.)')){t.value=trSet(tr);return}
+    pushHistory();const old=SETS[trSet(tr)].name;tr.panSet=k;tr.notes=[];if(tr.name===old||/^Pan taps/.test(tr.name))tr.name=SETS[k].name;dirty();renderAll();say(tr.name+' now plays the '+SETS[k].name+'.');return}
   if(t.id==='stFile'){const f=t.files&&t.files[0];t.value='';if(f)importFile(selTr(),f)}
 }
 function init(){

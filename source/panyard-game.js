@@ -6,20 +6,22 @@ const GAME={judged:new Set(),hitKeys:new Set(),streak:0,best:0,hits:0,notes:0,po
 try{GAME.best=+localStorage.getItem('panyard-best')||0}catch{}
 const LANE_COL={ec:'#ff8a5c',bf:'#3fd0d4'};
 const NOTE_W=54;   // how wide a falling note is, in pixels
-function laneOf(id){const k=EC_IDS.has(id)?'ec':'bf';return (S.swapped?(k==='ec'?1:0):(k==='ec'?0:1))}
+// one lane per pan, ring or drum of this song's pan, in screen order
+const laneKeys=()=>groupsNow().map(g=>g.key);
+const laneCol=k=>LANE_COL[k]||grpColor(k);
+function laneOf(id){return Math.max(0,laneKeys().indexOf(grpOf(id)))}
 function drawLanes(t){
   const cv=$('lanes');if(!cv||!cv.offsetParent)return;
   const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
   if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
   const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
   const FF=getComputedStyle(document.body).fontFamily,DF='Unbounded, '+FF;
-  const gap=8,lw=(W-gap)/2,hitY=H-16,P=(hitY-10)/2.2;   // 2.2 seconds of notes on screen
-  const keys=S.swapped?['bf','ec']:['ec','bf'];
+  const keys=laneKeys(),NL=keys.length,gap=NL>3?4:8,lw=(W-gap*(NL-1))/NL,hitY=H-16,P=(hitY-10)/2.2;   // 2.2 seconds of notes on screen
   // lane floors
-  for(let L=0;L<2;L++){const x=L*(lw+gap);
+  for(let L=0;L<NL;L++){const x=L*(lw+gap);
     g.fillStyle='#1a1430';g.beginPath();g.roundRect?g.roundRect(x,0,lw,H,[18,18,6,6]):g.rect(x,0,lw,H);g.fill();
-    g.fillStyle=LANE_COL[keys[L]];g.globalAlpha=.07;g.fillRect(x,hitY-60,lw,60);g.globalAlpha=1;
-    g.fillStyle=LANE_COL[keys[L]];g.globalAlpha=.55;g.font='700 10px '+DF;g.textAlign='center';g.textBaseline='top';g.fillText(keys[L]==='ec'?'E / C':'B / F',x+lw/2,10);g.globalAlpha=1}
+    g.fillStyle=laneCol(keys[L]);g.globalAlpha=.07;g.fillRect(x,hitY-60,lw,60);g.globalAlpha=1;
+    g.fillStyle=laneCol(keys[L]);g.globalAlpha=.55;g.font='700 10px '+DF;g.textAlign='center';g.textBaseline='top';g.fillText(groupsNow()[L].short,x+lw/2,10,lw-4);g.globalAlpha=1}
   // notes
   const from=t-0.35,to=t+(hitY+40)/P;
   let lo=0,hi=hwItems.length;while(lo<hi){const m=(lo+hi)>>1;if(hwItems[m].t+hwItems[m].d<from)lo=m+1;else hi=m}
@@ -27,12 +29,12 @@ function drawLanes(t){
   for(let i=lo;i<hwItems.length;i++){
     const n=hwItems[i];if(n.t>to)break;
     const yHit=hitY-(n.t-t)*P,len=30,tail=Math.min(n.d*P,220),on=n.t<=t&&t<n.t+n.d,past=n.t+n.d<=t;
-    const perLane=[[],[]];n.ids.forEach(id=>perLane[laneOf(id)].push(id));
+    const perLane=keys.map(()=>[]);n.ids.forEach(id=>perLane[laneOf(id)].push(id));
     const xs=[];
     perLane.forEach((ids,L)=>ids.forEach((id,k)=>{
       // notes are a fixed size, centred in their lane (side by side when a pan plays two at once)
-      const w=Math.min(NOTE_W,(lw-16)/ids.length-6),x=L*(lw+gap)+(lw-(ids.length*w+(ids.length-1)*6))/2+k*(w+6),y=yHit-len;
-      const col=LANE_COL[keys[L]],done=GAME.judged.has(i+':'+id);
+      const w=Math.max(10,Math.min(NOTE_W,(lw-(NL>3?6:16))/ids.length-(NL>3?2:6))),x=L*(lw+gap)+(lw-(ids.length*w+(ids.length-1)*6))/2+k*(w+6),y=yHit-len;
+      const col=laneCol(keys[L]),done=GAME.judged.has(i+':'+id);
       g.globalAlpha=past?.18:1;
       // how long it lasts: a thin trail behind the note (wavy for a roll)
       if(tail>len+6){g.strokeStyle=col;g.lineWidth=n.fx==='roll'?3:4;g.globalAlpha=(past?.12:.45);g.beginPath();
@@ -66,7 +68,7 @@ function drawLanes(t){
   if(t<GAME.lastT-0.5){GAME.judged.clear();GAME.hitKeys.clear();GAME.streak=0}   // jumped back: start counting again
   GAME.lastT=t;
 }
-function pop(text,L,col,big){const cv=$('lanes');const W=cv?cv.clientWidth:300,lw=(W-8)/2;GAME.pops.push({text,col,big,at:performance.now(),x:L*(lw+8)+lw/2})}
+function pop(text,L,col,big){const cv=$('lanes');const W=cv?cv.clientWidth:300,NL=laneKeys().length,gap=NL>3?4:8,lw=(W-gap*(NL-1))/NL;GAME.pops.push({text,col,big,at:performance.now(),x:L*(lw+gap)+lw/2})}
 // how close a tap has to be (seconds) for each rating; Relaxed timing in a challenge gives more leeway
 function win(){return GM.state==='run'&&GM.timing==='relaxed'?{perfect:0.12,great:0.22,ok:0.35}:{perfect:0.08,great:0.16,ok:0.26}}
 document.addEventListener('pointerdown',e=>{
@@ -81,7 +83,7 @@ document.addEventListener('pointerdown',e=>{
   GAME.judged.add(best+':'+id);GAME.hitKeys.add(best+':'+id);GAME.notes++;GAME.hits++;GAME.streak++;
   if(GAME.streak>GAME.best){GAME.best=GAME.streak;try{localStorage.setItem('panyard-best',GAME.best)}catch{}}
   const early=hwItems[best].t>t,kind=bd<=W.perfect?'perfect':bd<=W.great?'great':'ok';
-  if(kind==='perfect')pop('Perfect',L,'#ffd166',true);else if(kind==='great')pop('Great',L,LANE_COL[EC_IDS.has(id)?'ec':'bf']);else pop(early?'Early':'Late',L,'#cfc6f2');
+  if(kind==='perfect')pop('Perfect',L,'#ffd166',true);else if(kind==='great')pop('Great',L,laneCol(grpOf(id)));else pop(early?'Early':'Late',L,'#cfc6f2');
   if(GAME.streak&&GAME.streak%10===0)pop(GAME.streak+' streak!',L===0?1:0,'#ff6fae',true);
   if(GM.state==='run')gameHit(kind);
 },true);

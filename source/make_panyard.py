@@ -17,7 +17,7 @@ rep('</style>\n\n<header class="appbar">', '</style>\n<style>\n' + open(os.path.
     + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&display=swap">\n\n<header class="appbar">')
 rep('<span class="eyebrow">Now rehearsing</span>', '<span class="eyebrow">Panyard · night session</span>')
 rep('      <div id="playPans" class="pair"></div>', '      <canvas id="lanes" aria-label="Your notes falling down two lanes, one per pan, onto the line where you play them"></canvas>\n      <div id="playPans" class="pair"></div>')
-rep("return '<div class=\"pan'+(src?' photo':'')", "return '<div class=\"pan pan-'+p.key+(src?' photo':'')")
+# (each pan's key is already a class: pan-ec / pan-bf, or the set name)
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-game.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('      <details><summary>Hearing the pans when you tap</summary>', '''      <details open><summary>Panyard: the lanes and your streak</summary>
         <p>On <b>Play</b> (in portrait above the pans, sideways right between them), your notes fall down two lanes, <b style="color:#ff8a5c">coral</b> for the E / C pan and <b style="color:#3fd0d4">aqua</b> for the B / F pan, and land on the glowing line the moment they're played. Chords land across both lanes together.</p>

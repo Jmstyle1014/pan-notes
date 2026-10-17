@@ -146,7 +146,7 @@ function labWizTick(pad,now){
 const labName=(m,pad)=>!m?'—':m.type==='button'?((pad&&pad.mapping==='standard'&&LAB_STD[m.index])||'button '+m.index):'trigger (axis '+m.index+')';
 const labMsg=t=>{$('labMsg').textContent=t};
 function labRender(){
-  const order=S.swapped?[PANS[1],PANS[0]]:PANS;
+  const order=panOrder();
   ['left','right'].forEach((side,i)=>{const host=$('lab-'+side);if(host.dataset.pan!==order[i].key||!host.firstChild){host.dataset.pan=order[i].key;host.innerHTML=panSVG(order[i],false);
     const svg=host.querySelector('svg'),c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('class','labcur');c.setAttribute('r','46');svg.appendChild(c)}});
   $('labMode').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===LAB.mode)));
@@ -163,7 +163,7 @@ function labOpen(on){
 }
 window.addEventListener('gamepadconnected',e=>{labPadIdx=e.gamepad.index;if(!$('labSheet').hidden)labRender()});
 window.addEventListener('gamepaddisconnected',e=>{if(labPadIdx===e.gamepad.index)labPadIdx=null});
-$('labOpen').onclick=()=>labOpen(true);$('labClose').onclick=()=>labOpen(false);
+$('labOpen').onclick=()=>{if(!isGuitar()){say('Mallet Lab works with the double guitar for now. Switch this song to the double guitar in Setup → Your pan to try it.');return}labOpen(true)};$('labClose').onclick=()=>labOpen(false);
 $('labCal').onclick=labWizStart;$('labWizCancel').onclick=()=>{labWiz=null;$('labWiz').hidden=true;labMsg('Calibration stopped.')};
 $('labMode').querySelectorAll('button').forEach(b=>b.onclick=()=>{LAB.mode=b.dataset.m;labSave();labRender();labMsg(LAB.mode==='aim'?'Aim with the sticks, strike with your mallet buttons. Hold to roll.':'Flick a stick out quickly to strike where it points. Let it come back to the middle before the next hit.')});
 $('labDz').oninput=e=>{LAB.dz=+e.target.value;labSave();labRender()};
