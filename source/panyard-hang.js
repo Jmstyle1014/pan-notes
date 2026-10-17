@@ -1,4 +1,4 @@
-/* ---------- hanging pans: the tenor drawn in 3D, hung between two stand poles ---------- */
+/* ---------- 3D pans: the tenor hangs between two stand poles; the others stand as shiny drums ---------- */
 // Only the look changes: every note keeps the shape and place measured from the real pan, so taps land the same.
 const HANG={
   on:()=>setKey()==='tenor',
@@ -42,7 +42,26 @@ const HANG={
     return m[1].replace('class="pan ','class="pan hang ')+this.view(p)+m[3]+'<g class="sway" style="transform-origin:'+cx+'px '+f1(cy-p.ry)+'px">'+this.stage(p)+'<g class="face" transform="'+t+'">'+m[4]+gloss+'</g></g>'+m[5];
   }
 };
+// every other pan: the same chrome rim, shaded notes and the side of the drum below, without the stand
+const P3D={
+  tilt:.94,
+  wrap(html,p){
+    const m=/^([\s\S]*?<svg viewBox=")([^"]*)("[^>]*>)([\s\S]*)(<\/svg><\/div>)$/.exec(html);if(!m)return html;
+    const ds=p.drums||[{cx:p.cx,cy:p.cy,rx:p.rx,ry:p.ry}],[vx,vy,vw,vh]=m[2].split(' ').map(Number),c=vy+vh/2;
+    const drop=d=>d.rx*.13,maxDrop=Math.max(...ds.map(drop));
+    const t='translate(0 '+f1(c)+') scale(1 '+this.tilt+') translate(0 '+f1(-c)+')';
+    // behind each drum: a soft floor shadow and its chrome side
+    const back=ds.map(d=>{const L=d.cx-d.rx,R=d.cx+d.rx,dr=drop(d);
+      return '<ellipse cx="'+d.cx+'" cy="'+f1(d.cy+d.ry+dr*1.3)+'" rx="'+f1(d.rx*.9)+'" ry="'+f1(d.rx*.08)+'" fill="url(#hgShadow)"/>'
+        +'<path d="M'+L+' '+d.cy+' V'+f1(d.cy+dr)+' A'+d.rx+' '+d.ry+' 0 0 0 '+R+' '+f1(d.cy+dr)+' V'+d.cy+' Z" fill="url(#hgSkirt)"/>'
+        +'<path d="M'+f1(L+d.rx*.02)+' '+f1(d.cy+dr*.5)+' A'+f1(d.rx*.98)+' '+d.ry+' 0 0 0 '+f1(R-d.rx*.02)+' '+f1(d.cy+dr*.5)+'" fill="none" stroke="#efeaff" stroke-opacity=".18" stroke-width="'+f1(Math.max(3,d.rx*.012))+'"/>'}).join('');
+    const gloss=ds.map(d=>'<ellipse class="hg-gloss" cx="'+d.cx+'" cy="'+d.cy+'" rx="'+f1(d.rx*.97)+'" ry="'+f1(d.ry*.97)+'" fill="url(#hgGloss)"/>').join('');
+    const view=[vx,vy,vw,f1(vh+maxDrop*1.6)].join(' ');
+    return m[1].replace('class="pan ','class="pan p3d ')+view+m[3]+'<g class="face" transform="'+t+'">'+back+m[4]+gloss+'</g>'+m[5];
+  }
+};
 {
   const plain=panSVG;
-  panSVG=function(p,interactive){const h=plain(p,interactive);if(!HANG.on()||!p.drums||p.drums.length!==1)return h;HANG.defs();return HANG.wrap(h,p)};
+  panSVG=function(p,interactive){const h=plain(p,interactive);if(/class="pan [^"]*\bphoto\b/.test(h))return h;HANG.defs();
+    return HANG.on()&&p.drums&&p.drums.length===1?HANG.wrap(h,p):P3D.wrap(h,p)};
 }
