@@ -100,7 +100,7 @@ function render(){
   h+='<div class="bxph" id="bxPh"></div></div></div>';
   if(ED.sel){const s=ED.sel,cnt=S.cues.filter(c=>inR(c,tOf(s.a),tOf(s.b))&&c.steps&&c.steps.length).length,range=s.b-s.a>1?'Bars '+(s.a+1)+'–'+s.b:'Bar '+(s.a+1);
     const bt=(k,l,c)=>'<button class="btn sm'+(c?' '+c:'')+'" data-bx="'+k+'">'+l+'</button>';
-    h+='<div class="bxselbar"><span class="bxinfo"><b>'+range+'</b> · '+cnt+' cue'+(cnt===1?'':'s')+'</span>'+bt('left','◀ Move')+bt('right','Move ▶')+bt('copy','Copy')+bt('repeat','Repeat to end')+bt('snap','Snap')+bt('notes',ED.grid?'Close notes':'Edit notes',ED.grid?'on':'')+bt('loop',loop&&Math.abs(A-tOf(s.a))<.01?'Loop off':'Loop these bars')+bt('del','Delete','danger')+bt('clear','✕')+'</div>'}
+    h+='<div class="bxselbar"><span class="bxinfo"><b>'+range+'</b> · '+cnt+' cue'+(cnt===1?'':'s')+'</span>'+bt('left','◀ Move')+bt('right','Move ▶')+bt('copy','Copy after')+bt('repeat','Repeat to end')+bt('snap','Snap')+bt('notes',ED.grid?'Close notes':'Edit notes',ED.grid?'on':'')+bt('loop',loop&&Math.abs(A-tOf(s.a))<.01?'Loop off':'⟲ Loop')+bt('del','Delete','danger')+bt('clear','✕')+'</div>'}
   else h+='<p class="help">Tap a bar on either pan to select it; tap another bar to select everything between. Then move, copy, repeat, snap or delete those bars, or <b>Edit notes</b> on a grid. Tap the bar numbers to jump there.</p>';
   h+='<div class="row bxsnap"><span class="help">Snap to</span><div class="seg">'+SNAPS.map(([v,l])=>'<button data-bx="snapto" data-v="'+v+'" aria-pressed="'+(ED.snap===v)+'">'+l+'</button>').join('')+'</div></div>';
   if(ED.grid)h+=gridHTML();

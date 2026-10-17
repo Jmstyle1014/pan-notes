@@ -738,15 +738,15 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
         <div class="selbar" id="selBar" hidden>
           <strong id="selCount"></strong>
           <div class="nudge">
-            <button class="btn" id="nudgeL">◀ Earlier</button><button class="btn" id="nudgeR">Later ▶</button>
+            <button class="btn" id="nudgeL">◀ Move</button><button class="btn" id="nudgeR">Move ▶</button>
             <button class="btn" id="lenMinus">− Shorter</button><button class="btn" id="lenPlus">+ Longer</button>
           </div>
           <div class="acts3">
-            <button class="btn" id="snapSel">Snap</button>
-            <button class="btn" id="loopSel">Loop this</button>
+            <button class="btn" id="repeatSel">Copy after</button>
             <button class="btn" id="copySel">Copy</button>
-            <button class="btn" id="repeatSel">Repeat</button>
-            <button class="btn" id="editSel">Edit</button>
+            <button class="btn" id="snapSel">Snap</button>
+            <button class="btn" id="editSel">Edit notes</button>
+            <button class="btn" id="loopSel">⟲ Loop</button>
             <button class="btn danger" id="delSel">Delete</button>
           </div>
         </div>
@@ -1082,11 +1082,11 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
         <p>For a <b>chord</b>, tap both notes at the same time with two fingers. Taps within a split second of each other become one chord, and one Undo removes the whole chord.</p>
         <p>Slowing the song to 0.75× (the 1× button by the zoom) makes tapping along much easier.</p></details>
       <details><summary>Editing on the timeline</summary>
-        <p><b>Tap a note</b> to select it. A panel opens with Earlier / Later, Shorter / Longer, Snap, Loop this, Copy, Repeat, Edit and Delete.</p>
+        <p><b>Tap a note</b> to select it. A panel opens with the same tools as everywhere else: ◀ Move / Move ▶, Shorter / Longer, Copy after, Copy, Snap, Edit notes, ⟲ Loop and Delete.</p>
         <p><b>Drag a note</b> to move it, or drag its <b>right edge</b> to change how long it lasts. Hold near the edge of the timeline while dragging and it scrolls along.</p>
         <p><b>Pinch with two fingers</b> to zoom, or use − and +. Drag empty space to move through the song; tap empty space to jump there.</p>
-        <p><b>Select</b> lets you pick several notes: tap them, or drag across a stretch to grab a whole phrase. <b>Repeat</b> puts a copy a whole number of bars later; <b>Copy</b> then <b>Paste</b> drops it at the gold line.</p>
-        <p><b>↶ Undo</b> steps back through any change. Quick taps of Earlier / Later / Shorter / Longer undo together.</p></details>
+        <p><b>Select</b> lets you pick several notes: tap them, or drag across a stretch to grab a whole phrase. <b>Copy after</b> puts a copy a whole number of bars later; <b>Copy</b> then <b>Paste</b> drops it at the gold line.</p>
+        <p><b>↶ Undo</b> steps back through any change. Quick taps of Move / Shorter / Longer undo together.</p></details>
       <details><summary>Other pans: tenor, six bass, four cello</summary>
         <p>In <b>Setup → Your pan</b>, choose the pan for this song: <b>Double Guitar</b>, <b>Low C Tenor</b> (C4–E6), <b>Six Bass</b> (B♭1–E♭3) or <b>Four Cello</b> (B♭1–C♯4). The pans you tap, the chart, Letters, the timeline, the bar editor, the video and the sounds all follow it. Each song keeps its own pan, so a new song can be for a different one.</p>
         <p>Where a letter comes round again, the chart marks the octave with a dot: <b>Ċ</b> is above the middle octave, <b>C̣</b> below. When you edit the chart, type <b>C'</b> for the octave up and <b>C,</b> for the octave down. Colours show where a note is: the tenor's outer ring, middle ring and centre; each bass drum; each cello pan. Record your pans works per pan, so your guitar sounds and your bass sounds are kept apart.</p></details>
@@ -1096,7 +1096,7 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
       <details><summary>Snap and timing</summary>
         <p><b>Beat, ½, ¼</b> snap notes to the beat, half beat or quarter beat. They need the tempo: tap <b>♩ Timing</b>, play the song, and tap the big button on every beat at least 4 times. Your first tap marks the start of a bar. Use ◀ 10 ms / 10 ms ▶ to line the grid up, and ×2 / ÷2 if the tempo came out double or half.</p>
         <p><b>Hits</b> snaps notes to the drum hits the app finds in your recording (small teal marks on the timeline). It needs no tempo.</p>
-        <p>With a snap on, Earlier / Later move one snap step (or to the next drum hit), and <b>Snap</b> pulls selected notes into place.</p>
+        <p>With a snap on, ◀ Move / Move ▶ move one snap step (or to the next drum hit), and <b>Snap</b> pulls selected notes into place.</p>
         <p><b>Tap delay fix</b> (in ♩ Timing): if your taps keep landing late, turn it up; if they land early, turn it down.</p></details>
       <details><summary>Building a cue by hand</summary>
         <p>Choose <b>Build a cue</b>, tap the notes in the order you play them (tap a note again to repeat it), set when it starts and how long it lasts, and save. Use this for exact timings or to add a reminder.</p></details>
@@ -1883,7 +1883,7 @@ function snapTime(t,win=0.12){
 }
 function gridNeighbour(t,dir){const st=snapStep(),o=S.grid.offset,k=(t-o)/st,tol=0.01/st;return o+(dir>0?Math.floor(k+tol)+1:Math.ceil(k-tol)-1)*st}  // tol: notes within 10 ms count as on the line
 function stepText(){
-  if(S.snap==='hits')return onsets&&onsets.length?'Earlier / Later jump to the previous or next drum hit.':'Still reading the recording for drum hits…';
+  if(S.snap==='hits')return onsets&&onsets.length?'◀ Move / Move ▶ jump to the previous or next drum hit.':'Still reading the recording for drum hits…';
   const st=snapStep();
   if(st)return 'Each tap moves one '+({'1':'beat','2':'half beat','4':'quarter beat'}[S.snap])+' ('+st.toFixed(2)+' s).';
   return 'Each tap moves 20 ms. Turn on Snap for bigger, musical steps.';
@@ -2013,7 +2013,7 @@ function renderSel(){
   else if(cs.length){const a=Math.min(...cs.map(c=>c.start)),b=Math.max(...cs.map(c=>c.start+c.duration));$('selCount').textContent=noteCount(cs)+' notes selected · '+fmt(a)+' → '+fmt(b)}
   $('editSel').hidden=cs.length!==1;
   $('snapSel').hidden=S.snap==='off';$('snapSel').textContent=S.snap==='hits'?'Snap to hits':'Snap to beat';
-  $('loopSel').textContent=loop?'Stop loop':'Loop this';
+  $('loopSel').textContent=loop?'Loop off':'⟲ Loop';
   $('nudgeL').title=$('nudgeR').title=stepText();
   $('pasteBtn').hidden=!clip;
   if(clip)$('pasteBtn').textContent='Paste '+noteCount(clip)+(noteCount(clip)===1?' note':' notes');
@@ -3957,7 +3957,7 @@ function render(){
   h+='<div class="bxph" id="bxPh"></div></div></div>';
   if(ED.sel){const s=ED.sel,cnt=S.cues.filter(c=>inR(c,tOf(s.a),tOf(s.b))&&c.steps&&c.steps.length).length,range=s.b-s.a>1?'Bars '+(s.a+1)+'–'+s.b:'Bar '+(s.a+1);
     const bt=(k,l,c)=>'<button class="btn sm'+(c?' '+c:'')+'" data-bx="'+k+'">'+l+'</button>';
-    h+='<div class="bxselbar"><span class="bxinfo"><b>'+range+'</b> · '+cnt+' cue'+(cnt===1?'':'s')+'</span>'+bt('left','◀ Move')+bt('right','Move ▶')+bt('copy','Copy')+bt('repeat','Repeat to end')+bt('snap','Snap')+bt('notes',ED.grid?'Close notes':'Edit notes',ED.grid?'on':'')+bt('loop',loop&&Math.abs(A-tOf(s.a))<.01?'Loop off':'Loop these bars')+bt('del','Delete','danger')+bt('clear','✕')+'</div>'}
+    h+='<div class="bxselbar"><span class="bxinfo"><b>'+range+'</b> · '+cnt+' cue'+(cnt===1?'':'s')+'</span>'+bt('left','◀ Move')+bt('right','Move ▶')+bt('copy','Copy after')+bt('repeat','Repeat to end')+bt('snap','Snap')+bt('notes',ED.grid?'Close notes':'Edit notes',ED.grid?'on':'')+bt('loop',loop&&Math.abs(A-tOf(s.a))<.01?'Loop off':'⟲ Loop')+bt('del','Delete','danger')+bt('clear','✕')+'</div>'}
   else h+='<p class="help">Tap a bar on either pan to select it; tap another bar to select everything between. Then move, copy, repeat, snap or delete those bars, or <b>Edit notes</b> on a grid. Tap the bar numbers to jump there.</p>';
   h+='<div class="row bxsnap"><span class="help">Snap to</span><div class="seg">'+SNAPS.map(([v,l])=>'<button data-bx="snapto" data-v="'+v+'" aria-pressed="'+(ED.snap===v)+'">'+l+'</button>').join('')+'</div></div>';
   if(ED.grid)h+=gridHTML();

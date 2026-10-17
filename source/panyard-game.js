@@ -6,10 +6,19 @@ const GAME={judged:new Set(),hitKeys:new Set(),streak:0,best:0,hits:0,notes:0,po
 try{GAME.best=+localStorage.getItem('panyard-best')||0}catch{}
 const LANE_COL={ec:'#ff8a5c',bf:'#3fd0d4'};
 const NOTE_W=54;   // how wide a falling note is, in pixels
-// one lane per pan, ring or drum of this song's pan, in screen order
-const laneKeys=()=>groupsNow().map(g=>g.key);
-const laneCol=k=>LANE_COL[k]||grpColor(k);
-function laneOf(id){return Math.max(0,laneKeys().indexOf(grpOf(id)))}
+// two lanes, one per mallet: the guitar's two pans, and on every other pan its left and right side
+// (left 3 drums / right 3 on the six bass, left 2 / right 2 on the four cello). Notes keep their ring or drum colour.
+const SIDE={};
+function sideMap(){for(const k in SIDE)delete SIDE[k];if(isGuitar())return;
+  for(const v of PANS){const ds=v.drums||[],multi=ds.length>1,mid=multi?ds.reduce((a,d)=>a+d.cx,0)/ds.length:v.cx;
+    for(const f of v.fields){const x=multi&&f[8]!=null?ds[f[8]].cx:+f[4];SIDE[f[0]]=x<mid-1?0:1}}}   // dead centre (low C, top F♯) goes to the right hand
+PAN_HOOKS.push(sideMap);sideMap();
+const laneKeys=()=>isGuitar()?groupsNow().map(g=>g.key):['L','R'];
+const LANE_NAME={L:'Left hand',R:'Right hand'};
+const laneName=L=>isGuitar()?groupsNow()[L].short:LANE_NAME[laneKeys()[L]];
+const laneCol=k=>LANE_COL[k]||(k==='L'?'#8fc7ff':k==='R'?'#f2b38a':grpColor(k));
+const noteCol=(id,L)=>isGuitar()?laneCol(laneKeys()[L]):grpColor(grpOf(id));
+function laneOf(id){return isGuitar()?Math.max(0,laneKeys().indexOf(grpOf(id))):(SIDE[id]??1)}
 function drawLanes(t){
   const cv=$('lanes');if(!cv||!cv.offsetParent)return;
   const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
@@ -21,7 +30,7 @@ function drawLanes(t){
   for(let L=0;L<NL;L++){const x=L*(lw+gap);
     g.fillStyle='#1a1430';g.beginPath();g.roundRect?g.roundRect(x,0,lw,H,[18,18,6,6]):g.rect(x,0,lw,H);g.fill();
     g.fillStyle=laneCol(keys[L]);g.globalAlpha=.07;g.fillRect(x,hitY-60,lw,60);g.globalAlpha=1;
-    g.fillStyle=laneCol(keys[L]);g.globalAlpha=.55;g.font='700 10px '+DF;g.textAlign='center';g.textBaseline='top';g.fillText(groupsNow()[L].short,x+lw/2,10,lw-4);g.globalAlpha=1}
+    g.fillStyle=laneCol(keys[L]);g.globalAlpha=.55;g.font='700 10px '+DF;g.textAlign='center';g.textBaseline='top';g.fillText(laneName(L),x+lw/2,10,lw-4);g.globalAlpha=1}
   // notes
   const from=t-0.35,to=t+(hitY+40)/P;
   let lo=0,hi=hwItems.length;while(lo<hi){const m=(lo+hi)>>1;if(hwItems[m].t+hwItems[m].d<from)lo=m+1;else hi=m}
@@ -34,7 +43,7 @@ function drawLanes(t){
     perLane.forEach((ids,L)=>ids.forEach((id,k)=>{
       // notes are a fixed size, centred in their lane (side by side when a pan plays two at once)
       const w=Math.max(10,Math.min(NOTE_W,(lw-(NL>3?6:16))/ids.length-(NL>3?2:6))),x=L*(lw+gap)+(lw-(ids.length*w+(ids.length-1)*6))/2+k*(w+6),y=yHit-len;
-      const col=laneCol(keys[L]),done=GAME.judged.has(i+':'+id);
+      const col=noteCol(id,L),done=GAME.judged.has(i+':'+id);
       g.globalAlpha=past?.18:1;
       // how long it lasts: a thin trail behind the note (wavy for a roll)
       if(tail>len+6){g.strokeStyle=col;g.lineWidth=n.fx==='roll'?3:4;g.globalAlpha=(past?.12:.45);g.beginPath();

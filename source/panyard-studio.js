@@ -289,7 +289,9 @@ function startSrc(tr,t,offset,endT){
 function seek(b){const was=T.playing&&!T.rec;if(T.playing)stop(false);T.pos=Math.max(0,Math.min(L(),b));if(was)play(false);updatePlayhead()}
 
 /* ---- recording pan taps ---- */
-const latBeats=()=>(PR.latency||0)/1000/spb();
+// one tap delay for the whole app: Write's 'Tap delay fix' and Studio's pan-tap timing are the same number
+const tapMs=()=>Math.round((Number.isFinite(S.tapLag)?S.tapLag:0)*1000);
+const latBeats=()=>tapMs()/1000/spb();
 const recBeatAt=t=>wrap(Math.max(T.b0,T.b0+(t-T.t0)/spb()-latBeats()));
 function recNote(tr,id,v){
   if(!(T.rec&&T.playing&&tr.id===T.recTid)||ctx.currentTime<T.t0-.05)return null;   // nothing records during the count-in
@@ -408,8 +410,8 @@ function finishTapCal(){
   CAL.on=false;const offs=[];
   for(const t of CAL.taps){let best=null;for(const c of CAL.clicks.slice(2)){const d=t-c;if(Math.abs(d)<.3&&(best===null||Math.abs(d)<Math.abs(best)))best=d}if(best!==null)offs.push(best)}
   if(offs.length<5){calMsg('Not enough taps landed near the clicks. Try again and tap along with each click.');return}
-  offs.sort((a,b)=>a-b);PR.latency=Math.round(Math.max(-100,Math.min(400,offs[Math.floor(offs.length/2)]*1000)));savePR();
-  calMsg('Done. Your taps land about '+Math.abs(PR.latency)+' ms '+(PR.latency>=0?'late':'early')+'; pan taps are now shifted to match.');renderSheet();
+  offs.sort((a,b)=>a-b);const ms=Math.round(Math.max(-100,Math.min(350,offs[Math.floor(offs.length/2)]*1000)));S.tapLag=ms/1000;PR.latency=ms;savePR();save();try{renderGrid()}catch{}
+  calMsg('Done. Your taps land about '+Math.abs(tapMs())+' ms '+(tapMs()>=0?'late':'early')+'. Pan taps here and Tap along in Write are both shifted to match.');renderSheet();
 }
 async function measureMic(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!AC()){say("The microphone isn't available here.");return}
@@ -544,8 +546,8 @@ function selBarHTML(){
   const tr=trById(SEL.tid);if(!tr)return '';const range=SEL.b-SEL.a>1?'Bars '+(SEL.a+1)+'–'+SEL.b:'Bar '+(SEL.a+1);
   const b=(act,label)=>'<button class="btn sm" data-st="r-'+act+'">'+label+'</button>';
   const n=isPanish(tr)?' · '+selNotes(tr).filter(x=>!x.roll).length+' notes':'';
-  let tools=b('loop','Loop these bars');
-  if(isPanish(tr))tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy')+b('repeat','Repeat to end')+b('snap','Snap')+b('notes','Edit notes')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
+  let tools=b('loop','⟲ Loop');
+  if(isPanish(tr))tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy after')+b('repeat','Repeat to end')+b('snap','Snap')+b('notes','Edit notes')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
   if(tr.type==='audio'&&tr.take)tools=b('left','◀ Bar')+b('right','Bar ▶')+tools+'<button class="btn sm danger" data-st="r-delete">Remove take</button>';
   if(tr.type==='beats')tools=b('silence',(tr.off||[]).includes(SEL.a)?'Play these bars':'Silence these bars')+tools;
   return '<div class="st-selin" role="toolbar" aria-label="Edit '+esc(range)+' of '+esc(tr.name)+'"><span class="st-selinfo"><b>'+range+'</b> · '+esc(tr.name)+n+'</span>'+tools+'<button class="btn sm" data-st="r-close" aria-label="Clear selection">✕</button></div>';
@@ -683,7 +685,7 @@ function renderSheet(){
   }else if(SH.kind==='timing'){
     const lag=PR.micLag!=null?PR.micLag:Math.round(((ctx&&ctx.outputLatency)||0)*1000+((ctx&&ctx.baseLatency)||0)*1000+12);
     h=head('Timing fix')+'<p class="help">Phones add a small delay between you and the sound. Fix it once and your recordings land on the beat.</p>'
-      +'<div class="panel st-cal"><b>Pan taps</b><p class="help">Tap Start, then tap the big button on every click. Now: '+(PR.latency||0)+' ms.</p><div class="row"><button class="btn" data-st="tapcal">Start</button><button class="btn primary grow st-calbtn" id="stCalTap">Tap on the click</button></div></div>'
+      +'<div class="panel st-cal"><b>Pan taps</b><p class="help">Tap Start, then tap the big button on every click. Now: '+tapMs()+' ms (the same as Tap delay fix in Write).</p><div class="row"><button class="btn" data-st="tapcal">Start</button><button class="btn primary grow st-calbtn" id="stCalTap">Tap on the click</button></div></div>'
       +'<div class="panel st-cal"><b>Mic</b><p class="help">Take off headphones and keep it quiet: the phone plays clicks and listens for them. '+(PR.micLag!=null?'Set to '+PR.micLag+' ms.':'Using the phone\'s own estimate ('+lag+' ms).')+'</p>'
       +'<div class="row"><button class="btn" data-st="miccal">Measure with the speaker</button>'+(PR.micLag!=null?'<button class="btn sm" data-st="micauto">Use the estimate</button>':'')+'</div>'
       +'<label class="lab"><span>Set by ear: <b id="stLagV">'+lag+'</b> ms</span><input type="range" id="stLag" min="0" max="400" step="5" value="'+lag+'"></label></div>'
@@ -952,9 +954,11 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{enter,leave,exportSheet:()=>openSheet('export'),get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
+{const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
+  m.onclick=()=>{showView('studio');let n=0;const go=()=>{if(STUDIO.song)STUDIO.timingSheet();else if(n++<40)setTimeout(go,100)};go()};lp.after(m)}}
 // the Studio mix lives in the one Share sheet, next to the chart, picture and video
 {const tiles=document.querySelector('#shareSheet .tiles');if(tiles){const b=document.createElement('button');b.className='tile';b.id='expStudio';
   b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v16M12 4v16M19 4v16"/><rect x="3" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="17" y="11" width="4" height="3" rx="1" fill="currentColor"/></svg><b>Studio mix</b><span>Your tracks as MP3 or WAV</span>';
