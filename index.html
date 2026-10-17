@@ -476,6 +476,7 @@ body{padding-bottom:calc(var(--dockH,132px) + 16px)}
 .pair.one{grid-template-columns:1fr}
 .pan.stage svg{max-height:62vh}
 .dcap{fill:var(--muted);font:700 40px var(--body);text-anchor:middle;dominant-baseline:auto;letter-spacing:.06em}
+.field.lite .zone{filter:brightness(1.14) saturate(.9)}
 </style>
 
 <main>
@@ -975,7 +976,53 @@ function wedgePath(cx,cy,r,a0,a1){const span=((a1-a0)%360+360)%360,[x0,y0]=arcXY
   return 'M'+cx+' '+cy+' L'+f1(x0)+' '+f1(y0)+' A'+r+' '+r+' 0 '+(span>180?1:0)+' 1 '+f1(x1)+' '+f1(y1)+' Z'}
 function stageViewBox(ds){const pad=24,xs=ds.flatMap(p=>[p.cx-p.rx,p.cx+p.rx]),ys=ds.flatMap(p=>[p.cy-p.ry,p.cy+p.ry]),x0=Math.min(...xs)-pad,y0=Math.min(...ys)-pad-(ds.length>1?56:0);
   return [x0,y0,Math.max(...xs)+pad-x0,Math.max(...ys)+pad-y0].map(Math.round).join(' ')}
-// a field: [id, letter on the pan, where it sits, shape, label x, label y, label size, colour group]
+// a shape through these points with its corners rounded off (arcs are dense, so only real corners round)
+function roundPoly(pts,c){
+  const n=pts.length,seg=(a,b)=>Math.hypot(b[0]-a[0],b[1]-a[1]);let d='';
+  for(let i=0;i<n;i++){const p=pts[i],a=pts[(i+n-1)%n],b=pts[(i+1)%n],da=Math.min(c,seg(a,p)/2),db=Math.min(c,seg(p,b)/2);
+    const p1=[p[0]+(a[0]-p[0])*da/seg(a,p),p[1]+(a[1]-p[1])*da/seg(a,p)],p2=[p[0]+(b[0]-p[0])*db/seg(p,b),p[1]+(b[1]-p[1])*db/seg(p,b)];
+    d+=(i?' L':'M')+f1(p1[0])+' '+f1(p1[1])+' Q'+f1(p[0])+' '+f1(p[1])+' '+f1(p2[0])+' '+f1(p2[1])}
+  return d+' Z';
+}
+// a rounded slice of a ring: from radius r0 to r1, angles a0 to a1, with a straight gap of g between neighbours
+function ringTile(cx,cy,r0,r1,a0,a1,g,c){
+  const pts=[],N=14,ang=(r,a,side)=>a+side*(g/2)/r*180/Math.PI;
+  for(let k=0;k<=N;k++){const a=ang(r1,a0,1)+(ang(r1,a1,-1)-ang(r1,a0,1))*k/N;pts.push(arcXY(cx,cy,r1,a))}
+  for(let k=N;k>=0;k--){const a=ang(r0,a0,1)+(ang(r0,a1,-1)-ang(r0,a0,1))*k/N;pts.push(arcXY(cx,cy,r0,a))}
+  return roundPoly(pts,c);
+}
+// Low C tenor, drawn like the real pan: twelve big notes round the rim, an oval for each octave on the middle ring,
+// and five small notes in the centre
+function tenorSet(){
+  const cx=500,cy=500,R=445,fields=[],add=(n,pos,grp,path,x,y,fs)=>{const m=nmOf(n);fields.push(['tenor:'+m,PC_LAB[m%12],pos,path,f1(x),f1(y),fs,grp,0])};
+  fifthsRing(4,0).forEach(([n,a])=>{const [x,y]=arcXY(cx,cy,R*.81,a);add(n,'outer','gTo',ringTile(cx,cy,R*.665,R*.955,a-15,a+15,R*.035,R*.09),x,y,58)});
+  fifthsRing(5,0).forEach(([n,a])=>{const [x,y]=arcXY(cx,cy,R*.5,a);add(n,'middle','gTm',ellPath(x,y,R*.112,R*.135,a+90),x,y,46)});
+  [['C6',111,97],['C#6',-158,108],['D6',11,51],['Eb6',158,128],['E6',-87,90]].forEach(([n,a,d])=>{const [x,y]=arcXY(cx,cy,d,a);add(n,'centre','gTc',ellPath(x,y,R*.11,R*.11,0),x,y,42)});
+  const ds=[{name:'Low C Tenor',cx,cy,rx:R,ry:R}];
+  return{name:'Low C Tenor',key:'tenor',view:stageViewBox(ds),cx,cy,rx:R,ry:R,drums:ds,fields};
+}
+// Four cello, drawn from the real pans: each pan has three big notes round the rim (its lowest notes), two white
+// notes at the rim between them, and two small notes near the middle. Positions measured from the Digital Pan screen:
+// [note, angle, distance from the centre as a share of the radius].
+function cello4Set(drums){
+  const fields=[],ds=[],HW=33;
+  drums.forEach(([dn,cx,cy,r,notes],di)=>{
+    ds.push({name:dn,cx,cy,rx:r,ry:r});
+    const pts=notes.map(([n,a,d])=>({n,m:nmOf(n),a:((a%360)+360)%360,d:d*r})).sort((x,y)=>x.m-y.m);
+    pts.forEach((p,i)=>{p.kind=i<3?'big':i<5?'white':'small'});
+    const rim=pts.filter(p=>p.kind!=='small').sort((x,y)=>x.a-y.a);
+    const add=(p,pos,path,fs)=>{const [x,y]=arcXY(cx,cy,p.d,p.a);fields.push(['fcello:'+p.m,PC_LAB[p.m%12],dn+' '+pos,path,f1(x),f1(y),fs,'gC'+di,di])};
+    // the small notes go last so they sit on top
+    for(const kind of ['big','white']){rim.forEach((p,i)=>{if(p.kind!==kind)return;
+      if(kind==='white'){const [x,y]=arcXY(cx,cy,r*.69,p.a);add(p,'rim',ellPath(x,y,r*.3,r*.235,p.a+90),Math.round(r*.17));return}
+      const prev=rim[(i+rim.length-1)%rim.length],next=rim[(i+1)%rim.length],gp=(p.a-prev.a+360)%360,gn=(next.a-p.a+360)%360;
+      const a0=prev.kind==='white'?p.a-gp+HW:p.a-gp/2,a1=next.kind==='white'?p.a+gn-HW:p.a+gn/2;
+      add(p,'outer',ringTile(cx,cy,r*.4,r*.95,a0,a1,r*.12,r*.28),Math.round(r*.2))})}
+    pts.filter(p=>p.kind==='small').forEach(p=>{const [x,y]=arcXY(cx,cy,p.d,p.a);add(p,'inner',ellPath(x,y,r*.2,r*.2,0),Math.round(r*.16))});
+  });
+  return{name:'Four Cello',key:'fcello',view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
+}
+// a field: [id, letter on the pan, where it sits, shape, label x, label y, label size, colour group, which drum]
 function stageSet(set,name,drums,grp){
   const fields=[],ds=[];
   drums.forEach(([dn,cx,cy,r,notes],di)=>{
@@ -985,7 +1032,7 @@ function stageSet(set,name,drums,grp){
       const near=Math.min(r,...pts.filter(o=>o!==p).map(o=>Math.hypot(o.x-p.x,o.y-p.y)));
       const tan=Math.min(near*.52,r*.46),rad=Math.min(near*.5,r*.42,Math.max(r-p.d-8,near*.32)),round=p.d<r*.12;
       const rx=round?Math.min(tan,rad):tan,ry=round?Math.min(tan,rad):rad,g=grp(di,p,r,dn);
-      fields.push([set+':'+p.m,PC_LAB[p.m%12],g.pos,ellPath(p.x,p.y,rx,ry,round?0:p.a+90),f1(p.x),f1(p.y),Math.round(Math.max(18,Math.min(64,Math.min(rx,ry)*.95))),g.grp,di]);
+      fields.push([set+':'+p.m,PC_LAB[p.m%12],g.pos,ellPath(p.x,p.y,rx,ry,round?0:p.a+90),f1(p.x),f1(p.y),Math.round(Math.max(18,Math.min(64,Math.min(rx,ry)*.95))),g.grp]);
     }
   });
   return{name,key:set,view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
@@ -997,7 +1044,7 @@ function bassSet(set,name,drums){
     ds.push({name:dn,cx,cy,rx:r,ry:r});
     const s=notes.map(([n,a])=>({m:nmOf(n),a:((a%360)+360)%360})).sort((x,y)=>x.a-y.a);
     s.forEach((p,i)=>{const prev=s[(i+s.length-1)%s.length].a,next=s[(i+1)%s.length].a,a0=prev+((p.a-prev+360)%360)/2+2,a1=p.a+((next-p.a+360)%360)/2-2,[tx,ty]=arcXY(cx,cy,r*.55,p.a);
-      fields.push([set+':'+p.m,PC_LAB[p.m%12],dn+' drum',wedgePath(cx,cy,f1(r*.93),a0,a1),f1(tx),f1(ty),Math.round(Math.min(64,r*.34)),'gS'+di,di])});
+      fields.push([set+':'+p.m,PC_LAB[p.m%12],dn+' drum',wedgePath(cx,cy,f1(r*.93),a0,a1),f1(tx),f1(ty),Math.round(Math.min(64,r*.34)),'gS'+di])});
   });
   return{name,key:set,view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
 }
@@ -1009,8 +1056,7 @@ const SETS={
   guitar:{name:'Double Guitar',range:'C♯3–G♯4',views:GUITAR_PANS,plain:null,groups:[{key:'ec',name:'E / C pan',short:'E/C'},{key:'bf',name:'B / F pan',short:'B/F'}]},
   // Low C tenor, C4–E6: circle of fifths round the rim with C at the bottom, octaves on the middle ring, five top notes in the centre
   tenor:{name:'Low C Tenor',range:'C4–E6',plain:[72,83],
-    views:[stageSet('tenor','Low C Tenor',[['Low C Tenor',500,500,445,[...fifthsRing(4,378),...fifthsRing(5,228),['C6',111,97],['C#6',-158,108],['D6',11,51],['Eb6',158,146],['E6',-87,90]]]],
-      (di,p)=>p.d>300?{grp:'gTo',pos:'outer'}:p.d>150?{grp:'gTm',pos:'middle'}:{grp:'gTc',pos:'centre'})],
+    views:[tenorSet()],
     groups:[{key:'gTo',name:'Outer ring',short:'Outer',color:'#f2b38a'},{key:'gTm',name:'Middle ring',short:'Middle',color:'#8fc7ff'},{key:'gTc',name:'Centre',short:'Centre',color:'#c9a2ff'}]},
   // Six bass, B♭1–E♭3: six drums in an arch, each with its note, the octave and the fifth
   six:{name:'Six Bass',range:'B♭1–E♭3',plain:[34,45],
@@ -1024,12 +1070,11 @@ const SETS={
     groups:['B♭','E♭','C♯','B','D','C'].map((n,i)=>({key:'gS'+i,name:n+' drum',short:n,color:['#f2b38a','#ffd36b','#9be38f','#8fc7ff','#c9a2ff','#ff9ac1'][i]}))},
   // Four cello, B♭1–C♯4: two smaller pans on top, two larger below
   fcello:{name:'Four Cello',range:'B♭1–C♯4',plain:[46,57],
-    views:[stageSet('fcello','Four Cello',[
-      ['B♭ pan',730,240,190,[['Bb1',42,135],['Bb2',137.6,156],['Bb3',108,32],['Eb2',-170.5,122],['Eb3',-99.5,122],['F2',-34.7,158],['F3',-45,57]]],
-      ['C♯ pan',1180,230,180,[['C#2',149.7,139],['C#3',-152,170],['C#4',-153,56],['F#2',-100,112],['F#3',-16.7,104],['G#2',48,135],['G#3',16,36]]],
-      ['C pan',450,680,240,[['C2',29,180],['C3',106,146],['C4',39.3,71],['D2',-166,124],['D3',-70.6,170],['G2',-29.2,180],['G3',-20.9,105]]],
-      ['B pan',1390,650,230,[['B1',42.7,165],['B2',122.7,160],['B3',90,50],['E2',-168.7,150],['E3',-104,160],['A2',-39.8,150],['A3',-33.7,36]]]],
-      (di,p,r,dn)=>({grp:'gC'+di,pos:dn+(p.d<r*.45?' inner':' outer')}))],
+    views:[cello4Set([
+      ['B♭ pan',730,240,190,[['Eb3',-97.5,.7],['F2',-40,.76],['Eb2',-166.3,.67],['F3',-56.7,.23],['Bb3',114.6,.22],['Bb2',126.5,.72],['Bb1',40.8,.66]]],
+      ['C♯ pan',1180,230,180,[['C#3',-145.1,.76],['F#2',-86.3,.65],['F#3',-12.6,.66],['C#4',-152.2,.28],['G#3',29.1,.18],['C#2',134.2,.64],['G#2',46.2,.74]]],
+      ['C pan',450,680,240,[['D3',-93.6,.69],['G2',-39.4,.78],['D2',-167.8,.64],['G3',-50.3,.22],['C4',111.8,.26],['C3',125,.78],['C2',45,.68]]],
+      ['B pan',1390,650,230,[['E3',-105.8,.73],['A2',-45.4,.72],['E2',-165.7,.71],['A3',-62.4,.23],['B3',104.7,.2],['B2',120,.65],['B1',35.2,.72]]]])],
     groups:['B♭','C♯','C','B'].map((n,i)=>({key:'gC'+i,name:n+' pan',short:n,color:['#f2b38a','#9be38f','#8fc7ff','#c9a2ff'][i]}))}
 };
 // octave dots, so a letter that comes round again reads clearly: Ċ above the middle octave, C̣ below
@@ -1052,12 +1097,10 @@ const PAN_HOOKS=[];
 // every colour rule written for the E / C pan, copied for the new pans' groups
 function groupCss(){
   let st=document.getElementById('grpCss');if(!st){st=document.createElement('style');st.id='grpCss';document.head.appendChild(st)}
-  if(st.dataset.set===setKey())return;st.dataset.set=setKey();
-  const vars=':root{'+Object.values(SETS).flatMap(x=>x.groups).filter(g=>g.color).map(g=>'--'+g.key+':'+g.color).join(';')+'}';
-  if(isGuitar()){st.textContent=vars;return}
+  if(st.dataset.set===setKey())return;st.dataset.set=setKey();if(isGuitar()){st.textContent='';return}
   const src=[];
   for(const sh of document.styleSheets){let rs;try{rs=sh.cssRules}catch{continue}for(const r of rs)if(r.selectorText&&/(\.|pn-)ec\b/.test(r.selectorText)&&!/#grpCss/.test(r.cssText))src.push(r.cssText)}
-  let css=vars;
+  let css=':root{'+curSet().groups.map(g=>'--'+g.key+':'+g.color).join(';')+'}';
   for(const g of curSet().groups)for(const t of src)css+=t.replace(/\.ec\b/g,'.'+g.key).replace(/pn-ec\b/g,'pn-'+g.key).replace(/var\(--ec\)/g,'var(--'+g.key+')');
   st.textContent=css;
 }
@@ -1157,7 +1200,7 @@ function panSVG(p,interactive){
   const bg=src?'<image href="'+esc(src)+'" x="0" y="0" width="'+w+'" height="'+h+'" preserveAspectRatio="none"/>'
     :rims.map(d=>{const b=p.drums?Math.max(6,d.rx*.035):14;return '<ellipse class="rim" cx="'+d.cx+'" cy="'+d.cy+'" rx="'+d.rx+'" ry="'+d.ry+'"/><ellipse class="bed" cx="'+d.cx+'" cy="'+d.cy+'" rx="'+(d.rx-b)+'" ry="'+(d.ry-b)+'"/>'+(rims.length>1?'<text class="dcap" x="'+d.cx+'" y="'+(d.cy-d.ry-16)+'">'+esc(d.name)+'</text>':'')}).join('');
   const clips=p.drums?'<defs>'+p.drums.map((d,i)=>'<clipPath id="cp-'+p.key+i+'"><circle cx="'+d.cx+'" cy="'+d.cy+'" r="'+(d.rx-Math.max(6,d.rx*.035))+'"/></clipPath>').join('')+'</defs>':'';
-  const zones=clips+p.fields.map(f=>'<g class="field'+(f[2].includes('inner')||f[2]==='centre'?' inner':'')+'" data-field="'+f[0]+'"'+(f[8]!=null?' clip-path="url(#cp-'+p.key+f[8]+')"':'')+(interactive?' role="button" tabindex="0" aria-label="'+esc(FIELDS.get(f[0]).label)+', '+f[2]+', '+p.name+'"':' aria-hidden="true"')+'><path class="zone" d="'+f[3]+'"/><text x="'+f[4]+'" y="'+f[5]+'"'+(f[6]?' style="font-size:'+f[6]+'px"':'')+'>'+f[1]+'</text></g>').join('');
+  const zones=clips+p.fields.map(f=>'<g class="field'+(f[2].includes('inner')||f[2]==='centre'?' inner':'')+(f[2].endsWith(' rim')?' lite':'')+'" data-field="'+f[0]+'"'+(f[8]!=null?' clip-path="url(#cp-'+p.key+f[8]+')"':'')+(interactive?' role="button" tabindex="0" aria-label="'+esc(FIELDS.get(f[0]).label)+', '+f[2]+', '+p.name+'"':' aria-hidden="true"')+'><path class="zone" d="'+f[3]+'"/><text x="'+f[4]+'" y="'+f[5]+'"'+(f[6]?' style="font-size:'+f[6]+'px"':'')+'>'+f[1]+'</text></g>').join('');
   return '<div class="pan pan-'+p.key+(p.drums?' stage':'')+(src?' photo':'')+(interactive?' tap':'')+'"><h3>'+p.name+'</h3><svg viewBox="'+p.view+'" role="img" aria-label="'+p.name+'">'+bg+zones+'</svg></div>';
 }
 function renderPans(){
