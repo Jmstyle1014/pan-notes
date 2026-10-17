@@ -11,13 +11,13 @@ const STAGE={
   },
   dockH(){const d=$('dock');return d?d.offsetHeight:0},
   // which drum each field belongs to
-  drumsOf(){
-    const out=[];
-    for(const v of PANS){
+  drumsOf(key){
+    const out=[],views=key?(SETS[key]||SETS.guitar).views:PANS;
+    for(const v of views){
       if(v.drums&&v.drums.length){v.drums.forEach((d,i)=>out.push({cx:d.cx,cy:d.cy,r:d.rx,key:v.key,ids:v.fields.filter(f=>(f[8]!=null?f[8]:+(String(f[7]).replace(/\D/g,'')||0))===i).map(f=>f[0])}))}
       else out.push({cx:v.cx,cy:v.cy,r:Math.max(v.rx,v.ry),key:v.key,ids:v.fields.map(f=>f[0]),own:true});
     }
-    if(isGuitar()&&S.swapped)out.reverse();
+    if((key||setKey())==='guitar'&&S.swapped)out.reverse();
     return out;
   },
   horseshoe(bx,by,bw,bh,gap,strip){
@@ -33,8 +33,8 @@ const STAGE={
     return null;
   },
   // where each drum goes and where the two lanes go, for a stage W × H (CSS pixels)
-  layout(W,H){
-    const k=setKey(),ds=this.drumsOf(),pad=8,side=Math.max(14,Math.min(44,W*.04)),hitB=H*.75;
+  layout(W,H,key){
+    const k=key||setKey(),ds=this.drumsOf(key),pad=8,side=Math.max(14,Math.min(44,W*.04)),hitB=H*.75;
     const place=[],lanes=[];let top=pad;
     if(ds.length===2){   // double guitar, double seconds: the strip between the two pans
       const strip=Math.min(150,W*.15),R=Math.min((H-2*pad)/2.12,(W-2*side-strip-24)/4),cy=H/2-R*.06;
@@ -78,6 +78,56 @@ const STAGE={
     const k=setKey();
     return '<div class="pan p3d stage pfsvg pan-'+k+(isGuitar()?' pan-ec':'')+'"><svg viewBox="0 0 '+f1(W)+' '+f1(H)+'" width="'+f1(W)+'" height="'+f1(H)+'" role="img" aria-label="'+esc(curSet().name)+'">'+(defs?'<defs>'+defs+'</defs>':'')+parts.join('')+'</svg></div>';
   },
+  // upright screens with no falling lanes (Write and Studio): the same arrangement, stacked to fill the width
+  portrait(W,H,key){
+    const k=key||setKey(),ds=this.drumsOf(key),place=[];
+    if(k==='six'||W/H>=1.15)return this.layout(W,H,key);
+    if(ds.length===2){const R=Math.min((W-16)/2,(H-24)/4.3);place.push([W/2,H/2-R*1.06-6,R],[W/2,H/2+R*1.06+6,R])}
+    else if(ds.length===1){const R=Math.min((W-12)/2,(H-12)/2.12);place.push([W/2,H/2,R])}
+    else{const R=Math.min((W-24)/4.1,(H-20)/4.45),st=Math.max(0,Math.min(R*.5,W/2-2*R-12));
+      place.push([W/2-R-4,H/2-R*1.1,R],[W/2+R+4,H/2-R*1.1,R],[W/2-R-4-st,H/2+R*1.12,R],[W/2+R+4+st,H/2+R*1.12,R])}
+    return{ds,place};
+  },
+  // move the notes already on screen (with everything listening to them) into the pans-first arrangement
+  stageify(box,W,H){
+    if(!box)return;const fields=[...box.querySelectorAll('.field')];if(!fields.length)return;
+    const id0=fields[0].dataset.field,key=/^(\w+):/.test(id0)?id0.split(':')[0]:'guitar';if(!SETS[key])return;
+    W=Math.round(W);H=Math.round(H);if(W<120||H<120)return;
+    if(box.dataset.pf===W+'x'+H+key&&box.querySelector('.pfsvg'))return;
+    const L=this.portrait(W,H,key),byId=new Map(fields.map(f=>[f.dataset.field,f]));
+    let defs='';box.querySelectorAll('defs').forEach(d=>defs+=d.innerHTML);
+    const t=.94,ns='http://www.w3.org/2000/svg';
+    const wrap=document.createElement('div');wrap.className='pan p3d stage pfsvg pan-'+key+(key==='guitar'?' pan-ec':'')+(box.querySelector('.pan.tap')?' tap':'');
+    let h='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="width:'+W+'px;height:'+H+'px;max-width:none;max-height:none;min-height:0" role="img" aria-label="'+esc(SETS[key].name)+'">'+(defs?'<defs>'+defs+'</defs>':'');
+    L.ds.forEach((d,i)=>{const p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*.13;
+      h+='<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk*1.3)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
+        +'<path d="M'+f1(nx-R)+' '+f1(ny)+' V'+f1(ny+sk)+' A'+f1(R)+' '+f1(R*t)+' 0 0 0 '+f1(nx+R)+' '+f1(ny+sk)+' V'+f1(ny)+' Z" fill="url(#hgSkirt)"/>'
+        +'<g data-drum="'+i+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
+        +'<circle class="rim" cx="'+d.cx+'" cy="'+d.cy+'" r="'+d.r+'"/><circle class="bed" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.965)+'"/></g>'});
+    wrap.innerHTML=h+'</svg>';
+    L.ds.forEach((d,i)=>{const g=wrap.querySelector('g[data-drum="'+i+'"]');if(!g)return;
+      d.ids.forEach(id=>{const f=byId.get(id);if(f)g.appendChild(f)});
+      const gl=document.createElementNS(ns,'circle');gl.setAttribute('class','hg-gloss');gl.setAttribute('cx',d.cx);gl.setAttribute('cy',d.cy);gl.setAttribute('r',f1(d.r*.97));gl.setAttribute('fill','url(#hgGloss)');g.appendChild(gl)});
+    HANG.defs();box.innerHTML='';box.appendChild(wrap);box.dataset.pf=W+'x'+H+key;box.classList.add('pfbox');
+  },
+  // Write: the tap pans fill the screen width and the screen's height above the play bar
+  fitWrite(){
+    const box=$('editPans');if(!box||document.body.dataset.view!=='cues'||!box.offsetParent){document.body.classList.remove('pfwrite');return}
+    // a sideways phone: the pans take the whole screen above the play bar, like Practice
+    const short=innerWidth/innerHeight>=1.15&&innerHeight<=520;document.body.classList.toggle('pfwrite',short);
+    if(short){this.stageify(box,innerWidth,innerHeight-this.dockH());return}
+    const W=box.clientWidth||box.parentNode.clientWidth,land=innerWidth/innerHeight>=1.15;
+    // iPad sideways: fit between the pans' top and the play bar; upright: as tall as the screen allows (scroll down to them)
+    const fit=innerHeight-this.dockH()-(box.getBoundingClientRect().top+scrollY)-10;
+    this.stageify(box,W,land?Math.max(260,fit):Math.min(innerHeight-this.dockH()-70,W*1.75));
+  },
+  // Studio's Pans view: every bit of room between the controls and the play bar
+  fitStudio(){
+    const box=document.getElementById('stPans');if(!box||document.body.dataset.view!=='studio'||!box.offsetParent)return;
+    const tp=document.querySelector('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9;
+    const bottom=Math.min(innerHeight-this.dockH(),tpTop)-8,top=box.getBoundingClientRect().top;
+    this.stageify(box,box.clientWidth||box.parentNode.clientWidth,Math.max(180,bottom-top));
+  },
   render(){
     const want=this.wanted(),st=$('playStage');
     document.body.classList.toggle('pfmode',want);st.classList.toggle('pf',want);
@@ -96,9 +146,11 @@ const STAGE={
   // the ⋯ button: loop, speed and the other practice tools, on top of the pans only when you ask for them
   const b=document.createElement('button');b.id='pfMore';b.className='pfbtn';b.setAttribute('aria-label','Practice tools: loop, speed and more');b.textContent='•••';
   b.onclick=()=>document.body.classList.toggle('pf-tools');$('playStage').appendChild(b);
-  const _rp=renderPans;renderPans=function(){_rp();if(STAGE.wanted()||STAGE.on)STAGE.render()};
-  const _show=showView;showView=function(v){_show(v);STAGE.render()};
-  let rz=0;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>STAGE.render())});
+  const _rp=renderPans;renderPans=function(){_rp();$('editPans').dataset.pf='';if(STAGE.wanted()||STAGE.on)STAGE.render();requestAnimationFrame(()=>STAGE.fitWrite())};
+  const _show=showView;showView=function(v){_show(v);STAGE.render();requestAnimationFrame(()=>{STAGE.fitWrite();STAGE.fitStudio()})};
+  let rz=0;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>{STAGE.render();STAGE.fitWrite();STAGE.fitStudio()})});
+  // Studio redraws its pans often (switching tracks or views): rearrange them each time
+  {let mo=0;const v=$('view-studio');if(v)new MutationObserver(()=>{cancelAnimationFrame(mo);mo=requestAnimationFrame(()=>STAGE.fitStudio())}).observe(v,{childList:true,subtree:true})}
   PAN_HOOKS.push(()=>{if(STAGE.on)requestAnimationFrame(()=>STAGE.render())});
   // the Game's countdown and run switch to the pans-first stage, and back when it ends
   let lastGM='';setInterval(()=>{const s=typeof GM!=='undefined'?GM.state:'';if(s!==lastGM){lastGM=s;STAGE.render()}},250);

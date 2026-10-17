@@ -84,3 +84,19 @@ body.pfmode.pf-tools #practicePanel{display:flex!important;flex-direction:column
 body.pfmode #gmHud{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:6;width:min(320px,40vw)}
 body.pfmode #gmCount{z-index:7}
 body.pfmode #status{top:10px;bottom:auto;max-width:min(360px,50vw);font-size:13px;padding:6px 12px}
+/* Write and Studio pans, pans first (panyard-stage.js) */
+.pfbox{display:block!important;margin-inline:0!important}
+.pfbox>.pfsvg{width:auto;margin:0 auto}
+.pfbox>.pfsvg h3{display:none}
+.pfbox svg{display:block;margin:0 auto}
+/* Write on a sideways phone: pans fill the screen; the Write / Studio switch and Edit float in the corners */
+body.pfwrite[data-view="cues"] .appbar{display:none!important}
+body.pfwrite[data-view="cues"] #editPans.pfbox{position:fixed;left:0;right:0;top:0;bottom:var(--dockH,62px);z-index:3;margin:0!important;background:radial-gradient(ellipse at 50% 40%,#1b1436,#110c20 70%)}
+body.pfwrite[data-view="cues"] #subTabs{position:fixed;top:8px;left:max(10px,env(safe-area-inset-left));z-index:6;margin:0;transform:scale(.82);transform-origin:top left}
+body.pfwrite[data-view="cues"] #editBtn2,body.pfwrite[data-view="cues"] #cueTop{z-index:6}
+/* Studio's Pans view on a sideways phone: a slimmer track row, so the pans get the height */
+@media (orientation:landscape) and (max-height:520px){
+  body[data-view="studio"].st-inst #stInst{padding-top:4px;padding-bottom:4px;gap:4px}
+  body[data-view="studio"].st-inst #stInst>.st-tchips .chip{min-height:30px;padding:2px 10px;font-size:13px}
+}
+body.pfwrite[data-view="cues"] #status{top:10px;bottom:auto;max-width:min(360px,50vw);font-size:13px;padding:6px 12px}
