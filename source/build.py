@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 import sys
 # usage: build.py [source.html] [output folder] [app name]
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'pan-notes.html')
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'pan-notes.html')
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'site')
 NAME = sys.argv[3] if len(sys.argv) > 3 else 'Pan Notes'
 VENDOR = os.path.join(HERE, 'vendor')   # fonts + jsPDF, copied in once
@@ -46,7 +46,16 @@ head = f'''<!doctype html>
 '''
 tail = '''
 <script>
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator)window.addEventListener('load',()=>{
+  const had=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    // look for a newer version whenever the app comes back to the front
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{})});
+  }).catch(()=>{});
+  // a newer version has taken over: offer a refresh instead of switching under your fingers
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||window.__panNew)return;window.__panNew=1;
+    if(typeof SAFE!=='undefined')SAFE.notice('update','<b>New version ready.</b> Refresh to get the latest version. Your songs are kept.',[['Refresh',()=>location.reload()],['Later',null]]);});
+});
 </script>
 </body></html>
 '''
