@@ -3,7 +3,7 @@
 // about each song (its checklist, sections and pan) and adds three small things: where you stopped, which
 // sections you've practised, and which nights you played.
 const HOME={
-  PAN_NAME:{guitar:'Double Guitar',tenor:'Low C Tenor',six:'Six Bass',fcello:'Four Cello'},
+  PAN_NAME:new Proxy({},{get:(o,k)=>SETS[k]&&SETS[k].name}),
   ACC:['#f2b38a','#8fc7ff','#c9a2ff','#9be38f'],
   day:(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
   days(){try{const x=JSON.parse(localStorage.getItem('panyard-days')||'[]');return Array.isArray(x)?x:[]}catch{return[]}},

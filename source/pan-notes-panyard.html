@@ -1706,6 +1706,20 @@ function bassSet(set,name,drums){
   });
   return{name,key:set,view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
 }
+// Double seconds, measured from the Digital Pan screen: two pans of whole tones (C D E F♯ G♯ B♭ on the left,
+// C♯ E♭ F G A B on the right). Eight big notes round each rim (the lowest), seven smaller ones inside.
+// [note, x and y from the centre as a share of the radius, size (share of the radius), round?]
+function dsecSet(drums){
+  const fields=[],ds=[];
+  drums.forEach(([dn,cx,cy,r,notes],di)=>{
+    ds.push({name:dn,cx,cy,rx:r,ry:r});
+    notes.forEach(([n,dx,dy,sz,inner])=>{const m=nmOf(n),x=cx+dx*r,y=cy+dy*r,a=Math.atan2(dy,dx)*180/Math.PI;
+      // rim notes are ovals lying along the rim; inner notes are rounder
+      const rx=inner?sz*r:sz*r*1.18,ry=inner?sz*r*.82:sz*r*.8;
+      fields.push(['dsec:'+m,PC_LAB[m%12],dn+' '+(inner?'inner':'outer'),ellPath(x,y,rx,ry,a+90),f1(x),f1(y),Math.round(Math.max(26,Math.min(70,ry*.85))),'gD'+di,di])});
+  });
+  return{name:'Double Seconds',key:'dsec',view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
+}
 const FIFTHS=[0,7,2,9,4,11,6,1,8,3,10,5];
 const fifthsRing=(oct,d)=>FIFTHS.map((pc,k)=>[PC_NAME[pc]+oct,90-30*k,d]);
 const GUITAR_PANS=PANS;
@@ -1733,7 +1747,15 @@ const SETS={
       ['C♯ pan',1180,230,180,[['C#3',-145.1,.76],['F#2',-86.3,.65],['F#3',-12.6,.66],['C#4',-152.2,.28],['G#3',29.1,.18],['C#2',134.2,.64],['G#2',46.2,.74]]],
       ['C pan',450,680,240,[['D3',-93.6,.69],['G2',-39.4,.78],['D2',-167.8,.64],['G3',-50.3,.22],['C4',111.8,.26],['C3',125,.78],['C2',45,.68]]],
       ['B pan',1390,650,230,[['E3',-105.8,.73],['A2',-45.4,.72],['E2',-165.7,.71],['A3',-62.4,.23],['B3',104.7,.2],['B2',120,.65],['B1',35.2,.72]]]])],
-    groups:['B♭','C♯','C','B'].map((n,i)=>({key:'gC'+i,name:n+' pan',short:n,color:['#f2b38a','#9be38f','#8fc7ff','#c9a2ff'][i]}))}
+    groups:['B♭','C♯','C','B'].map((n,i)=>({key:'gC'+i,name:n+' pan',short:n,color:['#f2b38a','#9be38f','#8fc7ff','#c9a2ff'][i]}))},
+  // Double seconds, E3–A5: two whole-tone pans side by side
+  dsec:{name:'Double Seconds',range:'E3–A5',plain:[60,71],
+    views:[dsecSet([
+      ['C',460,480,430,[['G#3',-.03,-.69,.27],['C4',.51,-.47,.25],['E3',.72,.07,.27],['E4',.53,.59,.21],['Bb3',-.01,.76,.26],['F#3',-.61,.43,.27],['F#4',-.75,-.14,.21],['D4',-.58,-.52,.22],
+        ['G#4',-.06,-.26,.19,1],['C5',.31,-.09,.15,1],['E5',.31,.24,.14,1],['Bb4',-.02,.39,.17,1],['F#5',-.33,.2,.13,1],['D5',-.37,-.09,.16,1],['G#5',-.03,.07,.11,1]]],
+      ['C♯',1360,480,430,[['G3',.02,-.76,.26],['G4',.54,-.53,.21],['Eb4',.69,-.14,.21],['B3',.6,.37,.26],['F3',.05,.72,.27],['F4',-.57,.52,.21],['A3',-.77,.04,.25],['C#4',-.59,-.54,.22],
+        ['C#5',-.19,-.34,.15,1],['G5',.16,-.34,.12,1],['Eb5',.28,-.06,.14,1],['B4',.15,.27,.17,1],['F5',-.19,.31,.13,1],['A4',-.41,.01,.19,1],['A5',-.09,-.02,.1,1]]]])],
+    groups:[{key:'gD0',name:'C pan',short:'C',color:'#f2b38a'},{key:'gD1',name:'C♯ pan',short:'C♯',color:'#8fc7ff'}]}
 };
 // octave dots, so a letter that comes round again reads clearly: Ċ above the middle octave, C̣ below
 const OCT_MARK={1:'̇',2:'̈','-1':'̣','-2':'̤'};
@@ -6143,7 +6165,7 @@ document.querySelector('.tabs button[data-view="studio"]').onclick=()=>showView(
 // about each song (its checklist, sections and pan) and adds three small things: where you stopped, which
 // sections you've practised, and which nights you played.
 const HOME={
-  PAN_NAME:{guitar:'Double Guitar',tenor:'Low C Tenor',six:'Six Bass',fcello:'Four Cello'},
+  PAN_NAME:new Proxy({},{get:(o,k)=>SETS[k]&&SETS[k].name}),
   ACC:['#f2b38a','#8fc7ff','#c9a2ff','#9be38f'],
   day:(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
   days(){try{const x=JSON.parse(localStorage.getItem('panyard-days')||'[]');return Array.isArray(x)?x:[]}catch{return[]}},
