@@ -119,3 +119,17 @@ body[data-game="ready"] #gmResults,body[data-game="done"] #gmReady{display:none}
   #gmLive{font-size:16px}
   .tabs button{font-size:12px}
 }
+
+/* hanging pans (panyard-hang.js) */
+.hang .rim{fill:url(#hgRim);stroke:#fbfaff;stroke-opacity:.55;stroke-width:4}
+.hang .bed{fill:url(#hgBed)}
+.hang .zone{fill:url(#hgZone);stroke:#120d24;stroke-width:7}
+.hang .field text{fill:#f5f2ff;paint-order:stroke;stroke:#120d24;stroke-width:5px;stroke-linejoin:round}
+.hang .field.active .zone,.hang .field.hit .zone{fill:url(#hgGold);stroke:#fff3c4;stroke-width:10;filter:drop-shadow(0 0 14px rgb(255 209 102 / .75))}
+.hang .chosen .zone{fill:#ff6fae;stroke:#ffd0e6}
+.hang .field.active text,.hang .field.hit text{stroke:none;fill:#2a1a00}
+.hang .hg-gloss{pointer-events:none}
+.hang .sway{transform-box:view-box}
+.hang:has(.field.hit) .sway{animation:hangSway .7s ease-out}
+@keyframes hangSway{0%{transform:rotate(0)}25%{transform:rotate(.7deg)}55%{transform:rotate(-.45deg)}80%{transform:rotate(.18deg)}100%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){.hang .sway{animation:none!important}}
