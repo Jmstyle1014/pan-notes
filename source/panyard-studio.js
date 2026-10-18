@@ -383,8 +383,9 @@ function tapT(e){
   return ctx.currentTime-late-Math.max(0,spkLag()-SPK_BASE);
 }
 function recNote(tr,id,v,at){
-  if(!(T.rec&&T.playing&&tr.id===T.recTid)||ctx.currentTime<T.t0-.05)return null;   // nothing records during the count-in
-  const n={t:+recBeatAt(at!=null?at:tapT(null)).toFixed(3),d:.25,p:id,v:+v.toFixed(2),tk:T.take};tr.notes.push(n);return n;
+  const when=at!=null?at:tapT(null);
+  if(!(T.rec&&T.playing&&tr.id===T.recTid)||when<T.t0-Math.min(.25,spb()*.4))return null;   // nothing records during the count-in, but a hair early on beat 1 counts as beat 1
+  const n={t:+recBeatAt(when).toFixed(3),d:.25,p:id,v:+v.toFixed(2),tk:T.take};tr.notes.push(n);return n;
 }
 function recOff(n,at){if(!n)return;let d=recBeatAt(at!=null?at:tapT(null))-n.t;if(d<-.5&&looping())d+=loopE()-loopS();n.d=+Math.max(.25,Math.min(4,d)).toFixed(3)}   // a quick tap shows as a quarter beat
 function endNoteRec(){
@@ -439,8 +440,9 @@ function writeRecStart(tr){
   if(!T.playing)play(song.countIn);else renderTransport();setView('inst');
 }
 function writeTap(tr,id,at){
-  if(!(WR.on&&T.rec&&T.playing&&tr.id===T.recTid)||ctx.currentTime<T.t0-.05)return null;
-  let b=recBeatAt(at!=null?at:tapT(null));if(song.snapRec&&song.snap!=='off')b=snapBeat(b,+song.snap);
+  const when=at!=null?at:tapT(null);
+  if(!(WR.on&&T.rec&&T.playing&&tr.id===T.recTid)||when<T.t0-Math.min(.25,spb()*.4))return null;
+  let b=recBeatAt(when);if(song.snapRec&&song.snap!=='off')b=snapBeat(b,+song.snap);
   const t=+(origin()+b*spb()).toFixed(3);if(t<0)return null;
   const last=WR.last;
   if(last&&Math.abs(t-last.start)<.06){if(!last.steps.includes(id)){last.steps.push(id);last.mode='together'}return last}   // hit together: a chord
@@ -993,7 +995,8 @@ function addTrack(kind){
   pushHistory();let tr;
   if(kind==='part'){const ex=song.tracks.find(t=>t.type==='part');if(ex){H.u.pop();song.sel=ex.id;closeSheet();say('My part is already here, linked to Write.');return}tr=trk('part')}
   else tr=trk(kind);
-  const same=song.tracks.filter(t=>t.type===tr.type).length;if(same&&kind!=='part')tr.name+=' '+(same+1);
+  // numbered among its own kind: a second Six Bass is "Six Bass 2", a first tenor is just "Low C Tenor"
+  const same=song.tracks.filter(t=>t.type===tr.type&&(tr.type!=='pan'||t.panSet===tr.panSet)).length;if(same&&kind!=='part')tr.name+=' '+(same+1);
   song.tracks.push(tr);song.sel=tr.id;dirty();closeSheet();setView('inst');
   if(kind==='beats')AC()&&warmDrums();
   say(kind==='part'?'Added My part, linked to your cues in Write.':'Added '+tr.name+'.');
@@ -1221,7 +1224,9 @@ function onChange(e){
   if(t.id==='stAddRow'&&t.value){const tr=selTr();pushHistory();tr.rows.push({m:+t.value,steps:Array(tr.len).fill(0)});dirty();renderInst()}
   if(t.matches('[data-st-set]')){const tr=selTr(),k=t.value;if(tr.type!=='pan'||k===trSet(tr))return;
     if(tr.notes.length&&!confirm(tr.name+' has '+tr.notes.length+' notes on the '+SETS[trSet(tr)].name+'. Switch to the '+SETS[k].name+' and clear them? (Undo brings them back.)')){t.value=trSet(tr);return}
-    pushHistory();const old=SETS[trSet(tr)].name;tr.panSet=k;tr.notes=[];if(tr.name===old||/^Pan taps/.test(tr.name))tr.name=SETS[k].name;dirty();renderAll();say(tr.name+' now plays the '+SETS[k].name+'.');return}
+    pushHistory();const old=SETS[trSet(tr)].name;tr.panSet=k;tr.notes=[];
+    // a name the app gave it ("Low C Tenor", "Low C Tenor 2", "Pan taps") follows the pan; a name you typed stays
+    if(tr.name===old||/^Pan taps/.test(tr.name)||(tr.name.startsWith(old+' ')&&/^\d+$/.test(tr.name.slice(old.length+1)))){let nm=SETS[k].name,i=1;while(song.tracks.some(t=>t!==tr&&t.name===nm))nm=SETS[k].name+' '+(++i);tr.name=nm}dirty();renderAll();say(tr.name+' now plays the '+SETS[k].name+'.');return}
   if(t.id==='stFile'){const f=t.files&&t.files[0];t.value='';if(f)importFile(selTr(),f)}
 }
 function init(){
