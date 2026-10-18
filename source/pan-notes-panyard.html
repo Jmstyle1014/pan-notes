@@ -957,6 +957,10 @@ body.st-inst #stSecs{display:none}
 }
 @media (min-height:621px){body[data-view="studio"] #status{bottom:calc(var(--dockH,64px) + 82px)}}
 
+/* your part lighting up on the pans as it plays */
+#stPans .field.play-hit .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:12;filter:drop-shadow(0 0 10px rgba(255,209,102,.7))}
+#stPans .field.play-hit text{fill:var(--gold-ink)}
+
 /* ---------- Home (panyard-home.js) ---------- */
 body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="home"] .dock .transport{display:none!important}
 .home{position:relative;max-width:560px;margin:0 auto;padding:6px 2px 24px;display:flex;flex-direction:column;gap:14px}
@@ -1059,6 +1063,46 @@ body.pfwrite[data-view="cues"] #editBtn2,body.pfwrite[data-view="cues"] #cueTop{
   body[data-view="studio"].st-inst #stInst>.st-tchips .chip{min-height:30px;padding:2px 10px;font-size:13px}
 }
 body.pfwrite[data-view="cues"] #status{top:10px;bottom:auto;max-width:min(360px,50vw);font-size:13px;padding:6px 12px}
+
+/* ---------- Studio, GarageBand-style (panyard-gb.js) ---------- */
+body.gbmode #dock,body.gbmode .appbar,body.gbmode #subTabs,body.gbmode #view-studio>.st-bar{display:none!important}
+body.gbmode main{padding-top:0;max-width:none}
+body.gbmode #view-studio{padding-top:92px!important;padding-bottom:12px!important}
+body.gbmode .st-tp{position:static!important}
+#gbBar,#gbRuler,#gbPill,#gbMenu{display:none}
+body.gbmode #gbBar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;position:fixed;left:0;right:0;top:0;height:56px;padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));background:#19132e;border-bottom:1px solid var(--line);z-index:30}
+.gbl,.gbr{display:flex;align-items:center;gap:4px}.gbr{justify-content:flex-end}
+.gbc{display:flex;align-items:center;gap:2px;background:#110c20;border:1px solid var(--line);border-radius:12px;padding:3px}
+.gbi{width:44px;height:44px;border-radius:10px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.gbi:hover{color:var(--text)}.gbi.on{color:#8fc7ff;background:rgb(143 199 255 / .12)}
+body.gbmode .gbc .btn{min-width:52px;min-height:40px;height:40px;border-radius:9px;border:0;background:none;color:var(--text);display:grid;place-items:center;padding:0;font-size:18px;box-shadow:none}
+body.gbmode .gbc #stPlay{background:#1f3b23;color:#7be07b;min-width:64px}
+body.gbmode .gbc #stPlay[aria-label="Stop"]{background:#2a2148;color:var(--text)}
+.gbdot{width:20px;height:20px;border-radius:50%;background:#ff4d4d;display:block}
+body.gbmode #stRec.live,body.gbmode #stRec[aria-pressed="true"]{background:#3a1420;animation:stPulse 1s ease-in-out infinite}
+.gblcd .st-lcd{margin:0;padding:3px 10px;min-width:0;border-radius:9px}
+.gblcd .st-lcd b{font-size:14px}.gblcd .st-lcd span{font-size:10px}
+body.gbmode #gbRuler{display:block;position:fixed;left:0;right:0;top:56px;height:34px;background:#140f26;border-bottom:1px solid var(--line);z-index:29}
+#gbRuler canvas{display:block;width:100%;height:100%;cursor:pointer;touch-action:none}
+body.gbmode #gbMenu:not([hidden]){display:flex;flex-direction:column;gap:8px;position:fixed;top:60px;right:max(10px,env(safe-area-inset-right));z-index:40;width:230px;padding:10px;border-radius:16px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5)}
+.gbmrow{display:flex;gap:6px}.gbmrow .btn{flex:1}
+.gbmlist{display:flex;flex-direction:column;gap:6px}.gbmlist .btn{justify-content:flex-start;text-align:left;width:100%}
+/* the Pans view: the track name floats over the pans; tap it to switch track */
+body.gbmode.st-inst #gbPill{display:block;position:fixed;top:100px;left:max(10px,env(safe-area-inset-left));z-index:25;height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--gold);background:rgb(25 19 46 / .9);color:var(--gold);font-weight:700;font-size:13px;cursor:pointer}
+body.gbmode.st-inst #stInst>.st-tchips{display:none}
+body.gbmode.st-inst.gb-picking #stInst>.st-tchips{display:flex;flex-direction:column;align-items:stretch;gap:4px;position:fixed;top:134px;left:max(10px,env(safe-area-inset-left));z-index:26;padding:8px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5);max-height:60vh;overflow:auto;max-width:none}
+body.gbmode.st-inst #stInst{background:none;border:0;box-shadow:none;padding:0 8px;margin:0}
+body.gbmode.st-inst #stSecs{display:none!important}
+body.gbmode #status{top:98px;bottom:auto;font-size:13px;padding:6px 12px}
+/* the sheets (mixer, export, timing) come in from the side over the instrument, like GarageBand's panels */
+@media (min-width:700px){body.gbmode .st-sheet .sheetbox{position:fixed;top:56px;right:0;bottom:0;left:auto;width:min(420px,46vw);max-height:none;border-radius:18px 0 0 18px;margin:0;overflow:auto}}
+.gbmix{display:none!important}
+@media (max-width:560px){body.gbmode #gbBar{gap:4px;padding:0 6px}.gbi{width:36px;height:40px}#gbMix,.gblcd{display:none!important}.gbmix{display:flex!important}
+  body.gbmode .gbc .btn{min-width:42px}body.gbmode .gbc #stPlay{min-width:52px}}
+body.gbmode.st-inst #stInst:not(:has(#stPans)){padding-top:48px}
+@media (min-width:700px){body.gbmode .st-sheet .st-mrow{grid-template-columns:1fr 1fr;align-items:center}body.gbmode .st-sheet .st-mrow .st-mname{grid-column:1 / -1}body.gbmode .st-sheet .st-mrow input[type=range]{width:100%}}
+/* the ruler's section band does the looping, so the chip row isn't needed in Studio */
+body.gbmode #stSecs{display:none!important}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&display=swap">
 
@@ -5350,7 +5394,9 @@ const savePR=()=>{try{localStorage.setItem('panyard-studio',JSON.stringify(PR))}
 // each Pan taps track plays one pan set (the song's pan unless you choose another); My part plays the song's
 const trSet=tr=>tr&&tr.type==='pan'?(SETS[tr.panSet]?tr.panSet:'guitar'):setKey();
 const pidsOf=tr=>SETS[trSet(tr)].views.flatMap(p=>p.fields.map(f=>f[0])).sort((a,b)=>midiOf(PITCH[b])-midiOf(PITCH[a]));   // high to low
-const gcol=id=>'var(--'+grpOf(id)+')';
+// every pan's colours, so a Six bass track still shows its notes in a song written for the tenor
+const GCOL={};for(const k in SETS)(SETS[k].groups||[]).forEach(g=>{if(!GCOL[g.key])GCOL[g.key]=g.color});
+const gcol=id=>{const g=grpOf(id);return 'var(--'+g+','+(GCOL[g]||'#9d93c9')+')'};
 const pname=id=>{const f=FIELDS.get(id);return (f?f.label.replace(/[\u0307\u0308\u0323\u0324]/g,''):id)+PITCH[id].slice(-1)};
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 
@@ -5658,7 +5704,10 @@ function toggleRec(){
 }
 const held=new Map();   // finger → the note it's holding (hold for a roll)
 function panDown(e,el){
-  e.preventDefault();if(!AC())return;const tr=selTr();if(tr.type!=='pan')return;
+  e.preventDefault();if(!AC())return;const tr=selTr();
+  // My part: the pans play so you can try a line, but notes are written in Write
+  if(tr.type==='part'){panVoice(channel(tr).out,el.dataset.field,ctx.currentTime+.003,.95);el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),140);return}
+  if(tr.type!=='pan')return;
   const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);const n=recNote(tr,id,.95);
   el.classList.add('hit');
   const r={el,n,timer:0,rolls:[]};
@@ -5880,6 +5929,15 @@ function updatePlayhead(){
   const ph=q('#stPh'),tl=q('#stTl');if(!ph)return;const x=HDW()+b*zoomPx()/BPB();ph.style.left=x+'px';
   if(T.playing){const vis=tl.clientWidth-HDW();if(x-HDW()<tl.scrollLeft||x-HDW()>tl.scrollLeft+vis-24)tl.scrollLeft=Math.max(0,x-HDW()-40)}
 }
+// while it plays, the chosen track's notes light up on the pans
+let litKey='';
+function lightPans(){
+  const box=q('#stPans');let ids=[];
+  if(box&&T.playing&&VIEW==='inst'){const tr=selTr();if(isPanish(tr)){const b=beatNow();for(const n of notesOf(tr))if(n.t<=b+.02&&b<n.t+Math.max(.22,Math.min(n.d,1)))ids.push(n.p)}}
+  const k=ids.join();if(k===litKey)return;litKey=k;if(!box)return;const on=new Set(ids);
+  box.querySelectorAll('.field').forEach(f=>f.classList.toggle('play-hit',on.has(f.dataset.field)));
+}
+{const lp=()=>{if(document.body.dataset.view==='studio'||litKey)lightPans();requestAnimationFrame(lp)};requestAnimationFrame(lp)}
 function frame(){if(!T.playing)return;updatePlayhead();if(seqGridOpen())renderSeqNow();if(q('#stSheet')&&!q('#stSheet').hidden&&SH.kind==='mixer')meters();T.raf=requestAnimationFrame(frame)}
 function selBarHTML(){
   const tr=trById(SEL.tid);if(!tr)return '';const range=SEL.b-SEL.a>1?'Bars '+(SEL.a+1)+'–'+SEL.b:'Bar '+(SEL.a+1);
@@ -5943,9 +6001,12 @@ function renderInst(){
     if(tr.take&&!recNow)h+='<div class="row st-nudge"><span class="help">Timing</span><button class="btn sm" data-st="nudge" data-v="-10">◀ 10 ms earlier</button><button class="btn sm" data-st="nudge" data-v="10">10 ms later ▶</button><span class="help">'+(tr.lagMs?(tr.lagMs>0?'+':'')+tr.lagMs+' ms':'')+'</span></div>';
   }else if(tr.type==='part'){
     const n=BARS.events().length;
-    h+='<p class="help">'+(n?'This is your part from Write ('+n+' notes), played with your pan sounds. It\'s linked: change it here or in Write and both follow, along with your chart, the game and the lanes.':'Your part from Write plays here. Write some cues (or tap along) and they appear on this track.')+'</p>'
+    // pans first here too: your part lights up on them as it plays
+    const sk=setKey(),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
+    const phead=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
+    h+='<p class="help">'+(n?'Your part from Write ('+n+' notes), linked: change it here or in Write and both follow, along with your chart, the game and the lanes. Tap the pans to try a line.':'Your part from Write plays here. Write some cues (or tap along) and they appear on this track.')+'</p>'
       +'<div class="row"><button class="btn primary" data-st="bars">▦ Edit in bars</button><button class="btn" data-st="towrite">Go to Write</button></div>'
-      +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>';
+      +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>'+phead.replace('st-ihead','st-ihead st-iend');
   }else if(tr.type==='pan'){
     const sk=trSet(tr),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
     const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';
@@ -6293,7 +6354,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
@@ -6601,6 +6662,104 @@ const STAGE={
   let lastGM='';setInterval(()=>{const s=typeof GM!=='undefined'?GM.state:'';if(s!==lastGM){lastGM=s;STAGE.render()}},250);
   document.addEventListener('click',e=>{if(document.body.classList.contains('pf-tools')&&!e.target.closest('#practicePanel,#pfMore'))document.body.classList.remove('pf-tools')});
 }
+
+/* ---------- Studio, GarageBand-style: one thin toolbar, the instrument fills the rest ---------- */
+// Everything Studio already had is still here; this only moves it. The same buttons (with everything listening to them)
+// are moved into one slim bar across the top, the tab bar tucks away, a thin ruler shows the bars and your sections,
+// the track name floats over the pans, and the rest lives behind ⋯.
+const GB={
+  open:false,
+  ico:{
+    back:'<path d="M15 5l-7 7 7 7"/>',
+    tracks:'<path d="M4 6h16M4 12h16M4 18h16"/><rect x="6" y="4" width="6" height="4" rx="1" fill="currentColor"/><rect x="10" y="10" width="7" height="4" rx="1" fill="currentColor"/><rect x="5" y="16" width="5" height="4" rx="1" fill="currentColor"/>',
+    pans:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v5.5M12 15v5.5M3.5 12H9M15 12h5.5"/>',
+    mixer:'<path d="M6 4v16M12 4v16M18 4v16"/><rect x="4" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="16" y="11" width="4" height="3" rx="1" fill="currentColor"/>',
+    metro:'<path d="M9 3h6l3.5 17h-13z"/><path d="M12 16l5-9"/><circle cx="17.2" cy="6.6" r="1.3" fill="currentColor"/>',
+    loop:'<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 014-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 01-4 4H4"/>',
+    more:'<circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/>',
+    home:'<path d="M5 4v16"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/>'
+  },
+  svg(k){return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+this.ico[k]+'</svg>'},
+  init(){
+    const v=$('view-studio');if(!v||!$('stPlay'))return;
+    const bar=document.createElement('div');bar.id='gbBar';bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Studio');
+    bar.innerHTML='<div class="gbl"><button class="gbi" id="gbBack" aria-label="Leave Studio">'+this.svg('back')+'</button>'
+      +'<button class="gbi" id="gbView" aria-label="Show the pans">'+this.svg('pans')+'</button>'
+      +'<button class="gbi" id="gbMix" aria-label="Mixer">'+this.svg('mixer')+'</button></div>'
+      +'<div class="gbc"></div>'
+      +'<div class="gbr"><span class="gblcd"></span><button class="gbi" id="gbMetro" aria-label="Click (metronome)">'+this.svg('metro')+'</button>'
+      +'<button class="gbi" id="gbLoop" aria-label="Loop">'+this.svg('loop')+'</button>'
+      +'<button class="gbi" id="gbMore" aria-label="More: count-in, undo, export, timing" aria-expanded="false">'+this.svg('more')+'</button></div>';
+    v.prepend(bar);
+    // the real transport buttons move into the middle; the bar counter moves to the right
+    const c=bar.querySelector('.gbc');['stHome','stPlay','stRec'].forEach(id=>c.appendChild($(id)));
+    $('stHome').innerHTML=this.svg('home');$('stRec').innerHTML='<span class="gbdot" aria-hidden="true"></span>';$('stRec').setAttribute('aria-label','Record');
+    bar.querySelector('.gblcd').appendChild(document.querySelector('.st-lcd'));
+    // the menu behind ⋯: everything else from the old tools row
+    const menu=document.createElement('div');menu.id='gbMenu';menu.hidden=true;menu.setAttribute('role','menu');
+    menu.innerHTML='<div class="gbmrow" id="gbMUndo"></div><div class="gbmlist"></div>';
+    v.appendChild(menu);
+    menu.querySelector('#gbMUndo').append($('stUndo'),$('stRedo'));
+    const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
+    const mx=document.createElement('button');mx.className='btn gbmix';mx.textContent='🎚 Mixer';mx.onclick=()=>{this.menu(false);$('stMix').click()};list.prepend(mx);
+    const toWrite=document.createElement('button');toWrite.className='btn';toWrite.textContent='✎ Go to Write';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);
+    $('stExp').textContent='⤓ Export / share';$('stTime').textContent='⏱ Timing fix';
+    // the floating track pill (Pans view) and the ruler
+    const pill=document.createElement('button');pill.id='gbPill';pill.setAttribute('aria-haspopup','true');pill.setAttribute('aria-expanded','false');v.appendChild(pill);
+    const ru=document.createElement('div');ru.id='gbRuler';ru.innerHTML='<canvas aria-label="Bars: tap to move the playhead"></canvas>';bar.after(ru);
+    // wiring: the new icons press the old buttons, so Studio's own logic does the work
+    $('gbBack').onclick=()=>{showView('home')};
+    $('gbView').onclick=()=>{const inst=document.body.classList.contains('st-inst');const b=document.querySelector('#stViews [data-sv="'+(inst?'tracks':'inst')+'"]');if(b)b.click();this.sync()};
+    $('gbMix').onclick=()=>$('stMix').click();
+    $('gbMetro').onclick=()=>{$('stMetro').click();this.sync()};
+    $('gbLoop').onclick=()=>{$('stLoop').click();this.sync()};
+    $('gbMore').onclick=e=>{e.stopPropagation();this.menu($('gbMenu').hidden)};
+    menu.addEventListener('click',e=>{if(e.target.closest('#stCount')){setTimeout(()=>this.sync(),30);return}if(e.target.closest('button')&&!e.target.closest('#gbMUndo'))this.menu(false)});
+    document.addEventListener('click',e=>{if(!$('gbMenu').hidden&&!e.target.closest('#gbMenu,#gbMore'))this.menu(false);
+      if(document.body.classList.contains('gb-picking')&&!e.target.closest('#gbPill,.st-tchips'))this.pick(false)});
+    pill.onclick=e=>{e.stopPropagation();this.pick(!document.body.classList.contains('gb-picking'))};
+    document.addEventListener('click',e=>{if(e.target.closest('.st-tchips [data-st="ipick"],.st-tchips [data-st="addsheet"]'))setTimeout(()=>this.pick(false),0)},true);
+    const cv=ru.querySelector('canvas');
+    cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),n=this.nBars();if(!n)return;const b=Math.max(0,Math.min(n,(e.clientX-r.left)/r.width*n));
+      const sec=this.secs().find(s=>e.clientY-r.top<16&&b>=s.a&&b<s.b);
+      if(sec){const chip=document.querySelector('#stSecs [data-sec="'+sec.a+','+sec.b+'"]');if(chip){chip.click();return}}
+      try{STUDIO.seek(Math.round(b*2)/2*STUDIO.BPB())}catch{}});
+    let mq=0;new MutationObserver(()=>{if(mq)return;mq=requestAnimationFrame(()=>{mq=0;this.sync()})}).observe(v,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-pressed','aria-selected']});
+    const loop=()=>{if(document.body.dataset.view==='studio')this.drawRuler();requestAnimationFrame(loop)};requestAnimationFrame(loop);
+    const _show=showView;showView=function(x){_show(x);document.body.classList.toggle('gbmode',x==='studio');GB.menu(false);GB.pick(false);try{setDockH()}catch{}if(x==='studio')requestAnimationFrame(()=>{GB.sync();STAGE.fitStudio()})};
+  },
+  menu(on){const m=$('gbMenu');if(!m)return;m.hidden=!on;$('gbMore').setAttribute('aria-expanded',String(!!on))},
+  pick(on){document.body.classList.toggle('gb-picking',!!on);const p=$('gbPill');if(p)p.setAttribute('aria-expanded',String(!!on))},
+  nBars(){try{return STUDIO.bars()}catch{return 0}},
+  secs(){return[...document.querySelectorAll('#stSecs [data-sec]')].map(c=>{const [a,b]=c.dataset.sec.split(',').map(Number);return{a,b,name:c.textContent.replace(/^⟲\s*/,''),on:c.classList.contains('on')}})},
+  sync(){
+    if(!$('gbBar'))return;const inst=document.body.classList.contains('st-inst');
+    const gv=$('gbView');if(gv.dataset.v!==String(inst)){gv.dataset.v=String(inst);gv.innerHTML=this.svg(inst?'tracks':'pans');gv.setAttribute('aria-label',inst?'Show the tracks':'Show the instrument')}
+    const tg=(el,on)=>{if(el.classList.contains('on')!==on)el.classList.toggle('on',on)};
+    tg($('gbMetro'),$('stMetro').getAttribute('aria-pressed')==='true');tg($('gbLoop'),$('stLoop').getAttribute('aria-pressed')==='true');
+    const on=document.querySelector('.st-tchips .chip.on'),pill=$('gbPill');
+    if(pill&&on){const t=on.textContent.trim();if(pill.dataset.t!==t){pill.dataset.t=t;pill.textContent=t+' ▾'}}
+  },
+  drawRuler(){
+    const cv=document.querySelector('#gbRuler canvas');if(!cv||!cv.offsetParent)return;
+    const W=cv.clientWidth,H=cv.clientHeight,d=devicePixelRatio||1;if(!W)return;
+    if(cv.width!==Math.round(W*d)||cv.height!==Math.round(H*d)){cv.width=Math.round(W*d);cv.height=Math.round(H*d)}
+    const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,W,H);
+    const n=this.nBars();if(!n)return;const bw=W/n,FF=getComputedStyle(document.body).fontFamily;
+    // sections along the top, like GarageBand's A / B / C markers: tap one to loop it
+    this.secs().forEach((s,i)=>{const x0=s.a*bw,x1=s.b*bw;g.fillStyle=s.on?'rgba(255,209,102,.28)':(i%2?'rgba(143,199,255,.12)':'rgba(201,162,255,.12)');g.fillRect(x0+1,0,Math.max(0,x1-x0-2),16);
+      g.fillStyle=s.on?'#ffd166':'#c3bbe8';g.font='700 10px '+FF;g.textBaseline='middle';g.textAlign='left';g.save();g.beginPath();g.rect(x0,0,x1-x0,16);g.clip();g.fillText((s.on?'⟲ ':'')+s.name.toUpperCase(),x0+5,8.5);g.restore()});
+    // loop range
+    try{const lp=document.querySelector('#stLoop').getAttribute('aria-pressed')==='true',c=STUDIO.song&&STUDIO.song.cycle;if(lp&&c){g.fillStyle='rgba(255,209,102,.18)';g.fillRect(c.s*bw,16,(c.e-c.s)*bw,H-16)}}catch{}
+    // bar numbers and ticks
+    const step=Math.max(1,Math.ceil(26/bw));g.fillStyle='#9d93c9';g.strokeStyle='#30275a';g.lineWidth=1;g.font='600 10px '+FF;g.textAlign='left';g.textBaseline='alphabetic';
+    for(let b=0;b<n;b++){const x=Math.round(b*bw)+.5;g.beginPath();g.moveTo(x,b%step?H-6:17);g.lineTo(x,H);g.stroke();if(b%step===0)g.fillText(String(b+1),x+3,H-5)}
+    // playhead
+    let beat=0;try{beat=STUDIO.beatNow()}catch{}const x=beat/STUDIO.BPB()*bw;
+    g.fillStyle='#ffd166';g.fillRect(x-1,16,2,H-16);g.beginPath();g.moveTo(x-5,16);g.lineTo(x+5,16);g.lineTo(x,22);g.fill();
+  }
+};
+GB.init();
 
 /* ---------- start ---------- */
 (async()=>{

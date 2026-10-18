@@ -154,3 +154,7 @@ body.st-inst #stSecs{display:none}
   body[data-view="studio"] .st-tp .st-lcd{order:0;margin:0 0 0 auto;padding:4px 12px}
 }
 @media (min-height:621px){body[data-view="studio"] #status{bottom:calc(var(--dockH,64px) + 82px)}}
+
+/* your part lighting up on the pans as it plays */
+#stPans .field.play-hit .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:12;filter:drop-shadow(0 0 10px rgba(255,209,102,.7))}
+#stPans .field.play-hit text{fill:var(--gold-ink)}

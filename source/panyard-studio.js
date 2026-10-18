@@ -11,7 +11,9 @@ const savePR=()=>{try{localStorage.setItem('panyard-studio',JSON.stringify(PR))}
 // each Pan taps track plays one pan set (the song's pan unless you choose another); My part plays the song's
 const trSet=tr=>tr&&tr.type==='pan'?(SETS[tr.panSet]?tr.panSet:'guitar'):setKey();
 const pidsOf=tr=>SETS[trSet(tr)].views.flatMap(p=>p.fields.map(f=>f[0])).sort((a,b)=>midiOf(PITCH[b])-midiOf(PITCH[a]));   // high to low
-const gcol=id=>'var(--'+grpOf(id)+')';
+// every pan's colours, so a Six bass track still shows its notes in a song written for the tenor
+const GCOL={};for(const k in SETS)(SETS[k].groups||[]).forEach(g=>{if(!GCOL[g.key])GCOL[g.key]=g.color});
+const gcol=id=>{const g=grpOf(id);return 'var(--'+g+','+(GCOL[g]||'#9d93c9')+')'};
 const pname=id=>{const f=FIELDS.get(id);return (f?f.label.replace(/[\u0307\u0308\u0323\u0324]/g,''):id)+PITCH[id].slice(-1)};
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 
@@ -319,7 +321,10 @@ function toggleRec(){
 }
 const held=new Map();   // finger → the note it's holding (hold for a roll)
 function panDown(e,el){
-  e.preventDefault();if(!AC())return;const tr=selTr();if(tr.type!=='pan')return;
+  e.preventDefault();if(!AC())return;const tr=selTr();
+  // My part: the pans play so you can try a line, but notes are written in Write
+  if(tr.type==='part'){panVoice(channel(tr).out,el.dataset.field,ctx.currentTime+.003,.95);el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),140);return}
+  if(tr.type!=='pan')return;
   const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);const n=recNote(tr,id,.95);
   el.classList.add('hit');
   const r={el,n,timer:0,rolls:[]};
@@ -541,6 +546,15 @@ function updatePlayhead(){
   const ph=q('#stPh'),tl=q('#stTl');if(!ph)return;const x=HDW()+b*zoomPx()/BPB();ph.style.left=x+'px';
   if(T.playing){const vis=tl.clientWidth-HDW();if(x-HDW()<tl.scrollLeft||x-HDW()>tl.scrollLeft+vis-24)tl.scrollLeft=Math.max(0,x-HDW()-40)}
 }
+// while it plays, the chosen track's notes light up on the pans
+let litKey='';
+function lightPans(){
+  const box=q('#stPans');let ids=[];
+  if(box&&T.playing&&VIEW==='inst'){const tr=selTr();if(isPanish(tr)){const b=beatNow();for(const n of notesOf(tr))if(n.t<=b+.02&&b<n.t+Math.max(.22,Math.min(n.d,1)))ids.push(n.p)}}
+  const k=ids.join();if(k===litKey)return;litKey=k;if(!box)return;const on=new Set(ids);
+  box.querySelectorAll('.field').forEach(f=>f.classList.toggle('play-hit',on.has(f.dataset.field)));
+}
+{const lp=()=>{if(document.body.dataset.view==='studio'||litKey)lightPans();requestAnimationFrame(lp)};requestAnimationFrame(lp)}
 function frame(){if(!T.playing)return;updatePlayhead();if(seqGridOpen())renderSeqNow();if(q('#stSheet')&&!q('#stSheet').hidden&&SH.kind==='mixer')meters();T.raf=requestAnimationFrame(frame)}
 function selBarHTML(){
   const tr=trById(SEL.tid);if(!tr)return '';const range=SEL.b-SEL.a>1?'Bars '+(SEL.a+1)+'–'+SEL.b:'Bar '+(SEL.a+1);
@@ -604,9 +618,12 @@ function renderInst(){
     if(tr.take&&!recNow)h+='<div class="row st-nudge"><span class="help">Timing</span><button class="btn sm" data-st="nudge" data-v="-10">◀ 10 ms earlier</button><button class="btn sm" data-st="nudge" data-v="10">10 ms later ▶</button><span class="help">'+(tr.lagMs?(tr.lagMs>0?'+':'')+tr.lagMs+' ms':'')+'</span></div>';
   }else if(tr.type==='part'){
     const n=BARS.events().length;
-    h+='<p class="help">'+(n?'This is your part from Write ('+n+' notes), played with your pan sounds. It\'s linked: change it here or in Write and both follow, along with your chart, the game and the lanes.':'Your part from Write plays here. Write some cues (or tap along) and they appear on this track.')+'</p>'
+    // pans first here too: your part lights up on them as it plays
+    const sk=setKey(),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
+    const phead=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
+    h+='<p class="help">'+(n?'Your part from Write ('+n+' notes), linked: change it here or in Write and both follow, along with your chart, the game and the lanes. Tap the pans to try a line.':'Your part from Write plays here. Write some cues (or tap along) and they appear on this track.')+'</p>'
       +'<div class="row"><button class="btn primary" data-st="bars">▦ Edit in bars</button><button class="btn" data-st="towrite">Go to Write</button></div>'
-      +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>';
+      +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>'+phead.replace('st-ihead','st-ihead st-iend');
   }else if(tr.type==='pan'){
     const sk=trSet(tr),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
     const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';
@@ -954,7 +971,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';

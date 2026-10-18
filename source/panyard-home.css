@@ -100,3 +100,43 @@ body.pfwrite[data-view="cues"] #editBtn2,body.pfwrite[data-view="cues"] #cueTop{
   body[data-view="studio"].st-inst #stInst>.st-tchips .chip{min-height:30px;padding:2px 10px;font-size:13px}
 }
 body.pfwrite[data-view="cues"] #status{top:10px;bottom:auto;max-width:min(360px,50vw);font-size:13px;padding:6px 12px}
+
+/* ---------- Studio, GarageBand-style (panyard-gb.js) ---------- */
+body.gbmode #dock,body.gbmode .appbar,body.gbmode #subTabs,body.gbmode #view-studio>.st-bar{display:none!important}
+body.gbmode main{padding-top:0;max-width:none}
+body.gbmode #view-studio{padding-top:92px!important;padding-bottom:12px!important}
+body.gbmode .st-tp{position:static!important}
+#gbBar,#gbRuler,#gbPill,#gbMenu{display:none}
+body.gbmode #gbBar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;position:fixed;left:0;right:0;top:0;height:56px;padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));background:#19132e;border-bottom:1px solid var(--line);z-index:30}
+.gbl,.gbr{display:flex;align-items:center;gap:4px}.gbr{justify-content:flex-end}
+.gbc{display:flex;align-items:center;gap:2px;background:#110c20;border:1px solid var(--line);border-radius:12px;padding:3px}
+.gbi{width:44px;height:44px;border-radius:10px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.gbi:hover{color:var(--text)}.gbi.on{color:#8fc7ff;background:rgb(143 199 255 / .12)}
+body.gbmode .gbc .btn{min-width:52px;min-height:40px;height:40px;border-radius:9px;border:0;background:none;color:var(--text);display:grid;place-items:center;padding:0;font-size:18px;box-shadow:none}
+body.gbmode .gbc #stPlay{background:#1f3b23;color:#7be07b;min-width:64px}
+body.gbmode .gbc #stPlay[aria-label="Stop"]{background:#2a2148;color:var(--text)}
+.gbdot{width:20px;height:20px;border-radius:50%;background:#ff4d4d;display:block}
+body.gbmode #stRec.live,body.gbmode #stRec[aria-pressed="true"]{background:#3a1420;animation:stPulse 1s ease-in-out infinite}
+.gblcd .st-lcd{margin:0;padding:3px 10px;min-width:0;border-radius:9px}
+.gblcd .st-lcd b{font-size:14px}.gblcd .st-lcd span{font-size:10px}
+body.gbmode #gbRuler{display:block;position:fixed;left:0;right:0;top:56px;height:34px;background:#140f26;border-bottom:1px solid var(--line);z-index:29}
+#gbRuler canvas{display:block;width:100%;height:100%;cursor:pointer;touch-action:none}
+body.gbmode #gbMenu:not([hidden]){display:flex;flex-direction:column;gap:8px;position:fixed;top:60px;right:max(10px,env(safe-area-inset-right));z-index:40;width:230px;padding:10px;border-radius:16px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5)}
+.gbmrow{display:flex;gap:6px}.gbmrow .btn{flex:1}
+.gbmlist{display:flex;flex-direction:column;gap:6px}.gbmlist .btn{justify-content:flex-start;text-align:left;width:100%}
+/* the Pans view: the track name floats over the pans; tap it to switch track */
+body.gbmode.st-inst #gbPill{display:block;position:fixed;top:100px;left:max(10px,env(safe-area-inset-left));z-index:25;height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--gold);background:rgb(25 19 46 / .9);color:var(--gold);font-weight:700;font-size:13px;cursor:pointer}
+body.gbmode.st-inst #stInst>.st-tchips{display:none}
+body.gbmode.st-inst.gb-picking #stInst>.st-tchips{display:flex;flex-direction:column;align-items:stretch;gap:4px;position:fixed;top:134px;left:max(10px,env(safe-area-inset-left));z-index:26;padding:8px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5);max-height:60vh;overflow:auto;max-width:none}
+body.gbmode.st-inst #stInst{background:none;border:0;box-shadow:none;padding:0 8px;margin:0}
+body.gbmode.st-inst #stSecs{display:none!important}
+body.gbmode #status{top:98px;bottom:auto;font-size:13px;padding:6px 12px}
+/* the sheets (mixer, export, timing) come in from the side over the instrument, like GarageBand's panels */
+@media (min-width:700px){body.gbmode .st-sheet .sheetbox{position:fixed;top:56px;right:0;bottom:0;left:auto;width:min(420px,46vw);max-height:none;border-radius:18px 0 0 18px;margin:0;overflow:auto}}
+.gbmix{display:none!important}
+@media (max-width:560px){body.gbmode #gbBar{gap:4px;padding:0 6px}.gbi{width:36px;height:40px}#gbMix,.gblcd{display:none!important}.gbmix{display:flex!important}
+  body.gbmode .gbc .btn{min-width:42px}body.gbmode .gbc #stPlay{min-width:52px}}
+body.gbmode.st-inst #stInst:not(:has(#stPans)){padding-top:48px}
+@media (min-width:700px){body.gbmode .st-sheet .st-mrow{grid-template-columns:1fr 1fr;align-items:center}body.gbmode .st-sheet .st-mrow .st-mname{grid-column:1 / -1}body.gbmode .st-sheet .st-mrow input[type=range]{width:100%}}
+/* the ruler's section band does the looping, so the chip row isn't needed in Studio */
+body.gbmode #stSecs{display:none!important}
