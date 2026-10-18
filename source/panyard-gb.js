@@ -51,6 +51,14 @@ const GB={
     // Options sits beside the track name: the pan picker, Add on top / Replace, snapping, the track's name and Delete
     const opts=document.createElement('button');opts.id='gbOpts';opts.textContent='⚙ Options';opts.hidden=true;opts.setAttribute('aria-haspopup','dialog');opts.setAttribute('aria-expanded','false');
     const pills=document.createElement('div');pills.id='gbPills';pills.append(pill,opts);v.appendChild(pills);
+    // on a sideways phone or a tablet the track name sits in the top bar, off the pans; upright it floats above them
+    const place=()=>{const inBar=innerWidth>560;document.body.classList.toggle('gb-inbar',inBar);
+      const home=inBar?bar.querySelector('.gbl'):v;if(pills.parentNode!==home)home.appendChild(pills);
+      const r=pill.getBoundingClientRect();document.documentElement.style.setProperty('--gbPillL',Math.max(10,Math.round(r.left))+'px')};
+    this.place=place;place();addEventListener('resize',place);
+    // the track list under the name also holds the pan & recording options and the track's settings
+    document.addEventListener('click',e=>{const it=e.target.closest('#gbOptItem,#gbSetItem');if(!it)return;e.stopPropagation();this.pick(false);
+      if(it.id==='gbOptItem')this.opts(true);else STUDIO.trackSheet()},true);
     const ru=document.createElement('div');ru.id='gbRuler';ru.innerHTML='<canvas aria-label="Bars: tap to move the playhead"></canvas>';bar.after(ru);
     // wiring: the new icons press the old buttons, so Studio's own logic does the work
     $('gbBack').onclick=()=>{showView('home')};
@@ -67,7 +75,7 @@ const GB={
     menu.addEventListener('click',e=>{if(e.target.closest('#stCount')){setTimeout(()=>this.sync(),30);return}if(e.target.closest('button')&&!e.target.closest('#gbMUndo'))this.menu(false)});
     document.addEventListener('click',e=>{if(!$('gbMenu').hidden&&!e.target.closest('#gbMenu,#gbMore'))this.menu(false);
       if(document.body.classList.contains('gb-picking')&&!e.target.closest('#gbPill,.st-tchips'))this.pick(false)});
-    pill.onclick=e=>{e.stopPropagation();this.opts(false);this.pick(!document.body.classList.contains('gb-picking'))};
+    pill.onclick=e=>{e.stopPropagation();this.opts(false);this.place();this.pick(!document.body.classList.contains('gb-picking'))};
     opts.onclick=e=>{e.stopPropagation();this.pick(false);this.opts(!document.body.classList.contains('gb-opts'))};
     document.addEventListener('click',e=>{if(document.body.classList.contains('gb-opts')&&!e.target.closest('#gbOpts,#stPopts,.st-sheet')&&e.target.isConnected)this.opts(false)});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('gb-opts')){this.opts(false);$('gbOpts').focus()}});
@@ -94,6 +102,9 @@ const GB={
     const on=document.querySelector('.st-tchips .chip.on'),pill=$('gbPill');
     if(pill&&on){const t=on.textContent.trim();if(pill.dataset.t!==t){pill.dataset.t=t;pill.textContent=t+' ▾'}}
     const ob=$('gbOpts'),has=!!$('stPopts');if(ob&&ob.hidden===has)ob.hidden=!has;if(!has&&document.body.classList.contains('gb-opts'))this.opts(false);
+    const list=document.querySelector('#stInst>.st-tchips');
+    if(list&&!list.querySelector('#gbSetItem')){const add=(id,t)=>{const b=document.createElement('button');b.className='chip gbitem';b.id=id;b.textContent=t;list.appendChild(b)};
+      if(has)add('gbOptItem','⚙ Pan & recording options');add('gbSetItem','🎚 Track settings: tone, echo, takes')}
   },
   drawRuler(){
     const cv=document.querySelector('#gbRuler canvas');if(!cv||!cv.offsetParent)return;
