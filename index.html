@@ -3513,7 +3513,7 @@ function openChartEditor(){
    +'<div class="row"><button class="btn primary grow" data-ch="save">Save chart</button><button class="btn" data-ch="cancel">Cancel</button><button class="btn" data-ch="rebuild">Rebuild from cues</button></div>'
    +'<p class="help">Preview</p><div id="chartPrev"></div></div>';
   const ta=$('chartIn');ta.value=chartText();
-  const prev=()=>{$('chartPrev').innerHTML=chartHTML(parseChart(ta.value),false)};
+  const prev=()=>{const el=$('chartPrev');if(el)el.innerHTML=chartHTML(parseChart(ta.value),false)};   // the editor may have closed by the time this runs
   ta.addEventListener('input',()=>{clearTimeout(ta._t);ta._t=setTimeout(prev,150)});prev();
 }
 $('sheet').addEventListener('click',e=>{

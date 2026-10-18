@@ -1387,6 +1387,14 @@ body.wb-next-sm .wbn{height:52px;min-width:56px;padding:4px 10px}body.wb-next-sm
 .role-chip{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 12px 5px 6px;border-radius:99px;border:1px solid var(--line);background:rgb(255 255 255 / .04);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
 /* a band member sees only their pan: no Studio */
 body.band .tabs button[data-tab=studio],body.band #wbmStudio,body.band #gbWrite{display:none!important}
+/* Chart: which part (yours, or a Studio track's) */
+#partPick{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 10px;padding:2px 0}
+#partPick[hidden]{display:none}
+#partPick .pp-h{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);flex:none;margin-right:2px}
+#partPick button{flex:none;display:flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
+#partPick button small{font-weight:600;color:var(--muted);margin-left:2px}
+#partPick button[aria-pressed=true]{background:#efeaff;color:#1a1030;border-color:#efeaff}
+#partPick button[aria-pressed=true] small{color:#5a4f80}
 </style>
 <header class="appbar"><button class="ttl songbtn" data-open-songs aria-label="Your songs"><span class="eyebrow">Panyard · night session</span><span class="songname"><span id="appTitle">Pan Notes</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
 <main>
@@ -4544,7 +4552,7 @@ function openChartEditor(){
    +'<div class="row"><button class="btn primary grow" data-ch="save">Save chart</button><button class="btn" data-ch="cancel">Cancel</button><button class="btn" data-ch="rebuild">Rebuild from cues</button></div>'
    +'<p class="help">Preview</p><div id="chartPrev"></div></div>';
   const ta=$('chartIn');ta.value=chartText();
-  const prev=()=>{$('chartPrev').innerHTML=chartHTML(parseChart(ta.value),false)};
+  const prev=()=>{const el=$('chartPrev');if(el)el.innerHTML=chartHTML(parseChart(ta.value),false)};   // the editor may have closed by the time this runs
   ta.addEventListener('input',()=>{clearTimeout(ta._t);ta._t=setTimeout(prev,150)});prev();
 }
 $('sheet').addEventListener('click',e=>{
@@ -6446,7 +6454,7 @@ window.backupIn=async p=>{
     const o=trk(t.type,{name:String(t.name||'').slice(0,28)||trk(t.type).name,vol:num(t.vol,0,1.5,.85),pan:num(t.pan,-1,1,0),mute:!!t.mute,solo:!!t.solo,mix:t.mix==null?null:num(t.mix,0,1,null)});
     const cleanN=arr=>(Array.isArray(arr)?arr:[]).filter(n=>n&&PITCH[n.p]&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.5),p:n.p,v:num(n.v,0,1,.9),...(n.roll?{roll:1}:{})}));
     if(t.fx&&typeof t.fx==='object')o.fx={treble:num(t.fx.treble,-12,12,0),bass:num(t.fx.bass,-12,12,0),comp:num(t.fx.comp,0,1,0),echo:num(t.fx.echo,0,.6,0),echoT:ECHOES[t.fx.echoT]?t.fx.echoT:'q',room:ROOMS.some(r=>r[0]===+t.fx.room)?+t.fx.room:0};
-    if(t.type==='pan'){o.panSet=SETS[t.panSet]?t.panSet:'guitar';o.notes=cleanN(t.notes);
+    if(t.type==='pan'){o.panSet=SETS[t.panSet]?t.panSet:'guitar';o.notes=cleanN(t.notes);if(t.chart)o.chart=true;if(typeof t.chartText==='string')o.chartText=t.chartText.slice(0,40000);
       if(t.q&&QNT[t.q.mode])o.q={mode:t.q.mode,div:[1,.5,.25].includes(+t.q.div)?+t.q.div:.5,sw:t.q.sw==='heavy'?'heavy':'light'};
       if(Number.isInteger(t.tp)&&t.tp&&Math.abs(t.tp)<=24)o.tp=t.tp;
       if(Array.isArray(t.takes)&&t.takes.length>1&&Number.isInteger(t.tk)&&t.takes[t.tk]){o.takes=t.takes.slice(0,50).map((k,i)=>({name:String(k&&k.name||'Take '+(i+1)).slice(0,28),notes:i===t.tk?null:cleanN(k&&k.notes)}));o.tk=Math.min(t.tk,o.takes.length-1)}}
@@ -6460,6 +6468,21 @@ window.backupIn=async p=>{
   if(T.playing)stop(false);await idbPut('studio:'+keyNow(),sg);song=null;songKey=null;
   return ' '+(tracks.length-1)+' Studio tracks added.';
 };
+/* ---- arrangement charts: a pan track can show on the Chart as its own part ---- */
+// its notes (as they play: quantized and transposed) become cues at their place in the song, notes together a chord
+function partCues(tr){
+  const sp=spb(),o=origin(),out=[];let last=null;
+  for(const n of pnotes(tr)){const t=+(o+n.t*sp).toFixed(3);if(t<0)continue;
+    if(last&&Math.abs(t-last.start)<.03){if(!last.steps.includes(n.p))last.steps.push(n.p);continue}
+    last={id:'pt'+out.length,start:t,duration:+Math.max(.05,n.d*sp).toFixed(3),steps:[n.p],mode:'together',note:''};out.push(last)}
+  return out;
+}
+function chartParts(){
+  if(!song)return[];
+  return song.tracks.filter(t=>t.type==='pan'&&t.chart).map(t=>({id:t.id,name:t.name,panSet:trSet(t),cues:partCues(t),text:typeof t.chartText==='string'?t.chartText:null}));
+}
+const songGeo=()=>({spb:spb(),bpb:BPB(),origin:origin(),bars:bars()});
+function setPartText(id,text){const tr=trById(id);if(!tr)return;if(text==null)delete tr.chartText;else tr.chartText=String(text).slice(0,40000);dirty()}
 async function load(){
   const k=keyNow();if(song&&songKey===k)return;
   if(loading)return loading;
@@ -6773,6 +6796,7 @@ function renderSheet(){
           +'<p class="help">Moves this track\'s notes onto the beat as it plays. Straight is tight, Triplet and Swing give it a looser feel. Your notes are kept as you played them: choose None to hear them that way again.</p>'):'')
       +(pan?sec('Transpose','<div class="tsteps"><div class="tstp"><span>Octaves</span><button data-st="tp" data-v="-12" aria-label="Octave down">−</button><b>'+Math.trunc((tr.tp|0)/12)+'</b><button data-st="tp" data-v="12" aria-label="Octave up">+</button></div><div class="tstp"><span>Semitones</span><button data-st="tp" data-v="-1" aria-label="Semitone down">−</button><b>'+((tr.tp|0)%12)+'</b><button data-st="tp" data-v="1" aria-label="Semitone up">+</button></div></div>'
           +'<p class="help">'+(tr.tp?'Every note plays '+Math.abs(tr.tp)+' semitone'+(Math.abs(tr.tp)===1?'':'s')+' '+(tr.tp>0?'higher':'lower')+'. Notes that fall off the '+esc(SETS[trSet(tr)].name)+' come back an octave in.':'Move the whole track up or down. The notes you played stay as they are.')+'</p>'):'')
+      +(pan?sec('Chart','<div class="tlist"><button class="trow tog" data-st="tchart" role="switch" aria-checked="'+!!tr.chart+'"><span class="tl"><b>Show on Chart</b><small>This track gets its own part in the Chart tab, with your song\'s sections, to share with its player</small></span><span class="sw" aria-hidden="true"><i></i></span></button></div>'):'')
       +(pan||tr.type==='audio'?sec('Recording &amp; takes',takesHTML(tr)):'')
       +'</div>';
   }else if(SH.kind==='notes')h=notesHTML();
@@ -6979,6 +7003,7 @@ function onClick(e){
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
     case 'csound':song.click={...ck(),sound:b.dataset.v};dirty();if(AC()){const t0=ctx.currentTime+.02;for(let i=0;i<4;i++)click(t0+i*.32,i===0)}renderSheet();break;
     case 'cbars':song.click={...ck(),bars:+b.dataset.v};dirty();renderSheet();break;
+    case 'tchart':pushHistory();tr.chart=!tr.chart;dirty();renderSheet();say(tr.chart?tr.name+' now has its own part in the Chart tab.':tr.name+' is off the Chart.');break;
     case 'echoT':pushHistory();tr.fx={...fxOf(tr),echoT:b.dataset.v};if(!tr.fx.echo)tr.fx.echo=.22;refreshGains();dirty();renderSheet();break;
     case 'room':pushHistory();tr.fx={...fxOf(tr),room:+b.dataset.v};if(tr.mix===0)tr.mix=.2;refreshGains();dirty();renderSheet();break;
     case 'qmode':pushHistory();tr.q={div:.5,sw:'light',...(tr.q||{}),mode:b.dataset.v};dirty();renderTimeline();renderSheet();say(b.dataset.v==='none'?'Quantize off: your notes play as you played them.':'Quantize: '+QNT[b.dataset.v]+'.');break;
@@ -7081,7 +7106,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
@@ -8021,6 +8046,126 @@ var ROLE={   // var: Home can ask about it before this part has run
   }
 };
 ROLE.init();
+
+/* ---------- Arrangement charts: every part on the Chart ---------- */
+// A pan track in Studio with "Show on Chart" on gets its own part here, beside yours: the same sections as your
+// chart (or every 8 bars when there are none), its notes in its pan's letters and octave dots, two bars a line.
+// Pick a part at the top of the Chart tab to see it, edit it, or share it (PDF, picture, text) with its player;
+// "Whole arrangement" in Share puts every part in one PDF. Your own part, Write and the game are untouched:
+// while a part is drawn or shared, the song briefly wears that part's notes, then goes straight back.
+var PARTS={   // var: other parts of the app can ask about it before this has run
+  list:[],cur:null,on:false,saved:null,pend:false,
+  part(){return this.cur?this.list.find(p=>p.id===this.cur)||null:null},
+  async refresh(){
+    try{this.list=typeof STUDIO!=='undefined'&&STUDIO.parts?await STUDIO.parts():[]}catch{this.list=[]}
+    if(this.cur&&!this.part())this.cur=null;this.renderPick();
+  },
+  // the song's sections, from your own chart; every 8 bars when there aren't any
+  sections(){
+    let secs=[];try{secs=sectionsNow()}catch{}
+    const g=STUDIO.songGeo&&STUDIO.songGeo();
+    if(!secs.length&&g){const bar=g.spb*g.bpb;for(let b=0;b<g.bars;b+=8)secs.push({name:'Bars '+(b+1)+'–'+Math.min(g.bars,b+8),t:Math.max(0,g.origin+b*bar),end:g.origin+Math.min(g.bars,b+8)*bar})}
+    return secs.map(s=>({name:s.name,t:s.t,end:s.end}));
+  },
+  // a part's chart, written the way yours is: a section heading with its time, then two bars a line
+  autoText(p,secs){
+    const g=STUDIO.songGeo&&STUDIO.songGeo(),two=g?g.spb*g.bpb*2:4,all=p.cues,keep=S.cues,out=[];
+    if(!all.length)return '';
+    const list=secs.length?secs.slice():[{name:'Part',t:0,end:1e9}];
+    const lastEnd=list[list.length-1].end,tailStart=Math.max(lastEnd,0);
+    if(all.some(c=>c.start>=tailStart-1e-3))list.push({name:'More',t:tailStart,end:1e9});
+    if(all.some(c=>c.start<list[0].t-1e-3))list.unshift({name:'Pickup',t:Math.min(...all.map(c=>c.start)),end:list[0].t});
+    try{for(const s of list){const lines=[],to=Math.min(s.end,Math.max(...all.map(c=>c.start))+two);
+        for(let a=s.t;a<Math.min(s.end,to)-1e-3;a+=two){S.cues=all.filter(c=>c.start>=a-1e-3&&c.start<Math.min(a+two,s.end)-1e-3);if(!S.cues.length)continue;
+          const t=autoChart().split('\n').filter(l=>l.trim()&&!/^#/.test(l.trim())).join('  ');if(t)lines.push(t)}
+        if(lines.length)out.push('# '+s.name+' @'+tShort(s.t)+'\n'+lines.join('\n'))}}
+    finally{S.cues=keep}
+    return out.join('\n\n');
+  },
+  // the song wears this part for a moment (nothing is saved while it does)
+  swap(p){
+    if(this.on||!p)return false;const secs=this.sections();
+    this.saved={cues:S.cues,chart:S.chart,panSet:S.panSet,title:S.title,swapped:S.swapped};
+    S.panSet=p.panSet;if(p.panSet!=='guitar')S.swapped=false;S.cues=p.cues;this.panCtx(p.panSet);
+    S.chart={text:p.text!=null?p.text:this.autoText(p,secs),edited:true};
+    S.title=(this.saved.title||'Song')+' · '+p.name;this.on=true;return true;
+  },
+  unswap(){if(!this.on)return;Object.assign(S,this.saved);this.saved=null;this.panCtx(setKey());this.on=false;
+    // the song's own name back on top
+    const at=$('appTitle');if(at&&S.title&&at.textContent!==S.title)at.textContent=S.title;
+    try{renderChecklist()}catch{}
+    if(this.pend){this.pend=false;save();try{songTouch()}catch{}}},
+  // the pan the letters are read against (and drawn and coloured with): like choosing the pan, without telling the rest of the app
+  panCtx(k){PANS=SETS[k].views;ORD.clear();PANS.forEach((p,pi)=>p.fields.forEach((f,fi)=>ORD.set(f[0],[pi,fi])));
+    for(const x in NOTE_PAN)delete NOTE_PAN[x];for(const p of PANS)for(const f of p.fields)NOTE_PAN[FIELDS.get(f[0]).label]=f[7];
+    try{groupCss()}catch{}},
+  sync(fn){const did=this.swap(this.part());try{return fn()}finally{if(did)this.unswap()}},
+  async async(fn){const did=this.swap(this.part());try{return await fn()}finally{if(did)this.unswap()}},
+  label(p){return p?esc(p.name)+(p.name!==SETS[p.panSet].name?' <small>'+esc(SETS[p.panSet].name)+'</small>':''):'My part <small>'+esc(SETS[setKey()].name)+'</small>'},
+  renderPick(){
+    let bar=$('partPick');const sheet=$('sheet');if(!sheet)return;
+    if(!bar){bar=document.createElement('div');bar.id='partPick';bar.setAttribute('role','group');bar.setAttribute('aria-label','Which part');sheet.parentNode.insertBefore(bar,sheet);
+      bar.addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(!b)return;this.pick(b.dataset.part||null)})}
+    bar.hidden=!this.list.length;if(!this.list.length)return;
+    bar.innerHTML=[null,...this.list].map(p=>'<button data-part="'+(p?p.id:'')+'" aria-pressed="'+((p?p.id:null)===this.cur)+'">'+(p?HOME.mini(p.panSet,22):HOME.mini(setKey(),22))+'<span>'+this.label(p)+'</span></button>').join('');
+  },
+  pick(id){
+    this.cur=id;
+    // a part is shown as a chart (Letters and Pan tab are for your own part)
+    if(id&&S.sheetView!=='chart'){S.sheetView='chart'}
+    try{chartEditing=false}catch{}
+    this.renderPick();renderCues();
+    const p=this.part();say(p?'Showing the '+p.name+' part. Share sends this part.':'Showing your part.');
+  },
+  async allPdf(btn){
+    const keep=this.cur,t=btn.querySelector('b').textContent;btn.disabled=true;btn.querySelector('b').textContent='Preparing…';
+    try{
+      if(!(window.jspdf&&window.jspdf.jsPDF)){try{await loadScript(window.PAN_APP?'jspdf.umd.min.js':'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')}catch{say('Could not prepare the PDF. Check your connection.');return}}
+      await this.refresh();
+      const pdf=new window.jspdf.jsPDF({unit:'pt',format:'letter'}),pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();let n=0;
+      for(const p of [null,...this.list]){this.cur=p?p.id:null;const pages=await sheetCanvases('pdf');
+        pages.forEach(cv=>{if(n++)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,pw,ph)})}
+      this.cur=keep;await offerFile(fileBase()+' - arrangement.pdf',pdf.output('blob'));
+    }finally{this.cur=keep;btn.disabled=!downloads;btn.querySelector('b').textContent=t;this.renderPick()}
+  },
+  init(){
+    // nothing is saved while the song wears a part
+    const _save=save;save=function(...a){if(PARTS.on){PARTS.pend=true;return}return _save.apply(this,a)};
+    const _touch=songTouch;songTouch=function(...a){if(PARTS.on){PARTS.pend=true;return}return _touch.apply(this,a)};
+    // the Chart tab, a part's chart in it, the editor, and sharing all follow the part you picked
+    const _rc=renderCues;renderCues=function(...a){
+      if(!PARTS.cur||PARTS.on||document.body.dataset.view!=='part')return _rc.apply(this,a);
+      const r=PARTS.sync(()=>_rc.apply(this,a));
+      const p=PARTS.part(),lab=document.querySelector('#sheet .chartbar .help');if(p&&lab)lab.textContent=p.text!=null?'Your edited '+p.name+' part':'Made from the '+p.name+' track in Studio';
+      return r};
+    const _oe=openChartEditor;openChartEditor=function(...a){return PARTS.cur?PARTS.sync(()=>_oe.apply(this,a)):_oe.apply(this,a)};
+    const _sr=sectionRange;sectionRange=function(...a){return PARTS.cur?PARTS.sync(()=>_sr.apply(this,a)):_sr.apply(this,a)};
+    const _sc=sheetCanvases;sheetCanvases=function(...a){return PARTS.cur?PARTS.async(()=>_sc.apply(this,a)):_sc.apply(this,a)};
+    // the key line under the title was written for the Double Guitar: other pans get their own
+    const key=txt=>{if(isGuitar())return txt;const L=txt.split('\n');if(/^Double guitar/.test(L[1]||''))L[1]=SETS[setKey()].name+' · a dot above = an octave up, below = an octave down · x2 = repeat · r = roll';return L.join('\n')};
+    const _cp=chartPlainText;chartPlainText=function(...a){return PARTS.cur?PARTS.sync(()=>key(_cp.apply(this,a))):key(_cp.apply(this,a))};
+    const _pt=partText;partText=function(...a){return PARTS.cur?PARTS.sync(()=>_pt.apply(this,a)):_pt.apply(this,a)};
+    // saving or rebuilding a part's chart writes to that track, never to your own chart
+    $('sheet').addEventListener('click',e=>{
+      const p=PARTS.part();if(!p)return;const b=e.target.closest('[data-ch]');if(!b)return;const act=b.dataset.ch;
+      if(act==='save'){e.stopImmediatePropagation();const v=$('chartIn').value,secs=PARTS.sections(),auto=PARTS.sync(()=>PARTS.autoText(p,secs));
+        STUDIO.setPartText(p.id,v.trim()===auto.trim()?null:v);chartEditing=false;PARTS.refresh().then(()=>renderCues());say('Saved the '+p.name+' part.');return}
+      if(act==='rebuild'){e.stopImmediatePropagation();
+        if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Tap again to replace';setTimeout(()=>{b.dataset.armed='';b.textContent='Rebuild from cues'},3000);return}
+        const secs=PARTS.sections();$('chartIn').value=PARTS.sync(()=>PARTS.autoText(p,secs));$('chartIn').dispatchEvent(new Event('input'));say('Rebuilt from the '+p.name+' track. Save to keep it, or Cancel.');return}
+    },true);
+    // the parts are looked up each time the Chart tab opens (and when Studio changes them)
+    const _show=showView;showView=function(v){const r=_show(v);if(v==='part')PARTS.refresh().then(()=>{if(PARTS.cur)renderCues()});return r};
+    PAN_HOOKS.push(()=>{PARTS.cur=null;PARTS.list=[];PARTS.renderPick()});
+    // Share: the whole arrangement in one PDF
+    const tiles=document.querySelector('#shareSheet .tiles');
+    if(tiles){const b=document.createElement('button');b.className='tile';b.id='expAll';b.hidden=true;
+      b.innerHTML='<b>Whole arrangement</b><span>Every part in one PDF</span>';b.onclick=()=>this.allPdf(b);tiles.insertBefore(b,tiles.children[1]||null);
+      const _os=openShare;openShare=function(on,...a){const r=_os.call(this,on,...a);if(on)PARTS.refresh().then(()=>{b.hidden=!PARTS.list.length;b.disabled=!downloads;
+        const t=$('shareTitle');if(t)t.textContent=PARTS.part()?'Share the '+PARTS.part().name+' part':'Share with your band'});return r}}
+  }
+};
+PARTS.init();
 
 /* ---------- start ---------- */
 (async()=>{

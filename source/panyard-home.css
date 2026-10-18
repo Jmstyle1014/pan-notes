@@ -338,3 +338,11 @@ body.wb-next-sm .wbn{height:52px;min-width:56px;padding:4px 10px}body.wb-next-sm
 .role-chip{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 12px 5px 6px;border-radius:99px;border:1px solid var(--line);background:rgb(255 255 255 / .04);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
 /* a band member sees only their pan: no Studio */
 body.band .tabs button[data-tab=studio],body.band #wbmStudio,body.band #gbWrite{display:none!important}
+/* Chart: which part (yours, or a Studio track's) */
+#partPick{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 10px;padding:2px 0}
+#partPick[hidden]{display:none}
+#partPick .pp-h{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);flex:none;margin-right:2px}
+#partPick button{flex:none;display:flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
+#partPick button small{font-weight:600;color:var(--muted);margin-left:2px}
+#partPick button[aria-pressed=true]{background:#efeaff;color:#1a1030;border-color:#efeaff}
+#partPick button[aria-pressed=true] small{color:#5a4f80}

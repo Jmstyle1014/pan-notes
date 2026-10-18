@@ -642,7 +642,7 @@ window.backupIn=async p=>{
     const o=trk(t.type,{name:String(t.name||'').slice(0,28)||trk(t.type).name,vol:num(t.vol,0,1.5,.85),pan:num(t.pan,-1,1,0),mute:!!t.mute,solo:!!t.solo,mix:t.mix==null?null:num(t.mix,0,1,null)});
     const cleanN=arr=>(Array.isArray(arr)?arr:[]).filter(n=>n&&PITCH[n.p]&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.5),p:n.p,v:num(n.v,0,1,.9),...(n.roll?{roll:1}:{})}));
     if(t.fx&&typeof t.fx==='object')o.fx={treble:num(t.fx.treble,-12,12,0),bass:num(t.fx.bass,-12,12,0),comp:num(t.fx.comp,0,1,0),echo:num(t.fx.echo,0,.6,0),echoT:ECHOES[t.fx.echoT]?t.fx.echoT:'q',room:ROOMS.some(r=>r[0]===+t.fx.room)?+t.fx.room:0};
-    if(t.type==='pan'){o.panSet=SETS[t.panSet]?t.panSet:'guitar';o.notes=cleanN(t.notes);
+    if(t.type==='pan'){o.panSet=SETS[t.panSet]?t.panSet:'guitar';o.notes=cleanN(t.notes);if(t.chart)o.chart=true;if(typeof t.chartText==='string')o.chartText=t.chartText.slice(0,40000);
       if(t.q&&QNT[t.q.mode])o.q={mode:t.q.mode,div:[1,.5,.25].includes(+t.q.div)?+t.q.div:.5,sw:t.q.sw==='heavy'?'heavy':'light'};
       if(Number.isInteger(t.tp)&&t.tp&&Math.abs(t.tp)<=24)o.tp=t.tp;
       if(Array.isArray(t.takes)&&t.takes.length>1&&Number.isInteger(t.tk)&&t.takes[t.tk]){o.takes=t.takes.slice(0,50).map((k,i)=>({name:String(k&&k.name||'Take '+(i+1)).slice(0,28),notes:i===t.tk?null:cleanN(k&&k.notes)}));o.tk=Math.min(t.tk,o.takes.length-1)}}
@@ -656,6 +656,21 @@ window.backupIn=async p=>{
   if(T.playing)stop(false);await idbPut('studio:'+keyNow(),sg);song=null;songKey=null;
   return ' '+(tracks.length-1)+' Studio tracks added.';
 };
+/* ---- arrangement charts: a pan track can show on the Chart as its own part ---- */
+// its notes (as they play: quantized and transposed) become cues at their place in the song, notes together a chord
+function partCues(tr){
+  const sp=spb(),o=origin(),out=[];let last=null;
+  for(const n of pnotes(tr)){const t=+(o+n.t*sp).toFixed(3);if(t<0)continue;
+    if(last&&Math.abs(t-last.start)<.03){if(!last.steps.includes(n.p))last.steps.push(n.p);continue}
+    last={id:'pt'+out.length,start:t,duration:+Math.max(.05,n.d*sp).toFixed(3),steps:[n.p],mode:'together',note:''};out.push(last)}
+  return out;
+}
+function chartParts(){
+  if(!song)return[];
+  return song.tracks.filter(t=>t.type==='pan'&&t.chart).map(t=>({id:t.id,name:t.name,panSet:trSet(t),cues:partCues(t),text:typeof t.chartText==='string'?t.chartText:null}));
+}
+const songGeo=()=>({spb:spb(),bpb:BPB(),origin:origin(),bars:bars()});
+function setPartText(id,text){const tr=trById(id);if(!tr)return;if(text==null)delete tr.chartText;else tr.chartText=String(text).slice(0,40000);dirty()}
 async function load(){
   const k=keyNow();if(song&&songKey===k)return;
   if(loading)return loading;
@@ -969,6 +984,7 @@ function renderSheet(){
           +'<p class="help">Moves this track\'s notes onto the beat as it plays. Straight is tight, Triplet and Swing give it a looser feel. Your notes are kept as you played them: choose None to hear them that way again.</p>'):'')
       +(pan?sec('Transpose','<div class="tsteps"><div class="tstp"><span>Octaves</span><button data-st="tp" data-v="-12" aria-label="Octave down">−</button><b>'+Math.trunc((tr.tp|0)/12)+'</b><button data-st="tp" data-v="12" aria-label="Octave up">+</button></div><div class="tstp"><span>Semitones</span><button data-st="tp" data-v="-1" aria-label="Semitone down">−</button><b>'+((tr.tp|0)%12)+'</b><button data-st="tp" data-v="1" aria-label="Semitone up">+</button></div></div>'
           +'<p class="help">'+(tr.tp?'Every note plays '+Math.abs(tr.tp)+' semitone'+(Math.abs(tr.tp)===1?'':'s')+' '+(tr.tp>0?'higher':'lower')+'. Notes that fall off the '+esc(SETS[trSet(tr)].name)+' come back an octave in.':'Move the whole track up or down. The notes you played stay as they are.')+'</p>'):'')
+      +(pan?sec('Chart','<div class="tlist"><button class="trow tog" data-st="tchart" role="switch" aria-checked="'+!!tr.chart+'"><span class="tl"><b>Show on Chart</b><small>This track gets its own part in the Chart tab, with your song\'s sections, to share with its player</small></span><span class="sw" aria-hidden="true"><i></i></span></button></div>'):'')
       +(pan||tr.type==='audio'?sec('Recording &amp; takes',takesHTML(tr)):'')
       +'</div>';
   }else if(SH.kind==='notes')h=notesHTML();
@@ -1175,6 +1191,7 @@ function onClick(e){
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
     case 'csound':song.click={...ck(),sound:b.dataset.v};dirty();if(AC()){const t0=ctx.currentTime+.02;for(let i=0;i<4;i++)click(t0+i*.32,i===0)}renderSheet();break;
     case 'cbars':song.click={...ck(),bars:+b.dataset.v};dirty();renderSheet();break;
+    case 'tchart':pushHistory();tr.chart=!tr.chart;dirty();renderSheet();say(tr.chart?tr.name+' now has its own part in the Chart tab.':tr.name+' is off the Chart.');break;
     case 'echoT':pushHistory();tr.fx={...fxOf(tr),echoT:b.dataset.v};if(!tr.fx.echo)tr.fx.echo=.22;refreshGains();dirty();renderSheet();break;
     case 'room':pushHistory();tr.fx={...fxOf(tr),room:+b.dataset.v};if(tr.mix===0)tr.mix=.2;refreshGains();dirty();renderSheet();break;
     case 'qmode':pushHistory();tr.q={div:.5,sw:'light',...(tr.q||{}),mode:b.dataset.v};dirty();renderTimeline();renderSheet();say(b.dataset.v==='none'?'Quantize off: your notes play as you played them.':'Quantize: '+QNT[b.dataset.v]+'.');break;
@@ -1277,7 +1294,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
