@@ -1271,6 +1271,11 @@ body.wbmode #selBar #selCount{max-width:150px;overflow:hidden;text-overflow:elli
 body.wbmode .sheetov,body.wbmode .sheet-ov,body.wbmode #shareSheet,body.wbmode #songsSheet{z-index:70!important}
 /* nothing may make the page wider than the screen (it makes the phone zoom when you turn it) */
 html,body{overflow-x:clip;max-width:100%}
+/* Tracks view: one ruler, like GarageBand. The timeline's own bar ruler lines up with the tracks, so the
+   whole-song ruler (made for the Pans view) is hidden here and its room goes to the tracks */
+body.gbmode:not(.st-inst) #gbRuler{display:none}
+body.gbmode:not(.st-inst) #view-studio{padding-top:58px!important}
+body.gbmode:not(.st-inst) .st-tl{max-height:calc(100dvh - 70px)}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&display=swap">
 
