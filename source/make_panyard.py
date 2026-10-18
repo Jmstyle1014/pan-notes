@@ -152,6 +152,7 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-wb.js'
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-looks.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-role.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-parts.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-guide.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # Setup: "Pan look" for every pan (it was "Pan photos & order", for the Double Guitar only)
 rep("this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):''", "this.vis('photos')?row('photos','Pan look',this.val('photos')):''")
 rep("photos:'Pan photos & order'", "photos:'Pan look'")
