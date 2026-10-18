@@ -1,0 +1,27 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.jmstyle.panyard'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.jmstyle.panyard'
+        minSdk 24
+        targetSdk 34
+        versionCode((project.findProperty('vc') ?: '1').toInteger())
+        versionName "1." + (project.findProperty('vc') ?: '1')
+    }
+    signingConfigs {
+        release {
+            // the same key every time, so a new version installs over the old one and keeps your songs
+            storeFile file('../panyard.keystore')
+            storePassword 'panyard-notes'
+            keyAlias 'panyard'
+            keyPassword 'panyard-notes'
+        }
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.release }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    androidResources { noCompress += ['woff2', 'js', 'html', 'png'] }
+}
+dependencies { implementation 'androidx.webkit:webkit:1.11.0' }
