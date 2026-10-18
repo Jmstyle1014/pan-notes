@@ -230,7 +230,7 @@ function playDrum(m,dest,t,v){
 let PV=new Map();
 function playBuf(dest,id,b,T,t,v,light){
   const end=Math.min(b.duration,T.end??b.duration),start=Math.max(0,Math.min(T.start,end-.05)),len=end-start,a=v*Math.pow(10,T.db/20)*(light?.7:1);
-  const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=T.cents||0;src.connect(gn);gn.connect(dest);
+  const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=(T.cents||0)+refCents();src.connect(gn);gn.connect(dest);
   gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(a,t+.004);   // a 4 ms fade-in keeps it free of clicks
   let stopAt;
   if(light){const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,t+.12);gn.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+.01}
@@ -667,7 +667,8 @@ function renderTimeline(){
   const bar=zoomPx(),n=bars(),W=bar*n,hd=HDW(),keep=[tl.scrollLeft,tl.scrollTop];
   if(SEL&&!trById(SEL.tid))SEL=null;
   let h='<div class="st-inner" style="--hdw:'+hd+'px;--bar:'+bar+'px;width:'+(hd+W)+'px">';
-  h+='<div class="st-row st-ruler"><div class="st-hd"><span class="help">Bar</span></div><div class="st-lane" id="stRuler" style="width:'+W+'px">';
+  // the corner of the timeline holds + Track and zoom, so the tracks get the whole screen
+  h+='<div class="st-row st-ruler"><div class="st-hd st-corner"><button class="st-addt" data-st="addsheet" aria-label="Add a track">+ Track</button><span class="st-zm"><button data-st="zout" aria-label="Zoom out">−</button><button data-st="zin" aria-label="Zoom in">+</button></span></div><div class="st-lane" id="stRuler" style="width:'+W+'px">';
   if(song.cycle&&song.cycle.e>song.cycle.s)h+='<span class="st-cyc'+(cycOn()?'':' off')+'" style="left:'+song.cycle.s*bar+'px;width:'+(song.cycle.e-song.cycle.s)*bar+'px"></span>';
   for(let b=0;b<n;b++)h+='<span class="st-barn" style="left:'+b*bar+'px">'+(b+1)+'</span>';
   for(const s of sections())if(s.a<n*BPB())h+='<span class="st-secl" style="left:'+Math.max(0,s.a/BPB()*bar)+'px">'+esc(s.name)+'</span>';
@@ -1117,6 +1118,8 @@ function onClick(e){
     case 'deltrack':{const t=selTr();if(t.type==='practice')break;if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Tap again to delete';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='Delete track'}},3000);break}
       pushHistory();song.tracks=song.tracks.filter(x=>x!==t);song.sel='practice';SEL=null;dirty();renderAll();say('Deleted '+t.name+'. Undo brings it back.');break}
     case 'addsheet':openSheet('add');break;
+    case 'zin':PR.zoom=Math.min(3,(PR.zoom||1)*1.25);savePR();renderTimeline();break;
+    case 'zout':PR.zoom=Math.max(.4,(PR.zoom||1)/1.25);savePR();renderTimeline();break;
     case 'mic':micStart(selTr());break;
     case 'bars':BARS.open(SEL&&SEL.tid===selTr().id?{a:origin()+SEL.a*BPB()*spb(),b:origin()+SEL.b*BPB()*spb()-1e-3}:null);break;
     case 'towrite':showView('cues');break;

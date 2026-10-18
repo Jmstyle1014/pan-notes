@@ -210,3 +210,11 @@ body.st-inst #stSecs{display:none}
 .tchips .chip.on{border-color:var(--gold);color:var(--gold)}
 .st-mode button,.tseg button{white-space:nowrap}
 .tsec>.row{margin:0 0 12px}
+/* Tracks view: the corner holds + Track and zoom */
+.st-corner{display:flex;align-items:center;gap:6px;padding:4px 6px!important}
+.st-addt{flex:1;min-width:0;height:34px;border-radius:99px;border:1px solid var(--gold);background:none;color:var(--gold);font:700 13px var(--body,system-ui);cursor:pointer;white-space:nowrap;padding:0 8px}
+.st-zm{display:flex;gap:3px}.st-zm button{width:28px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--raised);color:var(--text);font-size:16px;cursor:pointer}
+@media (max-width:560px){.st-zm{display:none}}
+.st-ruler .st-corner{flex-direction:row;flex-wrap:nowrap;padding:3px 6px!important}
+.st-ruler .st-corner .st-addt{height:28px;font-size:12px}
+.st-ruler .st-zm button{width:26px;height:28px;font-size:15px;line-height:1}

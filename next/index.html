@@ -895,6 +895,15 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
       </div>
       <div class="row"><button class="btn" id="fsBtn2">⛶ Full screen</button><button class="btn on" id="wakeBtn" aria-pressed="true">Keep screen awake: on</button></div>
     </div>
+    <div class="panel" id="tunePanel">
+      <h2>Tuning</h2>
+      <p class="help">The pitch this song's pans are tuned to. Most music is at A = 440 Hz; many pan tuners use 442. Each song keeps its own, so you can match each recording.</p>
+      <div class="refbig"><button class="refstep" id="refDown" aria-label="Lower">−</button><div class="refval"><b id="refV">440</b><span>Hz · A</span><small id="refC"></small></div><button class="refstep" id="refUp" aria-label="Higher">+</button></div>
+      <input type="range" id="refR" min="430" max="450" step="0.1" value="440" aria-label="Tuning: A in hertz">
+      <div class="seg" id="refSeg"><button data-a="432">432</button><button data-a="440">440</button><button data-a="442">442</button><button data-a="443">443</button><button data-a="444">444</button></div>
+      <div class="row"><button class="btn primary grow" id="refMatch">🎧 Match my recording</button><button class="btn" id="refTry">▶ Hear A</button></div>
+      <p class="help" id="refMsg" role="status" aria-live="polite"></p>
+    </div>
     <div class="panel" id="voicePanel">
       <h2>Your pan sounds</h2>
       <p class="help" id="voiceInfo"></p>
@@ -1140,7 +1149,7 @@ function normalizeChords(){let changed=false;for(const c of S.cues)if(c.mode==='
 const desc=id=>FIELDS.get(id).label+' ('+FIELDS.get(id).pos+')';
 
 /* ---------- state ---------- */
-let S={title:'',panSet:'guitar',swapped:false,look:'photo',cues:[],photos:{},grid:null,snap:'off',tapLag:0.08,audioRef:null,sheetView:'chart',chart:null,sheetPos:false,notePages:[],wake:true,hint:'subtle',tapSound:'paused',panVoice:'synth'};  // audioRef: where the recording is kept in your account  // grid: {bpm, offset (s), perBar}  // photos: {ec:{id}|{data}}
+let S={title:'',refA:440,panSet:'guitar',swapped:false,look:'photo',cues:[],photos:{},grid:null,snap:'off',tapLag:0.08,audioRef:null,sheetView:'chart',chart:null,sheetPos:false,notePages:[],wake:true,hint:'subtle',tapSound:'paused',panVoice:'synth'};  // audioRef: where the recording is kept in your account  // grid: {bpm, offset (s), perBar}  // photos: {ec:{id}|{data}}
 let isDemo=false, selected=[], editing=null, mode='sequence', chordsTidied=false;
 let hasAudio=false, objUrl=null, A=null, B=null, loop=false, raf=0;
 
@@ -1321,7 +1330,7 @@ function applyPanSet(){
 applyPanSet();
 
 function photoSrc(k){const p=S.photos[k];if(!p)return null;return p.id?('/_blob/'+p.id):p.data||null}
-function snapshotForSave(){return{v:2,title:S.title,panSet:S.panSet,swapped:S.swapped,look:S.look,grid:S.grid,snap:S.snap,tapLag:S.tapLag,audioRef:S.audioRef,sheetView:S.sheetView,chart:S.chart,sheetPos:S.sheetPos,notePages:S.notePages,wake:S.wake,hint:S.hint,tapSound:S.tapSound,panVoice:S.panVoice,cues:S.cues,photos:Object.fromEntries(Object.entries(S.photos).filter(([,p])=>p&&p.id).map(([k,p])=>[k,{id:p.id}]))}}
+function snapshotForSave(){return{v:2,title:S.title,refA:S.refA,panSet:S.panSet,swapped:S.swapped,look:S.look,grid:S.grid,snap:S.snap,tapLag:S.tapLag,audioRef:S.audioRef,sheetView:S.sheetView,chart:S.chart,sheetPos:S.sheetPos,notePages:S.notePages,wake:S.wake,hint:S.hint,tapSound:S.tapSound,panVoice:S.panVoice,cues:S.cues,photos:Object.fromEntries(Object.entries(S.photos).filter(([,p])=>p&&p.id).map(([k,p])=>[k,{id:p.id}]))}}
 function save(){
   if(isDemo)return;
   try{localStorage.setItem(LS,JSON.stringify({...snapshotForSave(),photos:S.photos}))}catch{try{localStorage.setItem(LS,JSON.stringify(snapshotForSave()))}catch{}}
@@ -1347,6 +1356,7 @@ function applyLoaded(p){
   S.title=String(p.title||'');S.panSet=SETS[p.panSet]?p.panSet:'guitar';applyPanSet();S.swapped=p.swapped===true;S.look=p.look==='diagram'?'diagram':'photo';
   S.cues=p.cues.filter(c=>c&&Number.isFinite(c.start)&&Number.isFinite(c.duration)&&Array.isArray(c.steps)&&c.steps.every(id=>FIELDS.has(id))).map(c=>({id:c.id||uid(),start:c.start,duration:c.duration,steps:c.steps,mode:c.mode==='together'?'together':'sequence',note:String(c.note||'').slice(0,1000),...(MARKS[c.fx]?{fx:c.fx}:{})})).sort((a,b)=>a.start-b.start);
   chordsTidied=normalizeChords();
+  S.refA=Number.isFinite(p.refA)&&p.refA>=415&&p.refA<=466?+p.refA:440;
   const gr=p.grid;S.grid=gr&&gr.bpm>=30&&gr.bpm<=300&&Number.isFinite(gr.offset)&&[2,3,4].includes(gr.perBar)?{bpm:gr.bpm,offset:gr.offset,perBar:gr.perBar}:null;
   S.snap=['off','1','2','4','hits'].includes(p.snap)?p.snap:'off';S.tapLag=Number.isFinite(p.tapLag)&&p.tapLag>=-0.1&&p.tapLag<=0.35?p.tapLag:0.08;
   const ar=p.audioRef;S.audioRef=ar&&typeof ar.name==='string'&&Array.isArray(ar.ids)&&ar.ids.length&&ar.ids.length<=12&&ar.ids.every(x=>typeof x==='string')?{name:ar.name,size:+ar.size||0,type:String(ar.type||'audio/mpeg'),ids:ar.ids,urls:Array.isArray(ar.urls)?ar.urls.map(String):null}:null;
@@ -2366,7 +2376,7 @@ async function photoDataUrls(){
 $('expJson').onclick=async()=>{
   const photos=await photoDataUrls(),sounds={};
   for(const [id,b] of Object.entries(SAMPLES.wav)){try{sounds[id]=await readData(b)}catch{}}
-  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,panSet:setKey(),...(typeof backupExtra==='function'?await backupExtra():{}),swapped:S.swapped,grid:S.grid,...(S.chart?{chart:S.chart}:{}),cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune,soundProfiles:PROF}:{}),savedAt:new Date().toISOString()},null,1);
+  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,refA:REF_A(),panSet:setKey(),...(typeof backupExtra==='function'?await backupExtra():{}),swapped:S.swapped,grid:S.grid,...(S.chart?{chart:S.chart}:{}),cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune,soundProfiles:PROF}:{}),savedAt:new Date().toISOString()},null,1);
   offerFile(fileBase()+' - Pan Notes backup.json',data);
 };
 $('impJson').onchange=async e=>{
@@ -2381,6 +2391,7 @@ $('impJson').onchange=async e=>{
       .map(c=>({id:uid(),start:c.start,duration:c.duration,steps:[...c.steps],mode:c.mode==='together'?'together':'sequence',note:String(c.note||'').slice(0,1000),...(MARKS[c.fx]?{fx:c.fx}:{})}));
     const wasDemo=isDemo;if(!isDemo)pushUndo();isDemo=false;renderDemo();selIds.clear();
     S.cues=cues.sort((a,b)=>a.start-b.start);if(p.title)S.title=String(p.title).slice(0,200);S.swapped=p.swapped===true;normalizeChords();
+    if(Number.isFinite(p.refA)&&p.refA>=415&&p.refA<=466)S.refA=+p.refA;
     if(p.chart&&typeof p.chart.text==='string')S.chart={text:p.chart.text.slice(0,40000),edited:!!p.chart.edited};
     const gr=p.grid;if(gr&&gr.bpm>=30&&gr.bpm<=300&&Number.isFinite(gr.offset)&&[2,3,4].includes(gr.perBar))S.grid={bpm:gr.bpm,offset:gr.offset,perBar:gr.perBar};
     let extra='';
@@ -3031,7 +3042,11 @@ const PITCH={'e-low':'E3','e-top':'E4','c':'C4','fs-low':'F#3','bb':'Bb3','d-low
   'eb-low':'Eb3','eb-top':'Eb4','b':'B3','f-low':'F3','a':'A3','cs-low':'C#3','g-low':'G3','g-inner':'G4','f-inner':'F4','cs-inner':'C#4'};
 Object.assign(PITCH,SET_PITCH);   // the other pans' notes
 const midiOf=n=>{const m=/^([A-G])([#b]?)(\d)$/.exec(n);return 12*(+m[3]+1)+{C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0)};
-const pitchHz=id=>440*Math.pow(2,(midiOf(PITCH[id])-69)/12);
+// tuning: each song has its own A (440 Hz unless you change it). The built-in pan sound, your recorded notes,
+// the tuner and the note finder all follow it.
+const REF_A=()=>S&&Number.isFinite(S.refA)&&S.refA>=415&&S.refA<=466?S.refA:440;
+const refCents=()=>1200*Math.log2(REF_A()/440);
+const pitchHz=id=>REF_A()*Math.pow(2,(midiOf(PITCH[id])-69)/12);
 let pac=null,pBus=null,noiseBuf=null;
 function panCtx(){
   if(!pac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
@@ -3105,7 +3120,7 @@ function playSample(id,vel,light){
   const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;
   const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003,T=tuneOf(id);
   const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=end-start,v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
-  src.buffer=b;if(src.detune)src.detune.value=T.cents;else src.playbackRate.value=Math.pow(2,T.cents/1200);
+  src.buffer=b;if(src.detune)src.detune.value=T.cents+refCents();else src.playbackRate.value=Math.pow(2,(T.cents+refCents())/1200);
   src.connect(g);g.connect(pBus);
   // a 4 ms fade-in: starting a sound partway through a wave is what makes a click
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.004);
@@ -3142,7 +3157,7 @@ function detectPitch(x,sr){
   for(let l=minL+1;l<maxL;l++)if(r[l]>0.85*mx&&r[l]>=r[l-1]&&r[l]>=r[l+1]){const a=r[l-1],b=r[l],c=r[l+1],d=a-2*b+c;return sr/(l+(d?0.5*(a-c)/d:0))}
   return 0;
 }
-const pcOfHz=f=>((Math.round(12*Math.log2(f/440))+9)%12+12)%12;
+const pcOfHz=f=>((Math.round(12*Math.log2(f/REF_A()))+9)%12+12)%12;
 const pcOfId=id=>midiOf(PITCH[id])%12;
 // clicks in a recording (a dropped bit of sound, a bump on the phone) show up as sudden jumps between
 // neighbouring samples. Smooth those over, but leave the real hit at the start alone.
@@ -3403,7 +3418,7 @@ loadProfiles();
 function centsOff(id){
   const b=SAMPLES.buf[id];if(!b)return null;const T=tuneOf(id),sr=b.sampleRate,d=b.getChannelData(0);
   const from=Math.min(d.length-1,Math.round((T.start+0.06)*sr)),f=detectPitch(d.subarray(from,from+4096),sr);if(!f)return null;
-  let c=1200*Math.log2(f/pitchHz(id));c=((c+600)%1200+1200)%1200-600;return c;
+  let c=1200*Math.log2(f/(pitchHz(id)/Math.pow(2,refCents()/1200)));c=((c+600)%1200+1200)%1200-600;return c;
 }
 let tuneSel=null,tunePlayT=0,waveDrag=null;
 function renderTune(){
@@ -3725,7 +3740,7 @@ function chartPlainText(){
 
 /* ---------- songs, auto tempo, sections everywhere, and the get-ready checklist ---------- */
 /* Your songs: the open song uses the usual storage; the others wait on this device until you open them */
-const SONG_KEYS=['title','panSet','cues','grid','chart','audioRef'];
+const SONG_KEYS=['title','panSet','cues','grid','chart','audioRef','refA'];
 let SONGS=null;
 const newSongId=()=>'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 function songsInit(){
@@ -3754,7 +3769,7 @@ async function songOpen(id,fresh){
   audio.pause();if(!isDemo)await songStash();
   const st=fresh?null:await idbGet('song:'+id);
   const d=(st&&st.data)||{};
-  S.title=String(d.title||(SONGS.list.find(s=>s.id===id)||{}).title||'');S.panSet=SETS[d.panSet]?d.panSet:'guitar';applyPanSet();S.cues=Array.isArray(d.cues)?d.cues:[];S.grid=d.grid||null;S.chart=d.chart||null;S.audioRef=d.audioRef||null;
+  S.title=String(d.title||(SONGS.list.find(s=>s.id===id)||{}).title||'');S.panSet=SETS[d.panSet]?d.panSet:'guitar';applyPanSet();S.cues=Array.isArray(d.cues)?d.cues:[];S.grid=d.grid||null;S.chart=d.chart||null;S.refA=Number.isFinite(d.refA)&&d.refA>=415&&d.refA<=466?+d.refA:440;S.audioRef=d.audioRef||null;
   SONGS.active=id;songsSave();
   isDemo=false;undoStack=[];if(typeof selIds!=='undefined')selIds.clear();chartEditing=false;
   if(st&&st.audio&&st.audio.blob){await idbPut('audio',st.audio);loadAudio(st.audio.blob,st.audio.name)}
@@ -4209,10 +4224,69 @@ $('loopPill').onclick=()=>{loop=false;renderLoop();say('Loop off.')};
 // The panels underneath are the same as before; this only decides which ones show. On a phone you see the list,
 // tap a row and that page opens with a ‹ Setup button. On a wide screen (iPad) the list sits on the left and the
 // chosen page on the right.
+/* ---------- Tuning: the song's A, and finding it from your recording ---------- */
+const TUNE_A={
+  init(){
+    if(!$('tunePanel'))return;
+    $('refDown').onclick=()=>this.set(Math.round((REF_A()-.5)*10)/10);$('refUp').onclick=()=>this.set(Math.round((REF_A()+.5)*10)/10);
+    $('refR').oninput=e=>this.set(+e.target.value,true);$('refR').onchange=()=>this.render();
+    $('refSeg').onclick=e=>{const b=e.target.closest('[data-a]');if(b)this.set(+b.dataset.a)};
+    $('refTry').onclick=()=>this.hearA();
+    $('refMatch').onclick=()=>this.match();
+    this.render();
+  },
+  set(v,live){v=Math.max(430,Math.min(450,Math.round(v*10)/10));S.refA=v;save();this.render(live);if(!live)this.hearA()},
+  render(live){
+    const v=REF_A(),c=Math.round(refCents());$('refV').textContent=(+v.toFixed(1)).toString();
+    $('refC').textContent=c?(c>0?'+':'')+c+' cents from 440':'standard pitch';if(!live)$('refR').value=v;
+    $('refSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(Math.abs(+b.dataset.a-v)<.05)));
+    $('refMatch').disabled=!hasAudio;
+    if(!hasAudio&&!$('refMsg').textContent)$('refMsg').textContent='Add this song\'s recording (Setup → Recording) to match its tuning.';
+    try{SETUP.render()}catch{}
+  },
+  hearA(){const ids=Object.keys(PITCH).filter(id=>FIELDS.has(id)&&/^A\d$/.test(PITCH[id]));if(!ids.length)return;
+    ids.sort((a,b)=>Math.abs(+PITCH[a].slice(1)-4)-Math.abs(+PITCH[b].slice(1)-4));strike(ids[0],1)},
+  // listen to the recording: every clear note says how far it sits from 440-tuning (ignoring which note it is);
+  // the average of those, as a direction on a circle so +49 and −49 cents agree, is the recording's tuning
+  async match(){
+    if(!hasAudio||!curBlob){$('refMsg').textContent='Add this song\'s recording first.';return}
+    const msg=$('refMsg'),btn=$('refMatch');btn.disabled=true;msg.textContent='Listening to your recording…';
+    try{
+      const ac=panCtx();const ab=await curBlob.arrayBuffer();
+      const buf=await new Promise((res,rej)=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});
+      const r=await this.analyse(buf,p=>{msg.textContent='Listening to your recording… '+Math.round(p*100)+'%'});
+      if(!r||r.n<25||r.R<.25){msg.textContent="Couldn't hear enough clear notes to tell the tuning"+(r?' (heard '+r.n+')':'')+'. Try a recording where the pans stand out, or set it by ear.';return}
+      let A=Math.round(440*Math.pow(2,r.off/1200)*10)/10;const c=Math.round(r.off);
+      for(const p of[432,435,440,441,442,443,444,445])if(Math.abs(A-p)<=.3)A=p;   // close enough to a usual tuning: use it
+      this.set(A);
+      msg.textContent='Your recording sits '+(Math.abs(c)<=2?'right on standard pitch':Math.abs(c)+' cents '+(c>0?'sharp (high)':'flat (low)'))+': A = '+A+' Hz. The pans now match it. ('+r.n+' notes heard, '+(r.R>.7?'very sure':r.R>.45?'fairly sure':'a rough guess')+'.)';
+    }catch(e){msg.textContent="The recording couldn't be read for tuning. Try again, or set it by ear."}
+    finally{btn.disabled=!hasAudio}
+  },
+  async analyse(buf,onProgress){
+    const sr=buf.sampleRate,ch=buf.numberOfChannels,len=Math.min(buf.length,Math.round(sr*150));
+    const d=new Float32Array(len);for(let c=0;c<ch;c++){const x=buf.getChannelData(c);for(let i=0;i<len;i++)d[i]+=x[i]/ch}
+    let pk=0;for(let i=0;i<len;i+=7)pk=Math.max(pk,Math.abs(d[i]));if(!pk)return null;
+    const N=2048,hop=Math.round(sr*.06),minL=Math.floor(sr/1100),maxL=Math.ceil(sr/110),r=new Float64Array(maxL+2);
+    let sx=0,cx=0,W=0,n=0;
+    for(let st=0,k=0;st+N+maxL<len;st+=hop,k++){
+      if(k%40===0){if(onProgress)onProgress(st/len);await new Promise(z=>setTimeout(z,0))}
+      let e=0;for(let i=st;i<st+N;i++)e+=d[i]*d[i];const rms=Math.sqrt(e/N);if(rms<pk*.06)continue;
+      for(let l=minL;l<=maxL;l++){let s=0,a=0,b=0;for(let i=st;i<st+N;i++){const p=d[i],q=d[i+l];s+=p*q;a+=p*p;b+=q*q}r[l]=s/Math.sqrt(a*b+1e-12)}
+      // the first strong peak is the note; a clear note correlates almost perfectly with itself one period later
+      let best=0;for(let l=minL+1;l<maxL;l++)if(r[l]>.9&&r[l]>=r[l-1]&&r[l]>=r[l+1]){best=l;break}
+      if(!best)continue;const a=r[best-1],b=r[best],c=r[best+1],dd=a-2*b+c,L=best+(dd?.5*(a-c)/dd:0),f=sr/L;
+      const dev=1200*Math.log2(f/440),frac=((dev%100)+150)%100-50,w=rms*(r[best]-.85);
+      sx+=w*Math.sin(frac/100*2*Math.PI);cx+=w*Math.cos(frac/100*2*Math.PI);W+=w;n++;
+    }
+    if(!W)return{n:0,R:0,off:0};
+    return{n,R:Math.sqrt(sx*sx+cx*cx)/W,off:Math.atan2(sx,cx)/(2*Math.PI)*100};
+  }
+};
 const SETUP={
   page:null,ready:false,
-  KEYS:{'Recording':'rec','Your pan':'pan','Pan photos':'photos','Pan order':'photos','Share with your band':'share','Play along':'play','Your pan sounds':'sound','Saving':'save'},
-  TITLES:{rec:'Recording',pan:'Your pan',photos:'Pan photos & order',share:'Share with your band',play:'Play along',sound:'Pan sounds',save:'Backup & saving'},
+  KEYS:{'Recording':'rec','Your pan':'pan','Pan photos':'photos','Pan order':'photos','Share with your band':'share','Play along':'play','Your pan sounds':'sound','Saving':'save','Tuning':'tune'},
+  TITLES:{rec:'Recording',pan:'Your pan',photos:'Pan photos & order',share:'Share with your band',play:'Play along',sound:'Pan sounds',save:'Backup & saving',tune:'Tuning'},
   wide:()=>matchMedia('(min-width: 900px)').matches,
   panels(){return [...$('view-setup').children].filter(e=>e.classList.contains('panel')&&e.dataset.sk)},
   vis(k){return this.panels().some(p=>p.dataset.sk===k&&!p.dataset.off)},
@@ -4242,6 +4316,7 @@ const SETUP={
     if(!k&&this.wide())k=this.page&&this.vis(this.page)?this.page:'rec';
     this.page=k;const v=$('view-setup');v.classList.toggle('sx-page',!!k);v.classList.toggle('sx-wide',this.wide());
     for(const p of this.panels())p.classList.toggle('sx-on',p.dataset.sk===k);
+    if(k==='tune')try{TUNE_A.render()}catch{}
     $('setTitle').textContent=k?this.TITLES[k]:'';
     this.render();if(!keepScroll)window.scrollTo({top:0});
   },
@@ -4255,17 +4330,18 @@ const SETUP={
       case 'sound':return S.panVoice==='mine'?'My recordings':'Built-in';
       case 'save':return lb?ago(lb):'No backup yet';
       case 'share':return 'Chart, picture, video';
+      case 'tune':return 'A = '+(+REF_A().toFixed(1))+' Hz';
     }return'';
   },
   render(){
     if(!this.ready)return;
-    const ICON={rec:['♫','#f2b38a'],pan:['◉','#8fc7ff'],photos:['⇄','#c9a2ff'],share:['⤴','#9be38f'],play:['✦','#ffd166'],sound:['🔊','#f2b38a'],save:['⤓','#9be38f'],fs:['⛶','#8fc7ff'],wake:['☀','#f2b38a'],lab:['🎮','#c9a2ff']};
+    const ICON={rec:['♫','#f2b38a'],pan:['◉','#8fc7ff'],photos:['⇄','#c9a2ff'],share:['⤴','#9be38f'],play:['✦','#ffd166'],sound:['🔊','#f2b38a'],save:['⤓','#9be38f'],fs:['⛶','#8fc7ff'],tune:['♮','#9be38f'],wake:['☀','#f2b38a'],lab:['🎮','#c9a2ff']};
     const row=(k,label,value,sub,end)=>{const [ic,col]=ICON[k]||['•','#9d93c9'];const on=this.page===k;
       return '<button class="sxrow'+(on?' on':'')+'" data-row="'+k+'"'+(end==='tog'?' role="switch" aria-checked="'+value+'"':'')+'><span class="sxic" style="background:'+col+'" aria-hidden="true">'+ic+'</span><span class="sxlab"><b>'+label+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span>'
         +(end==='tog'?'<span class="sxtog'+(value?' on':'')+'" aria-hidden="true"><i></i></span>':'<span class="sxval">'+value+'</span><span class="sxchev" aria-hidden="true">›</span>')+'</button>'};
     const group=(t,rows)=>rows.filter(Boolean).length?'<div class="sxgroup"><div class="sxgt">'+t+'</div><div class="sxbox">'+rows.join('')+'</div></div>':'';
     const fsOn=!!document.fullscreenElement,extra=this.panels().filter(p=>/^x/.test(p.dataset.sk));
-    $('setList').innerHTML=group('This song'+(S.title?' · '+esc(S.title):''),[row('rec','Recording',this.val('rec')),row('pan','Your pan',this.val('pan')),this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):''])
+    $('setList').innerHTML=group('This song'+(S.title?' · '+esc(S.title):''),[row('rec','Recording',this.val('rec')),row('pan','Your pan',this.val('pan')),this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):'',this.vis('tune')?row('tune','Tuning',this.val('tune'),'Match your recording\'s pitch'):''])
       +group('Playing',[row('play','Play along',this.val('play'),'Hints and tap sounds'),($('fsBtn2')||$('fsBtn'))?row('fs','Full screen',fsOn,null,'tog'):'',$('wakeBtn')?row('wake','Keep screen awake',!!S.wake,null,'tog'):'',$('labOpen')?row('lab','Mallet Lab','Try it','Play with a game controller'):''])
       +group('Sound & saving',[this.vis('sound')?row('sound','Pan sounds',this.val('sound'),'Record your pans, room, brightness'):'',this.vis('share')?row('share','Share with your band',this.val('share')):'',row('save','Backup',this.val('save'),'Save or open a backup file')])
       +(extra.length?group('More',extra.map(p=>row(p.dataset.sk,this.TITLES[p.dataset.sk],''))):'');
@@ -4306,8 +4382,18 @@ const SETUP={
 #view-setup.sx.sx-wide>*:not(#setList){grid-column:2}
 #view-setup.sx.sx-wide .setback{display:none}
 #view-setup.sx.sx-wide #setHead h2{font-size:20px}
+/* Tuning */
+.refbig{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 10px}
+.refval{display:flex;flex-direction:column;align-items:center;min-width:120px}
+.refval b{font-size:44px;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.refval span{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.refval small{font-size:12px;color:var(--muted);margin-top:2px}
+.refstep{width:54px;height:54px;border-radius:50%;border:1px solid var(--line);background:var(--raised,var(--surface));color:var(--text);font-size:26px;font-weight:700;cursor:pointer}
+#refR{width:100%;margin:2px 0 10px}
+#refSeg{margin-bottom:10px}#refSeg button{flex:1}
 `;document.head.appendChild(st)}
 SETUP.init();
+TUNE_A.init();
 {const _rsp=renderSetPick;renderSetPick=function(){_rsp();try{SETUP.render()}catch{}}}
 
 /* ---------- keeping your work safe: storage that stays, backup reminders, and a calm message if something breaks ---------- */

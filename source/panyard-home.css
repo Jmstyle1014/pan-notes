@@ -167,3 +167,7 @@ body.gbmode.gb-inbar.st-inst #stInst>#stPans{margin-top:0}
 .st-tchips #gbOptItem{margin-top:6px;border-top-color:var(--line)}
 /* phones: the track list holds Track settings, so the bar keeps room for the name */
 @media (max-width:899px){body.gbmode.gb-inbar #gbSet{display:none!important}}
+/* Tracks view in Studio: no card, no help text, the tracks fill the screen */
+body.gbmode .st-tlp{background:none;border:0;box-shadow:none;padding:0;margin:-6px calc(50% - 50vw) 0;width:auto}
+body.gbmode .st-tlrow{display:none}
+body.gbmode .st-tl{max-height:calc(100dvh - 104px);border-radius:0;border-left:0;border-right:0}
