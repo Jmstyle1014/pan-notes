@@ -2,3 +2,6 @@ android/app/src/main/assets/
 android/.gradle/
 android/build/
 android/app/build/
+android-chrome/.gradle/
+android-chrome/build/
+android-chrome/app/build/

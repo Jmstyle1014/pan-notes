@@ -1,10 +1,10 @@
-# Builds the Panyard Android app (APK) whenever Panyard or the Android wrapper changes,
+# Builds the Panyard Android app (APK, run by Chrome) whenever Panyard or the Android app changes,
 # and puts it on the repo's Releases page: .../releases/latest/download/Panyard.apk
 name: Android app
 on:
   push:
     branches: [main, master]
-    paths: ['panyard/**', 'android/**', '.github/workflows/android.yml']
+    paths: ['panyard/**', 'android/**', 'android-chrome/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -17,15 +17,15 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.9' }
-      - name: Pack the app
-        run: python3 android/prep.py
+      # the app opens the Panyard website inside Chrome (full screen, Chrome's sound engine); the website
+      # itself keeps working offline, so nothing from it needs packing in
       - name: Build the APK
-        run: gradle -p android assembleRelease -Pvc=${{ github.run_number }} --no-daemon
-      - run: cp android/app/build/outputs/apk/release/app-release.apk Panyard.apk
+        run: gradle -p android-chrome assembleRelease -Pvc=${{ github.run_number }} --no-daemon
+      - run: cp android-chrome/app/build/outputs/apk/release/app-release.apk Panyard.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: android-${{ github.run_number }}
           name: Panyard for Android (version 1.${{ github.run_number }})
-          body: "Tap **Panyard.apk** below on your Android phone to download it, then open it to install. A new version installs over the old one and keeps your songs."
+          body: "Tap **Panyard.apk** below on your Android phone to download it, then open it to install. It runs Panyard with Chrome (Chrome needs to be on the phone), so timing and sound match Chrome, and it shares your songs with Panyard in Chrome."
           files: Panyard.apk
           make_latest: true

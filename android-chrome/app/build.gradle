@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+// Panyard for Android, run by Chrome (a Trusted Web Activity): the Panyard website in its own full-screen app,
+// using Chrome's sound engine, so taps and recordings feel the same as in Chrome
+android {
+    namespace 'com.jmstyle.panyard.twa'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.jmstyle.panyard.twa'
+        minSdk 24
+        targetSdk 34
+        versionCode((project.findProperty('vc') ?: '1').toInteger())
+        versionName "2." + (project.findProperty('vc') ?: '1')
+    }
+    signingConfigs {
+        release {
+            // the same key as before, so every new version installs over the last one
+            storeFile file('../../android/panyard.keystore')
+            storePassword 'panyard-notes'
+            keyAlias 'panyard'
+            keyPassword 'panyard-notes'
+        }
+    }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.release } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0' }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Panyard</string>
+    <string name="launch_url">https://jmstyle1014.github.io/pan-notes/panyard/</string>
+    <string name="asset_statements">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://jmstyle1014.github.io\"}}]</string>
+    <color name="bg">#140f26</color>
+</resources>
