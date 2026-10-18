@@ -27,6 +27,10 @@ const WB={
       +'<button class="gbi" id="wbUndo" aria-label="Undo">'+this.svg('undo')+'</button>'
       +'<button class="gbi" id="wbMore" aria-label="More" aria-expanded="false">'+this.svg('more')+'</button></div>';
     document.body.appendChild(bar);
+    // upright: the next notes, big, in the room under the pans
+    const nx=document.createElement('div');nx.id='wbNext';nx.setAttribute('aria-live','off');nx.innerHTML='<span class="wbn-h">Coming up</span><div class="wbn-l"></div>';document.body.appendChild(nx);
+    nx.addEventListener('click',e=>{const c=e.target.closest('[data-t]');if(c){try{audio.currentTime=+c.dataset.t;viewT=+c.dataset.t;tick();drawTL()}catch{}}});
+    {const loopN=()=>{if(this.on&&document.body.classList.contains('wb-split'))this.next();requestAnimationFrame(loopN)};requestAnimationFrame(loopN)}
     const ru=document.createElement('div');ru.id='wbRuler';ru.innerHTML='<canvas aria-label="Your song: tap to move the playhead, tap a section to loop it"></canvas>';document.body.appendChild(ru);
     // the timeline's home: full screen (sideways) or the lower half (upright)
     const tl=document.createElement('div');tl.id='wbTL';document.body.appendChild(tl);
@@ -100,13 +104,26 @@ const WB={
     const top=92,split=this.split();if(!split&&this.view==='tl')return;
     // upright: as much height as the pans need side by side (more for four or six drums), the rest for the timeline
     const n=STAGE.drumsOf(setKey()).length,room=innerHeight-top;
-    const H=split?Math.round(n>=4?Math.min(innerWidth*1.05,room*.6):n===2?Math.min(innerWidth*.56,room*.5):Math.min(innerWidth*.95,room*.55)):innerHeight-top-8;
+    let H=split?Math.round(n>=4?Math.min(innerWidth*1.05,room*.6):n===2?Math.min(innerWidth*.56,room*.5):Math.min(innerWidth*.95,room*.55)):innerHeight-top-8;
+    // upright: the timeline on top, only as tall as it needs, the pans right under it, and what's coming up below
+    if(split){const tlH=Math.round(Math.max(150,Math.min(room*.32,room-H-16)));if(tlH+H+16>room)H=Math.max(160,room-tlH-16);
+      document.documentElement.style.setProperty('--wbTLH',tlH+'px');
+      const nh=room-tlH-H-16;document.body.classList.toggle('wb-next',nh>=64);document.body.classList.toggle('wb-next-sm',nh<112);document.documentElement.style.setProperty('--wbNextH',Math.max(0,nh)+'px');this.nextKey=null}
+    else document.body.classList.remove('wb-next','wb-next-sm');
     document.documentElement.style.setProperty('--wbPansH',H+'px');
     // full width of the screen, past the page's side inset
     // (negative margins, not a shift: the page's own width must never grow past the screen, or the phone zooms on every turn)
     const SW=document.documentElement.clientWidth;box.style.transform='';box.style.setProperty('margin-left','0px','important');box.style.setProperty('margin-right','0px','important');box.style.width='';
     const L=box.getBoundingClientRect().left;box.style.boxSizing='border-box';box.style.padding='0 4px';box.style.setProperty('width',SW+'px','important');box.style.setProperty('margin-left',(-L)+'px','important');
     box.dataset.pf='';STAGE.stageify(box,SW-8,H,split);
+  },
+  // the next few notes after the playhead, in big type, so a glance tells you what's coming
+  next(){
+    const box=$('wbNext');if(!box||!document.body.classList.contains('wb-next'))return;
+    const t=typeof viewT==='number'?viewT:0,cs=S.cues.filter(c=>c.steps&&c.steps.length&&c.start+c.duration>t+.02).sort((a,b)=>a.start-b.start).slice(0,8);
+    const key=cs.map(c=>c.id+':'+c.steps.join('.')).join('|');if(key===this.nextKey)return;this.nextKey=key;
+    const l=box.querySelector('.wbn-l');
+    l.innerHTML=cs.length?cs.map((c,i)=>'<button class="wbn'+(i===0&&c.start<=t+.02?' wbn-now':'')+'" data-t="'+c.start+'"><b>'+esc(cueLabel(c))+'</b><i>'+fmt(c.start)+'</i></button>').join(''):'<span class="wbn-e">'+(S.cues.length?'That\'s the last note.':'Tap the pans to write your first note.')+'</span>';
   },
   sheet(k){
     const sh=$('wbSheet'),B=$('wbSheetB');
