@@ -1,11 +1,12 @@
-/* ---------- four tabs: Home, Play, Make, Chart ---------- */
-// Play holds Practice and Game, Make holds Write and Studio, Chart holds the chart and your stylus Notes.
+/* ---------- five tabs: Home, Play, Write, Studio, Chart ---------- */
+// Play holds Practice and Game, Chart holds the chart and your stylus Notes. Write and Studio each have their own tab.
 // A switch at the top flips between the two; each tab remembers which one you used last.
 const TABS={
   groups:{
     home:{label:'Home',views:['home'],icon:'<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>'},
     play:{label:'Play',views:['play','game'],names:['Practice','Game'],icon:'<circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor"/>'},
-    make:{label:'Make',views:['cues','studio'],names:['Write','Studio'],icon:'<path d="M5 4v16M12 4v16M19 4v16"/><rect x="3" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="17" y="11" width="4" height="3" rx="1" fill="currentColor"/>'},
+    write:{label:'Write',views:['cues'],icon:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'},
+    studio:{label:'Studio',views:['studio'],icon:'<path d="M5 4v16M12 4v16M19 4v16"/><rect x="3" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="17" y="11" width="4" height="3" rx="1" fill="currentColor"/>'},
     chart:{label:'Chart',views:['part','notes'],names:['Chart','Notes'],icon:'<path d="M4 5h16v14H4z"/><path d="M9 5v14M14 5v14"/>'}
   },
   cur:'home',
@@ -24,7 +25,7 @@ const TABS={
   init(){
     const nav=document.querySelector('.tabs');
     nav.innerHTML=Object.entries(this.groups).map(([k,g])=>'<button role="tab" data-tab="'+k+'" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+g.icon+'</svg>'+g.label+'</button>').join('');
-    nav.classList.add('four');
+    nav.classList.add('four','five');
     nav.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)this.open(b.dataset.tab)});
     const bar=document.createElement('div');bar.id='subTabs';bar.className='seg subtabs';bar.hidden=true;bar.setAttribute('role','group');
     document.querySelector('main').prepend(bar);

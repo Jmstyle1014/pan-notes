@@ -28,7 +28,7 @@ function trk(type,extra){
   if(type==='part')t.name='My part';
   return Object.assign(t,extra||{});
 }
-const blank=()=>({v:1,bpm:100,metro:false,countIn:true,recMode:'add',snap:'off',snapRec:false,cycle:null,master:.85,sel:'practice',minBars:8,tracks:[trk('practice')]});
+const blank=()=>{const part=trk('part');part.name='My part (Write)';return{v:1,bpm:100,metro:false,countIn:true,recMode:'add',snap:'off',snapRec:false,cycle:null,master:.85,sel:part.id,minBars:8,tracks:[trk('practice'),part]}};
 const MIXDEF={practice:.04,audio:.08,pan:.22,part:.22,beats:.05},DECAY={practice:1.2,audio:1.4,pan:1.9,part:1.9,beats:.9};
 const mixOf=tr=>tr.mix==null?MIXDEF[tr.type]:tr.mix;
 // each track's own settings (Track settings): tone, echo and room; for pan tracks also quantize and transpose
@@ -307,7 +307,7 @@ function stop(rewind){
   T.pos=Math.min(beatNow(),L());T.playing=false;clearInterval(T.timer);cancelAnimationFrame(T.raf);
   const now=ctx.currentTime;T.scheduled.forEach(x=>{try{x.stop(now)}catch{}});T.scheduled=[];
   T.sources.forEach(s=>{try{s.stop()}catch{}});T.sources=[];
-  if(T.rec){T.rec=false;endNoteRec()}
+  if(T.rec){T.rec=false;if(WR.on)writeRecEnd();else endNoteRec()}
   if(rewind===true)T.pos=looping()?loopS():0;
   renderTransport();updatePlayhead();
 }
@@ -371,10 +371,10 @@ function endNoteRec(){
 }
 function toggleRec(){
   if(T.mic){micStop();return}
-  if(T.rec){T.rec=false;endNoteRec();renderTransport();return}
+  if(T.rec){T.rec=false;if(WR.on)writeRecEnd();else endNoteRec();renderTransport();return}
   const tr=selTr();
   if(tr.type==='audio'){micStart(tr);return}
-  if(tr.type==='part'){say('My part comes from Write. To record pans over it, add a Pan taps track; to change it, use ▦ Edit in bars.');return}
+  if(tr.type==='part'){if(!AC())return;writeRecStart(tr);return}
   if(tr.type!=='pan'){say('Choose a Mic or Pan taps track to record into, or add one with + Add track.');return}
   if(!AC())return;pushHistory();T.take++;T.recTid=tr.id;T.rec=true;
   if(song.recMode==='take')takeBegin(tr);
@@ -385,7 +385,10 @@ const held=new Map();   // finger → the note it's holding (hold for a roll)
 function panDown(e,el){
   e.preventDefault();if(!AC())return;const tr=selTr();
   // My part: the pans play so you can try a line, but notes are written in Write
-  if(tr.type==='part'){panVoice(channel(tr).out,el.dataset.field,ctx.currentTime+.003,.95);el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),140);return}
+  if(tr.type==='part'){const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);el.classList.add('hit');
+    const r={el,n:null,timer:0,rolls:[],write:writeTap(tr,id),t0:ctx.currentTime};
+    const go=()=>{panVoice(c.out,id,ctx.currentTime+.003,.5+Math.random()*.25);r.rolls.push(1);r.timer=setTimeout(go,60+Math.random()*18)};
+    r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);return}
   if(tr.type!=='pan')return;
   const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);const n=recNote(tr,id,.95);
   el.classList.add('hit');
@@ -393,8 +396,34 @@ function panDown(e,el){
   const go=()=>{const v=.5+Math.random()*.25;panVoice(c.out,id,ctx.currentTime+.003,v);const rn=recNote(tr,id,v);if(rn){rn.d=.25;r.rolls.push(rn)}r.timer=setTimeout(go,60+Math.random()*18)};
   r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);
 }
-function panUp(e){const r=held.get(e.pointerId);if(!r)return;clearTimeout(r.timer);setTimeout(()=>r.el.classList.remove('hit'),90);if(!r.rolls.length)recOff(r.n);else if(r.n)r.n.d=.5;held.delete(e.pointerId)}
+function panUp(e){const r=held.get(e.pointerId);if(!r)return;clearTimeout(r.timer);setTimeout(()=>r.el.classList.remove('hit'),90);
+  if(r.write!==undefined){held.delete(e.pointerId);const c=r.write;if(c&&r.rolls.length){c.fx='roll';c.duration=+Math.max(.3,ctx.currentTime-r.t0).toFixed(3);partCache=null}return}if(!r.rolls.length)recOff(r.n);else if(r.n)r.n.d=.5;held.delete(e.pointerId)}
 window.addEventListener('pointerup',panUp);window.addEventListener('pointercancel',panUp);
+
+/* ---- recording straight into Write: My part's taps become your cues ---- */
+// The notes land in Write at their place in the song (tap delay fixed), so they're in your chart, the lanes and the
+// game too. Notes hit together make a chord; hold a note to roll it. Undo in Write takes the whole take back.
+const WR={on:false,last:null,n:0};
+function writeRecStart(tr){
+  if(T.mic)return;pushUndo();if(isDemo){S.cues=[];isDemo=false;try{renderDemo()}catch{}}
+  WR.on=true;WR.last=null;WR.n=0;T.take++;T.recTid=tr.id;T.rec=true;
+  if(!T.playing)play(song.countIn);else renderTransport();setView('inst');
+}
+function writeTap(tr,id){
+  if(!(WR.on&&T.rec&&T.playing&&tr.id===T.recTid)||ctx.currentTime<T.t0-.05)return null;
+  let b=recBeatAt(ctx.currentTime);if(song.snapRec&&song.snap!=='off')b=snapBeat(b,+song.snap);
+  const t=+(origin()+b*spb()).toFixed(3);if(t<0)return null;
+  const last=WR.last;
+  if(last&&Math.abs(t-last.start)<.06){if(!last.steps.includes(id)){last.steps.push(id);last.mode='together'}return last}   // hit together: a chord
+  if(last&&t>last.start&&t<last.start+last.duration)last.duration=Math.max(.05,+(t-last.start).toFixed(3));
+  const c={id:uid(),start:t,duration:+(spb()*.5).toFixed(3),steps:[id],mode:'together',note:''};
+  S.cues.push(c);S.cues.sort((x,y)=>x.start-y.start);WR.last=c;WR.n++;partCache=null;return c;
+}
+function writeRecEnd(){
+  const n=WR.n;WR.on=false;WR.last=null;T.recTid=null;
+  try{normalizeChords()}catch{}save();try{renderCues()}catch{}partCache=null;renderAll();
+  say(n?n+' note'+(n===1?'':'s')+' went straight into Write. They\'re on your chart and in the game too. (Undo in Write takes them back.)':'Nothing was played.');
+}
 
 /* ---- takes: a track keeps every pass you record, you choose which one plays ---- */
 // pan taps: the playing take's notes are tr.notes; the others wait in tr.takes. Each new take starts from the one
@@ -778,9 +807,12 @@ function renderInst(){
     // pans first here too: your part lights up on them as it plays
     const sk=setKey(),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
     const phead=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
-    h+='<p class="help">'+(n?'Your part from Write ('+n+' notes), linked: change it here or in Write and both follow, along with your chart, the game and the lanes. Tap the pans to try a line.':'Your part from Write plays here. Write some cues (or tap along) and they appear on this track.')+'</p>'
+    // the words and buttons live in the Options menu, so the pans keep the room
+    h+='<div class="st-popts" id="stPopts" role="dialog" aria-label="My part options"><p class="help"><b>● Rec</b> and play the pans: every note goes straight into Write, so it\'s on your chart and in the game too. '+(n?'Your part has '+n+' notes now; change it here or in Write and both follow.':'')+'</p>'
       +'<div class="row"><button class="btn primary" data-st="bars">▦ Edit in bars</button><button class="btn" data-st="towrite">Go to Write</button></div>'
-      +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars.</p>'+phead.replace('st-ihead','st-ihead st-iend');
+      +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
+      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div>'
+      +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars or in Write.</p>'+phead.replace('st-ihead','st-ihead st-iend')+'</div>';
   }else if(tr.type==='pan'){
     const sk=trSet(tr),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
     const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';

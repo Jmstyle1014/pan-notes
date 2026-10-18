@@ -12,6 +12,7 @@ const GB={
     metro:'<path d="M9 3h6l3.5 17h-13z"/><path d="M12 16l5-9"/><circle cx="17.2" cy="6.6" r="1.3" fill="currentColor"/>',
     loop:'<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 014-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 01-4 4H4"/>',
     tset:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>',
+    write:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
     more:'<circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/>',
     home:'<path d="M5 4v16"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/>'
   },
@@ -24,7 +25,7 @@ const GB={
       +'<button class="gbi" id="gbMix" aria-label="Mixer">'+this.svg('mixer')+'</button>'
       +'<button class="gbi" id="gbSet" aria-label="Track settings: tone, echo, quantize, takes">'+this.svg('tset')+'</button></div>'
       +'<div class="gbc"></div>'
-      +'<div class="gbr"><span class="gblcd"></span><button class="gbi" id="gbMetro" aria-label="Click (metronome)">'+this.svg('metro')+'</button>'
+      +'<div class="gbr"><button class="gbi gbw" id="gbWrite" aria-label="Write">'+this.svg('write')+'<span>Write</span></button><span class="gblcd"></span><button class="gbi" id="gbMetro" aria-label="Click (metronome)">'+this.svg('metro')+'</button>'
       +'<button class="gbi" id="gbLoop" aria-label="Loop">'+this.svg('loop')+'</button>'
       +'<button class="gbi" id="gbMore" aria-label="More: count-in, undo, export, timing" aria-expanded="false">'+this.svg('more')+'</button></div>';
     v.prepend(bar);
@@ -41,6 +42,7 @@ const GB={
     v.appendChild(menu);
     menu.querySelector('#gbMUndo').append($('stUndo'),$('stRedo'));
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
+    const lp=document.createElement('button');lp.className='btn gbloopm';lp.textContent='⟲ Loop on / off';lp.onclick=()=>{this.menu(false);$('stLoop').click();this.sync()};list.prepend(lp);
     const tun=document.createElement('button');tun.className='btn';tun.textContent='♮ Tuning (match a recording)';tun.onclick=()=>{this.menu(false);showView('setup');try{SETUP.show('tune')}catch{}};list.prepend(tun);
     const tset=document.createElement('button');tset.className='btn';tset.textContent='⚙ Track settings';tset.onclick=()=>{this.menu(false);STUDIO.trackSheet()};list.prepend(tset);
     const tmp=document.createElement('button');tmp.className='btn';tmp.id='gbTempo';tmp.textContent='♩ Tempo & metronome';tmp.onclick=()=>{this.menu(false);STUDIO.tempoSheet()};list.prepend(tmp);
@@ -65,6 +67,7 @@ const GB={
     $('gbBack').onclick=()=>{showView('home')};
     $('gbView').onclick=()=>{const inst=document.body.classList.contains('st-inst');const b=document.querySelector('#stViews [data-sv="'+(inst?'tracks':'inst')+'"]');if(b)b.click();this.sync()};
     $('gbMix').onclick=()=>$('stMix').click();
+    $('gbWrite').onclick=()=>showView('cues');
     $('gbSet').onclick=()=>STUDIO.trackSheet();
     // tap the metronome to switch it on or off; hold it for its settings
     {const m=$('gbMetro');let lt=0,long=false;m.title='Tap: click on/off · Hold: tempo & metronome';
