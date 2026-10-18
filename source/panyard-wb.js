@@ -46,6 +46,12 @@ const WB={
     item('wbmRate','⏩ Playback speed <small id="wbRate">1×</small>',()=>{$('rateBtn').click();this.sync()});
     item('wbmSel','☑ Select notes',()=>{if(this.view==='pans'&&!this.split())this.setView('tl');$('selMode').click();this.sync()});
     item('wbmBars','▦ Edit in bars',()=>$('barsBtn').click());
+    // clear every cue: tap twice (the menu stays open for the second tap), and ↶ Undo brings them back
+    {const cl=document.createElement('button');cl.className='btn wbm-clear';cl.id='wbmClear';let armed=0,tm=0;const lab='🗑 Clear all cues <small>start this part again</small>';cl.innerHTML=lab;
+      cl.onclick=()=>{const n=isDemo?0:S.cues.length;if(!n){this.pop(null);say('There are no cues to clear.');return}
+        if(!armed){armed=1;cl.innerHTML='Tap again to clear '+n+' cue'+(n===1?'':'s');clearTimeout(tm);tm=setTimeout(()=>{armed=0;cl.innerHTML=lab},3500);return}
+        armed=0;clearTimeout(tm);cl.innerHTML=lab;this.pop(null);pushUndo();selIds.clear();S.cues=[];resetEditor();renderAll();save();say('Cleared '+n+' cue'+(n===1?'':'s')+'. ↶ Undo brings them back.')};
+      menu.appendChild(cl)}
     item('wbmShare','⤴ Share with your band <small>chart, picture, audio</small>',()=>$('shareBtnTop').click());
     item('wbmSave','⤓ Save the timeline',()=>$('shareTL').click());
     item('wbmSong','♪ Your songs',()=>{const b=document.querySelector('[data-open-songs]');if(b)b.click()});

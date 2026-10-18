@@ -232,3 +232,8 @@ body.st-inst #stSecs{display:none}
 .st-addp button{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
 .st-addp button:hover,.st-addp button:focus-visible{border-color:var(--gold);color:var(--gold)}
 .st-row.empty .st-empty{top:50%;transform:translateY(-50%)}
+
+/* Timing fix: the first-time note, and what this phone reports */
+.st-first{border:1px solid var(--gold);background:rgb(255 209 102 / .08);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.st-first b{color:var(--gold)}.st-first p{margin:4px 0 8px;color:var(--text)}
+.st-diag{font-size:12px;opacity:.85}

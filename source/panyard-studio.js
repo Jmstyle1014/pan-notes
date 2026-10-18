@@ -7,6 +7,7 @@ const q=s=>document.querySelector(s);
 const uid=()=>Date.now().toString(36).slice(-4)+Math.random().toString(36).slice(2,7);
 let PR={latency:0,micLag:null,zoom:1};
 try{Object.assign(PR,JSON.parse(localStorage.getItem('panyard-studio')||'{}'))}catch{}
+if(PR.cal==null&&PR.latency)PR.cal=1;   // set before this was remembered
 const savePR=()=>{try{localStorage.setItem('panyard-studio',JSON.stringify(PR))}catch{}};
 // each Pan taps track plays one pan set (the song's pan unless you choose another); My part plays the song's
 const trSet=tr=>tr&&tr.type==='pan'?(SETS[tr.panSet]?tr.panSet:'guitar'):setKey();
@@ -120,13 +121,16 @@ function AC(){
   if(ctx.state==='suspended')ctx.resume();
   return ctx;
 }
-function makeIR(ac,decay){
-  const sr=ac.sampleRate,n=Math.max(1,Math.round(sr*decay)),ir=ac.createBuffer(2,n,sr),pre=Math.round(sr*.012);
-  for(let c=0;c<2;c++){const d=ir.getChannelData(c);let lp=0;
+function makeIR(ac,decay,chs=2){
+  const sr=ac.sampleRate,n=Math.max(1,Math.round(sr*decay)),ir=ac.createBuffer(chs,n,sr),pre=Math.round(sr*.012);
+  for(let c=0;c<chs;c++){const d=ir.getChannelData(c);let lp=0;
     for(let i=pre;i<n;i++){const t=(i-pre)/sr,k=.55-.45*Math.min(1,t/decay);lp+=k*((Math.random()*2-1)-lp);d[i]=lp*Math.pow(1-(i-pre)/(n-pre),2)*Math.exp(-t*3/decay)}}
   return ir;
 }
-function reverbFor(decay){let r=reverbs.get(decay);if(!r){r=ctx.createConvolver();r.buffer=makeIR(ctx,decay);r.connect(master);reverbs.set(decay,r)}return r}
+// On an Android phone reverb is the heaviest thing the sound does, and several at once make playback stutter:
+// there every track shares one shorter reverb (mono). Computers, iPads and exports keep a reverb for each room.
+const LITE=!!(window.PAN_ANDROID||/Android/i.test(navigator.userAgent||''));
+function reverbFor(decay){if(LITE&&ctx instanceof AudioContext)decay='lite';let r=reverbs.get(decay);if(!r){r=ctx.createConvolver();r.buffer=decay==='lite'?makeIR(ctx,1.3,1):makeIR(ctx,decay);r.connect(master);reverbs.set(decay,r)}return r}
 const audible=tr=>song.tracks.some(t=>t.solo)?tr.solo:!tr.mute;
 // each track: volume → low cut → left–right → (dry to the master) + (send to its room), with a level meter
 function channel(tr){
@@ -152,7 +156,7 @@ function channel(tr){
   const E=ECHOES[fx.echoT]||ECHOES.q;c.dl.delayTime.value=Math.min(4.9,E.b*spb());c.fb.gain.value=E.fb;c.dk.frequency.value=E.dark?2200:4500;c.esend.gain.value=fx.echo;
   const mx=mixOf(tr);c.out.gain.value=tr.vol;c.play.gain.value=audible(tr)?1:0;if(c.pan)c.pan.pan.value=tr.pan||0;
   c.dry.gain.value=1-mx*.5;c.send.gain.value=mx*1.6;
-  const rv=reverbFor(fx.room||DECAY[tr.type]);if(c.rev!==rv){if(c.rev)try{c.send.disconnect(c.rev)}catch{}c.send.connect(rv);c.rev=rv}
+  const rv=mx>.001?reverbFor(fx.room||DECAY[tr.type]):null;if(c.rev!==rv){if(c.rev)try{c.send.disconnect(c.rev)}catch{}if(rv)c.send.connect(rv);c.rev=rv}
   return c;
 }
 function refreshGains(){if(!ctx)return;song.tracks.forEach(channel);if(master)master.gain.value=song.master}
@@ -354,6 +358,11 @@ function stop(rewind){
   if(rewind===true)T.pos=looping()?loopS():0;
   renderTransport();updatePlayhead();
 }
+const GL={n:0,log:[],last:null};
+setInterval(()=>{if(!ctx||!(ctx instanceof AudioContext)||!T.playing){GL.last=null;return}
+  const now=performance.now()/1000,a=ctx.currentTime;
+  if(GL.last){const dw=now-GL.last[0],da=a-GL.last[1];if(dw>.05&&dw-da>.04){GL.n++;GL.log.push(Date.now())}}
+  GL.last=[now,a];GL.log=GL.log.filter(t=>Date.now()-t<60000)},250);
 function restartIfPlaying(){if(T.playing&&!T.rec){stop(false);play(false)}}
 function tick(){
   const to=uNow()+.35/spb();   // sounds are lined up 0.35 s ahead, so a busy moment on the phone can't make them late
@@ -382,8 +391,10 @@ function scheduleRange1(a,b,off){
     if(tr.type==='part'){for(const n of partNotes())if(n.t>=a&&n.t<b)panVoice(c.play,n.p,u2t(n.t+off),n.v);continue}
     if(tr.type!=='pan')continue;
     // Replace mode: just before the playhead gets there, older notes on the track being recorded are wiped
-    if(T.rec&&(song.recMode==='replace'||song.recMode==='take')&&tr.id===T.recTid)tr.notes=tr.notes.filter(n=>!(n.t>=a&&n.t<b&&n.tk!==T.take));
-    for(const n of pnotes(tr))if(n.t>=a&&n.t<b&&n.tk!==T.take)panVoice(c.play,n.p,u2t(n.t+off),n.v);
+    // Replace / New take: while you record, the old notes from where you started are silent (they're only
+    // removed when you stop, and only in the bars you recorded over)
+    const hush=T.rec&&(song.recMode==='replace'||song.recMode==='take')&&tr.id===T.recTid;
+    for(const n of pnotes(tr))if(n.t>=a&&n.t<b&&n.tk!==T.take&&!(hush&&n.t>=T.recFrom-1e-6))panVoice(c.play,n.p,u2t(n.t+off),n.v);
   }
   if(song.metro&&ck().sound!=='none'&&(!ck().recOnly||T.rec))for(let k=Math.ceil(a-1e-9);k<b;k++)click(u2t(k+off),k%BPB()===0);
 }
@@ -427,6 +438,13 @@ function fitBars(){if(T.mb0!=null){song.minBars=T.mb0;T.mb0=null}}
 function endNoteRec(){
   fitBars();
   const tr=trById(T.recTid),take=T.take;T.recTid=null;T.noCyc=false;if(!tr)return;
+  // Replace / New take: the old notes go only where you recorded (all of the loop if it came round)
+  if(song.recMode==='replace'||song.recMode==='take'){
+    const to=T.playing?beatNow():T.pos,from=T.recFrom||0,went=(ctx.currentTime-(T.recT||0))/spb();
+    const lp=looping(),all=lp&&went>=loopE()-loopS()-1e-3;
+    const over=t=>all?(t>=loopS()-1e-6&&t<loopE()-1e-6):lp&&to<from?(t>=from-1e-6&&t<loopE()-1e-6)||(t>=loopS()-1e-6&&t<to-1e-6):(t>=from-1e-6&&t<to-1e-6);
+    tr.notes=tr.notes.filter(n=>n.tk===take||!over(n.t));
+  }
   const mineN=tr.notes.filter(n=>n.tk===take);
   if(song.snapRec&&song.snap!=='off')mineN.forEach(n=>{n.t=snapBeat(n.t,+song.snap)});
   tr.notes.forEach(n=>{delete n.tk});tr.notes.sort((x,y)=>x.t-y.t);
@@ -440,12 +458,16 @@ function toggleRec(){
   if(T.mic){micStop();return}
   if(T.rec){T.rec=false;if(WR.on)writeRecEnd();else endNoteRec();renderTransport();return}
   const tr=selTr();
+  if(tr&&(tr.type==='pan'||tr.type==='part')&&!PR.cal&&!PR.askTap){PR.askTap=1;savePR();AC();openSheet('timing','first');return}
+  if(tr&&tr.type==='audio'&&PR.micLag==null&&!PR.askMic){PR.askMic=1;savePR();AC();openSheet('timing','firstmic');return}
   if(tr.type==='audio'){micStart(tr);return}
   if(tr.type==='part'){if(!AC())return;writeRecStart(tr);return}
   if(tr.type!=='pan'){say('Choose a Mic or Pan taps track to record into, or add one with + Add track.');return}
   if(!AC())return;pushHistory();T.take++;T.recTid=tr.id;T.rec=true;T.mb0=song.minBars;
   if(song.recMode==='take')takeBegin(tr);
+  T.recFrom=T.playing?beatNow():T.pos;
   if(!T.playing)play(song.countIn);else renderTransport();
+  T.recT=Math.max(ctx.currentTime,T.t0);
   setView('inst');
 }
 const held=new Map();   // finger → the note it's holding (hold for a roll)
@@ -629,7 +651,7 @@ function finishTapCal(){
   CAL.on=false;const offs=[];
   for(const t of CAL.taps){let best=null;for(const c of CAL.clicks.slice(2)){const d=t-c;if(Math.abs(d)<.3&&(best===null||Math.abs(d)<Math.abs(best)))best=d}if(best!==null)offs.push(best)}
   if(offs.length<5){calMsg('Not enough taps landed near the clicks. Try again and tap along with each click.');return}
-  offs.sort((a,b)=>a-b);const ms=Math.round(Math.max(-100,Math.min(350,offs[Math.floor(offs.length/2)]*1000)));S.tapLag=ms/1000;PR.latency=ms;savePR();save();try{renderGrid()}catch{}
+  offs.sort((a,b)=>a-b);const ms=Math.round(Math.max(-100,Math.min(350,offs[Math.floor(offs.length/2)]*1000)));S.tapLag=ms/1000;PR.latency=ms;PR.cal=1;savePR();save();try{renderGrid()}catch{}
   calMsg('Done. Your taps land about '+Math.abs(tapMs())+' ms '+(tapMs()>=0?'late':'early')+'. Pan taps here and Tap along in Write are both shifted to match.');renderSheet();
 }
 async function measureMic(){
@@ -980,12 +1002,17 @@ function renderSheet(){
       +'<p class="help" id="stExBusy" role="status" hidden></p><div class="row"><button class="btn primary grow" data-st="expgo">Save the audio</button></div>';
   }else if(SH.kind==='timing'){
     const lag=PR.micLag!=null?PR.micLag:Math.round(((ctx&&ctx.outputLatency)||0)*1000+((ctx&&ctx.baseLatency)||0)*1000+12);
-    h=head('Timing fix')+'<p class="help">Phones add a small delay between you and the sound. Fix it once and your recordings land on the beat.</p>'
+    const first=SH.arg==='first'||SH.arg==='firstmic',ol=ctx?Math.round(((ctx.outputLatency||0)+(ctx.baseLatency||0))*1000):0,sl=ctx?Math.round(spkLag()*1000):0,smooth=(()=>{try{return localStorage.getItem('panyard-smooth')==='1'}catch{return false}})();
+    h=head('Timing fix')+(first?'<div class="st-first"><b>'+(SH.arg==='firstmic'?'Before your first mic take on this phone':'Before your first recording on this phone')+'</b><p>'+(SH.arg==='firstmic'?'Measure the mic once (8 clicks, about 5 seconds) so your takes line up with the band.':'Tap along with 12 clicks once (about 10 seconds) so your notes land right on the beat.')+'</p><div class="row"><button class="btn sm" data-st="recnow">Skip, record now</button></div></div>':'')
+      +'<p class="help">Phones add a small delay between you and the sound. Fix it once and your recordings land on the beat.</p>'
       +'<div class="panel st-cal"><b>Pan taps</b><p class="help">Tap Start, then tap the big button on every click. Now: '+tapMs()+' ms (the same as Tap delay fix in Write).</p><div class="row"><button class="btn" data-st="tapcal">Start</button><button class="btn primary grow st-calbtn" id="stCalTap">Tap on the click</button></div></div>'
       +'<div class="panel st-cal"><b>Mic</b><p class="help">Take off headphones and keep it quiet: the phone plays clicks and listens for them. '+(PR.micLag!=null?'Set to '+PR.micLag+' ms.':'Using the phone\'s own estimate ('+lag+' ms).')+'</p>'
       +'<div class="row"><button class="btn" data-st="miccal">Measure with the speaker</button>'+(PR.micLag!=null?'<button class="btn sm" data-st="micauto">Use the estimate</button>':'')+'</div>'
       +'<label class="lab"><span>Set by ear: <b id="stLagV">'+lag+'</b> ms</span><input type="range" id="stLag" min="0" max="400" step="5" value="'+lag+'"></label></div>'
-      +'<p class="help" id="stCalMsg" role="status" aria-live="polite"></p>';
+      +'<p class="help" id="stCalMsg" role="status" aria-live="polite"></p>'
+      +'<div class="panel st-cal"><b>Smoother playback</b><p class="help">For a phone that stutters: the sound gets a bigger cushion. Taps answer a touch later, so run Pan taps again after switching. Panyard restarts to switch.</p>'
+        +'<div class="seg"><button data-st="smooth" data-v="0" aria-pressed="'+!smooth+'">Quickest</button><button data-st="smooth" data-v="1" aria-pressed="'+smooth+'">Smoother</button></div></div>'
+      +'<p class="help st-diag">This phone: speaker delay '+ol+' ms reported'+(sl>ol+5?', '+sl+' ms measured':'')+' · tap fix '+tapMs()+' ms'+(PR.cal?'':' (not set yet)')+' · mic '+(PR.micLag!=null?PR.micLag+' ms':'not measured')+' · sound '+(ctx?Math.round(ctx.sampleRate/100)/10+' kHz':'off')+(LITE?' · light reverb':'')+' · hiccups while playing (last minute): '+GL.log.length+'</p>';
   }else if(SH.kind==='tempo'){
     const k=ck(),v=+bpm().toFixed(1),rec=!!pBuf;
     const tog=(key,label,on,sub)=>'<button class="trow tog" data-st="ctog" data-v="'+key+'" role="switch" aria-checked="'+!!on+'"><span class="tl"><b>'+label+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span><span class="sw" aria-hidden="true"><i></i></span></button>';
@@ -1259,6 +1286,8 @@ function onClick(e){
     case 'play':T.playing?stop(false):play(false);if(SH.kind==='mixer'||SH.kind==='tempo')renderSheet();break;
     case 'expgo':runExport();break;
     case 'tapcal':startTapCal();break;
+    case 'recnow':closeSheet();toggleRec();break;
+    case 'smooth':{try{localStorage.setItem('panyard-smooth',b.dataset.v)}catch{}say('Restarting to switch…');setTimeout(()=>location.reload(),600);break}
     case 'miccal':measureMic();break;
     case 'micauto':PR.micLag=null;savePR();renderSheet();break;
     case 'undo':undo();if(SH.kind)renderSheet();break;

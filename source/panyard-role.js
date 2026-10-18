@@ -105,3 +105,23 @@ var ROLE={   // var: Home can ask about it before this part has run
   }
 };
 ROLE.init();
+/* ---------- Day or night: the whole app in daytime colours, or Panyard's night look ---------- */
+// Only the colours change (photos and pictures keep theirs), so nothing moves. Kept on this phone.
+var DAY={
+  on(){try{return localStorage.getItem('panyard-day')==='1'}catch{return false}},
+  set(v){try{localStorage.setItem('panyard-day',v?'1':'0')}catch{}this.apply();say(v?'Day mode.':'Night mode.')},
+  apply(){document.documentElement.classList.toggle('day',this.on());const b=$('dayBtn');if(b){b.textContent=this.on()?'🌙':'☀️';b.setAttribute('aria-label',this.on()?'Switch to night mode':'Switch to day mode')}},
+  init(){
+    this.apply();
+    // a sun/moon at the top of Home
+    const _r=HOME.render.bind(HOME);HOME.render=function(){_r();const st=$('hmSetup');if(st&&!$('dayBtn')){const b=document.createElement('button');b.className='iconbtn';b.id='dayBtn';b.onclick=()=>DAY.set(!DAY.on());st.before(b);DAY.apply()}};
+    // and a switch in Setup, under Playing
+    const _sr=SETUP.render.bind(SETUP);SETUP.render=function(){_sr();const list=$('setList');if(!list||list.querySelector('[data-row=day]'))return;
+      const fs=list.querySelector('[data-row=fs],[data-row=wake],[data-row=play]');if(!fs)return;
+      const r=document.createElement('button');r.className='sxrow';r.dataset.row='day';r.setAttribute('role','switch');r.setAttribute('aria-checked',String(DAY.on()));
+      r.innerHTML='<span class="sxic" style="background:#ffd166" aria-hidden="true">☀</span><span class="sxlab"><b>Day mode</b><small>Light colours for daytime</small></span><span class="sxtog'+(DAY.on()?' on':'')+'" aria-hidden="true"><i></i></span>';
+      r.onclick=e=>{e.stopPropagation();DAY.set(!DAY.on());SETUP.render()};fs.parentNode.insertBefore(r,fs.nextSibling)};
+    try{HOME.render();SETUP.render()}catch{}
+  }
+};
+DAY.init();

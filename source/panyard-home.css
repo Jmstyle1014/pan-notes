@@ -346,3 +346,8 @@ body.band .tabs button[data-tab=studio],body.band #wbmStudio,body.band #gbWrite{
 #partPick button small{font-weight:600;color:var(--muted);margin-left:2px}
 #partPick button[aria-pressed=true]{background:#efeaff;color:#1a1030;border-color:#efeaff}
 #partPick button[aria-pressed=true] small{color:#5a4f80}
+#wbMenu .wbm-clear{color:#ff9a9a}
+
+/* Day mode: the night colours turned to day (photos and pictures keep their own colours) */
+html.day{filter:invert(.92) hue-rotate(180deg);background:#0d0a1a}
+html.day :is(img,video,image,.lk-th,.thumb,.lk-photo,.lk-mini,.hm-mini svg image){filter:invert(1) hue-rotate(180deg)}

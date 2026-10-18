@@ -3057,7 +3057,8 @@ const pitchHz=id=>REF_A()*Math.pow(2,(midiOf(PITCH[id])-69)/12);
 let pac=null,pBus=null,noiseBuf=null;
 function panCtx(){
   if(!pac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
-    pac=new C();const comp=pac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
+    // Smoother playback (Studio's Timing fix): a bigger sound cushion for a phone that stutters
+    pac=new C((()=>{try{return localStorage.getItem('panyard-smooth')==='1'?{latencyHint:'playback'}:undefined}catch{return undefined}})());const comp=pac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
     pBus=pac.createGain();pBus.gain.value=0.8;fxBuild(pac,pBus,comp);
     const lim=pac.createDynamicsCompressor();lim.threshold.value=-3;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.002;lim.release.value=0.12;
     comp.connect(lim);lim.connect(pac.destination);
