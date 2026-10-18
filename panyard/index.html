@@ -1301,6 +1301,56 @@ body.gbmode:not(.st-inst) .st-tl{max-height:calc(100dvh - 70px)}
 body.wb-next-sm #wbNext .wbn-h{display:none}
 body.wb-next-sm #wbNext{padding-top:8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
 body.wb-next-sm .wbn{height:52px;min-width:56px;padding:4px 10px}body.wb-next-sm .wbn b{font-size:20px}
+/* ---- Pan look (Setup): a look for each kind of pan ---- */
+#lkTabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-top:4px}
+#lkTabs button{flex:none;padding:8px 12px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--muted);font:700 14px var(--body,system-ui);cursor:pointer}
+#lkTabs button[aria-pressed=true]{background:#efeaff;color:#1a1030;border-color:#efeaff}
+.lk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+@media (max-width:440px){.lk-grid{grid-template-columns:repeat(2,1fr)}}
+.lk-t{border:2px solid var(--line);border-radius:14px;padding:10px 6px 8px;background:var(--bg);color:var(--text);font:700 13px var(--body,system-ui);display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer}
+.lk-t[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
+.lk-mini{position:relative;width:62px;height:62px;border-radius:50%;border:4px solid #c9c3ea;background:radial-gradient(circle at 40% 35%,#3b3266,#130e26)}
+.lk-mini i{position:absolute;width:20px;height:14px;border-radius:50%;background:#4a3f86;border:1px solid #120d24}
+.lk-mini i:nth-child(1){left:8px;top:12px}.lk-mini i:nth-child(2){right:7px;top:18px}.lk-mini i:nth-child(3){left:17px;bottom:8px;width:24px}
+.lk-steel .lk-mini{border-color:#e4e7ed;background:radial-gradient(circle at 40% 35%,#5a5f6a,#2c2f36)}.lk-steel .lk-mini i{background:#7a808c;border-color:#c4c9d2}
+.lk-painted .lk-mini{border-color:#e8d7b0;background:#2a1d18}.lk-painted .lk-mini i:nth-child(1){background:#e0824f}.lk-painted .lk-mini i:nth-child(2){background:#3c9fa6}.lk-painted .lk-mini i:nth-child(3){background:#c9a2ff}
+.lk-photo .lk-mini{background:radial-gradient(circle at 35% 30%,#d8dbe2,#6f7480 55%,#3a3d45)}.lk-photo .lk-mini i{background:transparent;border:1.5px solid #fff}
+.lk-row{display:flex;align-items:center;gap:8px;margin:8px 0}.lk-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lk-th{width:48px;height:48px;border-radius:50%;flex:none;background:#2a2148 center/cover no-repeat;border:2px solid #cfd2da}
+.lk-x{min-width:40px}
+#lkHit{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+#lkHit button{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:var(--bg);color:var(--muted);font:700 12px var(--body,system-ui)}
+#lkHit button:first-child{width:auto;border-radius:99px;padding:0 12px}
+#lkHit button[aria-pressed=true]{border:3px solid #fff;box-shadow:0 0 0 2px var(--gold)}
+#lkPanel .lab{margin-top:14px}
+/* the looks on the pans themselves (every screen: Play, Write, Studio, the game) */
+.pan[data-lk=steel] .rim{fill:url(#lkSteelRim)!important;stroke:#fff!important;stroke-opacity:.6}
+.pan[data-lk=steel] .bed{fill:url(#lkSteelBed)!important}
+.pan[data-lk=steel] .field .zone{fill:url(#lkSteelZone)!important;stroke:#c4c9d2!important;stroke-width:4px!important}
+.pan[data-lk=steel] .field text{fill:#fbfcff!important}
+.pan[data-lk=painted] .rim{fill:url(#lkSandRim)!important}
+.pan[data-lk=painted] .bed{fill:#2a1d18!important}
+.pan[data-lk=painted] .field .zone{fill:var(--gc,#6b5a9a)!important;stroke:rgb(255 255 255 / .55)!important;stroke-width:4px!important}
+.pan[data-lk=painted] .field text{fill:#fff!important;paint-order:stroke;stroke:rgb(0 0 0 / .35);stroke-width:5px}
+.pan[data-lk=photo] .field .zone{fill:rgb(10 8 20 / .12)!important;stroke:rgb(255 255 255 / .82)!important;stroke-width:4px!important}
+.pan[data-lk=photo] .field text{fill:#fff!important;paint-order:stroke;stroke:rgb(0 0 0 / .7);stroke-width:8px}
+.pan[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) .zone{fill:url(#hgGold)!important;stroke:#fff3c4!important}
+.pan.pan-ec[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) .zone{fill:var(--ec)!important;stroke:#ffd9c9!important}
+.pan[data-lk]:not([data-lk=night]) :is(.pan-bf) .field:is(.active,.hit,.play-hit) .zone,.pan.pan-bf[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) .zone{fill:var(--bf)!important;stroke:#c9fbfc!important}
+.pan[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) text{fill:#1a1030!important;stroke:none}
+.pan.lkhit .field:is(.active,.hit,.play-hit) .zone,.pan.lkhit .pan-bf .field:is(.active,.hit,.play-hit) .zone{fill:var(--lkhit)!important;stroke:#fff!important}
+.pan.lkhit .field:is(.active,.hit,.play-hit) text{fill:#1a1030!important;stroke:none}
+.pan[data-lkn=none] .field text{display:none}
+/* Line up: the photo under one drum's note outlines */
+#lkAlign{z-index:90!important}
+#lkAlign .lk-al{width:min(560px,100%);display:flex;flex-direction:column;gap:10px;max-height:100dvh;overflow:auto;background:var(--raised,#1d1636);border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;padding:16px 16px max(16px,env(safe-area-inset-bottom));box-shadow:0 -14px 40px rgb(0 0 0 / .5)}
+.lk-alh{display:flex;align-items:center;justify-content:space-between;gap:10px}.lk-alh b{font-size:17px}
+.lk-alstage{border-radius:16px;overflow:hidden;background:#0d0a1a}
+.lk-alstage svg{width:100%;height:auto;max-height:min(62vh,560px);display:block;touch-action:none;cursor:grab;margin:0 auto}
+.lk-alnotes{pointer-events:none}
+.lk-alnotes .zone{fill:rgb(255 255 255 / .05)!important;stroke:#fff!important;stroke-width:5px!important}
+.lk-alnotes text{fill:#fff!important;paint-order:stroke;stroke:rgb(0 0 0 / .75);stroke-width:8px}
+.lk-alb{justify-content:center;flex-wrap:wrap;gap:8px}.lk-alb .btn{min-width:52px}
 </style>
 <header class="appbar"><button class="ttl songbtn" data-open-songs aria-label="Your songs"><span class="eyebrow">Panyard · night session</span><span class="songname"><span id="appTitle">Pan Notes</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
 <main>
@@ -5087,8 +5137,8 @@ const TUNE_A={
 };
 const SETUP={
   page:null,ready:false,
-  KEYS:{'Recording':'rec','Your pan':'pan','Pan photos':'photos','Pan order':'photos','Share with your band':'share','Play along':'play','Your pan sounds':'sound','Saving':'save','Tuning':'tune'},
-  TITLES:{rec:'Recording',pan:'Your pan',photos:'Pan photos & order',share:'Share with your band',play:'Play along',sound:'Pan sounds',save:'Backup & saving',tune:'Tuning'},
+  KEYS:{'Recording':'rec','Your pan':'pan','Pan photos':'photos','Pan look':'photos','Pan order':'photos','Share with your band':'share','Play along':'play','Your pan sounds':'sound','Saving':'save','Tuning':'tune'},
+  TITLES:{rec:'Recording',pan:'Your pan',photos:'Pan look',share:'Share with your band',play:'Play along',sound:'Pan sounds',save:'Backup & saving',tune:'Tuning'},
   wide:()=>matchMedia('(min-width: 900px)').matches,
   panels(){return [...$('view-setup').children].filter(e=>e.classList.contains('panel')&&e.dataset.sk)},
   vis(k){return this.panels().some(p=>p.dataset.sk===k&&!p.dataset.off)},
@@ -5127,7 +5177,7 @@ const SETUP={
     switch(k){
       case 'rec':return hasAudio?esc(curName||'Recording'):'None yet';
       case 'pan':return esc(curSet().name);
-      case 'photos':return S.look==='photo'?'Photos':'Diagram';
+      case 'photos':return typeof LOOK!=='undefined'?(LOOK.STYLES.find(s=>s[0]===LOOK.of(setKey()).style)||['','Night'])[1]:(S.look==='photo'?'Photos':'Diagram');
       case 'play':return ({off:'No hints',subtle:'Subtle hints',bold:'Bold hints'})[S.hint]||'';
       case 'sound':return S.panVoice==='mine'?'My recordings':'Built-in';
       case 'save':return lb?ago(lb):'No backup yet';
@@ -5143,7 +5193,7 @@ const SETUP={
         +(end==='tog'?'<span class="sxtog'+(value?' on':'')+'" aria-hidden="true"><i></i></span>':'<span class="sxval">'+value+'</span><span class="sxchev" aria-hidden="true">›</span>')+'</button>'};
     const group=(t,rows)=>rows.filter(Boolean).length?'<div class="sxgroup"><div class="sxgt">'+t+'</div><div class="sxbox">'+rows.join('')+'</div></div>':'';
     const fsOn=!!document.fullscreenElement,extra=this.panels().filter(p=>/^x/.test(p.dataset.sk));
-    $('setList').innerHTML=group('This song'+(S.title?' · '+esc(S.title):''),[row('rec','Recording',this.val('rec')),row('pan','Your pan',this.val('pan')),this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):'',this.vis('tune')?row('tune','Tuning',this.val('tune'),'Match your recording\'s pitch'):''])
+    $('setList').innerHTML=group('This song'+(S.title?' · '+esc(S.title):''),[row('rec','Recording',this.val('rec')),row('pan','Your pan',this.val('pan')),this.vis('photos')?row('photos','Pan look',this.val('photos')):'',this.vis('tune')?row('tune','Tuning',this.val('tune'),'Match your recording\'s pitch'):''])
       +group('Playing',[row('play','Play along',this.val('play'),'Hints and tap sounds'),($('fsBtn2')||$('fsBtn'))?row('fs','Full screen',fsOn,null,'tog'):'',$('wakeBtn')?row('wake','Keep screen awake',!!S.wake,null,'tog'):'',$('labOpen')?row('lab','Mallet Lab','Try it','Play with a game controller'):''])
       +group('Sound & saving',[this.vis('sound')?row('sound','Pan sounds',this.val('sound'),'Record your pans, room, brightness'):'',this.vis('share')?row('share','Share with your band',this.val('share')):'',row('save','Backup',this.val('save'),'Save or open a backup file')])
       +(extra.length?group('More',extra.map(p=>row(p.dataset.sk,this.TITLES[p.dataset.sk],''))):'');
@@ -7208,7 +7258,7 @@ const STAGE={
     L.ds.forEach((d,i)=>{const p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*.13;
       parts.push('<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk*1.3)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
         +'<path d="M'+f1(nx-R)+' '+f1(ny)+' V'+f1(ny+sk)+' A'+f1(R)+' '+f1(R*t)+' 0 0 0 '+f1(nx+R)+' '+f1(ny+sk)+' V'+f1(ny)+' Z" fill="url(#hgSkirt)"/>'
-        +'<g class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
+        +'<g data-drum="'+i+'" data-pk="'+d.key+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
         +'<circle class="rim" cx="'+d.cx+'" cy="'+d.cy+'" r="'+d.r+'"/><circle class="bed" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.965)+'"/>'
         +d.ids.map(id=>{const el=fieldEl(id);return el?el.outerHTML.replace(/url\(#cp-/g,'url(#pfcp-'):''}).join('')
         +'<circle class="hg-gloss" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.97)+'" fill="url(#hgGloss)"/></g>')});
@@ -7241,7 +7291,7 @@ const STAGE={
     L.ds.forEach((d,i)=>{const p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*.13;
       h+='<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk*1.3)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
         +'<path d="M'+f1(nx-R)+' '+f1(ny)+' V'+f1(ny+sk)+' A'+f1(R)+' '+f1(R*t)+' 0 0 0 '+f1(nx+R)+' '+f1(ny+sk)+' V'+f1(ny)+' Z" fill="url(#hgSkirt)"/>'
-        +'<g data-drum="'+i+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
+        +'<g data-drum="'+i+'" data-pk="'+d.key+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
         +'<circle class="rim" cx="'+d.cx+'" cy="'+d.cy+'" r="'+d.r+'"/><circle class="bed" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.965)+'"/></g>'});
     wrap.innerHTML=h+'</svg>';
     L.ds.forEach((d,i)=>{const g=wrap.querySelector('g[data-drum="'+i+'"]');if(!g)return;
@@ -7620,6 +7670,202 @@ const WB={
   }
 };
 WB.init();
+
+/* ---------- Pan look: every pan its own style, photos, note names and hit colour ---------- */
+// Kept on this phone (and in backups), one look per kind of pan. Only the look changes: the notes keep their
+// shapes and places, so taps land exactly as before. Photos sit behind the notes; Line up moves, turns and sizes a
+// photo until your real notes sit under the outlines. The Double Guitar's photos are the ones it already had.
+var LOOK={   // var: Setup can ask about it before this part has run
+  KEYS:['guitar','tenor','dsec','fcello','six'],
+  STYLES:[['night','Night'],['steel','Steel'],['painted','Painted'],['photo','My photos']],
+  NAMES:[['oct','Letters + octaves'],['plain','Letters'],['none','Hidden']],
+  HITS:['','#ffd166','#7be07b','#ff8fc7','#8fc7ff','#ffffff'],
+  GUITAR_COL:{ec:'#e0824f',bf:'#3c9fa6'},
+  d:{},urls:{},tab:null,n:0,
+  of(k){const x=this.d[k]||{};return{style:this.STYLES.some(s=>s[0]===x.style)?x.style:'night',names:this.NAMES.some(s=>s[0]===x.names)?x.names:'oct',hit:this.HITS.includes(x.hit)?x.hit:'',al:x.al&&typeof x.al==='object'?x.al:{}}},
+  load(){try{const x=JSON.parse(localStorage.getItem('pan-looks')||'{}');this.d=x&&typeof x==='object'?x:{}}catch{this.d={}}},
+  save(){try{localStorage.setItem('pan-looks',JSON.stringify(this.d))}catch{}},
+  set(k,patch){this.d[k]=Object.assign(this.of(k),patch);this.save();this.apply();this.renderPanel()},
+  drums(k){
+    if(k==='guitar')return[{pk:'ec',name:'E / C pan'},{pk:'bf',name:'B / F pan'}];
+    const v=SETS[k].views[0];return v.drums.map((d,i)=>({i,name:v.drums.length===1?SETS[k].name:(k==='six'?d.name+' drum':/pan$/.test(d.name)?d.name:d.name+' pan')}));
+  },
+  slot(k,dr){return k==='guitar'?dr.pk:String(dr.i)},
+  src(k,slot){return k==='guitar'?photoSrc(slot):(this.urls[k+':'+slot]||null)},
+  async loadPhotos(){
+    for(const k of this.KEYS){if(k==='guitar')continue;for(const dr of this.drums(k)){const b=await idbGet('look:'+k+':'+dr.i);if(b instanceof Blob)this.urls[k+':'+dr.i]=URL.createObjectURL(b)}}
+    this.paintAll(true);this.renderPanel();
+  },
+  // the guitar's own photo switch follows its look, so every screen that draws the guitar agrees
+  syncGuitar(){const want=this.of('guitar').style==='photo'?'photo':'diagram';if(S.look!==want){S.look=want;try{renderLook()}catch{}try{renderPans()}catch{}}},
+  apply(){this.syncGuitar();this.paintAll(true)},
+  keyOf(svg){const f=svg.querySelector('.field');if(!f)return null;const id=f.dataset.field;return /^(\w+):/.test(id)?id.split(':')[0]:'guitar'},
+  strip:s=>s.replace(/[̣̤̇̈]/g,''),
+  paintAll(force){document.querySelectorAll('.pan svg').forEach(svg=>{if(svg.closest('#lkAlign'))return;this.paint(svg,force)})},
+  paint(svg,force){
+    const k=this.keyOf(svg);if(!k||!SETS[k])return;const L=this.of(k),wrap=svg.closest('.pan');
+    const sig=[L.style,L.names,L.hit,JSON.stringify(L.al),L.style==='photo'?this.drums(k).map(dr=>this.src(k,this.slot(k,dr))||'').join(','):''].join('|');
+    // a field moved in from somewhere else keeps its old letters: check those every time
+    svg.querySelectorAll('.field text').forEach(t=>{if(t.dataset.l==null)t.dataset.l=t.textContent;const want=L.names==='plain'?this.strip(t.dataset.l):t.dataset.l;if(t.textContent!==want)t.textContent=want});
+    if(!force&&svg.dataset.lk===sig)return;svg.dataset.lk=sig;
+    if(wrap){wrap.dataset.lk=L.style;wrap.dataset.lkn=L.names;if(L.hit)wrap.style.setProperty('--lkhit',L.hit);else wrap.style.removeProperty('--lkhit');wrap.classList.toggle('lkhit',!!L.hit)}
+    // painted: each note takes its group's colour (each drum, or each ring of the tenor)
+    svg.querySelectorAll('.field').forEach(f=>{
+      if(L.style!=='painted'){f.style.removeProperty('--gc');return}
+      const x=FIELDS.get(f.dataset.field);let c=null;
+      if(k==='guitar')c=this.GUITAR_COL[x&&x.grp]||null;else{const g=(SETS[k].groups||[]).find(g=>g.key===(x&&x.grp));c=g&&g.color}
+      if(c)f.style.setProperty('--gc',c)});
+    // photos behind the notes
+    svg.querySelectorAll('.lk-photo,.lk-clip').forEach(e=>e.remove());
+    if(L.style!=='photo')return;
+    if(svg.querySelector('image:not(.lk-photo)'))return;   // the guitar's photo already drawn the classic way
+    const NS='http://www.w3.org/2000/svg',add=(bed,rim,slot,base)=>{
+      const src=this.src(k,slot);if(!src||!bed)return;
+      const id='lkc'+(++this.n),cp=document.createElementNS(NS,'clipPath');cp.setAttribute('id',id);cp.setAttribute('class','lk-clip');
+      const sh=bed.cloneNode(false);sh.removeAttribute('class');cp.appendChild(sh);bed.parentNode.insertBefore(cp,bed.nextSibling);
+      const im=document.createElementNS(NS,'image');im.setAttribute('class','lk-photo');im.setAttribute('href',src);
+      im.setAttribute('x',base.x);im.setAttribute('y',base.y);im.setAttribute('width',base.w);im.setAttribute('height',base.h);im.setAttribute('preserveAspectRatio','xMidYMid slice');
+      const a=Object.assign({x:0,y:0,s:1,r:0},L.al[slot]||{}),cx=base.x+base.w/2,cy=base.y+base.h/2;
+      im.setAttribute('transform','translate('+(cx+a.x)+' '+(cy+a.y)+') rotate('+a.r+') scale('+a.s+') translate('+(-cx)+' '+(-cy)+')');
+      const g=document.createElementNS(NS,'g');g.setAttribute('class','lk-photo');g.setAttribute('clip-path','url(#'+id+')');g.appendChild(im);
+      cp.parentNode.insertBefore(g,cp.nextSibling)};
+    const groups=[...svg.querySelectorAll('g[data-drum]')];
+    if(groups.length){groups.forEach(g=>{const pk=g.dataset.pk,slot=k==='guitar'?pk:g.dataset.drum;add(g.querySelector('.bed'),g.querySelector('.rim'),slot,this.base(k,slot,g.querySelector('.rim')))});return}
+    if(k==='guitar'){const pk=wrap&&wrap.classList.contains('pan-bf')?'bf':'ec';add(svg.querySelector('.bed'),svg.querySelector('.rim'),pk,this.base(k,pk))}
+    else{const rims=[...svg.querySelectorAll('.rim')];[...svg.querySelectorAll('.bed')].forEach((b,i)=>add(b,rims[i],String(i),this.base(k,String(i),rims[i])))}
+  },
+  // the box a photo fills before lining up: the guitar's whole picture, or the drum's rim
+  base(k,slot,rim){
+    if(k==='guitar'){const p=GUITAR_PANS.find(p=>p.key===slot)||GUITAR_PANS[0],[x,y,w,h]=p.view.split(' ').map(Number);return{x,y,w,h}}
+    const d=SETS[k].views[0].drums[+slot]||SETS[k].views[0].drums[0],r=Math.max(d.rx,d.ry);return{x:d.cx-r,y:d.cy-r,w:2*r,h:2*r};
+  },
+  /* ---- the Setup page ---- */
+  panel(){
+    if($('lkPanel'))return;
+    const p=document.createElement('div');p.className='panel';p.id='lkPanel';p.dataset.sk='photos';
+    p.innerHTML='<h2>Pan look</h2><p class="help">Each pan keeps its own look. This song\'s pan is chosen.</p><div class="lk-tabs" id="lkTabs"></div><div class="lk-grid" id="lkStyles"></div>'
+      +'<div id="lkPhotos"></div>'
+      +'<div class="lab">Note names<div class="seg" id="lkNames"></div></div>'
+      +'<div class="lab">Colour when a note plays<div class="lk-sw" id="lkHit"></div></div>'
+      +'<input type="file" id="lkFile" accept="image/jpeg,image/png,image/webp" hidden>';
+    const old=$('lookSeg')&&$('lookSeg').closest('.panel');
+    if(old){old.parentNode.insertBefore(p,old);old.style.display='none';old.dataset.off='1';old.removeAttribute('data-sk')}else $('view-setup').appendChild(p);
+    p.addEventListener('click',e=>{const b=e.target.closest('[data-lk]');if(!b)return;const k=this.tab,v=b.dataset.v;
+      switch(b.dataset.lk){
+        case 'tab':this.tab=v;this.renderPanel();this.preview();break;
+        case 'style':this.set(k,{style:v});if(v==='photo'&&!this.drums(k).some(dr=>this.src(k,this.slot(k,dr))))say('Add a photo for each drum below.');break;
+        case 'names':this.set(k,{names:v});break;
+        case 'hit':this.set(k,{hit:v});break;
+        case 'pick':if(k==='guitar'){const i=$('photo-'+v);if(i)i.click()}else{this.pickSlot=v;$('lkFile').click()}break;
+        case 'line':this.align(k,v);break;
+        case 'del':this.delPhoto(k,v);break;
+      }});
+    $('lkFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await this.addPhoto(this.tab,this.pickSlot,f)};
+    // the guitar's photo pickers already exist: when one finishes, show it here too
+    for(const pk of['ec','bf']){const i=$('photo-'+pk);if(i)i.addEventListener('change',()=>setTimeout(()=>{if(this.of('guitar').style!=='photo')this.set('guitar',{style:'photo'});else{this.apply();this.renderPanel()}},400))}
+  },
+  renderPanel(){
+    const p=$('lkPanel');if(!p)return;if(!this.tab||!SETS[this.tab])this.tab=setKey();const k=this.tab,L=this.of(k);
+    $('lkTabs').innerHTML=this.KEYS.map(x=>'<button data-lk="tab" data-v="'+x+'" aria-pressed="'+(x===k)+'">'+esc(SETS[x].name)+'</button>').join('');
+    $('lkStyles').innerHTML=this.STYLES.map(([v,n])=>'<button class="lk-t lk-'+v+'" data-lk="style" data-v="'+v+'" aria-pressed="'+(L.style===v)+'"><span class="lk-mini"><i></i><i></i><i></i></span>'+n+'</button>').join('');
+    const ph=$('lkPhotos');
+    if(L.style==='photo'){
+      ph.innerHTML='<h3 class="sub">Photos</h3><p class="help">One photo for each drum. Then Line up, so your real notes sit under the outlines.</p>'+this.drums(k).map(dr=>{const sl=this.slot(k,dr),src=this.src(k,sl);
+        return '<div class="lk-row"><span class="lk-th" style="'+(src?'background-image:url(&quot;'+esc(src)+'&quot;)':'')+'"></span><b>'+esc(dr.name)+'</b><button class="btn sm" data-lk="pick" data-v="'+sl+'">'+(src?'Change':'Choose')+'</button>'
+          +(src?'<button class="btn sm" data-lk="line" data-v="'+sl+'">Line up</button>':'')+(src&&k!=='guitar'?'<button class="btn sm lk-x" data-lk="del" data-v="'+sl+'" aria-label="Remove this photo">✕</button>':'')+'</div>'}).join('');
+    }else ph.innerHTML='';
+    $('lkNames').innerHTML=this.NAMES.map(([v,n])=>'<button data-lk="names" data-v="'+v+'" aria-pressed="'+(L.names===v)+'">'+n+'</button>').join('');
+    $('lkHit').innerHTML=this.HITS.map(c=>'<button data-lk="hit" data-v="'+c+'" aria-pressed="'+(L.hit===c)+'" aria-label="'+(c?'Colour '+c:'Usual colour')+'" style="'+(c?'background:'+c:'')+'">'+(c?'':'Usual')+'</button>').join('');
+    // Pan order (swap left and right) is only for the Double Guitar
+    const op=$('swap')&&$('swap').closest('.panel');if(op)op.style.display=isGuitar()?'':'none';
+    try{SETUP.render()}catch{}
+  },
+  preview(){},
+  async addPhoto(k,slot,f){
+    if(!['image/jpeg','image/png','image/webp'].includes(f.type)){say('Choose a JPG, PNG or WebP photo.');return}
+    say('Adding photo…');
+    try{
+      // made smaller first: a pan photo doesn't need more than this, and it keeps backups small
+      const bmp=await createImageBitmap(f),M=1400,sc=Math.min(1,M/Math.max(bmp.width,bmp.height)),cv=document.createElement('canvas');
+      cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+      const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',.86));if(!blob)throw 0;
+      await idbPut('look:'+k+':'+slot,blob);const key=k+':'+slot;if(this.urls[key])URL.revokeObjectURL(this.urls[key]);this.urls[key]=URL.createObjectURL(blob);
+      const al=Object.assign({},this.of(k).al);delete al[slot];this.set(k,{style:'photo',al});
+      say('Photo added. Now line it up.');this.align(k,slot);
+    }catch{say('Could not add that photo. Try another, or a JPG.')}
+  },
+  async delPhoto(k,slot){await idbPut('look:'+k+':'+slot,null);const key=k+':'+slot;if(this.urls[key])URL.revokeObjectURL(this.urls[key]);delete this.urls[key];const al=Object.assign({},this.of(k).al);delete al[slot];this.set(k,{al});say('Photo removed.')},
+  /* ---- Line up: one drum, big, the photo under the note outlines; drag, pinch and turn ---- */
+  align(k,slot){
+    const src=this.src(k,slot);if(!src)return;
+    let ov=$('lkAlign');if(!ov){ov=document.createElement('div');ov.id='lkAlign';ov.className='sheetov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');document.body.appendChild(ov)}
+    const base=this.base(k,slot),cx=base.x+base.w/2,cy=base.y+base.h/2,half=Math.max(base.w,base.h)/2*1.04;
+    // the drum's own notes, drawn the usual way, then just their outlines kept
+    const view=k==='guitar'?GUITAR_PANS.find(p=>p.key===slot):SETS[k].views[0],tmp=document.createElement('div');tmp.innerHTML=panSVG(view,false);
+    const ids=k==='guitar'?view.fields.map(f=>f[0]):(STAGE.drumsOf(k)[+slot]||{ids:[]}).ids;
+    let defs='';tmp.querySelectorAll('defs').forEach(d=>defs+=d.innerHTML);
+    const fl=ids.map(id=>{const e=tmp.querySelector('.field[data-field="'+CSS.escape(id)+'"]');return e?e.outerHTML:''}).join('');
+    const d=k==='guitar'?null:view.drums[+slot],clip=d?'<circle cx="'+d.cx+'" cy="'+d.cy+'" r="'+(Math.max(d.rx,d.ry)*.97)+'"/>':'<rect x="'+base.x+'" y="'+base.y+'" width="'+base.w+'" height="'+base.h+'"/>';
+    const name=(this.drums(k).find(dr=>this.slot(k,dr)===slot)||{}).name||'';
+    ov.innerHTML='<div class="sheet lk-al"><div class="lk-alh"><b>Line up · '+esc(name)+'</b><button class="btn primary sm" data-a="done">Done</button></div>'
+      +'<p class="help">Drag to move. Pinch to size. Turn with two fingers, or use the buttons.</p>'
+      +'<div class="lk-alstage pan"><svg viewBox="'+(cx-half)+' '+(cy-half)+' '+2*half+' '+2*half+'" id="lkAlSvg"><defs>'+defs+'<clipPath id="lkAlClip">'+clip+'</clipPath></defs>'
+      +'<rect x="'+(cx-half)+'" y="'+(cy-half)+'" width="'+2*half+'" height="'+2*half+'" fill="#0d0a1a"/>'
+      +'<g clip-path="url(#lkAlClip)"><image id="lkAlImg" href="'+esc(src)+'" x="'+base.x+'" y="'+base.y+'" width="'+base.w+'" height="'+base.h+'" preserveAspectRatio="xMidYMid slice"/></g>'
+      +(d?'<circle cx="'+d.cx+'" cy="'+d.cy+'" r="'+Math.max(d.rx,d.ry)*.97+'" fill="none" stroke="#ffd166" stroke-width="'+half*.012+'" stroke-dasharray="'+half*.04+' '+half*.03+'"/>':'')
+      +'<g class="lk-alnotes">'+fl+'</g></svg></div>'
+      +'<div class="row lk-alb"><button class="btn" data-a="rl" aria-label="Turn left">⟲</button><button class="btn" data-a="rr" aria-label="Turn right">⟳</button><button class="btn" data-a="zo" aria-label="Smaller">−</button><button class="btn" data-a="zi" aria-label="Bigger">+</button><button class="btn" data-a="reset">Reset</button></div></div>';
+    ov.hidden=false;
+    const L=this.of(k),a=Object.assign({x:0,y:0,s:1,r:0},L.al[slot]||{}),img=ov.querySelector('#lkAlImg'),sv=ov.querySelector('#lkAlSvg');
+    const draw=()=>img.setAttribute('transform','translate('+(cx+a.x)+' '+(cy+a.y)+') rotate('+a.r+') scale('+a.s+') translate('+(-cx)+' '+(-cy)+')');draw();
+    const keep=()=>{const al=Object.assign({},this.of(k).al);al[slot]={x:+a.x.toFixed(1),y:+a.y.toFixed(1),s:+a.s.toFixed(4),r:+a.r.toFixed(2)};this.d[k]=Object.assign(this.of(k),{al});this.save()};
+    const unit=()=>2*half/sv.getBoundingClientRect().width;   // screen pixels to drawing units
+    const P=new Map();let g0=null;
+    const geo=()=>{const [p1,p2]=[...P.values()];return{d:Math.hypot(p2.x-p1.x,p2.y-p1.y),ang:Math.atan2(p2.y-p1.y,p2.x-p1.x)*180/Math.PI,mx:(p1.x+p2.x)/2,my:(p1.y+p2.y)/2}};
+    sv.onpointerdown=e=>{e.preventDefault();sv.setPointerCapture(e.pointerId);P.set(e.pointerId,{x:e.clientX,y:e.clientY});g0=P.size===2?Object.assign(geo(),{s:a.s,r:a.r,ax:a.x,ay:a.y}):null};
+    sv.onpointermove=e=>{const q=P.get(e.pointerId);if(!q)return;const u=unit();
+      if(P.size===1){a.x+=(e.clientX-q.x)*u;a.y+=(e.clientY-q.y)*u;q.x=e.clientX;q.y=e.clientY;draw();return}
+      q.x=e.clientX;q.y=e.clientY;if(!g0)return;const g=geo();a.s=Math.max(.3,Math.min(4,g0.s*g.d/Math.max(1,g0.d)));a.r=g0.r+(g.ang-g0.ang);a.x=g0.ax+(g.mx-g0.mx)*u;a.y=g0.ay+(g.my-g0.my)*u;draw()};
+    const up=e=>{P.delete(e.pointerId);g0=P.size===2?Object.assign(geo(),{s:a.s,r:a.r,ax:a.x,ay:a.y}):null;keep()};
+    sv.onpointerup=up;sv.onpointercancel=up;
+    sv.onwheel=e=>{e.preventDefault();a.s=Math.max(.3,Math.min(4,a.s*(e.deltaY<0?1.05:1/1.05)));draw();keep()};
+    const close=()=>{keep();ov.hidden=true;ov.innerHTML='';this.apply();this.renderPanel()};
+    ov.onclick=e=>{const b=e.target.closest('[data-a]');if(e.target===ov){close();return}if(!b)return;
+      ({rl:()=>a.r-=3,rr:()=>a.r+=3,zo:()=>a.s=Math.max(.3,a.s/1.05),zi:()=>a.s=Math.min(4,a.s*1.05),reset:()=>Object.assign(a,{x:0,y:0,s:1,r:0}),done:close}[b.dataset.a]||(()=>{}))();if(b.dataset.a!=='done'){draw();keep()}};
+    this.alignClose=close;
+  },
+  defs(){
+    if($('lookDefs'))return;const d=document.createElement('div');d.id='lookDefs';d.setAttribute('aria-hidden','true');d.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
+    d.innerHTML='<svg width="0" height="0" focusable="false"><defs>'
+      +'<linearGradient id="lkSteelRim" x1="0" x2="1"><stop offset="0" stop-color="#7c818c"/><stop offset=".25" stop-color="#ffffff"/><stop offset=".5" stop-color="#b7bcc6"/><stop offset=".78" stop-color="#f6f8fb"/><stop offset="1" stop-color="#7c818c"/></linearGradient>'
+      +'<radialGradient id="lkSteelBed" cx=".42" cy=".36" r=".8"><stop offset="0" stop-color="#5d626d"/><stop offset=".6" stop-color="#3a3e47"/><stop offset="1" stop-color="#25282e"/></radialGradient>'
+      +'<radialGradient id="lkSteelZone" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9aa0ab"/><stop offset=".55" stop-color="#6e7480"/><stop offset="1" stop-color="#555a65"/></radialGradient>'
+      +'<linearGradient id="lkSandRim" x1="0" x2="1"><stop offset="0" stop-color="#a8956c"/><stop offset=".3" stop-color="#fff2d2"/><stop offset=".6" stop-color="#d9c493"/><stop offset="1" stop-color="#a8956c"/></linearGradient>'
+      +'</defs></svg>';document.body.appendChild(d);
+  },
+  init(){
+    this.defs();this.load();this.panel();this.renderPanel();this.syncGuitar();
+    // anything drawn later (a new screen, a turn of the phone, another track's pans) gets its look too
+    let q=0;new MutationObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;this.paintAll(false)})}).observe(document.body,{childList:true,subtree:true});
+    this.loadPhotos();
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('lkAlign')&&!$('lkAlign').hidden&&this.alignClose)this.alignClose()});
+    // a new song, or another pan for this one: the page follows it
+    PAN_HOOKS.push(()=>{this.tab=setKey();this.syncGuitar();this.renderPanel();requestAnimationFrame(()=>this.paintAll(true))});
+    // backups carry the looks and the photos too
+    const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const ph={};
+      for(const [key,u] of Object.entries(this.urls)){try{ph[key]=await readData(await (await fetch(u)).blob())}catch{}}
+      return Object.assign(o,{panLooks:{d:this.d,photos:ph}})};
+    const bi=window.backupIn;window.backupIn=async p=>{let m=bi?await bi(p):'';const pl=p&&p.panLooks;
+      if(pl&&typeof pl==='object'){if(pl.d&&typeof pl.d==='object')for(const k of this.KEYS)if(pl.d[k]&&typeof pl.d[k]==='object'){const x=pl.d[k];this.d[k]={style:x.style,names:x.names,hit:x.hit,al:{}};
+          if(x.al&&typeof x.al==='object')for(const [s,v] of Object.entries(x.al))if(v&&typeof v==='object')this.d[k].al[String(s).slice(0,4)]={x:+v.x||0,y:+v.y||0,s:Math.max(.3,Math.min(4,+v.s||1)),r:+v.r||0};this.d[k]=this.of(k)}
+        this.save();let n=0;
+        if(pl.photos&&typeof pl.photos==='object')for(const [key,du] of Object.entries(pl.photos)){const [k,sl]=key.split(':');if(!SETS[k]||k==='guitar'||!/^\d+$/.test(sl)||typeof du!=='string'||!/^data:image\/(jpeg|png|webp);base64,/.test(du))continue;
+          const b=dataUrlToBlob(du,du.slice(5,du.indexOf(';')));await idbPut('look:'+k+':'+sl,b);if(this.urls[key])URL.revokeObjectURL(this.urls[key]);this.urls[key]=URL.createObjectURL(b);n++}
+        this.apply();this.renderPanel();m+=' Pan looks added'+(n?' with '+n+' photo'+(n===1?'':'s'):'')+'.'}
+      return m};
+  }
+};
+LOOK.init();
 
 /* ---------- start ---------- */
 (async()=>{

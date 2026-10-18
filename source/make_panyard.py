@@ -149,6 +149,12 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-stage.
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-gb.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # Write, Studio-style: one thin bar, a ruler, the pans or the timeline filling the screen
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-wb.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-looks.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+# Setup: "Pan look" for every pan (it was "Pan photos & order", for the Double Guitar only)
+rep("this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):''", "this.vis('photos')?row('photos','Pan look',this.val('photos')):''")
+rep("photos:'Pan photos & order'", "photos:'Pan look'")
+rep("case 'photos':return S.look==='photo'?'Photos':'Diagram';", "case 'photos':return typeof LOOK!=='undefined'?(LOOK.STYLES.find(s=>s[0]===LOOK.of(setKey()).style)||['','Night'])[1]:(S.look==='photo'?'Photos':'Diagram');")
+rep("'Pan photos':'photos',", "'Pan photos':'photos','Pan look':'photos',")
 rep("  renderSaveInfo();\n  initStore();\n})();", "  renderSaveInfo();\n  initStore();\n  showView('home');\n})();")
 open(OUT, 'w', encoding='utf-8').write(s)
 print('wrote', OUT)

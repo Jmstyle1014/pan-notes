@@ -266,3 +266,53 @@ body.gbmode:not(.st-inst) .st-tl{max-height:calc(100dvh - 70px)}
 body.wb-next-sm #wbNext .wbn-h{display:none}
 body.wb-next-sm #wbNext{padding-top:8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
 body.wb-next-sm .wbn{height:52px;min-width:56px;padding:4px 10px}body.wb-next-sm .wbn b{font-size:20px}
+/* ---- Pan look (Setup): a look for each kind of pan ---- */
+#lkTabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-top:4px}
+#lkTabs button{flex:none;padding:8px 12px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--muted);font:700 14px var(--body,system-ui);cursor:pointer}
+#lkTabs button[aria-pressed=true]{background:#efeaff;color:#1a1030;border-color:#efeaff}
+.lk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+@media (max-width:440px){.lk-grid{grid-template-columns:repeat(2,1fr)}}
+.lk-t{border:2px solid var(--line);border-radius:14px;padding:10px 6px 8px;background:var(--bg);color:var(--text);font:700 13px var(--body,system-ui);display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer}
+.lk-t[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
+.lk-mini{position:relative;width:62px;height:62px;border-radius:50%;border:4px solid #c9c3ea;background:radial-gradient(circle at 40% 35%,#3b3266,#130e26)}
+.lk-mini i{position:absolute;width:20px;height:14px;border-radius:50%;background:#4a3f86;border:1px solid #120d24}
+.lk-mini i:nth-child(1){left:8px;top:12px}.lk-mini i:nth-child(2){right:7px;top:18px}.lk-mini i:nth-child(3){left:17px;bottom:8px;width:24px}
+.lk-steel .lk-mini{border-color:#e4e7ed;background:radial-gradient(circle at 40% 35%,#5a5f6a,#2c2f36)}.lk-steel .lk-mini i{background:#7a808c;border-color:#c4c9d2}
+.lk-painted .lk-mini{border-color:#e8d7b0;background:#2a1d18}.lk-painted .lk-mini i:nth-child(1){background:#e0824f}.lk-painted .lk-mini i:nth-child(2){background:#3c9fa6}.lk-painted .lk-mini i:nth-child(3){background:#c9a2ff}
+.lk-photo .lk-mini{background:radial-gradient(circle at 35% 30%,#d8dbe2,#6f7480 55%,#3a3d45)}.lk-photo .lk-mini i{background:transparent;border:1.5px solid #fff}
+.lk-row{display:flex;align-items:center;gap:8px;margin:8px 0}.lk-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lk-th{width:48px;height:48px;border-radius:50%;flex:none;background:#2a2148 center/cover no-repeat;border:2px solid #cfd2da}
+.lk-x{min-width:40px}
+#lkHit{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+#lkHit button{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:var(--bg);color:var(--muted);font:700 12px var(--body,system-ui)}
+#lkHit button:first-child{width:auto;border-radius:99px;padding:0 12px}
+#lkHit button[aria-pressed=true]{border:3px solid #fff;box-shadow:0 0 0 2px var(--gold)}
+#lkPanel .lab{margin-top:14px}
+/* the looks on the pans themselves (every screen: Play, Write, Studio, the game) */
+.pan[data-lk=steel] .rim{fill:url(#lkSteelRim)!important;stroke:#fff!important;stroke-opacity:.6}
+.pan[data-lk=steel] .bed{fill:url(#lkSteelBed)!important}
+.pan[data-lk=steel] .field .zone{fill:url(#lkSteelZone)!important;stroke:#c4c9d2!important;stroke-width:4px!important}
+.pan[data-lk=steel] .field text{fill:#fbfcff!important}
+.pan[data-lk=painted] .rim{fill:url(#lkSandRim)!important}
+.pan[data-lk=painted] .bed{fill:#2a1d18!important}
+.pan[data-lk=painted] .field .zone{fill:var(--gc,#6b5a9a)!important;stroke:rgb(255 255 255 / .55)!important;stroke-width:4px!important}
+.pan[data-lk=painted] .field text{fill:#fff!important;paint-order:stroke;stroke:rgb(0 0 0 / .35);stroke-width:5px}
+.pan[data-lk=photo] .field .zone{fill:rgb(10 8 20 / .12)!important;stroke:rgb(255 255 255 / .82)!important;stroke-width:4px!important}
+.pan[data-lk=photo] .field text{fill:#fff!important;paint-order:stroke;stroke:rgb(0 0 0 / .7);stroke-width:8px}
+.pan[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) .zone{fill:url(#hgGold)!important;stroke:#fff3c4!important}
+.pan.pan-ec[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) .zone{fill:var(--ec)!important;stroke:#ffd9c9!important}
+.pan[data-lk]:not([data-lk=night]) :is(.pan-bf) .field:is(.active,.hit,.play-hit) .zone,.pan.pan-bf[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) .zone{fill:var(--bf)!important;stroke:#c9fbfc!important}
+.pan[data-lk]:not([data-lk=night]) .field:is(.active,.hit,.play-hit) text{fill:#1a1030!important;stroke:none}
+.pan.lkhit .field:is(.active,.hit,.play-hit) .zone,.pan.lkhit .pan-bf .field:is(.active,.hit,.play-hit) .zone{fill:var(--lkhit)!important;stroke:#fff!important}
+.pan.lkhit .field:is(.active,.hit,.play-hit) text{fill:#1a1030!important;stroke:none}
+.pan[data-lkn=none] .field text{display:none}
+/* Line up: the photo under one drum's note outlines */
+#lkAlign{z-index:90!important}
+#lkAlign .lk-al{width:min(560px,100%);display:flex;flex-direction:column;gap:10px;max-height:100dvh;overflow:auto;background:var(--raised,#1d1636);border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;padding:16px 16px max(16px,env(safe-area-inset-bottom));box-shadow:0 -14px 40px rgb(0 0 0 / .5)}
+.lk-alh{display:flex;align-items:center;justify-content:space-between;gap:10px}.lk-alh b{font-size:17px}
+.lk-alstage{border-radius:16px;overflow:hidden;background:#0d0a1a}
+.lk-alstage svg{width:100%;height:auto;max-height:min(62vh,560px);display:block;touch-action:none;cursor:grab;margin:0 auto}
+.lk-alnotes{pointer-events:none}
+.lk-alnotes .zone{fill:rgb(255 255 255 / .05)!important;stroke:#fff!important;stroke-width:5px!important}
+.lk-alnotes text{fill:#fff!important;paint-order:stroke;stroke:rgb(0 0 0 / .75);stroke-width:8px}
+.lk-alb{justify-content:center;flex-wrap:wrap;gap:8px}.lk-alb .btn{min-width:52px}

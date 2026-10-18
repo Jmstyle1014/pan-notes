@@ -71,7 +71,7 @@ const STAGE={
     L.ds.forEach((d,i)=>{const p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*.13;
       parts.push('<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk*1.3)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
         +'<path d="M'+f1(nx-R)+' '+f1(ny)+' V'+f1(ny+sk)+' A'+f1(R)+' '+f1(R*t)+' 0 0 0 '+f1(nx+R)+' '+f1(ny+sk)+' V'+f1(ny)+' Z" fill="url(#hgSkirt)"/>'
-        +'<g class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
+        +'<g data-drum="'+i+'" data-pk="'+d.key+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
         +'<circle class="rim" cx="'+d.cx+'" cy="'+d.cy+'" r="'+d.r+'"/><circle class="bed" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.965)+'"/>'
         +d.ids.map(id=>{const el=fieldEl(id);return el?el.outerHTML.replace(/url\(#cp-/g,'url(#pfcp-'):''}).join('')
         +'<circle class="hg-gloss" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.97)+'" fill="url(#hgGloss)"/></g>')});
@@ -104,7 +104,7 @@ const STAGE={
     L.ds.forEach((d,i)=>{const p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*.13;
       h+='<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk*1.3)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
         +'<path d="M'+f1(nx-R)+' '+f1(ny)+' V'+f1(ny+sk)+' A'+f1(R)+' '+f1(R*t)+' 0 0 0 '+f1(nx+R)+' '+f1(ny+sk)+' V'+f1(ny)+' Z" fill="url(#hgSkirt)"/>'
-        +'<g data-drum="'+i+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
+        +'<g data-drum="'+i+'" data-pk="'+d.key+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
         +'<circle class="rim" cx="'+d.cx+'" cy="'+d.cy+'" r="'+d.r+'"/><circle class="bed" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.965)+'"/></g>'});
     wrap.innerHTML=h+'</svg>';
     L.ds.forEach((d,i)=>{const g=wrap.querySelector('g[data-drum="'+i+'"]');if(!g)return;
