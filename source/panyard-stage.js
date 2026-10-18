@@ -150,7 +150,9 @@ const STAGE={
   const _show=showView;showView=function(v){_show(v);STAGE.render();requestAnimationFrame(()=>{STAGE.fitWrite();STAGE.fitStudio()})};
   let rz=0;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>{STAGE.render();STAGE.fitWrite();STAGE.fitStudio()})});
   // Studio redraws its pans often (switching tracks or views): rearrange them each time
-  {let mo=0;const v=$('view-studio');if(v)new MutationObserver(()=>{cancelAnimationFrame(mo);mo=requestAnimationFrame(()=>STAGE.fitStudio())}).observe(v,{childList:true,subtree:true})}
+  // (only when elements are added: while a song plays the bar counter's text changes every frame, and treating that
+  //  as a redraw kept putting this off, so pressing Rec left the pans small until playback stopped)
+  {let mo=0;const v=$('view-studio');if(v)new MutationObserver(ms=>{if(mo||!ms.some(m=>[...m.addedNodes].some(n=>n.nodeType===1)))return;mo=requestAnimationFrame(()=>{mo=0;STAGE.fitStudio()})}).observe(v,{childList:true,subtree:true})}
   PAN_HOOKS.push(()=>{if(STAGE.on)requestAnimationFrame(()=>STAGE.render())});
   // the Game's countdown and run switch to the pans-first stage, and back when it ends
   let lastGM='';setInterval(()=>{const s=typeof GM!=='undefined'?GM.state:'';if(s!==lastGM){lastGM=s;STAGE.render()}},250);

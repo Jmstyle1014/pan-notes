@@ -40,7 +40,10 @@ const GB={
     const toWrite=document.createElement('button');toWrite.className='btn';toWrite.textContent='✎ Go to Write';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);
     $('stExp').textContent='⤓ Export / share';$('stTime').textContent='⏱ Timing fix';
     // the floating track pill (Pans view) and the ruler
-    const pill=document.createElement('button');pill.id='gbPill';pill.setAttribute('aria-haspopup','true');pill.setAttribute('aria-expanded','false');v.appendChild(pill);
+    const pill=document.createElement('button');pill.id='gbPill';pill.setAttribute('aria-haspopup','true');pill.setAttribute('aria-expanded','false');
+    // Options sits beside the track name: the pan picker, Add on top / Replace, snapping, the track's name and Delete
+    const opts=document.createElement('button');opts.id='gbOpts';opts.textContent='⚙ Options';opts.hidden=true;opts.setAttribute('aria-haspopup','dialog');opts.setAttribute('aria-expanded','false');
+    const pills=document.createElement('div');pills.id='gbPills';pills.append(pill,opts);v.appendChild(pills);
     const ru=document.createElement('div');ru.id='gbRuler';ru.innerHTML='<canvas aria-label="Bars: tap to move the playhead"></canvas>';bar.after(ru);
     // wiring: the new icons press the old buttons, so Studio's own logic does the work
     $('gbBack').onclick=()=>{showView('home')};
@@ -52,7 +55,10 @@ const GB={
     menu.addEventListener('click',e=>{if(e.target.closest('#stCount')){setTimeout(()=>this.sync(),30);return}if(e.target.closest('button')&&!e.target.closest('#gbMUndo'))this.menu(false)});
     document.addEventListener('click',e=>{if(!$('gbMenu').hidden&&!e.target.closest('#gbMenu,#gbMore'))this.menu(false);
       if(document.body.classList.contains('gb-picking')&&!e.target.closest('#gbPill,.st-tchips'))this.pick(false)});
-    pill.onclick=e=>{e.stopPropagation();this.pick(!document.body.classList.contains('gb-picking'))};
+    pill.onclick=e=>{e.stopPropagation();this.opts(false);this.pick(!document.body.classList.contains('gb-picking'))};
+    opts.onclick=e=>{e.stopPropagation();this.pick(false);this.opts(!document.body.classList.contains('gb-opts'))};
+    document.addEventListener('click',e=>{if(document.body.classList.contains('gb-opts')&&!e.target.closest('#gbOpts,#stPopts,.st-sheet')&&e.target.isConnected)this.opts(false)});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('gb-opts')){this.opts(false);$('gbOpts').focus()}});
     document.addEventListener('click',e=>{if(e.target.closest('.st-tchips [data-st="ipick"],.st-tchips [data-st="addsheet"]'))setTimeout(()=>this.pick(false),0)},true);
     const cv=ru.querySelector('canvas');
     cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),n=this.nBars();if(!n)return;const b=Math.max(0,Math.min(n,(e.clientX-r.left)/r.width*n));
@@ -61,9 +67,10 @@ const GB={
       try{STUDIO.seek(Math.round(b*2)/2*STUDIO.BPB())}catch{}});
     let mq=0;new MutationObserver(()=>{if(mq)return;mq=requestAnimationFrame(()=>{mq=0;this.sync()})}).observe(v,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-pressed','aria-selected']});
     const loop=()=>{if(document.body.dataset.view==='studio')this.drawRuler();requestAnimationFrame(loop)};requestAnimationFrame(loop);
-    const _show=showView;showView=function(x){_show(x);document.body.classList.toggle('gbmode',x==='studio');GB.menu(false);GB.pick(false);try{setDockH()}catch{}if(x==='studio')requestAnimationFrame(()=>{GB.sync();STAGE.fitStudio()})};
+    const _show=showView;showView=function(x){_show(x);document.body.classList.toggle('gbmode',x==='studio');GB.menu(false);GB.pick(false);GB.opts(false);try{setDockH()}catch{}if(x==='studio')requestAnimationFrame(()=>{GB.sync();STAGE.fitStudio()})};
   },
   menu(on){const m=$('gbMenu');if(!m)return;m.hidden=!on;$('gbMore').setAttribute('aria-expanded',String(!!on))},
+  opts(on){document.body.classList.toggle('gb-opts',!!on);const b=$('gbOpts');if(b)b.setAttribute('aria-expanded',String(!!on))},
   pick(on){document.body.classList.toggle('gb-picking',!!on);const p=$('gbPill');if(p)p.setAttribute('aria-expanded',String(!!on))},
   nBars(){try{return STUDIO.bars()}catch{return 0}},
   secs(){return[...document.querySelectorAll('#stSecs [data-sec]')].map(c=>{const [a,b]=c.dataset.sec.split(',').map(Number);return{a,b,name:c.textContent.replace(/^⟲\s*/,''),on:c.classList.contains('on')}})},
@@ -74,6 +81,7 @@ const GB={
     tg($('gbMetro'),$('stMetro').getAttribute('aria-pressed')==='true');tg($('gbLoop'),$('stLoop').getAttribute('aria-pressed')==='true');
     const on=document.querySelector('.st-tchips .chip.on'),pill=$('gbPill');
     if(pill&&on){const t=on.textContent.trim();if(pill.dataset.t!==t){pill.dataset.t=t;pill.textContent=t+' ▾'}}
+    const ob=$('gbOpts'),has=!!$('stPopts');if(ob&&ob.hidden===has)ob.hidden=!has;if(!has&&document.body.classList.contains('gb-opts'))this.opts(false);
   },
   drawRuler(){
     const cv=document.querySelector('#gbRuler canvas');if(!cv||!cv.offsetParent)return;

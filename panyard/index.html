@@ -1081,7 +1081,7 @@ body.gbmode #dock,body.gbmode .appbar,body.gbmode #subTabs,body.gbmode #view-stu
 body.gbmode main{padding-top:0;max-width:none}
 body.gbmode #view-studio{padding-top:92px!important;padding-bottom:12px!important}
 body.gbmode .st-tp{position:static!important}
-#gbBar,#gbRuler,#gbPill,#gbMenu{display:none}
+#gbBar,#gbRuler,#gbPills,#gbMenu{display:none}
 body.gbmode #gbBar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;position:fixed;left:0;right:0;top:0;height:56px;padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));background:#19132e;border-bottom:1px solid var(--line);z-index:30}
 .gbl,.gbr{display:flex;align-items:center;gap:4px}.gbr{justify-content:flex-end}
 .gbc{display:flex;align-items:center;gap:2px;background:#110c20;border:1px solid var(--line);border-radius:12px;padding:3px}
@@ -1100,7 +1100,16 @@ body.gbmode #gbMenu:not([hidden]){display:flex;flex-direction:column;gap:8px;pos
 .gbmrow{display:flex;gap:6px}.gbmrow .btn{flex:1}
 .gbmlist{display:flex;flex-direction:column;gap:6px}.gbmlist .btn{justify-content:flex-start;text-align:left;width:100%}
 /* the Pans view: the track name floats over the pans; tap it to switch track */
-body.gbmode.st-inst #gbPill{display:block;position:fixed;top:100px;left:max(10px,env(safe-area-inset-left));z-index:25;height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--gold);background:rgb(25 19 46 / .9);color:var(--gold);font-weight:700;font-size:13px;cursor:pointer}
+body.gbmode.st-inst #gbPills{display:flex;gap:8px;position:fixed;top:100px;left:max(10px,env(safe-area-inset-left));z-index:25}
+#gbOpts{height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:rgb(25 19 46 / .9);color:var(--text);font-weight:700;font-size:13px;cursor:pointer}
+#gbOpts[hidden]{display:none}
+body.gb-opts #gbOpts{border-color:var(--gold);color:var(--gold)}
+/* the Options menu floats over the pans; closed, it takes no room, so recording never shrinks them */
+body.gbmode #stPopts{display:none}
+body.gbmode.st-inst.gb-opts #stPopts{display:flex;flex-direction:column;gap:10px;position:fixed;top:142px;left:max(10px,env(safe-area-inset-left));z-index:26;width:min(460px,calc(100vw - 20px));max-height:calc(100vh - 152px);overflow:auto;padding:12px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5)}
+body.gbmode #stPopts .row{gap:8px}
+body.gbmode #stPopts .st-iend{margin-top:2px}
+body.gbmode.st-inst #gbPill{display:block;height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--gold);background:rgb(25 19 46 / .9);color:var(--gold);font-weight:700;font-size:13px;cursor:pointer}
 body.gbmode.st-inst #stInst>.st-tchips{display:none}
 body.gbmode.st-inst.gb-picking #stInst>.st-tchips{display:flex;flex-direction:column;align-items:stretch;gap:4px;position:fixed;top:134px;left:max(10px,env(safe-area-inset-left));z-index:26;padding:8px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5);max-height:60vh;overflow:auto;max-width:none}
 body.gbmode.st-inst #stInst{background:none;border:0;box-shadow:none;padding:0 8px;margin:0}
@@ -6045,11 +6054,13 @@ function renderInst(){
   }else if(tr.type==='pan'){
     const sk=trSet(tr),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
     const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';
-    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>'+pick;
+    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>'
+      // the pan picker, recording choices and track name live in an Options menu, so the pans keep their room
+      +'<div class="st-popts" id="stPopts" role="dialog" aria-label="Pan taps options">'+pick;
     h+='<p class="help">Tap <b>● Rec</b> and play along on the pans. Hold a note to roll. '+(mine('c')||Object.keys(SAMPLES.wav).some(mine)?'Your recorded pan sounds are used.':'Record your own pan sounds in Setup to hear your real pans here.')+'</p>';
     h+='<div class="row"><div class="seg st-mode" role="group" aria-label="Recording"><button data-st="mode" data-v="add" aria-pressed="'+(song.recMode!=='replace')+'">Add on top</button><button data-st="mode" data-v="replace" aria-pressed="'+(song.recMode==='replace')+'">Replace</button></div>'
       +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
-      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'+head.replace('st-ihead','st-ihead st-iend')+'<div><div>'+'</div></div>';
+      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'+head.replace('st-ihead','st-ihead st-iend')+'</div>';
   }else h+=seqHTML(tr);
   el.innerHTML=h;
   requestAnimationFrame(fitPans);
@@ -6074,7 +6085,9 @@ function renderSeqNow(){const tr=selTr();if(tr.type!=='beats')return;const col=T
 let VIEW='tracks';
 function fitPans(){
   const pans=q('#stPans');if(!pans||VIEW!=='inst'||!pans.offsetParent)return;
-  const tp=q('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9,dock=Math.min($('dock').getBoundingClientRect().top,tpTop),svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
+  // in the full-screen Studio the stage fits the pans itself (STAGE.fitStudio); a height cap here only shrinks them
+  if(document.body.classList.contains('gbmode')){pans.querySelectorAll('svg').forEach(s=>{s.style.maxHeight=''});return}
+  const tp=q('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9,dk=$('dock'),dock=Math.min(dk&&dk.offsetParent?dk.getBoundingClientRect().top:innerHeight,tpTop),svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
   const top=svgs[0].getBoundingClientRect().top,room=Math.max(140,Math.floor(dock-top-10));
   svgs.forEach(s=>{s.style.maxHeight=room+'px'});
 }
@@ -6691,7 +6704,9 @@ const STAGE={
   const _show=showView;showView=function(v){_show(v);STAGE.render();requestAnimationFrame(()=>{STAGE.fitWrite();STAGE.fitStudio()})};
   let rz=0;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>{STAGE.render();STAGE.fitWrite();STAGE.fitStudio()})});
   // Studio redraws its pans often (switching tracks or views): rearrange them each time
-  {let mo=0;const v=$('view-studio');if(v)new MutationObserver(()=>{cancelAnimationFrame(mo);mo=requestAnimationFrame(()=>STAGE.fitStudio())}).observe(v,{childList:true,subtree:true})}
+  // (only when elements are added: while a song plays the bar counter's text changes every frame, and treating that
+  //  as a redraw kept putting this off, so pressing Rec left the pans small until playback stopped)
+  {let mo=0;const v=$('view-studio');if(v)new MutationObserver(ms=>{if(mo||!ms.some(m=>[...m.addedNodes].some(n=>n.nodeType===1)))return;mo=requestAnimationFrame(()=>{mo=0;STAGE.fitStudio()})}).observe(v,{childList:true,subtree:true})}
   PAN_HOOKS.push(()=>{if(STAGE.on)requestAnimationFrame(()=>STAGE.render())});
   // the Game's countdown and run switch to the pans-first stage, and back when it ends
   let lastGM='';setInterval(()=>{const s=typeof GM!=='undefined'?GM.state:'';if(s!==lastGM){lastGM=s;STAGE.render()}},250);
@@ -6740,7 +6755,10 @@ const GB={
     const toWrite=document.createElement('button');toWrite.className='btn';toWrite.textContent='✎ Go to Write';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);
     $('stExp').textContent='⤓ Export / share';$('stTime').textContent='⏱ Timing fix';
     // the floating track pill (Pans view) and the ruler
-    const pill=document.createElement('button');pill.id='gbPill';pill.setAttribute('aria-haspopup','true');pill.setAttribute('aria-expanded','false');v.appendChild(pill);
+    const pill=document.createElement('button');pill.id='gbPill';pill.setAttribute('aria-haspopup','true');pill.setAttribute('aria-expanded','false');
+    // Options sits beside the track name: the pan picker, Add on top / Replace, snapping, the track's name and Delete
+    const opts=document.createElement('button');opts.id='gbOpts';opts.textContent='⚙ Options';opts.hidden=true;opts.setAttribute('aria-haspopup','dialog');opts.setAttribute('aria-expanded','false');
+    const pills=document.createElement('div');pills.id='gbPills';pills.append(pill,opts);v.appendChild(pills);
     const ru=document.createElement('div');ru.id='gbRuler';ru.innerHTML='<canvas aria-label="Bars: tap to move the playhead"></canvas>';bar.after(ru);
     // wiring: the new icons press the old buttons, so Studio's own logic does the work
     $('gbBack').onclick=()=>{showView('home')};
@@ -6752,7 +6770,10 @@ const GB={
     menu.addEventListener('click',e=>{if(e.target.closest('#stCount')){setTimeout(()=>this.sync(),30);return}if(e.target.closest('button')&&!e.target.closest('#gbMUndo'))this.menu(false)});
     document.addEventListener('click',e=>{if(!$('gbMenu').hidden&&!e.target.closest('#gbMenu,#gbMore'))this.menu(false);
       if(document.body.classList.contains('gb-picking')&&!e.target.closest('#gbPill,.st-tchips'))this.pick(false)});
-    pill.onclick=e=>{e.stopPropagation();this.pick(!document.body.classList.contains('gb-picking'))};
+    pill.onclick=e=>{e.stopPropagation();this.opts(false);this.pick(!document.body.classList.contains('gb-picking'))};
+    opts.onclick=e=>{e.stopPropagation();this.pick(false);this.opts(!document.body.classList.contains('gb-opts'))};
+    document.addEventListener('click',e=>{if(document.body.classList.contains('gb-opts')&&!e.target.closest('#gbOpts,#stPopts,.st-sheet')&&e.target.isConnected)this.opts(false)});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('gb-opts')){this.opts(false);$('gbOpts').focus()}});
     document.addEventListener('click',e=>{if(e.target.closest('.st-tchips [data-st="ipick"],.st-tchips [data-st="addsheet"]'))setTimeout(()=>this.pick(false),0)},true);
     const cv=ru.querySelector('canvas');
     cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),n=this.nBars();if(!n)return;const b=Math.max(0,Math.min(n,(e.clientX-r.left)/r.width*n));
@@ -6761,9 +6782,10 @@ const GB={
       try{STUDIO.seek(Math.round(b*2)/2*STUDIO.BPB())}catch{}});
     let mq=0;new MutationObserver(()=>{if(mq)return;mq=requestAnimationFrame(()=>{mq=0;this.sync()})}).observe(v,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-pressed','aria-selected']});
     const loop=()=>{if(document.body.dataset.view==='studio')this.drawRuler();requestAnimationFrame(loop)};requestAnimationFrame(loop);
-    const _show=showView;showView=function(x){_show(x);document.body.classList.toggle('gbmode',x==='studio');GB.menu(false);GB.pick(false);try{setDockH()}catch{}if(x==='studio')requestAnimationFrame(()=>{GB.sync();STAGE.fitStudio()})};
+    const _show=showView;showView=function(x){_show(x);document.body.classList.toggle('gbmode',x==='studio');GB.menu(false);GB.pick(false);GB.opts(false);try{setDockH()}catch{}if(x==='studio')requestAnimationFrame(()=>{GB.sync();STAGE.fitStudio()})};
   },
   menu(on){const m=$('gbMenu');if(!m)return;m.hidden=!on;$('gbMore').setAttribute('aria-expanded',String(!!on))},
+  opts(on){document.body.classList.toggle('gb-opts',!!on);const b=$('gbOpts');if(b)b.setAttribute('aria-expanded',String(!!on))},
   pick(on){document.body.classList.toggle('gb-picking',!!on);const p=$('gbPill');if(p)p.setAttribute('aria-expanded',String(!!on))},
   nBars(){try{return STUDIO.bars()}catch{return 0}},
   secs(){return[...document.querySelectorAll('#stSecs [data-sec]')].map(c=>{const [a,b]=c.dataset.sec.split(',').map(Number);return{a,b,name:c.textContent.replace(/^⟲\s*/,''),on:c.classList.contains('on')}})},
@@ -6774,6 +6796,7 @@ const GB={
     tg($('gbMetro'),$('stMetro').getAttribute('aria-pressed')==='true');tg($('gbLoop'),$('stLoop').getAttribute('aria-pressed')==='true');
     const on=document.querySelector('.st-tchips .chip.on'),pill=$('gbPill');
     if(pill&&on){const t=on.textContent.trim();if(pill.dataset.t!==t){pill.dataset.t=t;pill.textContent=t+' ▾'}}
+    const ob=$('gbOpts'),has=!!$('stPopts');if(ob&&ob.hidden===has)ob.hidden=!has;if(!has&&document.body.classList.contains('gb-opts'))this.opts(false);
   },
   drawRuler(){
     const cv=document.querySelector('#gbRuler canvas');if(!cv||!cv.offsetParent)return;

@@ -106,7 +106,7 @@ body.gbmode #dock,body.gbmode .appbar,body.gbmode #subTabs,body.gbmode #view-stu
 body.gbmode main{padding-top:0;max-width:none}
 body.gbmode #view-studio{padding-top:92px!important;padding-bottom:12px!important}
 body.gbmode .st-tp{position:static!important}
-#gbBar,#gbRuler,#gbPill,#gbMenu{display:none}
+#gbBar,#gbRuler,#gbPills,#gbMenu{display:none}
 body.gbmode #gbBar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;position:fixed;left:0;right:0;top:0;height:56px;padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));background:#19132e;border-bottom:1px solid var(--line);z-index:30}
 .gbl,.gbr{display:flex;align-items:center;gap:4px}.gbr{justify-content:flex-end}
 .gbc{display:flex;align-items:center;gap:2px;background:#110c20;border:1px solid var(--line);border-radius:12px;padding:3px}
@@ -125,7 +125,16 @@ body.gbmode #gbMenu:not([hidden]){display:flex;flex-direction:column;gap:8px;pos
 .gbmrow{display:flex;gap:6px}.gbmrow .btn{flex:1}
 .gbmlist{display:flex;flex-direction:column;gap:6px}.gbmlist .btn{justify-content:flex-start;text-align:left;width:100%}
 /* the Pans view: the track name floats over the pans; tap it to switch track */
-body.gbmode.st-inst #gbPill{display:block;position:fixed;top:100px;left:max(10px,env(safe-area-inset-left));z-index:25;height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--gold);background:rgb(25 19 46 / .9);color:var(--gold);font-weight:700;font-size:13px;cursor:pointer}
+body.gbmode.st-inst #gbPills{display:flex;gap:8px;position:fixed;top:100px;left:max(10px,env(safe-area-inset-left));z-index:25}
+#gbOpts{height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:rgb(25 19 46 / .9);color:var(--text);font-weight:700;font-size:13px;cursor:pointer}
+#gbOpts[hidden]{display:none}
+body.gb-opts #gbOpts{border-color:var(--gold);color:var(--gold)}
+/* the Options menu floats over the pans; closed, it takes no room, so recording never shrinks them */
+body.gbmode #stPopts{display:none}
+body.gbmode.st-inst.gb-opts #stPopts{display:flex;flex-direction:column;gap:10px;position:fixed;top:142px;left:max(10px,env(safe-area-inset-left));z-index:26;width:min(460px,calc(100vw - 20px));max-height:calc(100vh - 152px);overflow:auto;padding:12px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5)}
+body.gbmode #stPopts .row{gap:8px}
+body.gbmode #stPopts .st-iend{margin-top:2px}
+body.gbmode.st-inst #gbPill{display:block;height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--gold);background:rgb(25 19 46 / .9);color:var(--gold);font-weight:700;font-size:13px;cursor:pointer}
 body.gbmode.st-inst #stInst>.st-tchips{display:none}
 body.gbmode.st-inst.gb-picking #stInst>.st-tchips{display:flex;flex-direction:column;align-items:stretch;gap:4px;position:fixed;top:134px;left:max(10px,env(safe-area-inset-left));z-index:26;padding:8px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0 / .5);max-height:60vh;overflow:auto;max-width:none}
 body.gbmode.st-inst #stInst{background:none;border:0;box-shadow:none;padding:0 8px;margin:0}

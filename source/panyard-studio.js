@@ -649,11 +649,13 @@ function renderInst(){
   }else if(tr.type==='pan'){
     const sk=trSet(tr),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
     const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';
-    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>'+pick;
+    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>'
+      // the pan picker, recording choices and track name live in an Options menu, so the pans keep their room
+      +'<div class="st-popts" id="stPopts" role="dialog" aria-label="Pan taps options">'+pick;
     h+='<p class="help">Tap <b>● Rec</b> and play along on the pans. Hold a note to roll. '+(mine('c')||Object.keys(SAMPLES.wav).some(mine)?'Your recorded pan sounds are used.':'Record your own pan sounds in Setup to hear your real pans here.')+'</p>';
     h+='<div class="row"><div class="seg st-mode" role="group" aria-label="Recording"><button data-st="mode" data-v="add" aria-pressed="'+(song.recMode!=='replace')+'">Add on top</button><button data-st="mode" data-v="replace" aria-pressed="'+(song.recMode==='replace')+'">Replace</button></div>'
       +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
-      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'+head.replace('st-ihead','st-ihead st-iend')+'<div><div>'+'</div></div>';
+      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'+head.replace('st-ihead','st-ihead st-iend')+'</div>';
   }else h+=seqHTML(tr);
   el.innerHTML=h;
   requestAnimationFrame(fitPans);
@@ -678,7 +680,9 @@ function renderSeqNow(){const tr=selTr();if(tr.type!=='beats')return;const col=T
 let VIEW='tracks';
 function fitPans(){
   const pans=q('#stPans');if(!pans||VIEW!=='inst'||!pans.offsetParent)return;
-  const tp=q('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9,dock=Math.min($('dock').getBoundingClientRect().top,tpTop),svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
+  // in the full-screen Studio the stage fits the pans itself (STAGE.fitStudio); a height cap here only shrinks them
+  if(document.body.classList.contains('gbmode')){pans.querySelectorAll('svg').forEach(s=>{s.style.maxHeight=''});return}
+  const tp=q('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9,dk=$('dock'),dock=Math.min(dk&&dk.offsetParent?dk.getBoundingClientRect().top:innerHeight,tpTop),svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
   const top=svgs[0].getBoundingClientRect().top,room=Math.max(140,Math.floor(dock-top-10));
   svgs.forEach(s=>{s.style.maxHeight=room+'px'});
 }
