@@ -79,22 +79,24 @@ const STAGE={
     return '<div class="pan p3d stage pfsvg pan-'+k+(isGuitar()?' pan-ec':'')+'"><svg viewBox="0 0 '+f1(W)+' '+f1(H)+'" width="'+f1(W)+'" height="'+f1(H)+'" role="img" aria-label="'+esc(curSet().name)+'">'+(defs?'<defs>'+defs+'</defs>':'')+parts.join('')+'</svg></div>';
   },
   // upright screens with no falling lanes (Write and Studio): the same arrangement, stacked to fill the width
-  portrait(W,H,key){
+  portrait(W,H,key,force){
     const k=key||setKey(),ds=this.drumsOf(key),place=[];
-    if(k==='six'||W/H>=1.15)return this.layout(W,H,key);
-    if(ds.length===2){const R=Math.min((W-16)/2,(H-24)/4.3);place.push([W/2,H/2-R*1.06-6,R],[W/2,H/2+R*1.06+6,R])}
+    // force: an upright screen's pans, even in a short wide box (Write's top half): side by side, never the sideways layout
+    if(k==='six'||(!force&&W/H>=1.15))return this.layout(W,H,key);
+    // two pans always side by side, as you stand at them: as big as the width allows, the same size
+    if(ds.length===2){const g=Math.max(6,W*.015),R=Math.min((W-3*g)/4,(H-16)/2.3);place.push([W/2-R-g/2,H/2,R],[W/2+R+g/2,H/2,R])}
     else if(ds.length===1){const R=Math.min((W-12)/2,(H-12)/2.12);place.push([W/2,H/2,R])}
     else{const R=Math.min((W-24)/4.1,(H-20)/4.45),st=Math.max(0,Math.min(R*.5,W/2-2*R-12));
       place.push([W/2-R-4,H/2-R*1.1,R],[W/2+R+4,H/2-R*1.1,R],[W/2-R-4-st,H/2+R*1.12,R],[W/2+R+4+st,H/2+R*1.12,R])}
     return{ds,place};
   },
   // move the notes already on screen (with everything listening to them) into the pans-first arrangement
-  stageify(box,W,H){
+  stageify(box,W,H,force){
     if(!box)return;const fields=[...box.querySelectorAll('.field')];if(!fields.length)return;
     const id0=fields[0].dataset.field,key=/^(\w+):/.test(id0)?id0.split(':')[0]:'guitar';if(!SETS[key])return;
     W=Math.round(W);H=Math.round(H);if(W<120||H<120)return;
-    if(box.dataset.pf===W+'x'+H+key&&box.querySelector('.pfsvg'))return;
-    const L=this.portrait(W,H,key),byId=new Map(fields.map(f=>[f.dataset.field,f]));
+    if(box.dataset.pf===W+'x'+H+key+(force?'f':'')&&box.querySelector('.pfsvg'))return;
+    const L=this.portrait(W,H,key,force),byId=new Map(fields.map(f=>[f.dataset.field,f]));
     let defs='';box.querySelectorAll('defs').forEach(d=>defs+=d.innerHTML);
     const t=.94,ns='http://www.w3.org/2000/svg';
     const wrap=document.createElement('div');wrap.className='pan p3d stage pfsvg pan-'+key+(key==='guitar'?' pan-ec':'')+(box.querySelector('.pan.tap')?' tap':'');
@@ -108,11 +110,12 @@ const STAGE={
     L.ds.forEach((d,i)=>{const g=wrap.querySelector('g[data-drum="'+i+'"]');if(!g)return;
       d.ids.forEach(id=>{const f=byId.get(id);if(f)g.appendChild(f)});
       const gl=document.createElementNS(ns,'circle');gl.setAttribute('class','hg-gloss');gl.setAttribute('cx',d.cx);gl.setAttribute('cy',d.cy);gl.setAttribute('r',f1(d.r*.97));gl.setAttribute('fill','url(#hgGloss)');g.appendChild(gl)});
-    HANG.defs();box.innerHTML='';box.appendChild(wrap);box.dataset.pf=W+'x'+H+key;box.classList.add('pfbox');
+    HANG.defs();box.innerHTML='';box.appendChild(wrap);box.dataset.pf=W+'x'+H+key+(force?'f':'');box.classList.add('pfbox');
   },
   // Write: the tap pans fill the screen width and the screen's height above the play bar
   fitWrite(){
     const box=$('editPans');if(!box||document.body.dataset.view!=='cues'||!box.offsetParent){document.body.classList.remove('pfwrite');return}
+    if(document.body.classList.contains('wbmode')&&typeof WB!=='undefined'){document.body.classList.remove('pfwrite');WB.fit();return}
     // a sideways phone: the pans take the whole screen above the play bar, like Practice
     const short=innerWidth/innerHeight>=1.15&&innerHeight<=520;document.body.classList.toggle('pfwrite',short);
     if(short){this.stageify(box,innerWidth,innerHeight-this.dockH());return}
@@ -124,9 +127,13 @@ const STAGE={
   // Studio's Pans view: every bit of room between the controls and the play bar
   fitStudio(){
     const box=document.getElementById('stPans');if(!box||document.body.dataset.view!=='studio'||!box.offsetParent)return;
+    // upright: the pans run the full width of the screen, past the page's side inset
+    let fullW=0;
+    if(innerWidth/innerHeight<1){box.style.width='';box.style.transform='';const L=box.getBoundingClientRect().left;box.style.width=innerWidth+'px';box.style.transform='translateX('+(-L)+'px)';box.style.boxSizing='border-box';box.style.padding='0';fullW=innerWidth-8}
+    else{box.style.width='';box.style.transform='';box.style.padding=''}
     const tp=document.querySelector('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9;
     const bottom=Math.min(innerHeight-this.dockH(),tpTop)-8,top=box.getBoundingClientRect().top;
-    this.stageify(box,box.clientWidth||box.parentNode.clientWidth,Math.max(180,bottom-top));
+    this.stageify(box,fullW||box.clientWidth||box.parentNode.clientWidth,Math.max(180,bottom-top));
   },
   render(){
     const want=this.wanted(),st=$('playStage');

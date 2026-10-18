@@ -848,7 +848,7 @@ let VIEW='tracks';
 function fitPans(){
   const pans=q('#stPans');if(!pans||VIEW!=='inst'||!pans.offsetParent)return;
   // in the full-screen Studio the stage fits the pans itself (STAGE.fitStudio); a height cap here only shrinks them
-  if(document.body.classList.contains('gbmode')){pans.querySelectorAll('svg').forEach(s=>{s.style.maxHeight=''});return}
+  if(document.body.classList.contains('gbmode')){pans.querySelectorAll('svg').forEach(s=>{s.style.maxHeight='none'});return}
   const tp=q('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9,dk=$('dock'),dock=Math.min(dk&&dk.offsetParent?dk.getBoundingClientRect().top:innerHeight,tpTop),svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
   const top=svgs[0].getBoundingClientRect().top,room=Math.max(140,Math.floor(dock-top-10));
   svgs.forEach(s=>{s.style.maxHeight=room+'px'});

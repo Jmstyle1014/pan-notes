@@ -1217,6 +1217,70 @@ body.gbmode .st-tl{max-height:calc(100dvh - 104px);border-radius:0;border-left:0
   .gbi{width:34px}.gbi.gbw{padding:0 7px;margin-right:0}}
 .gbloopm{display:none!important}
 @media (max-width:380px){body.gbmode #gbLoop{display:none!important}.gbloopm{display:flex!important}}
+
+/* ---------- Write, Studio-style ---------- */
+#wbBar,#wbRuler,#wbTL,#wbSheet{display:none}
+body.wbmode #dock,body.wbmode .appbar,body.wbmode #subTabs,body.wbmode #cueTop,body.wbmode #editBtn,body.wbmode #editBtn2,body.wbmode #entrySeg,body.wbmode #buildHead,body.wbmode #drawer{display:none!important}
+body.wbmode main{padding:0!important;max-width:none}
+body.wbmode #view-cues{padding:92px 0 0!important}
+body.wbmode #wbBar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;position:fixed;left:0;right:0;top:0;height:56px;padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));background:#19132e;border-bottom:1px solid var(--line);z-index:30}
+body.wbmode #wbBar .gbc .btn{min-width:52px;min-height:40px;height:40px;border-radius:9px;border:0;background:none;color:var(--text);display:grid;place-items:center;padding:0;font-size:18px;box-shadow:none}
+body.wbmode #wbBar .gbc #wbPlay{background:#1f3b23;color:#7be07b;min-width:64px}
+body.wbmode #wbBar .gbc #wbPlay:disabled,body.wbmode #wbBar .gbc #wbRec:disabled{opacity:.45}
+body.wbmode #wbRec.live{background:#4a1f2a}
+#wbView[hidden]{display:none}
+.wbpill{height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--gold);background:none;color:var(--gold);font:700 13px var(--body,system-ui);cursor:pointer;white-space:nowrap;margin-left:4px;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.wblcd{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:72px;height:44px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:#110c20;color:var(--text);cursor:pointer;line-height:1.1}
+.wblcd b{color:var(--gold);font-size:16px;font-variant-numeric:tabular-nums}.wblcd small{color:var(--muted);font-size:11px}
+#wbSnap.on{color:var(--gold);background:#2a2148}
+#wbUndo:disabled{opacity:.4}
+body.wbmode #wbRuler{display:block;position:fixed;left:0;right:0;top:56px;height:34px;background:#140f26;border-bottom:1px solid var(--line);z-index:29}
+#wbRuler canvas{display:block;width:100%;height:100%;cursor:pointer;touch-action:none}
+/* pans: everything under the bar; the cue stage is just the pans now */
+body.wbmode #cueStage{padding:0!important;margin:0!important;background:none!important;border:0!important;box-shadow:none!important}
+body.wbmode #editPans{margin:0 auto;padding:0 4px;height:var(--wbPansH,auto)}
+body.wbmode #slot-cues{display:none}
+/* timeline: its own full screen (sideways) or the lower half (upright) */
+body.wbmode.wb-tl #cueStage{display:none}
+body.wbmode.wb-tl #wbTL,body.wbmode.wb-split #wbTL{display:block;position:fixed;left:0;right:0;bottom:0;z-index:20;background:#0f0b1d;border-top:1px solid var(--line)}
+body.wbmode.wb-tl #wbTL{top:90px}
+body.wbmode.wb-split #wbTL{top:calc(92px + var(--wbPansH,300px) + 6px)}
+body.wbmode #wbTL #tlPanel{margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;height:100%;display:block}
+body.wbmode #wbTL .tlbar,body.wbmode #wbTL #tlTools{display:none!important}
+body.wbmode #wbTL #tl{display:block;width:100%!important;height:100%!important;max-height:none!important;border-radius:0}
+#wbZoom{position:absolute;right:8px;top:8px;display:flex;gap:4px;align-items:center;z-index:2}
+#wbZoom .mini{min-width:34px;height:34px;border-radius:9px;background:#2a2148;border:1px solid #3a2f6a;color:var(--text)}
+#wbZoom #zoomLabel{display:none}
+/* selected notes: Studio's floating tool bar */
+body.wbmode #selBar:not([hidden]){position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:40;display:flex;flex-wrap:nowrap;align-items:center;gap:4px;padding:6px;border-radius:16px;background:#221a3f;border:1px solid #3a2f6a;box-shadow:0 14px 40px rgb(0 0 0/.55);max-width:calc(100vw - 16px);overflow-x:auto;scrollbar-width:none}
+body.wbmode #selBar .nudge,body.wbmode #selBar .acts3{display:flex;gap:4px;flex-wrap:nowrap}
+body.wbmode #selBar .btn{min-height:40px;height:40px;padding:0 11px;border-radius:10px;white-space:nowrap;font-size:14px}
+body.wbmode #selBar #selCount{color:var(--gold);padding:0 6px;white-space:nowrap;font-size:13px}
+/* the menus */
+.wbpop{position:fixed;z-index:60;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:14px;background:var(--raised);border:1px solid var(--line);box-shadow:0 14px 40px rgb(0 0 0/.5);max-height:calc(100vh - 72px);overflow:auto}
+.wbpop[hidden]{display:none}
+#wbMenu{right:max(10px,env(safe-area-inset-right));top:62px;width:min(300px,calc(100vw - 20px))}
+#wbMenu .btn{justify-content:space-between;text-align:left;width:100%;display:flex;gap:10px}#wbMenu .btn small{color:var(--muted);font-weight:500}
+#wbSnapPop{right:max(60px,env(safe-area-inset-right));top:62px;width:min(340px,calc(100vw - 20px))}
+#wbSnapPop b{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+#wbSnapPop .seg{display:flex}#wbSnapPop .seg button{flex:1}
+/* side sheet: Tempo & timing, Build a cue */
+body.wbmode #wbSheet:not([hidden]){display:flex;flex-direction:column;position:fixed;right:0;top:90px;bottom:0;width:min(400px,100vw);z-index:50;background:var(--surface);border-left:1px solid var(--line);box-shadow:-14px 0 40px rgb(0 0 0/.4);padding:10px 14px;overflow:auto}
+.wbshead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.wbshead b{font-size:17px}
+body.wbmode #wbSheet #buildBox{display:block;margin:0;border:0;background:none;padding:0}
+body.wbmode #wbSheet #gridBox{display:flex;flex-direction:column;gap:10px}
+@media (max-width:600px){body.wbmode #wbSheet:not([hidden]){top:auto;height:62vh;width:100vw;border-left:0;border-top:1px solid var(--line);border-radius:18px 18px 0 0}}
+/* narrow phones (upright): the bar packs edge to edge */
+@media (max-width:560px){body.wbmode #wbBar{display:flex;justify-content:space-between;gap:2px;padding:0 4px}
+  body.wbmode #wbBar .gbi{width:34px}body.wbmode #wbBar .gbc .btn{min-width:38px}body.wbmode #wbBar .gbc #wbPlay{min-width:46px}
+  .wblcd,.wbpill{display:none!important}}
+body.wbmode #status{top:98px;bottom:auto}
+body.wbmode #selBar:not([hidden]){flex-direction:row!important;border-color:#3a2f6a!important}
+body.wbmode #selBar #selCount{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:700px){body.wbmode #selBar #selCount{display:none}body.wbmode #selBar .btn{padding:0 9px;font-size:13px}}
+@media (max-aspect-ratio:1/1){body.gbmode.st-inst #stInst{padding-left:2px!important;padding-right:2px!important}}
+/* the pans run edge to edge, past the page's side inset */
+body.wbmode .sheetov,body.wbmode .sheet-ov,body.wbmode #shareSheet,body.wbmode #songsSheet{z-index:70!important}
 </style>
 <header class="appbar"><button class="ttl songbtn" data-open-songs aria-label="Your songs"><span class="eyebrow">Panyard · night session</span><span class="songname"><span id="appTitle">Pan Notes</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
 <main>
@@ -6432,7 +6496,7 @@ let VIEW='tracks';
 function fitPans(){
   const pans=q('#stPans');if(!pans||VIEW!=='inst'||!pans.offsetParent)return;
   // in the full-screen Studio the stage fits the pans itself (STAGE.fitStudio); a height cap here only shrinks them
-  if(document.body.classList.contains('gbmode')){pans.querySelectorAll('svg').forEach(s=>{s.style.maxHeight=''});return}
+  if(document.body.classList.contains('gbmode')){pans.querySelectorAll('svg').forEach(s=>{s.style.maxHeight='none'});return}
   const tp=q('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9,dk=$('dock'),dock=Math.min(dk&&dk.offsetParent?dk.getBoundingClientRect().top:innerHeight,tpTop),svgs=pans.querySelectorAll('svg');if(!svgs.length)return;
   const top=svgs[0].getBoundingClientRect().top,room=Math.max(140,Math.floor(dock-top-10));
   svgs.forEach(s=>{s.style.maxHeight=room+'px'});
@@ -7053,22 +7117,24 @@ const STAGE={
     return '<div class="pan p3d stage pfsvg pan-'+k+(isGuitar()?' pan-ec':'')+'"><svg viewBox="0 0 '+f1(W)+' '+f1(H)+'" width="'+f1(W)+'" height="'+f1(H)+'" role="img" aria-label="'+esc(curSet().name)+'">'+(defs?'<defs>'+defs+'</defs>':'')+parts.join('')+'</svg></div>';
   },
   // upright screens with no falling lanes (Write and Studio): the same arrangement, stacked to fill the width
-  portrait(W,H,key){
+  portrait(W,H,key,force){
     const k=key||setKey(),ds=this.drumsOf(key),place=[];
-    if(k==='six'||W/H>=1.15)return this.layout(W,H,key);
-    if(ds.length===2){const R=Math.min((W-16)/2,(H-24)/4.3);place.push([W/2,H/2-R*1.06-6,R],[W/2,H/2+R*1.06+6,R])}
+    // force: an upright screen's pans, even in a short wide box (Write's top half): side by side, never the sideways layout
+    if(k==='six'||(!force&&W/H>=1.15))return this.layout(W,H,key);
+    // two pans always side by side, as you stand at them: as big as the width allows, the same size
+    if(ds.length===2){const g=Math.max(6,W*.015),R=Math.min((W-3*g)/4,(H-16)/2.3);place.push([W/2-R-g/2,H/2,R],[W/2+R+g/2,H/2,R])}
     else if(ds.length===1){const R=Math.min((W-12)/2,(H-12)/2.12);place.push([W/2,H/2,R])}
     else{const R=Math.min((W-24)/4.1,(H-20)/4.45),st=Math.max(0,Math.min(R*.5,W/2-2*R-12));
       place.push([W/2-R-4,H/2-R*1.1,R],[W/2+R+4,H/2-R*1.1,R],[W/2-R-4-st,H/2+R*1.12,R],[W/2+R+4+st,H/2+R*1.12,R])}
     return{ds,place};
   },
   // move the notes already on screen (with everything listening to them) into the pans-first arrangement
-  stageify(box,W,H){
+  stageify(box,W,H,force){
     if(!box)return;const fields=[...box.querySelectorAll('.field')];if(!fields.length)return;
     const id0=fields[0].dataset.field,key=/^(\w+):/.test(id0)?id0.split(':')[0]:'guitar';if(!SETS[key])return;
     W=Math.round(W);H=Math.round(H);if(W<120||H<120)return;
-    if(box.dataset.pf===W+'x'+H+key&&box.querySelector('.pfsvg'))return;
-    const L=this.portrait(W,H,key),byId=new Map(fields.map(f=>[f.dataset.field,f]));
+    if(box.dataset.pf===W+'x'+H+key+(force?'f':'')&&box.querySelector('.pfsvg'))return;
+    const L=this.portrait(W,H,key,force),byId=new Map(fields.map(f=>[f.dataset.field,f]));
     let defs='';box.querySelectorAll('defs').forEach(d=>defs+=d.innerHTML);
     const t=.94,ns='http://www.w3.org/2000/svg';
     const wrap=document.createElement('div');wrap.className='pan p3d stage pfsvg pan-'+key+(key==='guitar'?' pan-ec':'')+(box.querySelector('.pan.tap')?' tap':'');
@@ -7082,11 +7148,12 @@ const STAGE={
     L.ds.forEach((d,i)=>{const g=wrap.querySelector('g[data-drum="'+i+'"]');if(!g)return;
       d.ids.forEach(id=>{const f=byId.get(id);if(f)g.appendChild(f)});
       const gl=document.createElementNS(ns,'circle');gl.setAttribute('class','hg-gloss');gl.setAttribute('cx',d.cx);gl.setAttribute('cy',d.cy);gl.setAttribute('r',f1(d.r*.97));gl.setAttribute('fill','url(#hgGloss)');g.appendChild(gl)});
-    HANG.defs();box.innerHTML='';box.appendChild(wrap);box.dataset.pf=W+'x'+H+key;box.classList.add('pfbox');
+    HANG.defs();box.innerHTML='';box.appendChild(wrap);box.dataset.pf=W+'x'+H+key+(force?'f':'');box.classList.add('pfbox');
   },
   // Write: the tap pans fill the screen width and the screen's height above the play bar
   fitWrite(){
     const box=$('editPans');if(!box||document.body.dataset.view!=='cues'||!box.offsetParent){document.body.classList.remove('pfwrite');return}
+    if(document.body.classList.contains('wbmode')&&typeof WB!=='undefined'){document.body.classList.remove('pfwrite');WB.fit();return}
     // a sideways phone: the pans take the whole screen above the play bar, like Practice
     const short=innerWidth/innerHeight>=1.15&&innerHeight<=520;document.body.classList.toggle('pfwrite',short);
     if(short){this.stageify(box,innerWidth,innerHeight-this.dockH());return}
@@ -7098,9 +7165,13 @@ const STAGE={
   // Studio's Pans view: every bit of room between the controls and the play bar
   fitStudio(){
     const box=document.getElementById('stPans');if(!box||document.body.dataset.view!=='studio'||!box.offsetParent)return;
+    // upright: the pans run the full width of the screen, past the page's side inset
+    let fullW=0;
+    if(innerWidth/innerHeight<1){box.style.width='';box.style.transform='';const L=box.getBoundingClientRect().left;box.style.width=innerWidth+'px';box.style.transform='translateX('+(-L)+'px)';box.style.boxSizing='border-box';box.style.padding='0';fullW=innerWidth-8}
+    else{box.style.width='';box.style.transform='';box.style.padding=''}
     const tp=document.querySelector('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9;
     const bottom=Math.min(innerHeight-this.dockH(),tpTop)-8,top=box.getBoundingClientRect().top;
-    this.stageify(box,box.clientWidth||box.parentNode.clientWidth,Math.max(180,bottom-top));
+    this.stageify(box,fullW||box.clientWidth||box.parentNode.clientWidth,Math.max(180,bottom-top));
   },
   render(){
     const want=this.wanted(),st=$('playStage');
@@ -7265,6 +7336,172 @@ const GB={
   }
 };
 GB.init();
+
+/* ---------- Write, Studio-style: one thin bar, a ruler, and the pans or your timeline filling the rest ---------- */
+// Nothing about how Write works changes: the same buttons (and everything listening to them) are moved into a slim bar,
+// a ⋯ menu and side sheets. Your cues, the chart, the game and Studio's My part all read the same notes as before.
+// Sideways phone and tablet: Pans ⇄ Timeline. Upright: the pans on top and the timeline under them, both at once.
+const WB={
+  view:'pans',on:false,
+  ico:{
+    back:'<path d="M15 5l-7 7 7 7"/>',
+    tl:'<path d="M4 6h16M4 12h16M4 18h16"/><rect x="6" y="4" width="6" height="4" rx="1" fill="currentColor"/><rect x="10" y="10" width="7" height="4" rx="1" fill="currentColor"/><rect x="5" y="16" width="5" height="4" rx="1" fill="currentColor"/>',
+    pans:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v5.5M12 15v5.5M3.5 12H9M15 12h5.5"/>',
+    snap:'<path d="M6 4v7a6 6 0 0012 0V4"/><path d="M6 8h4M14 8h4"/>',
+    undo:'<path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 010 10h-3"/>',
+    more:'<circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/>',
+    start:'<path d="M5 4v16"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/>'
+  },
+  svg(k,s){return '<svg viewBox="0 0 24 24" width="'+(s||22)+'" height="'+(s||22)+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+this.ico[k]+'</svg>'},
+  split:()=>innerWidth/innerHeight<1,
+  init(){
+    const v=$('view-cues');if(!v||!$('tlPanel'))return;
+    const bar=document.createElement('div');bar.id='wbBar';bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Write');
+    bar.innerHTML='<div class="gbl"><button class="gbi" id="wbBack" aria-label="Leave Write">'+this.svg('back')+'</button>'
+      +'<button class="gbi" id="wbView" aria-label="Show the timeline">'+this.svg('tl')+'</button>'
+      +'<button class="wbpill" id="wbMode" aria-label="How you add notes">✎ Tap along ▾</button></div>'
+      +'<div class="gbc"><button class="btn" id="wbStart" aria-label="Back to the start">'+this.svg('start',20)+'</button><button class="btn" id="wbPlay" aria-label="Play">▶</button><button class="btn" id="wbRec" aria-label="Tap along: play and tap the pans"><span class="gbdot" aria-hidden="true"></span></button></div>'
+      +'<div class="gbr"><button class="wblcd" id="wbLcd" aria-label="Tempo and timing"><b id="wbPos">0:00</b><small id="wbBpm">no tempo</small></button>'
+      +'<button class="gbi" id="wbSnap" aria-label="Snap" aria-expanded="false">'+this.svg('snap')+'</button>'
+      +'<button class="gbi" id="wbUndo" aria-label="Undo">'+this.svg('undo')+'</button>'
+      +'<button class="gbi" id="wbMore" aria-label="More" aria-expanded="false">'+this.svg('more')+'</button></div>';
+    document.body.appendChild(bar);
+    const ru=document.createElement('div');ru.id='wbRuler';ru.innerHTML='<canvas aria-label="Your song: tap to move the playhead, tap a section to loop it"></canvas>';document.body.appendChild(ru);
+    // the timeline's home: full screen (sideways) or the lower half (upright)
+    const tl=document.createElement('div');tl.id='wbTL';document.body.appendChild(tl);
+    const zm=document.createElement('div');zm.id='wbZoom';tl.appendChild(zm);['rateBtn','zoomOut','zoomLabel','zoomIn'].forEach(id=>{const e=$(id);if(e)zm.appendChild(e)});
+    // snap: a small pop-up with the same buttons
+    const sp=document.createElement('div');sp.id='wbSnapPop';sp.className='wbpop';sp.hidden=true;sp.innerHTML='<b>Snap new and moved notes to</b>';sp.appendChild($('snapSeg'));document.body.appendChild(sp);
+    // the ⋯ menu
+    const menu=document.createElement('div');menu.id='wbMenu';menu.className='wbpop';menu.hidden=true;
+    const item=(id,label,fn)=>{const b=document.createElement('button');b.className='btn';b.id=id;b.innerHTML=label;b.onclick=()=>{this.pop(null);fn()};menu.appendChild(b);return b};
+    item('wbmTap','✎ Tap along <small>tap the pans as it plays</small>',()=>this.setEntry('tap'));
+    item('wbmBuild','✚ Build a cue <small>pick notes, set the time</small>',()=>this.setEntry('build'));
+    item('wbmTempo','♩ Tempo &amp; timing',()=>this.sheet('timing'));
+    item('wbmRate','⏩ Playback speed <small id="wbRate">1×</small>',()=>{$('rateBtn').click();this.sync()});
+    item('wbmSel','☑ Select notes',()=>{if(this.view==='pans'&&!this.split())this.setView('tl');$('selMode').click();this.sync()});
+    item('wbmBars','▦ Edit in bars',()=>$('barsBtn').click());
+    item('wbmShare','⤴ Share with your band <small>chart, picture, audio</small>',()=>$('shareBtnTop').click());
+    item('wbmSave','⤓ Save the timeline',()=>$('shareTL').click());
+    item('wbmSong','♪ Your songs',()=>{const b=document.querySelector('[data-open-songs]');if(b)b.click()});
+    item('wbmStudio','◫ Go to Studio',()=>showView('studio'));
+    item('wbmHelp','? Help',()=>$('helpBtn').click());
+    document.body.appendChild(menu);
+    // side sheet: Tempo & timing, and Build a cue
+    const sh=document.createElement('div');sh.id='wbSheet';sh.hidden=true;sh.innerHTML='<div class="wbshead"><b id="wbSheetT"></b><button class="btn" id="wbSheetX">Done</button></div><div id="wbSheetB"></div>';document.body.appendChild(sh);
+    $('wbSheetX').onclick=()=>this.sheet(null);
+    // wiring: the new buttons press the old ones
+    $('wbBack').onclick=()=>showView('home');
+    $('wbView').onclick=()=>this.setView(this.view==='pans'?'tl':'pans');
+    $('wbMode').onclick=e=>{e.stopPropagation();this.setEntry(entry==='tap'?'build':'tap')};
+    $('wbStart').onclick=()=>{try{audio.currentTime=loop&&A!==null?A:0;tick()}catch{}};
+    $('wbPlay').onclick=()=>$('playBtn').click();
+    $('wbRec').onclick=()=>{this.setEntry('tap');if(audio.paused)$('playBtn').click();else $('playBtn').click()};
+    $('wbLcd').onclick=()=>this.sheet('timing');
+    $('wbSnap').onclick=e=>{e.stopPropagation();this.pop($('wbSnapPop').hidden?'wbSnapPop':null)};
+    $('wbUndo').onclick=()=>$('undoBtn').click();
+    $('wbMore').onclick=e=>{e.stopPropagation();this.pop($('wbMenu').hidden?'wbMenu':null)};
+    sp.addEventListener('click',e=>{if(e.target.closest('button'))setTimeout(()=>{this.pop(null);this.sync()},120)});
+    document.addEventListener('click',e=>{if(!e.target.closest('.wbpop,#wbMore,#wbSnap'))this.pop(null)});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){this.pop(null);if(!$('wbSheet').hidden&&$('wbSheet').dataset.k==='timing')this.sheet(null)}});
+    const cv=ru.querySelector('canvas');cv.addEventListener('pointerdown',e=>this.rulerTap(e,cv));
+    // keep the timeline in its new home whenever Write moves it (it goes to the drawer on a sideways phone)
+    const _pt=placeTimeline;placeTimeline=function(){_pt();if(WB.on)WB.place()};
+    const _se=setEntry;setEntry=function(m){_se(m);if(WB.on)WB.place()};
+    const _show=showView;showView=function(x){_show(x);WB.enter(x==='cues')};
+    let mq=0;new MutationObserver(()=>{if(mq)return;mq=requestAnimationFrame(()=>{mq=0;WB.sync()})}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['aria-pressed','disabled','hidden'],childList:false});
+    addEventListener('resize',()=>{if(this.on){this.place();this.fit()}});
+    const loopF=()=>{if(this.on){this.drawRuler();this.clock()}requestAnimationFrame(loopF)};requestAnimationFrame(loopF);
+  },
+  enter(on){
+    const was=this.on;this.on=on;document.body.classList.toggle('wbmode',on);this.pop(null);
+    // leaving: the play bar comes back, so whatever is showing now is laid out again around it
+    if(!on){if(was){const bx=$('editPans');if(bx){bx.style.transform='';bx.style.width='';bx.style.padding='';bx.style.marginLeft='';bx.style.marginRight=''}this.sheet(null);document.body.classList.remove('wb-tl','wb-split','wb-build');placeTimeline();try{setDockH()}catch{}try{STAGE.render()}catch{}requestAnimationFrame(()=>{try{STAGE.render();STAGE.fitStudio()}catch{}})}return}
+    this.place();this.sync();requestAnimationFrame(()=>this.fit());
+  },
+  setView(v){this.view=v;this.place();this.sync();requestAnimationFrame(()=>this.fit())},
+  setEntry(m){setEntry(m);this.place();this.sync()},
+  // where everything goes for this screen
+  place(){
+    if(!this.on)return;const split=this.split(),tlOn=split||this.view==='tl',b=document.body;
+    b.classList.toggle('wb-split',split);b.classList.toggle('wb-tl',!split&&this.view==='tl');
+    const tl=$('wbTL'),p=$('tlPanel');if(p.parentNode!==tl)tl.insertBefore(p,$('wbZoom'));
+    try{openDrawer(false)}catch{}
+    // Build a cue: its form slides in from the side; the pans stay where they are
+    const build=entry==='build';b.classList.toggle('wb-build',build);
+    const bx=$('buildBox');if(build){this.sheet('build')}else if($('wbSheet').dataset.k==='build')this.sheet(null);
+    if(!build&&bx.parentNode!==$('cueStage'))$('cueStage').appendChild(bx);
+    if(tlOn)requestAnimationFrame(()=>{try{drawTL()}catch{}});
+  },
+  // the pans: the room under the bar (or the top half, upright)
+  fit(){
+    if(!this.on)return;const box=$('editPans');if(!box)return;
+    const top=92,split=this.split();if(!split&&this.view==='tl')return;
+    // upright: as much height as the pans need side by side (more for four or six drums), the rest for the timeline
+    const n=STAGE.drumsOf(setKey()).length,room=innerHeight-top;
+    const H=split?Math.round(n>=4?Math.min(innerWidth*1.05,room*.6):n===2?Math.min(innerWidth*.56,room*.5):Math.min(innerWidth*.95,room*.55)):innerHeight-top-8;
+    document.documentElement.style.setProperty('--wbPansH',H+'px');
+    // full width of the screen, past the page's side inset
+    box.style.transform='';box.style.width=innerWidth+'px';box.style.boxSizing='border-box';box.style.padding='0 4px';box.style.marginLeft='0';box.style.marginRight='0';
+    const L=box.getBoundingClientRect().left;if(L)box.style.transform='translateX('+(-L)+'px)';
+    box.dataset.pf='';STAGE.stageify(box,innerWidth-8,H,split);
+  },
+  sheet(k){
+    const sh=$('wbSheet'),B=$('wbSheetB');
+    if((k||'')===(sh.dataset.k||'')&&(!k||!sh.hidden))return;   // already showing
+    // put back what was borrowed
+    if(sh.dataset.k==='timing'){$('tlTools').appendChild($('gridBox'));$('gridBox').hidden=true;$('tempoBtn').setAttribute('aria-expanded','false')}
+    if(sh.dataset.k==='build'&&k!=='build'){$('cueStage').appendChild($('buildBox'))}
+    sh.dataset.k=k||'';sh.hidden=!k;document.body.classList.toggle('wb-sheet',!!k);
+    if(k==='timing'){$('wbSheetT').textContent='Tempo & timing';B.appendChild($('gridBox'));$('gridBox').hidden=false;$('tempoBtn').setAttribute('aria-expanded','true')}
+    if(k==='build'){$('wbSheetT').textContent='Build a cue';B.appendChild($('buildBox'));$('buildBox').hidden=false}
+    if(!k&&entry==='build')setEntry('tap');
+  },
+  pop(id){['wbMenu','wbSnapPop'].forEach(x=>{const e=$(x);if(e)e.hidden=x!==id});$('wbMore').setAttribute('aria-expanded',String(id==='wbMenu'));$('wbSnap').setAttribute('aria-expanded',String(id==='wbSnapPop'))},
+  sync(){
+    if(!$('wbBar'))return;
+    const split=this.split(),vb=$('wbView');vb.hidden=split;
+    const k=this.view==='tl'?'pans':'tl';if(vb.dataset.k!==k){vb.dataset.k=k;vb.innerHTML=this.svg(k);vb.setAttribute('aria-label',k==='tl'?'Show the timeline':'Show the pans')}
+    const m=entry==='build'?'✚ Build a cue ▾':'✎ Tap along ▾';if($('wbMode').textContent!==m)$('wbMode').textContent=m;
+    const pb=$('playBtn'),wp=$('wbPlay');const pl=pb.textContent.trim()||'▶';if(wp.textContent!==pl)wp.textContent=pl;wp.disabled=pb.disabled;$('wbRec').disabled=pb.disabled;
+    $('wbRec').classList.toggle('live',!audio.paused&&entry==='tap');
+    $('wbUndo').disabled=$('undoBtn').disabled;
+    const sn=$('snapSeg').querySelector('[aria-pressed="true"]');$('wbSnap').classList.toggle('on',!!sn&&sn.dataset.snap!=='off');
+    const r=$('wbRate');if(r)r.textContent=$('rateBtn').textContent;
+    const sel=$('selMode').getAttribute('aria-pressed')==='true',ms=$('wbmSel');if(ms)ms.innerHTML=sel?'☑ Stop selecting':'☑ Select notes';
+    $('wbBpm').textContent=S.grid?(+S.grid.bpm.toFixed(1))+' bpm':'no tempo';
+  },
+  clock(){
+    const t=viewT||0,el=$('wbPos');let s;
+    if(S.grid){const sp=60/S.grid.bpm,b=(t-(+S.grid.offset||0))/sp,n=S.grid.perBar||4;s=b<0?'1.1':(Math.floor(b/n)+1)+'.'+(Math.floor(b%n)+1)}
+    else s=Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+    if(el.textContent!==s)el.textContent=s;
+    const live=!audio.paused&&entry==='tap',rb=$('wbRec');if(rb.classList.contains('live')!==live)rb.classList.toggle('live',live);
+  },
+  len(){let L=0;try{L=totalLen()}catch{}const ss=sectionsNow();if(ss.length)L=Math.max(L,ss[ss.length-1].end);return Math.max(L,1)},
+  drawRuler(){
+    const cv=document.querySelector('#wbRuler canvas');if(!cv||!cv.offsetParent)return;
+    const W=cv.clientWidth,H=cv.clientHeight,d=devicePixelRatio||1;if(!W)return;
+    if(cv.width!==Math.round(W*d)||cv.height!==Math.round(H*d)){cv.width=Math.round(W*d);cv.height=Math.round(H*d)}
+    const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,W,H);
+    const L=this.len(),px=W/L,FF=getComputedStyle(document.body).fontFamily;
+    sectionsNow().forEach((s,i)=>{const x0=s.t*px,x1=s.end*px,on=loop&&A!==null&&Math.abs(A-s.t)<.05&&Math.abs(B-s.end)<.05;
+      g.fillStyle=on?'rgba(255,209,102,.28)':(i%2?'rgba(143,199,255,.12)':'rgba(201,162,255,.12)');g.fillRect(x0+1,0,Math.max(0,x1-x0-2),16);
+      g.fillStyle=on?'#ffd166':'#c3bbe8';g.font='700 10px '+FF;g.textBaseline='middle';g.save();g.beginPath();g.rect(x0,0,x1-x0,16);g.clip();g.fillText((on?'⟲ ':'')+s.name.toUpperCase(),x0+5,8.5);g.restore()});
+    if(loop&&A!==null&&B!==null){g.fillStyle='rgba(255,209,102,.16)';g.fillRect(A*px,16,(B-A)*px,H-16)}
+    g.strokeStyle='#30275a';g.fillStyle='#9d93c9';g.font='600 10px '+FF;g.textBaseline='alphabetic';
+    if(S.grid){const bar=60/S.grid.bpm*(S.grid.perBar||4),o=((+S.grid.offset||0)%bar+bar)%bar,n=Math.ceil((L-o)/bar),step=Math.max(1,Math.ceil(26/(bar*px)));
+      for(let b=0;b<n;b++){const x=Math.round((o+b*bar)*px)+.5;g.beginPath();g.moveTo(x,b%step?H-6:17);g.lineTo(x,H);g.stroke();if(b%step===0)g.fillText(String(b+1),x+3,H-5)}}
+    else{const st=[1,2,5,10,15,30,60].find(s=>s*px>=40)||60;for(let s=0;s<=L;s+=st){const x=Math.round(s*px)+.5;g.beginPath();g.moveTo(x,17);g.lineTo(x,H);g.stroke();g.fillText(Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'),x+3,H-5)}}
+    const x=(viewT||0)*px;g.fillStyle='#ffd166';g.fillRect(x-1,16,2,H-16);g.beginPath();g.moveTo(x-5,16);g.lineTo(x+5,16);g.lineTo(x,22);g.fill();
+  },
+  rulerTap(e,cv){
+    const r=cv.getBoundingClientRect(),L=this.len(),t=Math.max(0,Math.min(L,(e.clientX-r.left)/r.width*L));
+    if(e.clientY-r.top<16){const sec=sectionsNow().find(s=>t>=s.t&&t<s.end);if(sec){loopSection(sec);return}}
+    try{audio.currentTime=t;viewT=t;tick();drawTL()}catch{}
+  }
+};
+WB.init();
 
 /* ---------- start ---------- */
 (async()=>{
