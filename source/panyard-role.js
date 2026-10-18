@@ -84,7 +84,13 @@ var ROLE={   // var: Home can ask about it before this part has run
       const top=document.querySelector('#view-home .hm-top>div');if(!top||!r)return;
       const b=document.createElement('button');b.className='role-chip';b.id='roleChip';b.setAttribute('aria-label','Change who’s playing');
       b.innerHTML=band?HOME.mini(r.pan,20)+esc(SETS[r.pan].name)+' · Band':'🎛 Producer';top.appendChild(b);b.onclick=()=>ROLE.open('who');
-      if(band){const j=$('hmJust');if(j)j.lastChild.textContent='Practise'}};
+      if(band){const j=$('hmJust');if(j)j.lastChild.textContent='Practise'}
+      // the example song is for the Double Guitar: a band member on another pan gets their first song instead
+      const card=document.querySelector('#view-home .hm-card');
+      if(band&&isDemo&&r.pan!=='guitar'&&card){
+        card.innerHTML='<div class="hm-cardtop">'+HOME.mini(r.pan,76)+'<div class="hm-ct"><span class="hm-eyebrow">Get started</span><h2>Your '+esc(SETS[r.pan].name)+'</h2><p>'+esc(SETS[r.pan].range)+'</p><p>Make your first song, add its recording, then tap in your part.</p></div></div>'
+          +'<button class="hm-go" id="roleFirst"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New song for your '+esc(SETS[r.pan].name)+'</button>';
+        $('roleFirst').onclick=()=>songNew()}};
     // Just play goes to the pans in Studio; a band member has no Studio, so it's Play instead
     document.addEventListener('click',e=>{if(!ROLE.band())return;const j=e.target.closest('#hmJust');if(j){e.stopPropagation();showView('play')}},true);
     // Setup: no pan picker or tuning for a band member, and Pan look shows only your pan

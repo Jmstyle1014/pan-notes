@@ -100,7 +100,7 @@ function contentEnd(){let e=0;
     else if(tr.type==='audio'&&tr.dur)e=Math.max(e,tr.start+tr.dur/spb());
     if(isPanish(tr))for(const n of notesOf(tr))e=Math.max(e,n.t+n.d);
   }return e}
-const bars=()=>Math.max(song.minBars||8,Math.ceil(contentEnd()/BPB()-1e-6)+1);
+const bars=()=>Math.max(song.minBars||8,Math.ceil(contentEnd()/BPB()-.1));   // a last note ringing a moment past the bar line doesn't add a bar
 const L=()=>bars()*BPB();
 
 /* ---- sound: a mixing desk built on the pans' own audio engine ---- */
@@ -388,7 +388,10 @@ function recNote(tr,id,v,at){
   const n={t:+recBeatAt(when).toFixed(3),d:.25,p:id,v:+v.toFixed(2),tk:T.take};tr.notes.push(n);return n;
 }
 function recOff(n,at){if(!n)return;let d=recBeatAt(at!=null?at:tapT(null))-n.t;if(d<-.5&&looping())d+=loopE()-loopS();n.d=+Math.max(.25,Math.min(4,d)).toFixed(3)}   // a quick tap shows as a quarter beat
+// while recording the song keeps 4 bars of room ahead; afterwards it's as long as what you played again
+function fitBars(){if(T.mb0!=null){song.minBars=T.mb0;T.mb0=null}}
 function endNoteRec(){
+  fitBars();
   const tr=trById(T.recTid),take=T.take;T.recTid=null;T.noCyc=false;if(!tr)return;
   const mineN=tr.notes.filter(n=>n.tk===take);
   if(song.snapRec&&song.snap!=='off')mineN.forEach(n=>{n.t=snapBeat(n.t,+song.snap)});
@@ -406,7 +409,7 @@ function toggleRec(){
   if(tr.type==='audio'){micStart(tr);return}
   if(tr.type==='part'){if(!AC())return;writeRecStart(tr);return}
   if(tr.type!=='pan'){say('Choose a Mic or Pan taps track to record into, or add one with + Add track.');return}
-  if(!AC())return;pushHistory();T.take++;T.recTid=tr.id;T.rec=true;
+  if(!AC())return;pushHistory();T.take++;T.recTid=tr.id;T.rec=true;T.mb0=song.minBars;
   if(song.recMode==='take')takeBegin(tr);
   if(!T.playing)play(song.countIn);else renderTransport();
   setView('inst');
@@ -436,7 +439,7 @@ window.addEventListener('pointerup',panUp);window.addEventListener('pointercance
 const WR={on:false,last:null,n:0};
 function writeRecStart(tr){
   if(T.mic)return;pushUndo();if(isDemo){S.cues=[];isDemo=false;try{renderDemo()}catch{}}
-  WR.on=true;WR.last=null;WR.n=0;T.take++;T.recTid=tr.id;T.rec=true;
+  WR.on=true;WR.last=null;WR.n=0;T.take++;T.recTid=tr.id;T.rec=true;T.mb0=song.minBars;
   if(!T.playing)play(song.countIn);else renderTransport();setView('inst');
 }
 function writeTap(tr,id,at){
@@ -451,6 +454,7 @@ function writeTap(tr,id,at){
   S.cues.push(c);S.cues.sort((x,y)=>x.start-y.start);WR.last=c;WR.n++;partCache=null;return c;
 }
 function writeRecEnd(){
+  fitBars();
   const n=WR.n;WR.on=false;WR.last=null;T.recTid=null;
   try{normalizeChords()}catch{}save();try{renderCues()}catch{}partCache=null;renderAll();
   say(n?n+' note'+(n===1?'':'s')+' went straight into Write. They\'re on your chart and in the game too. (Undo in Write takes them back.)':'Nothing was played.');
@@ -547,10 +551,11 @@ async function micStart(tr){
   catch{micBusy=false;say("Panyard can't use the microphone. Allow it in your browser or phone settings, then try again.");return}
   if(T.playing)stop(false);
   const cap=await capture(stream);micBusy=false;
-  pushHistory();T.mic={tr,cap,stream};T.rec=true;T.recTid=tr.id;T.noCyc=true;
+  pushHistory();T.mic={tr,cap,stream};T.rec=true;T.recTid=tr.id;T.noCyc=true;T.mb0=song.minBars;
   play(song.countIn);setView('inst');
 }
 async function micStop(){
+  fitBars();
   const m=T.mic;if(!m)return;T.mic=null;T.rec=false;T.recTid=null;
   const startT=T.t0,startB=T.b0;
   const chunks=await m.cap.stop();m.stream.getTracks().forEach(t=>t.stop());
@@ -735,7 +740,7 @@ function renderTimeline(){
   h+='</div></div>';
   for(const tr of song.tracks){
     const sel=tr.id===song.sel;
-    h+='<div class="st-row k-'+tr.type+(sel?' sel':'')+'" data-tid="'+tr.id+'"><div class="st-hd"><button class="st-name" data-st="pick" aria-pressed="'+sel+'"><span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span><span>'+esc(tr.name)+'</span></button>'
+    h+='<div class="st-row k-'+tr.type+(sel?' sel':'')+(!hasContent(tr)?' empty':'')+'" data-tid="'+tr.id+'"><div class="st-hd"><button class="st-name" data-st="pick" aria-pressed="'+sel+'"><span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span><span>'+esc(tr.name)+'</span></button>'
       +'<span class="st-ms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'" aria-label="Mute '+esc(tr.name)+'">M</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'" aria-label="Solo '+esc(tr.name)+'">S</button><button class="g" data-st="tset" aria-label="Settings for '+esc(tr.name)+'">⚙</button></span></div>'
       +'<div class="st-lane" data-st="lane" style="width:'+W+'px">'+regionsHTML(tr,bar)+(SEL&&SEL.tid===tr.id?'<span class="st-bsel" style="left:'+SEL.a*bar+'px;width:'+(SEL.b-SEL.a)*bar+'px"></span>':'')+'</div></div>';
   }
@@ -906,7 +911,7 @@ function renderSheet(){
     const cues=S.cues.filter(c=>c.steps&&c.steps.length).length;
     h=head('Add a track')+'<div class="st-addlist">'
       +'<button class="st-add" data-st="addk" data-v="audio"><b>🎙 Mic or audio file</b><span>Record yourself, a singer, or another pan. Or bring in a file.</span></button>'
-      +'<button class="st-add" data-st="addk" data-v="pan"><b>◉ Pan taps</b><span>Play the two pans on screen; every hit is recorded as a note you can edit.</span></button>'
+      +'<div class="st-add st-addpans"><b>◉ Pan taps</b><span>Choose the pan, then play it on screen; every hit is a note you can edit.</span><div class="st-addp">'+Object.keys(SETS).map(k=>'<button data-st="addk" data-v="pan" data-set="'+k+'">'+(typeof HOME!=='undefined'?HOME.mini(k,34):'')+'<span>'+esc(SETS[k].name)+'</span></button>').join('')+'</div></div>'
       +'<button class="st-add" data-st="addk" data-v="beats"><b>▦ Beat</b><span>A drum pattern: soca, calypso, panorama jam and more, or build your own.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="part"><b>✎ Your part from Write</b><span>'+(cues?'Your '+cues+' cues as a pan track, linked: edit it here or in Write and both follow.':'Linked to your cues in Write; write some cues and they play here.')+'</span></button></div>';
   }else if(SH.kind==='mixer'){
@@ -991,10 +996,11 @@ function meters(){
   q('#stSheetBox').querySelectorAll('[data-meter]').forEach(el=>{const id=el.dataset.meter,an=id==='master'?meterM:chans.get(id)&&chans.get(id).meter;if(!an)return;
     an.getFloatTimeDomainData(buf);let pk=0;for(const v of buf)pk=Math.max(pk,Math.abs(v));el.style.width=Math.min(100,Math.round(Math.sqrt(pk)*100))+'%';el.classList.toggle('hot',pk>.95)});
 }
-function addTrack(kind){
+function addTrack(kind,set){
   pushHistory();let tr;
   if(kind==='part'){const ex=song.tracks.find(t=>t.type==='part');if(ex){H.u.pop();song.sel=ex.id;closeSheet();say('My part is already here, linked to Write.');return}tr=trk('part')}
   else tr=trk(kind);
+  if(kind==='pan'&&SETS[set]){tr.panSet=set;tr.name=SETS[set].name}
   // numbered among its own kind: a second Six Bass is "Six Bass 2", a first tenor is just "Low C Tenor"
   const same=song.tracks.filter(t=>t.type===tr.type&&(tr.type!=='pan'||t.panSet===tr.panSet)).length;if(same&&kind!=='part')tr.name+=' '+(same+1);
   song.tracks.push(tr);song.sel=tr.id;dirty();closeSheet();setView('inst');
@@ -1178,7 +1184,7 @@ function onClick(e){
     case 'takeuse':pushHistory();takeUse(tr,+b.dataset.v);dirty();restartIfPlaying();renderAll();if(SH.kind)renderSheet();break;
     case 'takedel':{if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Delete?';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='✕'}},3000);break}pushHistory();takeDel(tr,+b.dataset.v);dirty();renderAll();renderSheet();break}
     case 'close':closeSheet();break;
-    case 'addk':addTrack(b.dataset.v);break;
+    case 'addk':addTrack(b.dataset.v,b.dataset.set);break;
     case 'deltrack':{const t=selTr();if(t.type==='practice')break;if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Tap again to delete';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='Delete track'}},3000);break}
       pushHistory();song.tracks=song.tracks.filter(x=>x!==t);song.sel='practice';SEL=null;dirty();renderAll();say('Deleted '+t.name+'. Undo brings it back.');break}
     case 'addsheet':openSheet('add');break;

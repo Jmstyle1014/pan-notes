@@ -218,3 +218,17 @@ body.st-inst #stSecs{display:none}
 .st-ruler .st-corner{flex-direction:row;flex-wrap:nowrap;padding:3px 6px!important}
 .st-ruler .st-corner .st-addt{height:28px;font-size:12px}
 .st-ruler .st-zm button{width:26px;height:28px;font-size:15px;line-height:1}
+
+/* an empty track row is slim until it has something in it */
+.st-row.empty{height:44px}
+.st-row.empty .st-hd{flex-direction:row;align-items:center;justify-content:space-between;gap:6px}
+.st-row.empty .st-ms .m,.st-row.empty .st-ms .s{display:none}
+.st-row.empty .st-name{min-width:0}
+.st-row.empty .st-lane{font-size:12px}
+.st-row.empty .st-lane *{font-size:12px!important}
+/* Add a track: the five pans, one tap */
+.st-addpans{cursor:default}
+.st-addp{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.st-addp button{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
+.st-addp button:hover,.st-addp button:focus-visible{border-color:var(--gold);color:var(--gold)}
+.st-row.empty .st-empty{top:50%;transform:translateY(-50%)}
