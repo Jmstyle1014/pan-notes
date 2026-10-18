@@ -2411,7 +2411,7 @@ $('impJson').onchange=async e=>{
       try{if(assets){const blob=dataUrlToBlob(d,'image/jpeg');const r=await assets.upload(blob);S.photos[k]={id:r.id}}else S.photos[k]={data:d};extra=extra.includes('photos')?extra:extra+' Pan photos added.'}catch{}
     }
     if(p.sounds&&typeof p.sounds==='object'){let k=0;for(const [id,d] of Object.entries(p.sounds))if(FIELDS.has(id)&&typeof d==='string'&&/^data:audio\/[a-z0-9.+-]+;base64,/i.test(d)){SAMPLES.wav[id]=dataUrlToBlob(d,'audio/wav');delete SAMPLES.buf[id];k++}
-      if(p.soundBorrow&&typeof p.soundBorrow==='object'){for(const [a,b] of Object.entries(p.soundBorrow))if(SETS[a]&&SETS[b]&&a!==b)BORROW[a]=b;saveBorrow()}
+      if(p.soundBorrow&&typeof p.soundBorrow==='object'){for(const [a,b] of Object.entries(p.soundBorrow))if(SETS[a]&&(SETS[b]||b==='*')&&a!==b)BORROW[a]=b;saveBorrow()}
       if(p.soundTune&&typeof p.soundTune==='object')for(const [id,v] of Object.entries(p.soundTune))if(SAMPLES.wav[id]&&v&&typeof v==='object')SAMPLES.tune[id]={start:+v.start||0,end:Number.isFinite(+v.end)&&v.end!==null?+v.end:null,db:Math.max(-12,Math.min(12,+v.db||0)),fade:Math.max(0.05,Math.min(1.2,+v.fade||0.15)),cents:Math.max(-100,Math.min(100,+v.cents||0))};
       const sp=p.soundProfiles;
       if(sp&&Array.isArray(sp.list)&&sp.list.length){PROF={active:String(sp.active||''),list:sp.list.filter(x=>x&&typeof x.id==='string').slice(0,30).map(x=>({id:x.id,name:String(x.name||'Profile').slice(0,40),fx:{...FX0,...(x.fx||{})},tune:x.tune&&typeof x.tune==='object'?x.tune:{}}))};
@@ -3157,9 +3157,9 @@ const BORROW=(()=>{try{const x=JSON.parse(localStorage.getItem('pan-borrow')||'{
 const saveBorrow=()=>{try{localStorage.setItem('pan-borrow',JSON.stringify(BORROW))}catch{}};
 const BORROW_MAX=15;   // semitones: further than this the sound stops sounding like a pan
 function borrowOf(id){
-  const f=FIELDS.get(id);if(!f||!PITCH[id])return null;const from=BORROW[f.set];if(!from||from===f.set)return null;
+  const f=FIELDS.get(id);if(!f||!PITCH[id])return null;const from=BORROW[f.set];if(!from||from===f.set)return null;const any=from==='*';   // '*': the closest note from all your recordings
   const m=midiOf(PITCH[id]);let best=null;
-  for(const s of Object.keys(SAMPLES.wav)){const g=FIELDS.get(s);if(!g||g.set!==from||!PITCH[s])continue;
+  for(const s of Object.keys(SAMPLES.wav)){const g=FIELDS.get(s);if(!g||(!any&&g.set!==from)||!PITCH[s])continue;
     const d=m-midiOf(PITCH[s]),cost=Math.abs(d)+(d>0?.1:0);   // a tie goes to shifting down, which keeps more ring
     if(!best||cost<best.cost)best={src:s,st:d,cost}}
   return best&&Math.abs(best.st)<=BORROW_MAX?{src:best.src,st:best.st,cents:best.st*100}:null;
@@ -3167,14 +3167,15 @@ function borrowOf(id){
 const borrowSources=k=>Object.keys(SETS).filter(x=>x!==k&&Object.keys(SAMPLES.wav).filter(id=>(FIELDS.get(id)||{}).set===x).length>=3);
 function renderBorrow(){
   const box=$('borrowBox');if(!box)return;const k=setKey(),src=borrowSources(k);
-  if(BORROW[k]&&!src.includes(BORROW[k]))src.push(BORROW[k]);
+  if(BORROW[k]&&BORROW[k]!=='*'&&!src.includes(BORROW[k]))src.push(BORROW[k]);
   box.hidden=!src.length;if(!src.length)return;
-  const sel=$('borrowSel');sel.innerHTML='<option value="">Built-in tone</option>'+src.map(x=>'<option value="'+x+'">My '+SETS[x].name+' sound</option>').join('');sel.value=BORROW[k]||'';
+  const sel=$('borrowSel');sel.innerHTML='<option value="">Built-in tone</option><option value="*">All my recordings</option>'+src.map(x=>'<option value="'+x+'">My '+SETS[x].name+' sound</option>').join('');sel.value=BORROW[k]||'';
   const ids=REC_ORDER;let own=0,same=0,near=0,far=0,none=0,big=0;
   for(const id of ids){if(SAMPLES.wav[id]){own++;continue}const b=BORROW[k]?borrowOf(id):null;if(!b){none++;continue}const a=Math.abs(b.st);if(!a)same++;else if(a<=4)near++;else far++;big=Math.max(big,a)}
   const nm=(n,w)=>n+' note'+(n===1?'':'s')+' '+w;
+  const used=BORROW[k]==='*'?[...new Set(ids.filter(id=>!SAMPLES.wav[id]).map(id=>{const b=borrowOf(id);return b&&FIELDS.get(b.src).set}).filter(Boolean))].map(x=>SETS[x].name):[];
   $('borrowInfo').textContent=!BORROW[k]?'Built-in tone for now. Choose your recordings above to try it.'
-    :[own?nm(own,'use this pan\'s own recordings'):'',same?nm(same,'use a recording at exactly the same pitch'):'',near?nm(near,'are retuned a little (up to 4 semitones)'):'',far?nm(far,'are stretched further (up to '+big+' semitones), so they sound a bit thinner. Recording a few of those would help'):'',none?nm(none,'are too far from any recording and keep the built-in tone'):''].filter(Boolean).join('. ')+'.';
+    :[own?nm(own,'use this pan\'s own recordings'):'',same?nm(same,'use a recording at exactly the same pitch'):'',near?nm(near,'are retuned a little (up to 4 semitones)'):'',far?nm(far,'are stretched further (up to '+big+' semitones), so they sound a bit thinner. Recording a few of those would help'):'',none?nm(none,'are too far from any recording and keep the built-in tone'):''].filter(Boolean).join('. ')+'.'+(used.length?' Sounds used: '+used.join(', ')+'.':'');
 }
 $('borrowSel').onchange=e=>{const k=setKey(),v=e.target.value;if(v)BORROW[k]=v;else delete BORROW[k];saveBorrow();
   if(v&&S.panVoice!=='mine'){S.panVoice='mine';save()}renderVoice();$('borrowHear').click()};
@@ -3240,8 +3241,8 @@ function renderVoice(){
   const n=REC_ORDER.filter(id=>SAMPLES.wav[id]).length,N=REC_ORDER.length;
   $('voiceSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===S.panVoice)));
   renderBorrow();
-  const bw=BORROW[setKey()]&&borrowSources(setKey()).includes(BORROW[setKey()]);
-  if(bw&&n<N){$('voiceInfo').textContent=(n?n+' of '+N+' notes recorded on this pan. ':'')+'The '+(n?'others':curSet().name)+' borrow your '+SETS[BORROW[setKey()]].name+' sound (see Advanced tuning below).';return}
+  const bw=BORROW[setKey()]&&(BORROW[setKey()]==='*'||borrowSources(setKey()).includes(BORROW[setKey()]));
+  if(bw&&n<N){$('voiceInfo').textContent=(n?n+' of '+N+' notes recorded on this pan. ':'')+'The '+(n?'others':curSet().name)+' borrow '+(BORROW[setKey()]==='*'?'the closest of all your recordings':'your '+SETS[BORROW[setKey()]].name+' sound')+' (see Advanced tuning below).';return}
   $('voiceInfo').textContent=n?n+' of '+N+' '+curSet().name+' notes recorded'+(n<N?'. The others use the built-in tone until you record them.':'. All your notes are your real pans.'):'Record each note on your own pans once and the app will play your real sound when you tap.';
 }
 function renderRec(){
