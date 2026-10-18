@@ -911,6 +911,12 @@ body.playing #playBtn{box-shadow:0 0 0 6px rgb(246 186 69 / .16)}
         <div class="seg" id="voiceSeg"><button data-v="synth" aria-pressed="true">Built-in tone</button><button data-v="mine">My recordings</button></div>
       </div>
       <button class="btn" id="recOpen">🎙 Record your pans</button>
+      <div class="profbox" id="borrowBox" hidden>
+        <h3 class="sub">Advanced tuning</h3>
+        <p class="help" style="margin:0">Give this pan the sound of pans you've already recorded. Notes you haven't recorded here use it, retuned to each note.</p>
+        <div class="row profrow"><select id="borrowSel" aria-label="Sound for the notes you haven't recorded"></select><button class="btn" id="borrowHear">▶ Hear</button></div>
+        <p class="help" id="borrowInfo" style="margin:0"></p>
+      </div>
       <div class="profbox">
         <h3 class="sub">Sound profile</h3>
         <div class="row profrow"><select id="profSel" aria-label="Sound profile"></select><button class="btn" id="profNew">Save as new</button></div>
@@ -2376,7 +2382,7 @@ async function photoDataUrls(){
 $('expJson').onclick=async()=>{
   const photos=await photoDataUrls(),sounds={};
   for(const [id,b] of Object.entries(SAMPLES.wav)){try{sounds[id]=await readData(b)}catch{}}
-  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,refA:REF_A(),panSet:setKey(),...(typeof backupExtra==='function'?await backupExtra():{}),swapped:S.swapped,grid:S.grid,...(S.chart?{chart:S.chart}:{}),cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune,soundProfiles:PROF}:{}),savedAt:new Date().toISOString()},null,1);
+  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,refA:REF_A(),panSet:setKey(),...(typeof backupExtra==='function'?await backupExtra():{}),swapped:S.swapped,grid:S.grid,...(S.chart?{chart:S.chart}:{}),cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune,soundProfiles:PROF,soundBorrow:BORROW}:{}),savedAt:new Date().toISOString()},null,1);
   offerFile(fileBase()+' - Pan Notes backup.json',data);
 };
 $('impJson').onchange=async e=>{
@@ -2405,6 +2411,7 @@ $('impJson').onchange=async e=>{
       try{if(assets){const blob=dataUrlToBlob(d,'image/jpeg');const r=await assets.upload(blob);S.photos[k]={id:r.id}}else S.photos[k]={data:d};extra=extra.includes('photos')?extra:extra+' Pan photos added.'}catch{}
     }
     if(p.sounds&&typeof p.sounds==='object'){let k=0;for(const [id,d] of Object.entries(p.sounds))if(FIELDS.has(id)&&typeof d==='string'&&/^data:audio\/[a-z0-9.+-]+;base64,/i.test(d)){SAMPLES.wav[id]=dataUrlToBlob(d,'audio/wav');delete SAMPLES.buf[id];k++}
+      if(p.soundBorrow&&typeof p.soundBorrow==='object'){for(const [a,b] of Object.entries(p.soundBorrow))if(SETS[a]&&SETS[b]&&a!==b)BORROW[a]=b;saveBorrow()}
       if(p.soundTune&&typeof p.soundTune==='object')for(const [id,v] of Object.entries(p.soundTune))if(SAMPLES.wav[id]&&v&&typeof v==='object')SAMPLES.tune[id]={start:+v.start||0,end:Number.isFinite(+v.end)&&v.end!==null?+v.end:null,db:Math.max(-12,Math.min(12,+v.db||0)),fade:Math.max(0.05,Math.min(1.2,+v.fade||0.15)),cents:Math.max(-100,Math.min(100,+v.cents||0))};
       const sp=p.soundProfiles;
       if(sp&&Array.isArray(sp.list)&&sp.list.length){PROF={active:String(sp.active||''),list:sp.list.filter(x=>x&&typeof x.id==='string').slice(0,30).map(x=>({id:x.id,name:String(x.name||'Profile').slice(0,40),fx:{...FX0,...(x.fx||{})},tune:x.tune&&typeof x.tune==='object'?x.tune:{}}))};
@@ -3116,11 +3123,12 @@ async function sampleBuf(id){
   try{const ab=await w.arrayBuffer();const b=await new Promise((res,rej)=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});SAMPLES.buf[id]=b;return b}catch{return null}
 }
 const VOICES=new Map();
-function playSample(id,vel,light){
-  const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;
+function playSample(id,vel,light,shift,key){
+  const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
   const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003,T=tuneOf(id);
-  const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=end-start,v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
-  src.buffer=b;if(src.detune)src.detune.value=T.cents+refCents();else src.playbackRate.value=Math.pow(2,(T.cents+refCents())/1200);
+  // a borrowed note plays faster or slower, so it also lasts shorter or longer
+  const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=(end-start)/Math.pow(2,shift/1200),v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
+  src.buffer=b;if(src.detune)src.detune.value=T.cents+refCents()+shift;else src.playbackRate.value=Math.pow(2,(T.cents+refCents()+shift)/1200);
   src.connect(g);g.connect(pBus);
   // a 4 ms fade-in: starting a sound partway through a wave is what makes a click
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.004);
@@ -3129,18 +3137,51 @@ function playSample(id,vel,light){
   else{g.gain.setValueAtTime(v,t+Math.max(0.01,len-T.fade));g.gain.linearRampToValueAtTime(0,t+len);stopAt=t+len+0.01;src.start(t,start)}
   src.stop(stopAt);
   // the same note hit again: the older ring is damped quickly (like a real pan), never cut off
-  const prev=VOICES.get(id);
+  const prev=VOICES.get(key);
   if(prev&&prev.end>t){try{prev.g.gain.cancelScheduledValues(t);prev.g.gain.setValueAtTime(prev.g.gain.value,t);prev.g.gain.linearRampToValueAtTime(0,t+0.03);prev.src.stop(t+0.04)}catch{}}
-  VOICES.set(id,{src,g,end:stopAt});
+  VOICES.set(key,{src,g,end:stopAt});
   return true;
 }
 // strike() asks this first: true means your recording played
 function strikeMine(id,vel,light){
-  if(S.panVoice!=='mine'||!SAMPLES.wav[id])return false;
+  if(S.panVoice!=='mine')return false;
+  let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=borrowOf(id);if(!bw)return false;src=bw.src;sh=bw.cents}
   if(!SAMPLES.warm){SAMPLES.warm=true;Object.keys(SAMPLES.wav).forEach(sampleBuf)}
-  if(SAMPLES.buf[id])return playSample(id,vel,light);
-  sampleBuf(id);return false;   // still getting it ready: the built-in tone covers this one hit
+  if(SAMPLES.buf[src])return playSample(src,vel,light,sh,id);
+  sampleBuf(src);return false;   // still getting it ready: the built-in tone covers this one hit
 }
+/* Advanced tuning: a pan can borrow another pan's recordings for the notes it hasn't recorded.
+   Each note uses the recording closest in pitch, retuned to the right note (and to the song's A).
+   A note the pan has its own recording of always uses that. Kept on this device and in backups. */
+const BORROW=(()=>{try{const x=JSON.parse(localStorage.getItem('pan-borrow')||'{}');return x&&typeof x==='object'?x:{}}catch{return {}}})();
+const saveBorrow=()=>{try{localStorage.setItem('pan-borrow',JSON.stringify(BORROW))}catch{}};
+const BORROW_MAX=15;   // semitones: further than this the sound stops sounding like a pan
+function borrowOf(id){
+  const f=FIELDS.get(id);if(!f||!PITCH[id])return null;const from=BORROW[f.set];if(!from||from===f.set)return null;
+  const m=midiOf(PITCH[id]);let best=null;
+  for(const s of Object.keys(SAMPLES.wav)){const g=FIELDS.get(s);if(!g||g.set!==from||!PITCH[s])continue;
+    const d=m-midiOf(PITCH[s]),cost=Math.abs(d)+(d>0?.1:0);   // a tie goes to shifting down, which keeps more ring
+    if(!best||cost<best.cost)best={src:s,st:d,cost}}
+  return best&&Math.abs(best.st)<=BORROW_MAX?{src:best.src,st:best.st,cents:best.st*100}:null;
+}
+const borrowSources=k=>Object.keys(SETS).filter(x=>x!==k&&Object.keys(SAMPLES.wav).filter(id=>(FIELDS.get(id)||{}).set===x).length>=3);
+function renderBorrow(){
+  const box=$('borrowBox');if(!box)return;const k=setKey(),src=borrowSources(k);
+  if(BORROW[k]&&!src.includes(BORROW[k]))src.push(BORROW[k]);
+  box.hidden=!src.length;if(!src.length)return;
+  const sel=$('borrowSel');sel.innerHTML='<option value="">Built-in tone</option>'+src.map(x=>'<option value="'+x+'">My '+SETS[x].name+' sound</option>').join('');sel.value=BORROW[k]||'';
+  const ids=REC_ORDER;let own=0,same=0,near=0,far=0,none=0,big=0;
+  for(const id of ids){if(SAMPLES.wav[id]){own++;continue}const b=BORROW[k]?borrowOf(id):null;if(!b){none++;continue}const a=Math.abs(b.st);if(!a)same++;else if(a<=4)near++;else far++;big=Math.max(big,a)}
+  const nm=(n,w)=>n+' note'+(n===1?'':'s')+' '+w;
+  $('borrowInfo').textContent=!BORROW[k]?'Built-in tone for now. Choose your recordings above to try it.'
+    :[own?nm(own,'use this pan\'s own recordings'):'',same?nm(same,'use a recording at exactly the same pitch'):'',near?nm(near,'are retuned a little (up to 4 semitones)'):'',far?nm(far,'are stretched further (up to '+big+' semitones), so they sound a bit thinner. Recording a few of those would help'):'',none?nm(none,'are too far from any recording and keep the built-in tone'):''].filter(Boolean).join('. ')+'.';
+}
+$('borrowSel').onchange=e=>{const k=setKey(),v=e.target.value;if(v)BORROW[k]=v;else delete BORROW[k];saveBorrow();
+  if(v&&S.panVoice!=='mine'){S.panVoice='mine';save()}renderVoice();$('borrowHear').click()};
+let borrowRun=0;
+$('borrowHear').onclick=()=>{const run=++borrowRun,ids=REC_ORDER.slice().sort((a,b)=>midiOf(PITCH[a])-midiOf(PITCH[b]));
+  if(!SAMPLES.warm){SAMPLES.warm=true;Object.keys(SAMPLES.wav).forEach(sampleBuf)}
+  ids.forEach((id,i)=>setTimeout(()=>{if(run===borrowRun)strike(id,0.9)},250+i*230))};
 function encodeWav(x,sr){
   const b=new ArrayBuffer(44+x.length*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
   w(0,'RIFF');v.setUint32(4,36+x.length*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
@@ -3198,6 +3239,9 @@ const recMsg=t=>{$('recMsg').textContent=t};
 function renderVoice(){
   const n=REC_ORDER.filter(id=>SAMPLES.wav[id]).length,N=REC_ORDER.length;
   $('voiceSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===S.panVoice)));
+  renderBorrow();
+  const bw=BORROW[setKey()]&&borrowSources(setKey()).includes(BORROW[setKey()]);
+  if(bw&&n<N){$('voiceInfo').textContent=(n?n+' of '+N+' notes recorded on this pan. ':'')+'The '+(n?'others':curSet().name)+' borrow your '+SETS[BORROW[setKey()]].name+' sound (see Advanced tuning below).';return}
   $('voiceInfo').textContent=n?n+' of '+N+' '+curSet().name+' notes recorded'+(n<N?'. The others use the built-in tone until you record them.':'. All your notes are your real pans.'):'Record each note on your own pans once and the app will play your real sound when you tap.';
 }
 function renderRec(){
@@ -3417,8 +3461,13 @@ loadProfiles();
 // how far a recording is from the note it should be, in cents (100 cents = one semitone), ignoring octave
 function centsOff(id){
   const b=SAMPLES.buf[id];if(!b)return null;const T=tuneOf(id),sr=b.sampleRate,d=b.getChannelData(0);
-  const from=Math.min(d.length-1,Math.round((T.start+0.06)*sr)),f=detectPitch(d.subarray(from,from+4096),sr);if(!f)return null;
-  let c=1200*Math.log2(f/(pitchHz(id)/Math.pow(2,refCents()/1200)));c=((c+600)%1200+1200)%1200-600;return c;
+  // listen at a few moments: right after the hit a pan often rings its neighbours' notes too,
+  // so only readings close to this note count, and the middle one of those is the answer
+  const want=pitchHz(id)/Math.pow(2,refCents()/1200),cs=[];
+  for(const at of [0.06,0.15,0.3,0.5]){const from=Math.round((T.start+at)*sr);if(from+2048>d.length)break;
+    const f=detectPitch(d.subarray(from,from+4096),sr);if(!f)continue;
+    const c=((1200*Math.log2(f/want)+600)%1200+1200)%1200-600;if(Math.abs(c)<=80)cs.push(c)}
+  if(!cs.length)return null;cs.sort((x,y)=>x-y);return cs[Math.floor((cs.length-1)/2)];
 }
 let tuneSel=null,tunePlayT=0,waveDrag=null;
 function renderTune(){

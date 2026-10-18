@@ -229,7 +229,7 @@ function playDrum(m,dest,t,v){
 /* the pans: your own recorded notes when you have them (Setup → Sound), otherwise the built-in pan tone */
 let PV=new Map();
 function playBuf(dest,id,b,T,t,v,light){
-  const end=Math.min(b.duration,T.end??b.duration),start=Math.max(0,Math.min(T.start,end-.05)),len=end-start,a=v*Math.pow(10,T.db/20)*(light?.7:1);
+  const end=Math.min(b.duration,T.end??b.duration),start=Math.max(0,Math.min(T.start,end-.05)),len=(end-start)/(T.rate||1),a=v*Math.pow(10,T.db/20)*(light?.7:1);
   const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=(T.cents||0)+refCents();src.connect(gn);gn.connect(dest);
   gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(a,t+.004);   // a 4 ms fade-in keeps it free of clicks
   let stopAt;
@@ -252,7 +252,10 @@ function panTone(dest,f,t,v,light){
 const mine=id=>S.panVoice==='mine'&&SAMPLES.wav[id];
 function panVoice(dest,id,t,v){
   if(!PITCH[id])return;const light=v<.78;
-  if(mine(id)){const b=SAMPLES.buf[id];if(b){playBuf(dest,id,b,tuneOf(id),t,v,light);return}sampleBuf(id)}
+  if(S.panVoice==='mine'){
+    // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
+    let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
+    if(src){const b=SAMPLES.buf[src];if(b){const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light);return}sampleBuf(src)}}
   panTone(dest,pitchHz(id),t,v,light);
 }
 const warmPans=()=>Promise.all(Object.keys(SAMPLES.wav).filter(mine).map(sampleBuf));
