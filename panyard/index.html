@@ -5842,9 +5842,12 @@ function channel(tr){
     // echo: a delay in time with the song, feeding back on itself, a little darker each time round
     const esend=ctx.createGain(),dl=ctx.createDelay(5),fb=ctx.createGain(),dk=ctx.createBiquadFilter();dk.type='lowpass';dk.frequency.value=4500;
     last.connect(esend);esend.connect(dl);dl.connect(dk);dk.connect(fb);fb.connect(dl);dk.connect(master);
-    c={out,play,pan,dry,send,meter,rev:null,lo,hi,comp,mk,esend,dl,fb,dk};chans.set(tr.id,c);
+    c={out,play,pan,dry,send,meter,rev:null,lo,hi,comp,mk,esend,dl,fb,dk,last,compOn:true,echoOn:true};chans.set(tr.id,c);
   }
-  const fx=fxOf(tr);c.lo.gain.value=fx.bass;c.hi.gain.value=fx.treble;
+  const fx=fxOf(tr);
+  // parts that are switched off are taken out of the way, so a phone doesn't spend effort on them for every track
+  {const on=fx.comp>.001;if(c.compOn!==on){try{c.hi.disconnect()}catch{}c.hi.connect(on?c.comp:c.mk);c.compOn=on}}
+  {const on=fx.echo>.001;if(c.echoOn!==on){if(on)c.last.connect(c.esend);else try{c.last.disconnect(c.esend)}catch{}c.echoOn=on}}c.lo.gain.value=fx.bass;c.hi.gain.value=fx.treble;
   c.comp.threshold.value=-fx.comp*32;c.comp.ratio.value=1+fx.comp*7;c.mk.gain.value=1+fx.comp*.9;
   const E=ECHOES[fx.echoT]||ECHOES.q;c.dl.delayTime.value=Math.min(4.9,E.b*spb());c.fb.gain.value=E.fb;c.dk.frequency.value=E.dark?2200:4500;c.esend.gain.value=fx.echo;
   const mx=mixOf(tr);c.out.gain.value=tr.vol;c.play.gain.value=audible(tr)?1:0;if(c.pan)c.pan.pan.value=tr.pan||0;
@@ -5854,9 +5857,11 @@ function channel(tr){
 }
 function refreshGains(){if(!ctx)return;song.tracks.forEach(channel);if(master)master.gain.value=song.master}
 const hold=(p,t)=>{if(p.cancelAndHoldAtTime)p.cancelAndHoldAtTime(t);else p.cancelScheduledValues(t)};
-function osc(type,f,t,end,dest){const o=ctx.createOscillator();o.type=type;o.frequency.value=f;o.connect(dest);o.start(t);o.stop(end);return o}
+let SCHED=false;   // true while the transport lines up sounds ahead of time, so Stop can call them off
+const lineUp=(x,t)=>{if(SCHED)T.scheduled.push([x,t])};
+function osc(type,f,t,end,dest){const o=ctx.createOscillator();o.type=type;o.frequency.value=f;o.connect(dest);o.start(t);o.stop(end);lineUp(o,t);return o}
 function filt(type,f,qq){const b=ctx.createBiquadFilter();b.type=type;b.frequency.value=f;if(qq)b.Q.value=qq;return b}
-function noiseSrc(t,dur,dest){const s=ctx.createBufferSource();s.buffer=noise;s.connect(dest);s.start(t,Math.random());s.stop(t+dur);return s}
+function noiseSrc(t,dur,dest){const s=ctx.createBufferSource();s.buffer=noise;s.connect(dest);s.start(t,Math.random());s.stop(t+dur);lineUp(s,t);return s}
 function env(gn,t,a,dec){gn.gain.setValueAtTime(a,t);gn.gain.exponentialRampToValueAtTime(.001,t+dec)}
 function tone(d,t,f,a,dec,type){const gn=ctx.createGain();env(gn,t,a,dec);gn.connect(d);osc(type||'sine',f,t,t+dec+.05,gn)}
 // the metronome: a choice of sounds and a level, kept with each song (force: the timing fix always beeps)
@@ -5922,7 +5927,7 @@ async function cacheDrum(m){
 function warmDrums(){if(!drumWarm)drumWarm=(async()=>{for(const s of SOUNDS)await cacheDrum(s.m)})().finally(()=>{drumWarm=null});return drumWarm}
 function playDrum(m,dest,t,v){
   const b=DRUM_BUF.get(m);
-  if(b){const s=ctx.createBufferSource(),gn=ctx.createGain();s.buffer=b;gn.gain.value=v;s.connect(gn);gn.connect(dest);s.start(t);return}
+  if(b){const s=ctx.createBufferSource(),gn=ctx.createGain();s.buffer=b;gn.gain.value=v;s.connect(gn);gn.connect(dest);s.start(t);lineUp(s,t);return}
   (DRUMS[m]||DRUMS[36])(dest,t,v);if(ctx instanceof AudioContext)cacheDrum(m);
 }
 
@@ -5935,7 +5940,7 @@ function playBuf(dest,id,b,T,t,v,light){
   let stopAt;
   if(light){const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,t+.12);gn.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+.01}
   else{gn.gain.setValueAtTime(a,t+Math.max(.01,len-T.fade));gn.gain.linearRampToValueAtTime(0,t+len);stopAt=t+len+.01}
-  src.start(t,start);src.stop(stopAt);
+  src.start(t,start);src.stop(stopAt);lineUp(src,t);
   const prev=PV.get(id);   // the same note struck again damps the older ring, like a real pan
   if(prev&&prev.end>t){try{hold(prev.g.gain,t);prev.g.gain.linearRampToValueAtTime(0,t+.03);prev.src.stop(t+.04)}catch{}}
   PV.set(id,{src,g:gn,end:stopAt});
@@ -5998,8 +6003,8 @@ function play(countIn){
   if(!looping()&&!T.rec&&T.pos>=L()-.01)T.pos=0;
   audio.pause();
   const cin=countIn?(ck().bars===2?2:1)*BPB():0,pre=cin*spb();
-  T.playing=true;T.t0=ctx.currentTime+.08+pre;T.b0=T.pos;T.schedU=T.pos;
-  for(let i=0;i<cin;i++)click(T.t0-(cin-i)*spb(),i%BPB()===0);   // a bar (or two) of clicks before the take
+  T.playing=true;T.t0=ctx.currentTime+.12+pre;T.b0=T.pos;T.schedU=T.pos;
+  SCHED=true;try{for(let i=0;i<cin;i++)click(T.t0-(cin-i)*spb(),i%BPB()===0)}finally{SCHED=false}   // a bar (or two) of clicks before the take
   T.cin=cin;
   for(const tr of song.tracks){const a=audioOf(tr);if(!a||(T.mic&&T.mic.tr===tr))continue;const off=(T.pos-startOf(tr))*spb();if(off>0&&off<a.duration)startSrc(tr,T.t0,off,looping()?u2t(loopE()):0)}
   T.timer=setInterval(tick,25);tick();renderTransport();frame();
@@ -6008,7 +6013,8 @@ function stop(rewind){
   if(T.mic){micStop();return}
   if(!T.playing){T.pos=rewind===false?T.pos:0;renderTransport();updatePlayhead();return}
   T.pos=Math.min(beatNow(),L());T.playing=false;clearInterval(T.timer);cancelAnimationFrame(T.raf);
-  const now=ctx.currentTime;T.scheduled.forEach(x=>{try{x.stop(now)}catch{}});T.scheduled=[];
+  // sounds lined up for the next moment are called off; notes already ringing ring on
+  const now=ctx.currentTime;T.scheduled.forEach(([x,t])=>{if(t>now)try{x.stop(now)}catch{}});T.scheduled=[];
   T.sources.forEach(s=>{try{s.stop()}catch{}});T.sources=[];
   if(T.rec){T.rec=false;if(WR.on)writeRecEnd();else endNoteRec()}
   if(rewind===true)T.pos=looping()?loopS():0;
@@ -6016,7 +6022,7 @@ function stop(rewind){
 }
 function restartIfPlaying(){if(T.playing&&!T.rec){stop(false);play(false)}}
 function tick(){
-  const to=uNow()+.15/spb();
+  const to=uNow()+.35/spb();   // sounds are lined up 0.35 s ahead, so a busy moment on the phone can't make them late
   if(looping()){const s=loopS(),n=loopE()-s;let from=T.schedU;
     while(from<to-1e-9){const k=Math.floor((from-s)/n+1e-9),end=Math.min(to,s+(k+1)*n);scheduleRange(from-k*n,end-k*n,k*n);from=end}}
   else scheduleRange(T.schedU,to,0);
@@ -6025,6 +6031,10 @@ function tick(){
   if(!looping()&&!T.rec&&uNow()>=L())stop(true);
 }
 function scheduleRange(a,b,off){
+  const now=ctx.currentTime;if(T.scheduled.length>400)T.scheduled=T.scheduled.filter(([,t])=>t>now);
+  SCHED=true;try{scheduleRange1(a,b,off)}finally{SCHED=false}
+}
+function scheduleRange1(a,b,off){
   const sp=spb(),wrapped=looping()&&off>0&&Math.abs(a-loopS())<1e-6;
   for(const tr of song.tracks){
     const c=channel(tr);
@@ -6056,11 +6066,27 @@ function seek(b){const was=T.playing&&!T.rec;if(T.playing)stop(false);T.pos=Math
 const tapMs=()=>Math.round((Number.isFinite(S.tapLag)?S.tapLag:0)*1000);
 const latBeats=()=>tapMs()/1000/spb();
 const recBeatAt=t=>wrap(Math.max(T.b0,T.b0+(t-T.t0)/spb()-latBeats()));
-function recNote(tr,id,v){
-  if(!(T.rec&&T.playing&&tr.id===T.recTid)||ctx.currentTime<T.t0-.05)return null;   // nothing records during the count-in
-  const n={t:+recBeatAt(ctx.currentTime).toFixed(3),d:.25,p:id,v:+v.toFixed(2),tk:T.take};tr.notes.push(n);return n;
+// How far behind the app's audio clock the speaker is. A computer is about 0.01-0.045 s; an Android phone can be
+// 0.1-0.3 s. The tap delay fix was set up on the computer-sized delay, so only the extra beyond that is taken off.
+let spkC={t:-1,v:0};
+function spkLag(){
+  if(!ctx)return 0;if(ctx.currentTime-spkC.t<.5)return spkC.v;
+  let l=(ctx.outputLatency||0)+(ctx.baseLatency||0);
+  try{const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();if(o&&o.contextTime>0&&o.performanceTime>0){const m=ctx.currentTime-(o.contextTime+(performance.now()-o.performanceTime)/1000);if(m>l&&m<.6)l=m}}catch{}
+  spkC={t:ctx.currentTime,v:l};return l;
 }
-function recOff(n){if(!n)return;let d=recBeatAt(ctx.currentTime)-n.t;if(d<-.5&&looping())d+=loopE()-loopS();n.d=+Math.max(.25,Math.min(4,d)).toFixed(3)}   // a quick tap shows as a quarter beat
+const SPK_BASE=.045;
+// the audio-clock time of a tap: when your finger landed (a busy phone can take a while to pass the tap on),
+// lined up with what you were hearing at that moment
+function tapT(e){
+  const late=e&&e.timeStamp>0?Math.max(0,Math.min(.3,(performance.now()-e.timeStamp)/1000)):0;
+  return ctx.currentTime-late-Math.max(0,spkLag()-SPK_BASE);
+}
+function recNote(tr,id,v,at){
+  if(!(T.rec&&T.playing&&tr.id===T.recTid)||ctx.currentTime<T.t0-.05)return null;   // nothing records during the count-in
+  const n={t:+recBeatAt(at!=null?at:tapT(null)).toFixed(3),d:.25,p:id,v:+v.toFixed(2),tk:T.take};tr.notes.push(n);return n;
+}
+function recOff(n,at){if(!n)return;let d=recBeatAt(at!=null?at:tapT(null))-n.t;if(d<-.5&&looping())d+=loopE()-loopS();n.d=+Math.max(.25,Math.min(4,d)).toFixed(3)}   // a quick tap shows as a quarter beat
 function endNoteRec(){
   const tr=trById(T.recTid),take=T.take;T.recTid=null;T.noCyc=false;if(!tr)return;
   const mineN=tr.notes.filter(n=>n.tk===take);
@@ -6089,18 +6115,18 @@ function panDown(e,el){
   e.preventDefault();if(!AC())return;const tr=selTr();
   // My part: the pans play so you can try a line, but notes are written in Write
   if(tr.type==='part'){const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);el.classList.add('hit');
-    const r={el,n:null,timer:0,rolls:[],write:writeTap(tr,id),t0:ctx.currentTime};
+    const r={el,n:null,timer:0,rolls:[],write:writeTap(tr,id,tapT(e)),t0:ctx.currentTime};
     const go=()=>{panVoice(c.out,id,ctx.currentTime+.003,.5+Math.random()*.25);r.rolls.push(1);r.timer=setTimeout(go,60+Math.random()*18)};
     r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);return}
   if(tr.type!=='pan')return;
-  const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);const n=recNote(tr,id,.95);
+  const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);const n=recNote(tr,id,.95,tapT(e));
   el.classList.add('hit');
   const r={el,n,timer:0,rolls:[]};
   const go=()=>{const v=.5+Math.random()*.25;panVoice(c.out,id,ctx.currentTime+.003,v);const rn=recNote(tr,id,v);if(rn){rn.d=.25;r.rolls.push(rn)}r.timer=setTimeout(go,60+Math.random()*18)};
   r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);
 }
 function panUp(e){const r=held.get(e.pointerId);if(!r)return;clearTimeout(r.timer);setTimeout(()=>r.el.classList.remove('hit'),90);
-  if(r.write!==undefined){held.delete(e.pointerId);const c=r.write;if(c&&r.rolls.length){c.fx='roll';c.duration=+Math.max(.3,ctx.currentTime-r.t0).toFixed(3);partCache=null}return}if(!r.rolls.length)recOff(r.n);else if(r.n)r.n.d=.5;held.delete(e.pointerId)}
+  if(r.write!==undefined){held.delete(e.pointerId);const c=r.write;if(c&&r.rolls.length){c.fx='roll';c.duration=+Math.max(.3,ctx.currentTime-r.t0).toFixed(3);partCache=null}return}if(!r.rolls.length)recOff(r.n,tapT(e));else if(r.n)r.n.d=.5;held.delete(e.pointerId)}
 window.addEventListener('pointerup',panUp);window.addEventListener('pointercancel',panUp);
 
 /* ---- recording straight into Write: My part's taps become your cues ---- */
@@ -6112,9 +6138,9 @@ function writeRecStart(tr){
   WR.on=true;WR.last=null;WR.n=0;T.take++;T.recTid=tr.id;T.rec=true;
   if(!T.playing)play(song.countIn);else renderTransport();setView('inst');
 }
-function writeTap(tr,id){
+function writeTap(tr,id,at){
   if(!(WR.on&&T.rec&&T.playing&&tr.id===T.recTid)||ctx.currentTime<T.t0-.05)return null;
-  let b=recBeatAt(ctx.currentTime);if(song.snapRec&&song.snap!=='off')b=snapBeat(b,+song.snap);
+  let b=recBeatAt(at!=null?at:tapT(null));if(song.snapRec&&song.snap!=='off')b=snapBeat(b,+song.snap);
   const t=+(origin()+b*spb()).toFixed(3);if(t<0)return null;
   const last=WR.last;
   if(last&&Math.abs(t-last.start)<.06){if(!last.steps.includes(id)){last.steps.push(id);last.mode='together'}return last}   // hit together: a chord
@@ -6233,7 +6259,7 @@ async function micStop(){
   const id=uid();buffers[id]=buf;keepAlt(m.tr);
   Object.assign(m.tr,{take:id,start:+(startB+(i0<0?-i0/sr/spb():0)).toFixed(4),dur:+buf.duration.toFixed(3),peaks:peaksOf(buf),file:'Mic take',lagMs:0});
   idbPut('stake:'+id,encodeWav(pcm,sr));
-  T.pos=startB;dirty();renderAll();say('Recorded '+buf.duration.toFixed(1)+' s on '+m.tr.name+'.');
+  T.pos=startB;dirty();renderAll();say('Recorded '+buf.duration.toFixed(1)+' s on '+m.tr.name+'.'+(PR.micLag==null?' Tip: do ⋯ → ⏱ Timing fix → Measure once on this phone, so mic takes land right on the beat.':''));
 }
 function peaksOf(buf){
   const d=buf.getChannelData(0),n=Math.max(40,Math.min(2000,Math.round(buf.duration*20))),step=Math.max(1,Math.floor(d.length/n)),p=[];let mx=0;
@@ -6910,7 +6936,7 @@ function init(){
   sh.innerHTML='<div class="sheetbox" id="stSheetBox"></div>';document.body.appendChild(sh);
   sh.addEventListener('click',e=>{if(e.target===sh){closeSheet();return}if(e.target.closest('#neGrid')){neTap(e);return}onClick(e)});
   sh.addEventListener('input',onInput);
-  sh.addEventListener('pointerdown',e=>{if(e.target.closest('#stCalTap')){e.preventDefault();if(CAL.on)CAL.taps.push(ctx.currentTime)}});
+  sh.addEventListener('pointerdown',e=>{if(e.target.closest('#stCalTap')){e.preventDefault();if(CAL.on)CAL.taps.push(tapT(e))}});
   sh.addEventListener('click',e=>{const b=e.target.closest('#stExWhat button,#stExFmt button');if(!b)return;if(b.closest('#stExWhat'))EXP.what=b.dataset.v;else EXP.fmt=b.dataset.v;renderSheet()},true);
   q('#stPlay').onclick=()=>{T.playing?stop(false):play(false)};
   q('#stHome').onclick=()=>seek(looping()?loopS():0);
