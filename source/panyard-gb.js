@@ -11,6 +11,7 @@ const GB={
     mixer:'<path d="M6 4v16M12 4v16M18 4v16"/><rect x="4" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="16" y="11" width="4" height="3" rx="1" fill="currentColor"/>',
     metro:'<path d="M9 3h6l3.5 17h-13z"/><path d="M12 16l5-9"/><circle cx="17.2" cy="6.6" r="1.3" fill="currentColor"/>',
     loop:'<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 014-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 01-4 4H4"/>',
+    tset:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>',
     more:'<circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/>',
     home:'<path d="M5 4v16"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/>'
   },
@@ -20,7 +21,8 @@ const GB={
     const bar=document.createElement('div');bar.id='gbBar';bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Studio');
     bar.innerHTML='<div class="gbl"><button class="gbi" id="gbBack" aria-label="Leave Studio">'+this.svg('back')+'</button>'
       +'<button class="gbi" id="gbView" aria-label="Show the pans">'+this.svg('pans')+'</button>'
-      +'<button class="gbi" id="gbMix" aria-label="Mixer">'+this.svg('mixer')+'</button></div>'
+      +'<button class="gbi" id="gbMix" aria-label="Mixer">'+this.svg('mixer')+'</button>'
+      +'<button class="gbi" id="gbSet" aria-label="Track settings: tone, echo, quantize, takes">'+this.svg('tset')+'</button></div>'
       +'<div class="gbc"></div>'
       +'<div class="gbr"><span class="gblcd"></span><button class="gbi" id="gbMetro" aria-label="Click (metronome)">'+this.svg('metro')+'</button>'
       +'<button class="gbi" id="gbLoop" aria-label="Loop">'+this.svg('loop')+'</button>'
@@ -29,13 +31,18 @@ const GB={
     // the real transport buttons move into the middle; the bar counter moves to the right
     const c=bar.querySelector('.gbc');['stHome','stPlay','stRec'].forEach(id=>c.appendChild($(id)));
     $('stHome').innerHTML=this.svg('home');$('stRec').innerHTML='<span class="gbdot" aria-hidden="true"></span>';$('stRec').setAttribute('aria-label','Record');
-    bar.querySelector('.gblcd').appendChild(document.querySelector('.st-lcd'));
+    const lcd=bar.querySelector('.gblcd');lcd.appendChild(document.querySelector('.st-lcd'));
+    // the bar counter is also the tempo: tap it for Tempo & metronome
+    lcd.setAttribute('role','button');lcd.tabIndex=0;lcd.setAttribute('aria-label','Tempo and metronome');lcd.title='Tempo & metronome';
+    lcd.onclick=()=>STUDIO.tempoSheet();lcd.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();STUDIO.tempoSheet()}};
     // the menu behind ⋯: everything else from the old tools row
     const menu=document.createElement('div');menu.id='gbMenu';menu.hidden=true;menu.setAttribute('role','menu');
     menu.innerHTML='<div class="gbmrow" id="gbMUndo"></div><div class="gbmlist"></div>';
     v.appendChild(menu);
     menu.querySelector('#gbMUndo').append($('stUndo'),$('stRedo'));
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
+    const tset=document.createElement('button');tset.className='btn';tset.textContent='⚙ Track settings';tset.onclick=()=>{this.menu(false);STUDIO.trackSheet()};list.prepend(tset);
+    const tmp=document.createElement('button');tmp.className='btn';tmp.id='gbTempo';tmp.textContent='♩ Tempo & metronome';tmp.onclick=()=>{this.menu(false);STUDIO.tempoSheet()};list.prepend(tmp);
     const mx=document.createElement('button');mx.className='btn gbmix';mx.textContent='🎚 Mixer';mx.onclick=()=>{this.menu(false);$('stMix').click()};list.prepend(mx);
     const toWrite=document.createElement('button');toWrite.className='btn';toWrite.textContent='✎ Go to Write';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);
     $('stExp').textContent='⤓ Export / share';$('stTime').textContent='⏱ Timing fix';
@@ -49,7 +56,12 @@ const GB={
     $('gbBack').onclick=()=>{showView('home')};
     $('gbView').onclick=()=>{const inst=document.body.classList.contains('st-inst');const b=document.querySelector('#stViews [data-sv="'+(inst?'tracks':'inst')+'"]');if(b)b.click();this.sync()};
     $('gbMix').onclick=()=>$('stMix').click();
-    $('gbMetro').onclick=()=>{$('stMetro').click();this.sync()};
+    $('gbSet').onclick=()=>STUDIO.trackSheet();
+    // tap the metronome to switch it on or off; hold it for its settings
+    {const m=$('gbMetro');let lt=0,long=false;m.title='Tap: click on/off · Hold: tempo & metronome';
+     m.addEventListener('pointerdown',()=>{long=false;clearTimeout(lt);lt=setTimeout(()=>{long=true;STUDIO.tempoSheet()},550)});
+     ['pointerup','pointerleave','pointercancel'].forEach(ev=>m.addEventListener(ev,()=>clearTimeout(lt)));
+     m.onclick=()=>{if(long){long=false;return}$('stMetro').click();this.sync()}}
     $('gbLoop').onclick=()=>{$('stLoop').click();this.sync()};
     $('gbMore').onclick=e=>{e.stopPropagation();this.menu($('gbMenu').hidden)};
     menu.addEventListener('click',e=>{if(e.target.closest('#stCount')){setTimeout(()=>this.sync(),30);return}if(e.target.closest('button')&&!e.target.closest('#gbMUndo'))this.menu(false)});

@@ -158,3 +158,55 @@ body.st-inst #stSecs{display:none}
 /* your part lighting up on the pans as it plays */
 #stPans .field.play-hit .zone{fill:var(--gold);stroke:#fff6cf;stroke-width:12;filter:drop-shadow(0 0 10px rgba(255,209,102,.7))}
 #stPans .field.play-hit text{fill:var(--gold-ink)}
+
+/* ---- Tempo & metronome, Track settings: GarageBand-style grouped cards ---- */
+.tsec{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:0 0 12px}
+.tsec h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tbig{display:flex;align-items:center;justify-content:center;gap:18px;margin:2px 0 8px}
+.tval{display:flex;flex-direction:column;align-items:center;min-width:110px}
+.tval b{font:800 46px/1 var(--display,system-ui);color:var(--gold);font-variant-numeric:tabular-nums}
+.tval span{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.tstep{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--raised);color:var(--text);font-size:28px;font-weight:700;cursor:pointer}
+.tstep:active{background:var(--gold);color:var(--gold-ink,#2a1a00)}
+#stBpmR{width:100%;margin:4px 0 10px}
+.tlist{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0 0 10px}
+.trow{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:6px 12px;background:none;border:0;border-top:1px solid var(--line);color:var(--text);text-align:left;font:inherit;cursor:pointer}
+.tlist>.trow:first-child{border-top:0}
+.trow .tl{flex:1;min-width:0;display:flex;flex-direction:column;background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}
+.trow .tl b{font-size:15px;font-weight:600}
+.trow .tl small{font-size:12px;color:var(--muted)}
+.trow .tcheck{color:var(--gold);font-weight:800;visibility:hidden}
+.trow[aria-pressed=true] .tcheck{visibility:visible}
+.trow[aria-pressed=true] .tl b{color:var(--gold)}
+.trow .sw{width:46px;height:28px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.trow .sw i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:left .2s}
+.trow[aria-checked=true] .sw{background:var(--gold)}.trow[aria-checked=true] .sw i{left:21px;background:var(--gold-ink,#2a1a00)}
+.ttake.on{background:var(--raised)}.ttake.on .tl b{color:var(--gold)}
+.ttake .tx{background:none;border:1px solid var(--line);border-radius:10px;color:var(--muted);min-width:40px;min-height:36px;cursor:pointer;font:inherit}
+.tsl{display:block;margin:0 0 8px}.tsl>span{display:flex;justify-content:space-between}.tsl b{color:var(--gold);font-variant-numeric:tabular-nums}
+.tsl input{width:100%}
+.tseg{display:flex;flex-wrap:wrap;margin:0 0 8px}.tseg button{flex:1}
+.tchips{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}.tchips .chip{flex:none}
+.tms{gap:8px}.tms button{flex:1;min-height:40px;border-radius:10px}
+.tsteps{display:flex;gap:10px;flex-wrap:wrap}
+.tstp{flex:1;min-width:140px;display:grid;grid-template-columns:44px 1fr 44px;grid-template-rows:auto 44px;align-items:center;gap:4px 6px;background:var(--raised);border-radius:12px;padding:8px}
+.tstp span{grid-column:1/4;font-size:12px;color:var(--muted)}
+.tstp b{text-align:center;font-size:24px;font-variant-numeric:tabular-nums}
+.tstp button{height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:22px;cursor:pointer}
+.st-ms .g{background:none;border:1px solid var(--line);border-radius:8px;color:var(--muted);min-width:30px;cursor:pointer}
+.tsetb{margin-left:auto}
+/* the big count-in numbers */
+#stCountVis{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);z-index:60;pointer-events:none;font:900 min(34vw,34vh)/1 var(--display,system-ui);color:var(--text);opacity:0;text-shadow:0 0 40px rgba(0,0,0,.6)}
+#stCountVis.on{opacity:.92}#stCountVis.acc{color:var(--gold)}
+#stCountVis.pop{animation:stCountPop .45s ease-out}
+@keyframes stCountPop{0%{transform:translate(-50%,-50%) scale(1.35);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.85}}
+/* the bar counter flashes with the click */
+.st-lcd.tick{animation:stTick .16s ease-out}.st-lcd.tick1{animation:stTick1 .2s ease-out}
+@keyframes stTick{0%{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}100%{box-shadow:none}}
+@keyframes stTick1{0%{box-shadow:inset 0 0 0 3px var(--gold);background:rgba(255,209,102,.18)}100%{box-shadow:none}}
+/* inside a sheet nothing should be squeezed */
+.st-sheet .tsec,.st-sheet .tchips,.st-sheet .tlist,.st-sheet .tset{flex:none}
+.tchips .chip{min-height:36px;white-space:nowrap;border-color:var(--line)}
+.tchips .chip.on{border-color:var(--gold);color:var(--gold)}
+.st-mode button,.tseg button{white-space:nowrap}
+.tsec>.row{margin:0 0 12px}

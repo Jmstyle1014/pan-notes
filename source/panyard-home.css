@@ -149,3 +149,8 @@ body.gbmode.st-inst #stInst:not(:has(#stPans)){padding-top:48px}
 @media (min-width:700px){body.gbmode .st-sheet .st-mrow{grid-template-columns:1fr 1fr;align-items:center}body.gbmode .st-sheet .st-mrow .st-mname{grid-column:1 / -1}body.gbmode .st-sheet .st-mrow input[type=range]{width:100%}}
 /* the ruler's section band does the looping, so the chip row isn't needed in Studio */
 body.gbmode #stSecs{display:none!important}
+/* the bar counter opens Tempo & metronome */
+body.gbmode .gblcd{cursor:pointer;border-radius:10px}
+@media (max-width:560px){body.gbmode #gbSet{display:none!important}}
+/* upright: the pans start below the floating track name */
+@media (max-aspect-ratio:1/1){body.gbmode.st-inst #stInst>#stPans{margin-top:46px}}
