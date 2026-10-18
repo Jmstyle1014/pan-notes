@@ -246,3 +246,5 @@ body.wbmode #selBar #selCount{max-width:150px;overflow:hidden;text-overflow:elli
 @media (max-aspect-ratio:1/1){body.gbmode.st-inst #stInst{padding-left:2px!important;padding-right:2px!important}}
 /* the pans run edge to edge, past the page's side inset */
 body.wbmode .sheetov,body.wbmode .sheet-ov,body.wbmode #shareSheet,body.wbmode #songsSheet{z-index:70!important}
+/* nothing may make the page wider than the screen (it makes the phone zoom when you turn it) */
+html,body{overflow-x:clip;max-width:100%}

@@ -77,7 +77,7 @@ const WB={
   enter(on){
     const was=this.on;this.on=on;document.body.classList.toggle('wbmode',on);this.pop(null);
     // leaving: the play bar comes back, so whatever is showing now is laid out again around it
-    if(!on){if(was){const bx=$('editPans');if(bx){bx.style.transform='';bx.style.width='';bx.style.padding='';bx.style.marginLeft='';bx.style.marginRight=''}this.sheet(null);document.body.classList.remove('wb-tl','wb-split','wb-build');placeTimeline();try{setDockH()}catch{}try{STAGE.render()}catch{}requestAnimationFrame(()=>{try{STAGE.render();STAGE.fitStudio()}catch{}})}return}
+    if(!on){if(was){const bx=$('editPans');if(bx){['transform','width','padding','margin-left','margin-right','box-sizing'].forEach(p=>bx.style.removeProperty(p))}this.sheet(null);document.body.classList.remove('wb-tl','wb-split','wb-build');placeTimeline();try{setDockH()}catch{}try{STAGE.render()}catch{}requestAnimationFrame(()=>{try{STAGE.render();STAGE.fitStudio()}catch{}})}return}
     this.place();this.sync();requestAnimationFrame(()=>this.fit());
   },
   setView(v){this.view=v;this.place();this.sync();requestAnimationFrame(()=>this.fit())},
@@ -103,9 +103,10 @@ const WB={
     const H=split?Math.round(n>=4?Math.min(innerWidth*1.05,room*.6):n===2?Math.min(innerWidth*.56,room*.5):Math.min(innerWidth*.95,room*.55)):innerHeight-top-8;
     document.documentElement.style.setProperty('--wbPansH',H+'px');
     // full width of the screen, past the page's side inset
-    box.style.transform='';box.style.width=innerWidth+'px';box.style.boxSizing='border-box';box.style.padding='0 4px';box.style.marginLeft='0';box.style.marginRight='0';
-    const L=box.getBoundingClientRect().left;if(L)box.style.transform='translateX('+(-L)+'px)';
-    box.dataset.pf='';STAGE.stageify(box,innerWidth-8,H,split);
+    // (negative margins, not a shift: the page's own width must never grow past the screen, or the phone zooms on every turn)
+    const SW=document.documentElement.clientWidth;box.style.transform='';box.style.setProperty('margin-left','0px','important');box.style.setProperty('margin-right','0px','important');box.style.width='';
+    const L=box.getBoundingClientRect().left;box.style.boxSizing='border-box';box.style.padding='0 4px';box.style.setProperty('width',SW+'px','important');box.style.setProperty('margin-left',(-L)+'px','important');
+    box.dataset.pf='';STAGE.stageify(box,SW-8,H,split);
   },
   sheet(k){
     const sh=$('wbSheet'),B=$('wbSheetB');

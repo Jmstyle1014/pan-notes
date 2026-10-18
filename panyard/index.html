@@ -1281,6 +1281,8 @@ body.wbmode #selBar #selCount{max-width:150px;overflow:hidden;text-overflow:elli
 @media (max-aspect-ratio:1/1){body.gbmode.st-inst #stInst{padding-left:2px!important;padding-right:2px!important}}
 /* the pans run edge to edge, past the page's side inset */
 body.wbmode .sheetov,body.wbmode .sheet-ov,body.wbmode #shareSheet,body.wbmode #songsSheet{z-index:70!important}
+/* nothing may make the page wider than the screen (it makes the phone zoom when you turn it) */
+html,body{overflow-x:clip;max-width:100%}
 </style>
 <header class="appbar"><button class="ttl songbtn" data-open-songs aria-label="Your songs"><span class="eyebrow">Panyard · night session</span><span class="songname"><span id="appTitle">Pan Notes</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
 <main>
@@ -7167,8 +7169,9 @@ const STAGE={
     const box=document.getElementById('stPans');if(!box||document.body.dataset.view!=='studio'||!box.offsetParent)return;
     // upright: the pans run the full width of the screen, past the page's side inset
     let fullW=0;
-    if(innerWidth/innerHeight<1){box.style.width='';box.style.transform='';const L=box.getBoundingClientRect().left;box.style.width=innerWidth+'px';box.style.transform='translateX('+(-L)+'px)';box.style.boxSizing='border-box';box.style.padding='0';fullW=innerWidth-8}
-    else{box.style.width='';box.style.transform='';box.style.padding=''}
+    const SW=document.documentElement.clientWidth;
+    ['transform','width','margin-left','margin-right','padding','box-sizing'].forEach(p=>box.style.removeProperty(p));
+    if(SW/innerHeight<1){const L=box.getBoundingClientRect().left;box.style.boxSizing='border-box';box.style.padding='0';box.style.setProperty('width',SW+'px','important');box.style.setProperty('margin-left',(-L)+'px','important');box.style.setProperty('margin-right','0px','important');fullW=SW-8}
     const tp=document.querySelector('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9;
     const bottom=Math.min(innerHeight-this.dockH(),tpTop)-8,top=box.getBoundingClientRect().top;
     this.stageify(box,fullW||box.clientWidth||box.parentNode.clientWidth,Math.max(180,bottom-top));
@@ -7416,7 +7419,7 @@ const WB={
   enter(on){
     const was=this.on;this.on=on;document.body.classList.toggle('wbmode',on);this.pop(null);
     // leaving: the play bar comes back, so whatever is showing now is laid out again around it
-    if(!on){if(was){const bx=$('editPans');if(bx){bx.style.transform='';bx.style.width='';bx.style.padding='';bx.style.marginLeft='';bx.style.marginRight=''}this.sheet(null);document.body.classList.remove('wb-tl','wb-split','wb-build');placeTimeline();try{setDockH()}catch{}try{STAGE.render()}catch{}requestAnimationFrame(()=>{try{STAGE.render();STAGE.fitStudio()}catch{}})}return}
+    if(!on){if(was){const bx=$('editPans');if(bx){['transform','width','padding','margin-left','margin-right','box-sizing'].forEach(p=>bx.style.removeProperty(p))}this.sheet(null);document.body.classList.remove('wb-tl','wb-split','wb-build');placeTimeline();try{setDockH()}catch{}try{STAGE.render()}catch{}requestAnimationFrame(()=>{try{STAGE.render();STAGE.fitStudio()}catch{}})}return}
     this.place();this.sync();requestAnimationFrame(()=>this.fit());
   },
   setView(v){this.view=v;this.place();this.sync();requestAnimationFrame(()=>this.fit())},
@@ -7442,9 +7445,10 @@ const WB={
     const H=split?Math.round(n>=4?Math.min(innerWidth*1.05,room*.6):n===2?Math.min(innerWidth*.56,room*.5):Math.min(innerWidth*.95,room*.55)):innerHeight-top-8;
     document.documentElement.style.setProperty('--wbPansH',H+'px');
     // full width of the screen, past the page's side inset
-    box.style.transform='';box.style.width=innerWidth+'px';box.style.boxSizing='border-box';box.style.padding='0 4px';box.style.marginLeft='0';box.style.marginRight='0';
-    const L=box.getBoundingClientRect().left;if(L)box.style.transform='translateX('+(-L)+'px)';
-    box.dataset.pf='';STAGE.stageify(box,innerWidth-8,H,split);
+    // (negative margins, not a shift: the page's own width must never grow past the screen, or the phone zooms on every turn)
+    const SW=document.documentElement.clientWidth;box.style.transform='';box.style.setProperty('margin-left','0px','important');box.style.setProperty('margin-right','0px','important');box.style.width='';
+    const L=box.getBoundingClientRect().left;box.style.boxSizing='border-box';box.style.padding='0 4px';box.style.setProperty('width',SW+'px','important');box.style.setProperty('margin-left',(-L)+'px','important');
+    box.dataset.pf='';STAGE.stageify(box,SW-8,H,split);
   },
   sheet(k){
     const sh=$('wbSheet'),B=$('wbSheetB');

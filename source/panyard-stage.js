@@ -129,8 +129,9 @@ const STAGE={
     const box=document.getElementById('stPans');if(!box||document.body.dataset.view!=='studio'||!box.offsetParent)return;
     // upright: the pans run the full width of the screen, past the page's side inset
     let fullW=0;
-    if(innerWidth/innerHeight<1){box.style.width='';box.style.transform='';const L=box.getBoundingClientRect().left;box.style.width=innerWidth+'px';box.style.transform='translateX('+(-L)+'px)';box.style.boxSizing='border-box';box.style.padding='0';fullW=innerWidth-8}
-    else{box.style.width='';box.style.transform='';box.style.padding=''}
+    const SW=document.documentElement.clientWidth;
+    ['transform','width','margin-left','margin-right','padding','box-sizing'].forEach(p=>box.style.removeProperty(p));
+    if(SW/innerHeight<1){const L=box.getBoundingClientRect().left;box.style.boxSizing='border-box';box.style.padding='0';box.style.setProperty('width',SW+'px','important');box.style.setProperty('margin-left',(-L)+'px','important');box.style.setProperty('margin-right','0px','important');fullW=SW-8}
     const tp=document.querySelector('.st-tp'),tpTop=tp&&getComputedStyle(tp).position==='fixed'?tp.getBoundingClientRect().top:1e9;
     const bottom=Math.min(innerHeight-this.dockH(),tpTop)-8,top=box.getBoundingClientRect().top;
     this.stageify(box,fullW||box.clientWidth||box.parentNode.clientWidth,Math.max(180,bottom-top));
