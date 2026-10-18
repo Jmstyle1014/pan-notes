@@ -448,6 +448,28 @@ function renderUndo(){const u=q('#stUndo'),r=q('#stRedo');if(u)u.disabled=!H.u.l
 let saveT=0;
 function dirty(){clearTimeout(saveT);saveT=setTimeout(()=>{if(song&&songKey)idbPut('studio:'+songKey,JSON.parse(JSON.stringify(song)))},400)}
 const keyNow=()=>{try{return songNow().id}catch{return 'main'}};
+/* ---- backups carry the Studio tracks too (pan taps, My part, beats, the mix). Mic takes stay on this device. ---- */
+window.backupExtra=async()=>{
+  const k=keyNow();let sg=song&&songKey===k?song:await idbGet('studio:'+k);
+  if(!sg||!Array.isArray(sg.tracks))return{};
+  sg=JSON.parse(JSON.stringify(sg));sg.tracks=sg.tracks.filter(t=>t.type!=='audio');
+  return sg.tracks.some(t=>t.type!=='practice')?{studio:sg}:{};
+};
+window.backupIn=async p=>{
+  const st=p&&p.studio;if(!st||!Array.isArray(st.tracks))return'';
+  const num=(v,a,b,d)=>Number.isFinite(+v)?Math.max(a,Math.min(b,+v)):d;
+  const tracks=st.tracks.filter(t=>t&&['practice','part','pan','beats'].includes(t.type)).slice(0,24).map(t=>{
+    const o=trk(t.type,{name:String(t.name||'').slice(0,28)||trk(t.type).name,vol:num(t.vol,0,1.5,.85),pan:num(t.pan,-1,1,0),mute:!!t.mute,solo:!!t.solo,mix:t.mix==null?null:num(t.mix,0,1,null)});
+    if(t.type==='pan'){o.panSet=SETS[t.panSet]?t.panSet:'guitar';o.notes=(Array.isArray(t.notes)?t.notes:[]).filter(n=>n&&PITCH[n.p]&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.5),p:n.p,v:num(n.v,0,1,.9),...(n.roll?{roll:1}:{})}))}
+    if(t.type==='beats'){o.len=Number.isInteger(t.len)&&t.len>=1&&t.len<=64?t.len:16;o.unit=Number.isInteger(t.unit)&&t.unit>=1&&t.unit<=32?t.unit:8;o.swing=num(t.swing,0,.75,0);o.off=(Array.isArray(t.off)?t.off:[]).filter(Number.isInteger);if(typeof t.style==='string')o.style=t.style.slice(0,30);
+      o.rows=(Array.isArray(t.rows)?t.rows:[]).filter(r=>r&&Number.isFinite(+r.m)&&Array.isArray(r.steps)).slice(0,16).map(r=>({m:+r.m,steps:r.steps.slice(0,o.len).map(v=>num(v,0,2,0))}))}
+    return o});
+  if(!tracks.some(t=>t.type==='practice'))tracks.unshift(trk('practice'));
+  const sg=Object.assign(blank(),{bpm:num(st.bpm,30,300,100),metro:!!st.metro,countIn:st.countIn!==false,master:num(st.master,0,1.5,.85),minBars:num(st.minBars,1,999,8),tracks,sel:tracks[0].id});
+  if(st.cycle&&Number.isFinite(+st.cycle.s)&&Number.isFinite(+st.cycle.e))sg.cycle={on:!!st.cycle.on,s:+st.cycle.s,e:+st.cycle.e};
+  if(T.playing)stop(false);await idbPut('studio:'+keyNow(),sg);song=null;songKey=null;
+  return ' '+(tracks.length-1)+' Studio tracks added.';
+};
 async function load(){
   const k=keyNow();if(song&&songKey===k)return;
   if(loading)return loading;

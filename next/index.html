@@ -2366,7 +2366,7 @@ async function photoDataUrls(){
 $('expJson').onclick=async()=>{
   const photos=await photoDataUrls(),sounds={};
   for(const [id,b] of Object.entries(SAMPLES.wav)){try{sounds[id]=await readData(b)}catch{}}
-  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,swapped:S.swapped,grid:S.grid,...(S.chart?{chart:S.chart}:{}),cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune,soundProfiles:PROF}:{}),savedAt:new Date().toISOString()},null,1);
+  const data=JSON.stringify({format:'pan-notes',version:2,title:S.title,panSet:setKey(),...(typeof backupExtra==='function'?await backupExtra():{}),swapped:S.swapped,grid:S.grid,...(S.chart?{chart:S.chart}:{}),cues:S.cues.map(({id,...c})=>c),...(Object.keys(photos).length?{photos}:{}),...(Object.keys(sounds).length?{sounds,soundTune:SAMPLES.tune,soundProfiles:PROF}:{}),savedAt:new Date().toISOString()},null,1);
   offerFile(fileBase()+' - Pan Notes backup.json',data);
 };
 $('impJson').onchange=async e=>{
@@ -2375,6 +2375,8 @@ $('impJson').onchange=async e=>{
     const p=JSON.parse(await f.text());
     const okFormat=(p.format==='pan-notes'&&p.version===2)||(p.format==='pan-notes-standalone'&&p.version===1);
     if(!okFormat||!Array.isArray(p.cues))throw Error('format');
+    // the backup's own pan first, so its notes are recognised (a tenor song opened while the guitar is chosen)
+    if(typeof p.panSet==='string'&&SETS[p.panSet]&&p.panSet!==setKey()){S.panSet=p.panSet;applyPanSet()}
     const cues=p.cues.filter(c=>c&&Number.isFinite(c.start)&&c.start>=0&&Number.isFinite(c.duration)&&c.duration>=0.05&&Array.isArray(c.steps)&&c.steps.every(id=>FIELDS.has(id)))
       .map(c=>({id:uid(),start:c.start,duration:c.duration,steps:[...c.steps],mode:c.mode==='together'?'together':'sequence',note:String(c.note||'').slice(0,1000),...(MARKS[c.fx]?{fx:c.fx}:{})}));
     const wasDemo=isDemo;if(!isDemo)pushUndo();isDemo=false;renderDemo();selIds.clear();
@@ -2397,6 +2399,7 @@ $('impJson').onchange=async e=>{
       if(sp&&Array.isArray(sp.list)&&sp.list.length){PROF={active:String(sp.active||''),list:sp.list.filter(x=>x&&typeof x.id==='string').slice(0,30).map(x=>({id:x.id,name:String(x.name||'Profile').slice(0,40),fx:{...FX0,...(x.fx||{})},tune:x.tune&&typeof x.tune==='object'?x.tune:{}}))};
         if(PROF.list.length){SAMPLES.tune=profNow().tune;PROF.active=profNow().id;applyFx();renderProfiles();extra+=' Sound profiles added.'}}
       if(k){saveSamples();saveTune();S.panVoice='mine';renderVoice();extra+=' '+k+' pan sounds added.'}}
+    if(typeof backupIn==='function')try{extra+=(await backupIn(p))||''}catch{}
     renderAll();save();
     say('Opened '+cues.length+' cues from the backup.'+extra+(wasDemo?'':' Tap Undo in Cues if you want your old cues back.'));
   }catch{say("That file isn't a Pan Notes backup. Choose a file saved with Save backup file.")}
