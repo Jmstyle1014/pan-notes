@@ -5950,7 +5950,9 @@ var TW=(()=>{
     let t30=rms.length;for(let i=peakAt;i<rms.length;i++)if(rms[i]<peakR*.0316){t30=i;break}
     const ring=t30*F/sr,want=1.1*Math.pow(261.6/f0,.35),ringS=Math.min(1,ring/want);
     const cl=v=>Math.max(0,Math.min(1,v)),score=Math.round(100*(.35*cl((snr-25)/35)+.45*cl((harm-.75)/.22)+.2*ringS));
-    return {ok:true,parts,score,harm,snr,ring,a,f0,on:on/sr};
+    // the pitch to tune by: the note itself, or its octave when the note is too low for a phone microphone to catch
+    const p0=parts[0],p1=parts[1],pc=p0.heard?p0.cents:(p1&&p1.heard?p1.cents:null);
+    return {ok:true,parts,pc,pcFrom:p0.heard?'note':pc==null?null:'octave',score,harm,snr,ring,a,f0,on:on/sr};
   }
   const CACHE=new WeakMap();
   async function reading(id){
@@ -6019,17 +6021,17 @@ var TW=(()=>{
   }
   function famChip(id,a,col,on){
     const own=id===a,has=!!SAMPLES.wav[id],rough=has&&!own,r=Rget(id),tc=tuneC(id),d=mid(id)-mid(a);let sub='',tone='';
-    if(own){if(r&&r.ok&&r.parts[0].heard){const c=r.parts[0].cents+tc;sub=Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢';tone=Math.abs(c)<=3?'good':Math.abs(c)<=10?'near':'off'}else sub=r?'unclear':'…'}
+    if(own){if(r&&r.pc!=null){const c=r.pc+tc;sub=Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢';tone=Math.abs(c)<=3?'good':Math.abs(c)<=10?'near':'off'}else sub=r?'unclear':'…'}
     else if(rough)sub='rough';else sub=(d>0?'↑':'↓')+Math.abs(d);
     return '<button class="twc '+(own?'anc':'fil')+(rough?' rough':'')+(!own&&!on?' dim':'')+(id===sel?' on':'')+'" aria-pressed="'+(id===sel)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small class="'+tone+'">'+sub+'</small></button>';
   }
-  function famStatus(a){const r=Rget(a),tc=tuneC(a);if(!r)return ['','listening…'];if(!r.ok||!r.parts[0].heard)return ['off','unclear take'];
-    const c=r.parts[0].cents+tc;return Math.abs(c)<=3?['good','in tune']:[Math.abs(c)<=10?'near':'off',(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢ · tune it']}
+  function famStatus(a){const r=Rget(a),tc=tuneC(a);if(!r)return ['','listening…'];if(r.pc==null)return ['off','unclear take'];
+    const c=r.pc+tc;return Math.abs(c)<=3?['good','in tune']:[Math.abs(c)<=10?'near':'off',(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢ · tune it']}
   function chip(id){
     const s=sourceOf(id),r=Rget(id),rough=SAMPLES.wav[id]&&skip(id),tc=tuneC(id);let line='';
-    if(s.kind==='own'){if(r&&r.ok&&r.parts[0].heard){const c=r.parts[0].cents+tc;line=(Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢')}else line=r?'unclear':'…'}
+    if(s.kind==='own'){if(r&&r.pc!=null){const c=r.pc+tc;line=(Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢')}else line=r?'unclear':'…'}
     else if(s.kind==='fill'||s.kind==='borrow')line='from '+nice(s.src);else line='built-in';
-    const c0=r&&r.ok&&r.parts[0].heard?r.parts[0].cents+tc:null,cls=s.kind==='own'?'anc':s.kind==='built'?'bin':'fil';
+    const c0=r&&r.pc!=null?r.pc+tc:null,cls=s.kind==='own'?'anc':s.kind==='built'?'bin':'fil';
     const tone=c0==null?'':Math.abs(c0)<=3?' good':Math.abs(c0)<=10?' near':' off';
     return '<button class="twc '+cls+(rough?' rough':'')+(id===sel?' on':'')+'" role="option" aria-selected="'+(id===sel)+'" tabindex="'+(id===sel?0:-1)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small class="'+tone.trim()+'">'+line+'</small></button>';
   }
@@ -6069,6 +6071,7 @@ var TW=(()=>{
       else if(!r.ok)h+='<p class="twhint">This recording was too short or quiet to read. Record it again, letting the note ring.</p>';
       else{const [q,ql]=quality(r.score);
         if(s.kind!=='own')h+='<p class="twhint">Below are the readings of your own recording of '+nice(id)+', which isn\'t playing right now.</p>';
+        if(r.pcFrom==='octave')h+='<p class="twhint">This note is too low for a phone microphone to catch clearly, so its pitch is read from its octave.</p>';
         h+='<div class="twq '+q+'"><span>Sound quality</span><div class="twbar"><i style="width:'+r.score+'%"></i></div><b>'+ql+'</b></div>';
         h+='<div class="twstrobes">'+r.parts.map((p,i)=>{const now=p.cents+tc;return '<div class="twrow"><div class="twrn">'+p.name+'<small>'+p.sub+'</small></div><div class="twrc" id="twC'+i+'"></div><canvas id="twS'+i+'"></canvas>'
           +'<div class="twcmp">'+(p.heard?'as recorded '+fmt(p.cents)+(tc?' · with tuning <b>'+fmt(now)+'</b>':''):'too quiet to read in this take')+'</div></div>'}).join('')+'</div>';
@@ -6077,7 +6080,7 @@ var TW=(()=>{
     }
     h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button>';
     if(has)h+='<button class="btn" data-a="raw">▶ As recorded</button>';
-    if(has&&r&&r.ok&&r.parts[0].heard)h+=Math.abs(r.parts[0].cents+tc)>0.5?'<button class="btn gold" data-a="tune">Tune to pitch ('+fmt(-(r.parts[0].cents))+')</button>':'<span class="twok">✓ Tuned</span>';
+    if(has&&r&&r.pc!=null)h+=Math.abs(r.pc+tc)>0.5?'<button class="btn gold" data-a="tune">Tune to pitch ('+fmt(-(r.pc))+')</button>':'<span class="twok">✓ Tuned</span>';
     if(has&&tc)h+='<button class="btn" data-a="untune">Undo tuning</button>';
     if(has)h+=rough?'<button class="btn" data-a="keep">Use my recording again</button>':'<button class="btn" data-a="rough">Rough: fill this note instead</button>';
     h+='<button class="btn" data-a="rec">● '+(has?'Record again':'Record this note')+'</button></div>';
@@ -6125,7 +6128,7 @@ var TW=(()=>{
     const b=e.target.closest('[data-a]');if(!b)return;const id=sel,a=b.dataset.a,k=setOf(id);
     if(a==='hear'){mineOn();try{warmAll();strike(id,.95)}catch{}}
     else if(a==='raw'){const ac=panCtx(),buf=await sampleBuf(id);if(ac&&buf){const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.9;s.buffer=buf;s.connect(g);g.connect(pBus);s.start()}}
-    else if(a==='tune'){const r=Rget(id);if(!r||!r.ok)return;setTune(id,-r.parts[0].cents);mineOn();changed();msg(nice(id)+' tuned'+(fills(id)?', and the '+fills(id)+' note'+(fills(id)===1?'':'s')+' made from it':'')+'.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
+    else if(a==='tune'){const r=Rget(id);if(!r||!r.ok)return;setTune(id,-r.pc);mineOn();changed();msg(nice(id)+' tuned'+(fills(id)?', and the '+fills(id)+' note'+(fills(id)===1?'':'s')+' made from it':'')+'.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
     else if(a==='untune'){setTune(id,0);changed();msg('Tuning undone for '+nice(id)+'.')}
     else if(a==='rough'){const c=cfg(k);c.skip.push(id);c.on=true;setCfg(k,c);mineOn();changed();
       const s=sourceOf(id);msg(s.kind==='fill'?nice(id)+' will now be made from '+nice(s.src)+'.':'No other recording within 7 notes, so '+nice(id)+' keeps your recording for now.')}
@@ -6137,8 +6140,8 @@ var TW=(()=>{
     if(Object.keys(t).length)SAMPLES.tune[id]=t;else delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}}
   async function tuneAll(){
     mineOn();msg('Listening…');await listenAll();let n=0,odd=[];
-    for(const id of order()){const r=Rget(id);if(!SAMPLES.wav[id]||!r||!r.ok||!r.parts[0].heard)continue;
-      if(Math.abs(r.parts[0].cents)>55){odd.push(nice(id));continue}setTune(id,-r.parts[0].cents);n++}
+    for(const id of order()){const r=Rget(id);if(!SAMPLES.wav[id]||!r||r.pc==null)continue;
+      if(Math.abs(r.pc)>55){odd.push(nice(id));continue}setTune(id,-r.pc);n++}
     changed();msg(n?'Tuned '+n+' recording'+(n===1?'':'s')+' to pitch'+(cfg(setKey()).on?', and every note made from them':'')+'.'+(odd.length?' Left alone (they sound like a different note, so check them): '+odd.join(', ')+'.':''):'Nothing to tune yet.');
   }
   async function listenAll(){for(const id of order())if(SAMPLES.wav[id]&&!Rget(id))await reading(id)}
@@ -6146,7 +6149,7 @@ var TW=(()=>{
     msg('Listening…');await listenAll();const k=setKey(),c=cfg(k),ids=order().filter(id=>SAMPLES.wav[id]&&Rget(id)&&Rget(id).ok);
     // rough = below "Good", or clearly worse than the rest of your recordings on this pan
     const sc=ids.map(id=>Rget(id).score).sort((p,q)=>p-q),med=sc[sc.length>>1]||0;
-    const clean=id=>Rget(id).score>=55&&Rget(id).score>=med-15,marked=[];c.skip=c.skip.filter(id=>!ids.includes(id)||!clean(id));
+    const bar=Math.min(55,med-15),clean=id=>Rget(id).score>=bar,marked=[];   // bass pans recorded on a phone all score lower, so each pan is judged against itselfc.skip=c.skip.filter(id=>!ids.includes(id)||!clean(id));
     for(const id of ids){if(clean(id)||c.skip.includes(id))continue;
       if(ids.some(o=>o!==id&&clean(o)&&Math.abs(mid(o)-mid(id))<=4)){c.skip.push(id);marked.push(nice(id))}}
     c.on=true;setCfg(k,c);mineOn();changed();
@@ -6185,7 +6188,7 @@ var TW=(()=>{
     if(!r){const buf=SAMPLES.buf[id];if(!buf)return undefined;const x=new Float32Array(buf.length);
       for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<x.length;i++)x[i]+=d[i]/buf.numberOfChannels}
       r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
-    return r.ok&&r.parts[0].heard?r.parts[0].cents:null;
+    return r.pc!=null?r.pc:null;
   }
   return {centsNow,allowed:true,open:show,skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();
