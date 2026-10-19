@@ -367,3 +367,29 @@ html.day{filter:invert(.92) hue-rotate(180deg);background:#0d0a1a}
 html.day :is(img,video,image,.lk-th,.thumb,.lk-photo,.lk-mini,.hm-mini svg image){filter:invert(1) hue-rotate(180deg)}
 /* while a panel (Mixer, Add a track…) is open on an upright phone, the floating track name steps out of its way */
 body.gbmode:not(.gb-inbar):has(#stSheet:not([hidden])) #gbPills{display:none!important}
+
+/* ---- Write's edit bar: under the notes upright, along the bottom of the timeline sideways ---- */
+#wbEdit,#wbClearPop:not(.wbpop){display:none}
+body.wbmode.wb-split #wbEdit,body.wbmode.wb-tl #wbEdit{display:flex;align-items:center;gap:4px;position:fixed;left:0;right:0;height:64px;z-index:28;padding:6px max(8px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left));background:#17112b;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;box-sizing:border-box}
+#wbEdit::-webkit-scrollbar{display:none}
+body.wbmode.wb-split #wbEdit{top:calc(92px + var(--wbTLH,220px))}
+body.wbmode.wb-split #view-cues{padding-top:calc(92px + var(--wbTLH,220px) + 64px + 8px)!important}
+body.wbmode.wb-tl #wbEdit{bottom:0;padding-bottom:max(6px,env(safe-area-inset-bottom));height:calc(64px + env(safe-area-inset-bottom))}
+body.wbmode.wb-tl #wbTL{bottom:calc(64px + env(safe-area-inset-bottom))}
+.wbe{flex:none;min-width:58px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0 6px;border-radius:12px;border:1px solid #3a2f6a;background:#231b40;color:var(--text);font:700 11px var(--body,system-ui);cursor:pointer;white-space:nowrap}
+.wbe:active{transform:scale(.96)}
+.wbe:disabled{opacity:.35;cursor:default}
+.wbe[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#2a1d00}
+.wbe-dng{color:#ff8a8a;border-color:#5a2a3a}
+.wbe-who{flex-direction:row;gap:6px;min-width:0;max-width:130px;background:#2a2148;border-color:var(--gold);color:var(--gold);text-align:left;padding:0 10px 0 8px}
+.wbe-who span{display:flex;flex-direction:column;overflow:hidden;font-size:11px;color:var(--muted);font-weight:600}
+.wbe-who b{font-size:15px;color:var(--gold);overflow:hidden;text-overflow:ellipsis}
+.wbe-tip{flex:1;min-width:120px;color:var(--muted);font-size:12px;padding-left:6px;white-space:normal;line-height:1.3}
+#wbClearPop{width:min(300px,calc(100vw - 20px))}
+#wbClearPop>b{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+#wbClearPop .btn{display:flex;flex-direction:column;align-items:flex-start;text-align:left;width:100%}
+#wbClearPop .btn small{font-weight:500;color:var(--muted)}
+#wbClearPop .btn:disabled{opacity:.4}
+/* the edit bar does the floating selection bar's job here */
+body.wbmode #selBar{display:none!important}
+#wbEdit.picked{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);padding-right:28px}

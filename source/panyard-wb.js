@@ -11,7 +11,24 @@ const WB={
     snap:'<path d="M6 4v7a6 6 0 0012 0V4"/><path d="M6 8h4M14 8h4"/>',
     undo:'<path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 010 10h-3"/>',
     more:'<circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/>',
-    start:'<path d="M5 4v16"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/>'
+    start:'<path d="M5 4v16"/><path d="M19 5l-10 7 10 7z" fill="currentColor"/>',
+    redo:'<path d="M15 7l5 5-5 5"/><path d="M20 12H9a5 5 0 000 10h3"/>',
+    sel:'<rect x="4" y="4" width="16" height="16" rx="3" stroke-dasharray="3 3"/><path d="M9 12l2 2 4-4"/>',
+    all:'<rect x="3" y="6" width="8" height="12" rx="2"/><rect x="13" y="6" width="8" height="12" rx="2"/>',
+    paste:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9z"/>',
+    clear:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',
+    left:'<path d="M14 6l-6 6 6 6"/><path d="M20 6l-6 6 6 6" opacity=".45"/>',
+    right:'<path d="M10 6l6 6-6 6"/><path d="M4 6l6 6-6 6" opacity=".45"/>',
+    shorter:'<path d="M4 12h6M14 12h6"/><path d="M8 9l3 3-3 3M16 9l-3 3 3 3"/>',
+    longer:'<path d="M4 12h16"/><path d="M7 9l-3 3 3 3M17 9l3 3-3 3"/>',
+    split:'<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8 8.5l12 8M8 15.5l12-8"/>',
+    del:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6"/>',
+    copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
+    after:'<rect x="3" y="8" width="7" height="8" rx="1.5"/><rect x="14" y="8" width="7" height="8" rx="1.5" stroke-dasharray="2.5 2"/><path d="M10 12h4"/>',
+    loop:'<path d="M17 3l3 3-3 3"/><path d="M20 6H8a4 4 0 00-4 4v1M7 21l-3-3 3-3"/><path d="M4 18h12a4 4 0 004-4v-1"/>',
+    edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    done:'<path d="M6 6l12 12M18 6L6 18"/>',
+    snapit:'<path d="M6 4v7a6 6 0 0012 0V4"/><path d="M6 8h4M14 8h4"/>'
   },
   svg(k,s){return '<svg viewBox="0 0 24 24" width="'+(s||22)+'" height="'+(s||22)+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+this.ico[k]+'</svg>'},
   split:()=>innerWidth/innerHeight<1,
@@ -58,6 +75,7 @@ const WB={
     item('wbmStudio','◫ Go to Studio',()=>showView('studio'));
     item('wbmHelp','? Help',()=>$('helpBtn').click());
     document.body.appendChild(menu);
+    this.editInit();
     // side sheet: Tempo & timing, and Build a cue
     const sh=document.createElement('div');sh.id='wbSheet';sh.hidden=true;sh.innerHTML='<div class="wbshead"><b id="wbSheetT"></b><button class="btn" id="wbSheetX">Done</button></div><div id="wbSheetB"></div>';document.body.appendChild(sh);
     $('wbSheetX').onclick=()=>this.sheet(null);
@@ -109,7 +127,7 @@ const WB={
     if(!this.on)return;const box=$('editPans');if(!box)return;
     const top=92,split=this.split();if(!split&&this.view==='tl')return;
     // upright: as much height as the pans need side by side (more for four or six drums), the rest for the timeline
-    const n=STAGE.drumsOf(setKey()).length,room=innerHeight-top;
+    const n=STAGE.drumsOf(setKey()).length,room=innerHeight-top-(split?this.EB:0);
     let H=split?Math.round(n>=4?Math.min(innerWidth*1.05,room*.6):n===2?Math.min(innerWidth*.56,room*.5):Math.min(innerWidth*.95,room*.55)):innerHeight-top-8;
     // upright: the timeline on top, only as tall as it needs, the pans right under it, and what's coming up below
     if(split){const tlH=Math.round(Math.max(150,Math.min(room*.32,room-H-16)));if(tlH+H+16>room)H=Math.max(160,room-tlH-16);
@@ -141,6 +159,98 @@ const WB={
     if(k==='timing'){$('wbSheetT').textContent='Tempo & timing';B.appendChild($('gridBox'));$('gridBox').hidden=false;$('tempoBtn').setAttribute('aria-expanded','true')}
     if(k==='build'){$('wbSheetT').textContent='Build a cue';B.appendChild($('buildBox'));$('buildBox').hidden=false}
     if(!k&&entry==='build')setEntry('tap');
+  },
+  /* ---- the edit bar: right under the notes (upright) or along the bottom of the timeline (sideways).
+     Nothing picked: undo, redo, select, paste, clear. A note picked: tools for that note. ---- */
+  EB:64,redo:[],
+  editInit(){
+    const eb=document.createElement('div');eb.id='wbEdit';eb.setAttribute('role','toolbar');eb.setAttribute('aria-label','Edit notes');document.body.appendChild(eb);
+    const cp=document.createElement('div');cp.id='wbClearPop';cp.className='wbpop';cp.hidden=true;document.body.appendChild(cp);
+    eb.addEventListener('click',e=>{const b=e.target.closest('[data-e]');if(!b||b.disabled)return;e.stopPropagation();this.editDo(b.dataset.e,b)});
+    cp.addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b){e.stopPropagation();this.clearDo(b.dataset.c,b)}});
+    document.addEventListener('click',e=>{if(!e.target.closest('#wbClearPop,[data-e="clear"]'))cp.hidden=true});
+    // redo: undo keeps what it took back, and any new change forgets it
+    const _pu=pushUndo;pushUndo=function(){_pu();WB.redo=[];WB.ebar()};
+    $('undoBtn').onclick=()=>{if(undoStack.length)this.redo.push(JSON.stringify(S.cues));undo();this.ebar()};
+    const _rs=renderSel;renderSel=function(){_rs();WB.ebar()};
+    this.ebar();
+  },
+  ebtn(k,label,ico,x){return '<button class="wbe'+(x&&x.cls?' '+x.cls:'')+'" data-e="'+k+'"'+(x&&x.off?' disabled':'')+(x&&x.pressed!=null?' aria-pressed="'+x.pressed+'"':'')+(x&&x.aria?' aria-label="'+x.aria+'"':'')+'>'+this.svg(ico,20)+'<span>'+label+'</span></button>'},
+  ebar(){
+    const eb=$('wbEdit');if(!eb)return;
+    const cs=selCues(),sm=selectMode,key=[cs.map(c=>c.id+'@'+c.start+'+'+c.duration).join(','),sm,!!clip,undoStack.length>0,this.redo.length>0,loop].join('|');
+    if(key===eb.dataset.k)return;eb.dataset.k=key;
+    let h;
+    if(cs.length){
+      const one=cs.length===1,lab=one?esc(cueLabel(cs[0])):noteCount(cs)+' notes';
+      h='<button class="wbe wbe-who" data-e="done" aria-label="Done, unselect">'+this.svg('done',16)+'<span><b>'+lab+'</b>'+(one?fmt(cs[0].start):'picked')+'</span></button>'
+        +this.ebtn('left','Earlier','left')+this.ebtn('right','Later','right')
+        +this.ebtn('split','Split','split')+this.ebtn('del','Delete','del',{cls:'wbe-dng'})
+        +this.ebtn('shorter','Shorter','shorter')+this.ebtn('longer','Longer','longer')
+        +this.ebtn('copy','Copy','copy')+this.ebtn('after','Copy after','after')
+        +(S.snap!=='off'?this.ebtn('snap','Snap','snapit'):'')
+        +this.ebtn('loop',loop?'Loop off':'Loop','loop',{pressed:!!loop})
+        +(one?this.ebtn('edit','Notes','edit'):'');
+    }else{
+      h=this.ebtn('undo','Undo','undo',{off:!undoStack.length})+this.ebtn('redo','Redo','redo',{off:!this.redo.length})
+        +this.ebtn('sel',sm?'Selecting':'Select','sel',{pressed:sm})+(sm?this.ebtn('all','All','all'):'')
+        +(clip?this.ebtn('paste','Paste','paste'):'')
+        +this.ebtn('clear','Clear…','clear',{cls:'wbe-dng'})
+        +'<span class="wbe-tip">'+(sm?'Tap notes to pick them.':'Tap a note on the timeline to edit it.')+'</span>';
+    }
+    eb.innerHTML=h;eb.classList.toggle('picked',!!cs.length);
+  },
+  editDo(k,b){
+    const press=id=>{const e=$(id);if(e)e.click()};
+    switch(k){
+      case 'undo':$('undoBtn').click();break;
+      case 'redo':{if(!this.redo.length)return;undoStack.push(JSON.stringify(S.cues));S.cues=JSON.parse(this.redo.pop());lastTapId=null;
+        for(const id of[...selIds])if(!S.cues.some(c=>c.id===id))selIds.delete(id);
+        if(editing&&!S.cues.some(c=>c.id===editing))resetEditor();renderCues();renderSel();save();tick();renderUndo();say('Redone.');break}
+      case 'sel':if(this.view==='pans'&&!this.split())this.setView('tl');press('selMode');break;
+      case 'all':press('selAll');break;
+      case 'paste':press('pasteBtn');break;
+      case 'clear':{const cp=$('wbClearPop');if(!cp.hidden){cp.hidden=true;return}this.clearMenu();const r=b.getBoundingClientRect();
+        cp.style.left=Math.max(10,Math.min(innerWidth-cp.offsetWidth-10,r.left))+'px';cp.hidden=false;
+        const h=cp.offsetHeight;cp.style.left=Math.max(10,Math.min(innerWidth-cp.offsetWidth-10,r.left))+'px';cp.style.top=(r.top-h-8>60?r.top-h-8:r.bottom+8)+'px';break}
+      case 'done':if(selectMode)press('selMode');else{selIds.clear();renderSel();drawTL()}break;
+      case 'left':press('nudgeL');break;case 'right':press('nudgeR');break;
+      case 'shorter':press('lenMinus');break;case 'longer':press('lenPlus');break;
+      case 'split':this.splitSel();break;
+      case 'del':press('delSel');break;case 'copy':press('copySel');break;case 'after':press('repeatSel');break;
+      case 'snap':press('snapSel');break;case 'loop':press('loopSel');break;
+      case 'edit':press('editSel');break;
+    }
+    this.ebar();
+  },
+  // split: each picked note becomes two, cut at the playhead if it's inside the note, otherwise in the middle
+  splitSel(){
+    const cs=selCues().filter(c=>c.duration>=.1);if(!cs.length){say('That note is too short to split.');return}
+    const p=typeof viewT==='number'?viewT:0;pushUndo();let at0=null;selIds.clear();
+    for(const c of cs){const end=c.start+c.duration,at=p>c.start+.05&&p<end-.05?p:c.start+c.duration/2;if(at0===null)at0=at;
+      const n={...c,id:uid(),steps:[...c.steps],start:r3(at),duration:r3(end-at)};c.duration=r3(at-c.start);S.cues.push(n);selIds.add(n.id)}
+    if(isDemo){isDemo=false;renderDemo()}
+    afterEdit((cs.length===1?'Split in two at '+fmt(at0)+'.':'Split '+cs.length+' notes in two.')+' The second half is picked.');drawTL();
+  },
+  // what Clear can take: the looped part or the section under the playhead, or the whole part
+  clearRange(){
+    if(loop&&A!==null&&B!==null)return{a:A,b:B,name:'the looped part'};
+    const t=viewT||0,s=sectionsNow().find(x=>t>=x.t&&t<x.end);return s?{a:s.t,b:s.end,name:s.name}:null;
+  },
+  clearMenu(){
+    const cp=$('wbClearPop'),r=this.clearRange(),all=isDemo?0:S.cues.length,inR=r&&!isDemo?S.cues.filter(c=>c.start>=r.a-.01&&c.start<r.b-.01).length:0;
+    cp.innerHTML='<b>Clear notes</b>'
+      +(r?'<button class="btn" data-c="sec"'+(inR?'':' disabled')+'>Clear '+esc(r.name)+' <small>'+inR+' note'+(inR===1?'':'s')+', '+fmt(r.a)+'–'+fmt(r.b)+'</small></button>':'')
+      +'<button class="btn danger" data-c="all"'+(all?'':' disabled')+'>Clear the whole part <small>'+all+' note'+(all===1?'':'s')+'</small></button>'
+      +'<span class="help">Undo brings them back.</span>';
+    cp.dataset.armed='';
+  },
+  clearDo(k,b){
+    const cp=$('wbClearPop');if(b.disabled)return;
+    if(cp.dataset.armed!==k){cp.dataset.armed=k;b.dataset.l=b.dataset.l||b.innerHTML;cp.querySelectorAll('[data-c]').forEach(x=>{if(x.dataset.l)x.innerHTML=x.dataset.l});b.innerHTML='Tap again to clear';return}
+    const r=k==='sec'?this.clearRange():null,keep=c=>r?!(c.start>=r.a-.01&&c.start<r.b-.01):false,n=S.cues.filter(c=>!keep(c)).length;
+    pushUndo();S.cues=S.cues.filter(keep);selIds.clear();if(editing&&!S.cues.some(c=>c.id===editing))resetEditor();
+    cp.hidden=true;renderAll();save();say('Cleared '+n+' note'+(n===1?'':'s')+(r?' from '+r.name:'')+'. Undo brings them back.');this.ebar();
   },
   pop(id){['wbMenu','wbSnapPop'].forEach(x=>{const e=$(x);if(e)e.hidden=x!==id});$('wbMore').setAttribute('aria-expanded',String(id==='wbMenu'));$('wbSnap').setAttribute('aria-expanded',String(id==='wbSnapPop'))},
   sync(){
