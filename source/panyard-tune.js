@@ -5,14 +5,13 @@
 // setting the record sheet's fine-tuning uses, so nothing is re-recorded and it can always be undone.
 // "Fill the gaps" plays every note you haven't recorded (or have marked rough) from the closest clean recording on the
 // same pan, retuned to the right note. Tuning one recording therefore also tunes every note made from it.
-// Kept on this device and in backups. Hidden inside the Android app for now (the app opens this same website).
+// Kept on this device and in backups.
 var TW=(()=>{
   const LS='panyard-fill',FILL_MAX=7;   // semitones: further than this a pan note stops sounding like itself
   const st=(()=>{try{const x=JSON.parse(localStorage.getItem(LS)||'{}');return x&&typeof x==='object'?x:{}}catch{return {}}})();
   const store=()=>{try{localStorage.setItem(LS,JSON.stringify(st))}catch{}};
   const cfg=k=>{const c=st[k]||{};return {on:!!c.on,skip:Array.isArray(c.skip)?c.skip.filter(id=>FIELDS.has(id)):[]}};
   const setCfg=(k,c)=>{st[k]={on:!!c.on,skip:[...new Set(c.skip)]};store()};
-  const inApk=(()=>{try{if(/^android-app:\/\//.test(document.referrer))sessionStorage.setItem('py-apk','1');return sessionStorage.getItem('py-apk')==='1'}catch{return /^android-app:/.test(document.referrer)}})();
   const setOf=id=>(FIELDS.get(id)||{}).set||'guitar';
   const mid=id=>midiOf(PITCH[id]);
   const nice=id=>PITCH[id].replace('#','♯').replace(/([A-G])b/,'$1♭');
@@ -21,8 +20,8 @@ var TW=(()=>{
     :[[1,'Note','the note itself'],[2,'Octave','twice as high'],[3,'Twelfth','an octave and a fifth up']];
 
   /* which recording plays each note */
-  function fillOf(id){
-    if(!PITCH[id])return null;const k=setOf(id),c=cfg(k);if(!c.on)return null;
+  function fillOf(id,evenOff){
+    if(!PITCH[id])return null;const k=setOf(id),c=cfg(k);if(!c.on&&!evenOff)return null;
     const m=mid(id);let best=null;
     for(const s of Object.keys(SAMPLES.wav)){if(s===id||setOf(s)!==k||!PITCH[s]||c.skip.includes(s))continue;
       const d=m-mid(s),cost=Math.abs(d)+(d>0?.1:0);   // a tie goes to shifting down, which keeps more ring
@@ -99,8 +98,8 @@ var TW=(()=>{
     sh.innerHTML='<div class="sheetbox twbox">'
       +'<div class="twhead"><div><span class="eyebrow">Studio · pan sounds</span><h2 id="twTitle">Tuning workshop</h2><p class="twsub" id="twSub"></p></div><button class="btn" id="twClose">Done</button></div>'
       +'<label class="twfill"><input type="checkbox" id="twFill"><span class="twsw" aria-hidden="true"></span><span><b>Fill the gaps from my best notes</b><small id="twFillInfo"></small></span></label>'
-      +'<div class="twstrip" id="twStrip" role="listbox" aria-label="Every note on this pan, low to high"></div>'
-      +'<p class="twkey"><span><i class="k anc"></i>Your recording</span><span><i class="k fil"></i>Made from a nearby recording</span><span><i class="k bin"></i>Built-in sound</span></p>'
+      +'<p class="twkey"><span><i class="k anc"></i>The recording</span><span><i class="k fil"></i>Made from it (↑↓ notes moved)</span><span><s>G4</s> rough take, left out</span></p>'
+      +'<div class="twfams" id="twStrip" aria-label="Your note families, low to high"></div>'
       +'<div class="twdetail" id="twDetail"></div>'
       +'<div class="twacts"><button class="btn" id="twAll">▶ Play the whole pan</button><button class="btn gold" id="twTuneAll">✨ Tune all my recordings</button><button class="btn" id="twPick">Pick the cleanest for me</button></div>'
       +'<p class="twmsg" id="twMsg" aria-live="polite"></p>'
@@ -115,7 +114,8 @@ var TW=(()=>{
     $('twFill').onchange=e=>{const k=setKey(),c=cfg(k);c.on=e.target.checked;setCfg(k,c);mineOn();changed();
       msg(c.on?'Gaps filled. Tap ▶ Play the whole pan to hear it.':'Gaps off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.')};
     $('twAll').onclick=playAll;$('twTuneAll').onclick=tuneAll;$('twPick').onclick=pickClean;
-    $('twStrip').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(!b)return;sel=b.dataset.id;render();const c=$('twStrip').querySelector('.on');if(c)c.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});try{strike(sel,.9)}catch{}});
+    $('twStrip').addEventListener('click',e=>{const f=e.target.closest('[data-fam]');if(f){playFam(f.dataset.fam);return}
+      const b=e.target.closest('[data-id]');if(!b)return;sel=b.dataset.id;render();try{strike(sel,.9)}catch{}});
     $('twStrip').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const ids=order(),i=ids.indexOf(sel),n=ids[Math.max(0,Math.min(ids.length-1,i+(e.key==='ArrowRight'?1:-1)))];
       if(n){sel=n;render();const b=$('twStrip').querySelector('[data-id="'+CSS.escape(n)+'"]');if(b)b.focus();try{strike(n,.9)}catch{}}});
     $('twDetail').addEventListener('click',onDetail);
@@ -135,6 +135,25 @@ var TW=(()=>{
     return {kind:'built'};
   }
   const Rget=id=>{const b=SAMPLES.wav[id];return b?CACHE.get(b):undefined};   // the reading of each note's current recording
+  // families: each recording that plays, with every note made from it; notes nothing reaches go last
+  const FAM_COL=['#ff8a5c','#ffd166','#5fd4a0','#6fb7ff','#c792ff','#ff7ab8','#4fd6d6','#f2a65a','#9fe07a','#b8a4ff'];
+  function families(){
+    const ids=order(),map=new Map(),loose=[];
+    for(const id of ids){let a=null;
+      if(SAMPLES.wav[id]&&!(cfg(setOf(id)).skip.includes(id)&&fillOf(id,true)))a=id;
+      else{const f=fillOf(id,true);if(f)a=f.src}
+      if(a){if(!map.has(a))map.set(a,[]);map.get(a).push(id)}else loose.push(id)}
+    const fams=[...map.entries()].sort((x,y)=>mid(x[0])-mid(y[0])).map(([a,notes],i)=>({a,notes,col:FAM_COL[i%FAM_COL.length]}));
+    return {fams,loose};
+  }
+  function famChip(id,a,col,on){
+    const own=id===a,has=!!SAMPLES.wav[id],rough=has&&!own,r=Rget(id),tc=tuneC(id),d=mid(id)-mid(a);let sub='',tone='';
+    if(own){if(r&&r.ok&&r.parts[0].heard){const c=r.parts[0].cents+tc;sub=Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢';tone=Math.abs(c)<=3?'good':Math.abs(c)<=10?'near':'off'}else sub=r?'unclear':'…'}
+    else if(rough)sub='rough';else sub=(d>0?'↑':'↓')+Math.abs(d);
+    return '<button class="twc '+(own?'anc':'fil')+(rough?' rough':'')+(!own&&!on?' dim':'')+(id===sel?' on':'')+'" aria-pressed="'+(id===sel)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small class="'+tone+'">'+sub+'</small></button>';
+  }
+  function famStatus(a){const r=Rget(a),tc=tuneC(a);if(!r)return ['','listening…'];if(!r.ok||!r.parts[0].heard)return ['off','unclear take'];
+    const c=r.parts[0].cents+tc;return Math.abs(c)<=3?['good','in tune']:[Math.abs(c)<=10?'near':'off',(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢ · tune it']}
   function chip(id){
     const s=sourceOf(id),r=Rget(id),rough=SAMPLES.wav[id]&&skip(id),tc=tuneC(id);let line='';
     if(s.kind==='own'){if(r&&r.ok&&r.parts[0].heard){const c=r.parts[0].cents+tc;line=(Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢')}else line=r?'unclear':'…'}
@@ -151,7 +170,17 @@ var TW=(()=>{
     $('twFill').checked=c.on;
     const filled=ids.filter(id=>sourceOf(id).kind==='fill').length,built=ids.filter(id=>sourceOf(id).kind==='built').length;
     $('twFillInfo').textContent=!own?'Record a few notes on this pan first.':c.on?filled+' note'+(filled===1?'':'s')+' made from your recordings'+(built?', '+built+' too far from any recording (built-in sound)':'')+'.':'Off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.';
-    $('twStrip').innerHTML=ids.map(chip).join('');
+    const {fams,loose}=families(),dBox=$('twDetail');
+    $('twStrip').innerHTML=fams.map(f=>{const [tc,tt]=famStatus(f.a);
+      return '<div class="twfam" style="--fc:'+f.col+'" data-of="'+f.a+'"><div class="twfh"><span class="twdot" aria-hidden="true"></span><b>'+nice(f.a)+' family</b><small>'+f.notes.length+' note'+(f.notes.length===1?'':'s')+'</small>'
+        +'<span class="twfs '+tc+'">'+tt+'</span><button class="twfp" data-fam="'+f.a+'" aria-label="Hear the '+nice(f.a)+' family, low to high">▶</button></div>'
+        +'<div class="twchips">'+f.notes.map(id=>famChip(id,f.a,f.col,c.on)).join('')+'</div></div>'}).join('')
+      +(loose.length?'<div class="twfam loose"><div class="twfh"><span class="twdot" aria-hidden="true"></span><b>Not covered yet</b><small>'+loose.length+' note'+(loose.length===1?'':'s')+'</small></div>'
+        +'<p class="twhint">'+(own?'More than 7 notes from any of your recordings, so these play the built-in sound. Record one of them to start a new family.':'Record a few notes spread across the pan and they\'ll each start a family.')+'</p>'
+        +'<div class="twchips">'+loose.map(id=>'<button class="twc bin'+(id===sel?' on':'')+'" aria-pressed="'+(id===sel)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small>built-in</small></button>').join('')+'</div></div>':'');
+    // the chosen note's readings open right under its own family
+    const home=[...$('twStrip').querySelectorAll('.twfam')].find(r=>r.querySelector('[data-id="'+CSS.escape(sel)+'"]'));
+    if(home){home.after(dBox);dBox.style.setProperty('--fc',getComputedStyle(home).getPropertyValue('--fc'))}
     detail();
     $('twTuneAll').disabled=!own;$('twPick').disabled=own<2;
   }
@@ -253,6 +282,9 @@ var TW=(()=>{
     msg(marked.length?'Marked '+marked.length+' rough recording'+(marked.length===1?'':'s')+' ('+marked.join(', ')+'). '+(marked.length===1?'It\'s':'They\'re')+' now made from a cleaner neighbour, and the gaps are filled.':'All your recordings sound clean enough to keep. Gaps are filled from them.');
   }
   let allRun=0;
+  function playFam(a){const f=families().fams.find(x=>x.a===a);if(!f)return;const me=++allRun;mineOn();warmAll();
+    f.notes.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}
+      const b=$('twStrip').querySelector('[data-id="'+CSS.escape(id)+'"]');if(b){b.classList.add('ping');setTimeout(()=>b.classList.remove('ping'),260)}},200+i*280))}
   function playAll(){
     const me=++allRun,ids=order();mineOn();warmAll();msg('Playing '+nice(ids[0])+' to '+nice(ids[ids.length-1])+'…');
     ids.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}
@@ -267,6 +299,8 @@ var TW=(()=>{
   }
   // coming back from the record sheet reopens the workshop on the same note
   const _openRec=openRec;openRec=function(on){_openRec(on);if(!on&&back){back=false;show(true)}};
+  // one pitch check for the whole app: the record sheet and "Make my pans sound their best" read notes the way the workshop does
+  const _centsOff=centsOff;centsOff=function(id){const c=centsNow(id);return c===undefined?_centsOff(id):c};
   // fill notes in wherever Advanced tuning would be asked
   const _borrow=borrowOf;borrowOf=function(id){return fillOf(id)||_borrow(id)};
   PAN_HOOKS.push(()=>{if(open)render()});
@@ -275,5 +309,12 @@ var TW=(()=>{
   const bi=window.backupIn;window.backupIn=async p=>{let m=bi?await bi(p):'';const f=p&&p.panFill;
     if(f&&typeof f==='object'){for(const [k,v] of Object.entries(f))if(SETS[k]&&v&&typeof v==='object')st[k]={on:!!v.on,skip:Array.isArray(v.skip)?v.skip.filter(id=>typeof id==='string'&&FIELDS.has(id)):[]};store();m+=' Tuning workshop choices added.'}
     return m}},0);
-  return {allowed:!inApk,open:show,skip,fillOf,reading,analyse,get isOpen(){return open}};
+  function centsNow(id){
+    const b=SAMPLES.wav[id];if(!b)return null;let r=CACHE.get(b);
+    if(!r){const buf=SAMPLES.buf[id];if(!buf)return undefined;const x=new Float32Array(buf.length);
+      for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<x.length;i++)x[i]+=d[i]/buf.numberOfChannels}
+      r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
+    return r.ok&&r.parts[0].heard?r.parts[0].cents:null;
+  }
+  return {centsNow,allowed:true,open:show,skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();

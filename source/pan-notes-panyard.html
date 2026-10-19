@@ -1430,26 +1430,39 @@ body.tw-open #gdToast{display:none!important}
 .twfill input:checked+.twsw{background:var(--teal)}
 .twfill input:checked+.twsw::after{transform:translateX(18px);background:var(--text)}
 .twfill input:focus-visible+.twsw{outline:2px solid var(--gold);outline-offset:2px}
-.twstrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px}
-.twc{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 2px 6px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;font:inherit;min-height:48px;transition:transform .12s}
-.twc b{font-size:.95rem;font-variant-numeric:tabular-nums}
-.twc small{font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.twfams{display:flex;flex-direction:column;gap:8px}
+.twfam{--fc:var(--muted);display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.twfam:has(.twc.on){border-color:var(--fc)}
+.twfh{display:flex;align-items:center;gap:8px;min-width:0}
+.twfh b{font-size:.95rem}
+.twfh small{color:var(--muted);font-size:.8rem}
+.twdot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--fc)}
+.twfam.loose .twdot{background:transparent;border:1.5px dashed var(--muted)}
+.twfs{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--muted);white-space:nowrap}
+.twfs.good{color:#5fd48a}.twfs.near{color:var(--gold)}.twfs.off{color:var(--danger)}
+.twfp{flex:none;width:44px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--text);font:inherit;cursor:pointer}
+.twfp:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.twchips{display:flex;flex-wrap:wrap;gap:6px}
+.twc{display:inline-flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:6px 8px 5px;border-radius:9px;border:1.5px solid var(--line);background:transparent;color:var(--text);cursor:pointer;font:inherit;min-height:44px;transition:transform .12s}
+.twc b{font-size:.92rem;font-variant-numeric:tabular-nums}
+.twc small{font-size:.7rem;color:var(--muted);white-space:nowrap}
 .twc small.good{color:#5fd48a}.twc small.near{color:var(--gold)}.twc small.off{color:var(--danger)}
-.twc.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--surface))}
-.twc.fil{border-style:dashed;border-color:var(--teal)}
-.twc.bin{opacity:.6}
-.twc.rough{text-decoration:line-through;text-decoration-color:var(--muted)}
-.twc.rough b{text-decoration:line-through}
-.twc.on{outline:2px solid var(--text);outline-offset:1px}
-.twc.ping{transform:scale(1.1);background:var(--gold);color:var(--gold-ink)}
-.twc.ping small{color:var(--gold-ink)}
+.twc.anc{background:var(--fc,var(--gold));border-color:var(--fc,var(--gold));color:#1a1030}
+.twc.anc small,.twc.anc small.good,.twc.anc small.near,.twc.anc small.off{color:#1a1030;opacity:.8}
+.twc.fil{border-style:dashed;border-color:var(--fc,var(--teal))}
+.twc.dim{opacity:.5}
+.twc.bin{border-style:dotted;opacity:.75}
+.twc.rough b,.twc.rough small{text-decoration:line-through}
+.twc.rough{opacity:.7}
+.twc.on{outline:2px solid var(--text);outline-offset:2px}
+.twc.ping{transform:scale(1.12)}
 .twc:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.twdetail{border:1.5px solid var(--fc,var(--line))}
 .twkey{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:0;color:var(--muted);font-size:.8rem}
 .twkey>span{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .twkey .k{display:inline-block;width:14px;height:10px;border-radius:3px;border:1.5px solid var(--line)}
-.twkey .k.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 25%,transparent)}
+.twkey .k.anc{border-color:var(--gold);background:var(--gold)}
 .twkey .k.fil{border:1.5px dashed var(--teal)}
-.twkey .k.bin{opacity:.6}
 .twdetail{background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .twtop{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
 .twname{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--gold)}
@@ -1457,7 +1470,8 @@ body.tw-open #gdToast{display:none!important}
 .twstate{display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:60%;text-align:right}
 .twtag{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:99px;border:1.5px solid var(--line)}
 .twtag.anc{border-color:var(--gold);color:var(--gold)}
-.twtag.fil{border:1.5px dashed var(--teal);color:var(--teal)}
+.twtag.fil{border:1.5px dashed var(--fc,var(--teal));color:var(--fc,var(--teal))}
+.twtag.anc{border-color:var(--fc,var(--gold));color:var(--fc,var(--gold))}
 .twtag.bin{color:var(--muted)}
 .twnote{color:var(--muted);font-size:.84rem}
 .twq{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.88rem;color:var(--muted)}
@@ -1484,9 +1498,6 @@ body.tw-open #gdToast{display:none!important}
 .twmsg{margin:0;min-height:1.2em;color:var(--teal);font-size:.88rem}
 .twhow summary{cursor:pointer;color:var(--muted);font-weight:700}
 .twhow p{color:var(--muted);font-size:.88rem;max-width:65ch}
-/* on a phone the notes run in one row you slide along, like a keyboard, so the chosen note's readings sit right below */
-@media (max-width:640px){.twstrip{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:60px;overflow-x:auto;padding:3px 3px 6px;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
-  .twc{scroll-snap-align:center}}
 @media (max-width:520px){.twstate{max-width:100%;align-items:flex-start;text-align:left}.twname{font-size:2rem}}
 @media (prefers-reduced-motion:reduce){.twc,.twsw,.twsw::after{transition:none}}
 </style>
@@ -4295,12 +4306,21 @@ let PROF={active:null,list:[]};
 const profNow=()=>PROF.list.find(p=>p.id===PROF.active)||PROF.list[0];
 const fxNow=()=>Object.assign({},FX0,(profNow()||{}).fx||{});
 function saveProfiles(){idbPut('soundProfiles',JSON.parse(JSON.stringify(PROF)))}
-const saveTune=()=>{const p=profNow();if(p)p.tune=SAMPLES.tune;saveProfiles()};
+// a note's pitch fix belongs to the recording, not the room: every sound profile shares it (trim, volume and fade stay per profile)
+function syncPitch(merge){
+  const p=profNow();if(!p)return;const t0=p.tune||(p.tune={});
+  if(merge)for(const q of PROF.list)if(q!==p&&q.tune)for(const [id,v] of Object.entries(q.tune))if(v&&+v.cents&&!(t0[id]&&+t0[id].cents))t0[id]=Object.assign({},t0[id]||{},{cents:+v.cents});
+  for(const q of PROF.list){if(q===p)continue;const t=q.tune||(q.tune={});
+    for(const id of new Set([...Object.keys(t),...Object.keys(t0)])){const c=+((t0[id]||{}).cents)||0;
+      if(c)t[id]=Object.assign({},t[id]||{},{cents:c});else if(t[id]){delete t[id].cents;if(!Object.keys(t[id]).length)delete t[id]}}}
+}
+const saveTune=()=>{const p=profNow();if(p)p.tune=SAMPLES.tune;syncPitch();saveProfiles()};
 async function loadProfiles(){
   const saved=await idbGet('soundProfiles');
   if(saved&&Array.isArray(saved.list)&&saved.list.length)PROF=saved;
   else{const old=await idbGet('sampleTune');PROF={active:'p1',list:[{id:'p1',name:'My pans',fx:{...FX0},tune:old&&typeof old==='object'?old:{}}]}}
   const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});
+  syncPitch(true);saveProfiles();
   applyFx();renderProfiles();
 }
 /* the effects chain: everything you tap goes through it */
@@ -4345,7 +4365,7 @@ async function makeBest(){
       const endS=Math.min(b.duration,end/sr+0.05,start+2.5),len=endS-start;
       const T={...TUNE0,start:+start.toFixed(3),end:+endS.toFixed(3),fade:+Math.min(0.35,Math.max(0.08,len*0.25)).toFixed(2)};
       SAMPLES.tune[id]=T;
-      const off=centsOff(id);if(off!==null&&Math.abs(off)>4){T.cents=Math.max(-60,Math.min(60,-Math.round(off)));tuned++}
+      const off=centsOff(id);if(off!==null&&Math.abs(off)>0.5&&Math.abs(off)<=55){T.cents=-Math.round(off*10)/10;tuned++}
       const a=Math.round((start+0.02)*sr),z=Math.min(d.length,a+Math.round(0.3*sr));let s=0;for(let i=a;i<z;i++)s+=d[i]*d[i];loud[id]=Math.sqrt(s/Math.max(1,z-a));
     }
     const vals=Object.values(loud).filter(v=>v>0).sort((x,y)=>x-y),target=vals[Math.floor(vals.length/2)];
@@ -5846,14 +5866,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('labSheet').hidd
 // setting the record sheet's fine-tuning uses, so nothing is re-recorded and it can always be undone.
 // "Fill the gaps" plays every note you haven't recorded (or have marked rough) from the closest clean recording on the
 // same pan, retuned to the right note. Tuning one recording therefore also tunes every note made from it.
-// Kept on this device and in backups. Hidden inside the Android app for now (the app opens this same website).
+// Kept on this device and in backups.
 var TW=(()=>{
   const LS='panyard-fill',FILL_MAX=7;   // semitones: further than this a pan note stops sounding like itself
   const st=(()=>{try{const x=JSON.parse(localStorage.getItem(LS)||'{}');return x&&typeof x==='object'?x:{}}catch{return {}}})();
   const store=()=>{try{localStorage.setItem(LS,JSON.stringify(st))}catch{}};
   const cfg=k=>{const c=st[k]||{};return {on:!!c.on,skip:Array.isArray(c.skip)?c.skip.filter(id=>FIELDS.has(id)):[]}};
   const setCfg=(k,c)=>{st[k]={on:!!c.on,skip:[...new Set(c.skip)]};store()};
-  const inApk=(()=>{try{if(/^android-app:\/\//.test(document.referrer))sessionStorage.setItem('py-apk','1');return sessionStorage.getItem('py-apk')==='1'}catch{return /^android-app:/.test(document.referrer)}})();
   const setOf=id=>(FIELDS.get(id)||{}).set||'guitar';
   const mid=id=>midiOf(PITCH[id]);
   const nice=id=>PITCH[id].replace('#','♯').replace(/([A-G])b/,'$1♭');
@@ -5862,8 +5881,8 @@ var TW=(()=>{
     :[[1,'Note','the note itself'],[2,'Octave','twice as high'],[3,'Twelfth','an octave and a fifth up']];
 
   /* which recording plays each note */
-  function fillOf(id){
-    if(!PITCH[id])return null;const k=setOf(id),c=cfg(k);if(!c.on)return null;
+  function fillOf(id,evenOff){
+    if(!PITCH[id])return null;const k=setOf(id),c=cfg(k);if(!c.on&&!evenOff)return null;
     const m=mid(id);let best=null;
     for(const s of Object.keys(SAMPLES.wav)){if(s===id||setOf(s)!==k||!PITCH[s]||c.skip.includes(s))continue;
       const d=m-mid(s),cost=Math.abs(d)+(d>0?.1:0);   // a tie goes to shifting down, which keeps more ring
@@ -5940,8 +5959,8 @@ var TW=(()=>{
     sh.innerHTML='<div class="sheetbox twbox">'
       +'<div class="twhead"><div><span class="eyebrow">Studio · pan sounds</span><h2 id="twTitle">Tuning workshop</h2><p class="twsub" id="twSub"></p></div><button class="btn" id="twClose">Done</button></div>'
       +'<label class="twfill"><input type="checkbox" id="twFill"><span class="twsw" aria-hidden="true"></span><span><b>Fill the gaps from my best notes</b><small id="twFillInfo"></small></span></label>'
-      +'<div class="twstrip" id="twStrip" role="listbox" aria-label="Every note on this pan, low to high"></div>'
-      +'<p class="twkey"><span><i class="k anc"></i>Your recording</span><span><i class="k fil"></i>Made from a nearby recording</span><span><i class="k bin"></i>Built-in sound</span></p>'
+      +'<p class="twkey"><span><i class="k anc"></i>The recording</span><span><i class="k fil"></i>Made from it (↑↓ notes moved)</span><span><s>G4</s> rough take, left out</span></p>'
+      +'<div class="twfams" id="twStrip" aria-label="Your note families, low to high"></div>'
       +'<div class="twdetail" id="twDetail"></div>'
       +'<div class="twacts"><button class="btn" id="twAll">▶ Play the whole pan</button><button class="btn gold" id="twTuneAll">✨ Tune all my recordings</button><button class="btn" id="twPick">Pick the cleanest for me</button></div>'
       +'<p class="twmsg" id="twMsg" aria-live="polite"></p>'
@@ -5956,7 +5975,8 @@ var TW=(()=>{
     $('twFill').onchange=e=>{const k=setKey(),c=cfg(k);c.on=e.target.checked;setCfg(k,c);mineOn();changed();
       msg(c.on?'Gaps filled. Tap ▶ Play the whole pan to hear it.':'Gaps off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.')};
     $('twAll').onclick=playAll;$('twTuneAll').onclick=tuneAll;$('twPick').onclick=pickClean;
-    $('twStrip').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(!b)return;sel=b.dataset.id;render();const c=$('twStrip').querySelector('.on');if(c)c.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});try{strike(sel,.9)}catch{}});
+    $('twStrip').addEventListener('click',e=>{const f=e.target.closest('[data-fam]');if(f){playFam(f.dataset.fam);return}
+      const b=e.target.closest('[data-id]');if(!b)return;sel=b.dataset.id;render();try{strike(sel,.9)}catch{}});
     $('twStrip').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const ids=order(),i=ids.indexOf(sel),n=ids[Math.max(0,Math.min(ids.length-1,i+(e.key==='ArrowRight'?1:-1)))];
       if(n){sel=n;render();const b=$('twStrip').querySelector('[data-id="'+CSS.escape(n)+'"]');if(b)b.focus();try{strike(n,.9)}catch{}}});
     $('twDetail').addEventListener('click',onDetail);
@@ -5976,6 +5996,25 @@ var TW=(()=>{
     return {kind:'built'};
   }
   const Rget=id=>{const b=SAMPLES.wav[id];return b?CACHE.get(b):undefined};   // the reading of each note's current recording
+  // families: each recording that plays, with every note made from it; notes nothing reaches go last
+  const FAM_COL=['#ff8a5c','#ffd166','#5fd4a0','#6fb7ff','#c792ff','#ff7ab8','#4fd6d6','#f2a65a','#9fe07a','#b8a4ff'];
+  function families(){
+    const ids=order(),map=new Map(),loose=[];
+    for(const id of ids){let a=null;
+      if(SAMPLES.wav[id]&&!(cfg(setOf(id)).skip.includes(id)&&fillOf(id,true)))a=id;
+      else{const f=fillOf(id,true);if(f)a=f.src}
+      if(a){if(!map.has(a))map.set(a,[]);map.get(a).push(id)}else loose.push(id)}
+    const fams=[...map.entries()].sort((x,y)=>mid(x[0])-mid(y[0])).map(([a,notes],i)=>({a,notes,col:FAM_COL[i%FAM_COL.length]}));
+    return {fams,loose};
+  }
+  function famChip(id,a,col,on){
+    const own=id===a,has=!!SAMPLES.wav[id],rough=has&&!own,r=Rget(id),tc=tuneC(id),d=mid(id)-mid(a);let sub='',tone='';
+    if(own){if(r&&r.ok&&r.parts[0].heard){const c=r.parts[0].cents+tc;sub=Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢';tone=Math.abs(c)<=3?'good':Math.abs(c)<=10?'near':'off'}else sub=r?'unclear':'…'}
+    else if(rough)sub='rough';else sub=(d>0?'↑':'↓')+Math.abs(d);
+    return '<button class="twc '+(own?'anc':'fil')+(rough?' rough':'')+(!own&&!on?' dim':'')+(id===sel?' on':'')+'" aria-pressed="'+(id===sel)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small class="'+tone+'">'+sub+'</small></button>';
+  }
+  function famStatus(a){const r=Rget(a),tc=tuneC(a);if(!r)return ['','listening…'];if(!r.ok||!r.parts[0].heard)return ['off','unclear take'];
+    const c=r.parts[0].cents+tc;return Math.abs(c)<=3?['good','in tune']:[Math.abs(c)<=10?'near':'off',(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢ · tune it']}
   function chip(id){
     const s=sourceOf(id),r=Rget(id),rough=SAMPLES.wav[id]&&skip(id),tc=tuneC(id);let line='';
     if(s.kind==='own'){if(r&&r.ok&&r.parts[0].heard){const c=r.parts[0].cents+tc;line=(Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢')}else line=r?'unclear':'…'}
@@ -5992,7 +6031,17 @@ var TW=(()=>{
     $('twFill').checked=c.on;
     const filled=ids.filter(id=>sourceOf(id).kind==='fill').length,built=ids.filter(id=>sourceOf(id).kind==='built').length;
     $('twFillInfo').textContent=!own?'Record a few notes on this pan first.':c.on?filled+' note'+(filled===1?'':'s')+' made from your recordings'+(built?', '+built+' too far from any recording (built-in sound)':'')+'.':'Off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.';
-    $('twStrip').innerHTML=ids.map(chip).join('');
+    const {fams,loose}=families(),dBox=$('twDetail');
+    $('twStrip').innerHTML=fams.map(f=>{const [tc,tt]=famStatus(f.a);
+      return '<div class="twfam" style="--fc:'+f.col+'" data-of="'+f.a+'"><div class="twfh"><span class="twdot" aria-hidden="true"></span><b>'+nice(f.a)+' family</b><small>'+f.notes.length+' note'+(f.notes.length===1?'':'s')+'</small>'
+        +'<span class="twfs '+tc+'">'+tt+'</span><button class="twfp" data-fam="'+f.a+'" aria-label="Hear the '+nice(f.a)+' family, low to high">▶</button></div>'
+        +'<div class="twchips">'+f.notes.map(id=>famChip(id,f.a,f.col,c.on)).join('')+'</div></div>'}).join('')
+      +(loose.length?'<div class="twfam loose"><div class="twfh"><span class="twdot" aria-hidden="true"></span><b>Not covered yet</b><small>'+loose.length+' note'+(loose.length===1?'':'s')+'</small></div>'
+        +'<p class="twhint">'+(own?'More than 7 notes from any of your recordings, so these play the built-in sound. Record one of them to start a new family.':'Record a few notes spread across the pan and they\'ll each start a family.')+'</p>'
+        +'<div class="twchips">'+loose.map(id=>'<button class="twc bin'+(id===sel?' on':'')+'" aria-pressed="'+(id===sel)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small>built-in</small></button>').join('')+'</div></div>':'');
+    // the chosen note's readings open right under its own family
+    const home=[...$('twStrip').querySelectorAll('.twfam')].find(r=>r.querySelector('[data-id="'+CSS.escape(sel)+'"]'));
+    if(home){home.after(dBox);dBox.style.setProperty('--fc',getComputedStyle(home).getPropertyValue('--fc'))}
     detail();
     $('twTuneAll').disabled=!own;$('twPick').disabled=own<2;
   }
@@ -6094,6 +6143,9 @@ var TW=(()=>{
     msg(marked.length?'Marked '+marked.length+' rough recording'+(marked.length===1?'':'s')+' ('+marked.join(', ')+'). '+(marked.length===1?'It\'s':'They\'re')+' now made from a cleaner neighbour, and the gaps are filled.':'All your recordings sound clean enough to keep. Gaps are filled from them.');
   }
   let allRun=0;
+  function playFam(a){const f=families().fams.find(x=>x.a===a);if(!f)return;const me=++allRun;mineOn();warmAll();
+    f.notes.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}
+      const b=$('twStrip').querySelector('[data-id="'+CSS.escape(id)+'"]');if(b){b.classList.add('ping');setTimeout(()=>b.classList.remove('ping'),260)}},200+i*280))}
   function playAll(){
     const me=++allRun,ids=order();mineOn();warmAll();msg('Playing '+nice(ids[0])+' to '+nice(ids[ids.length-1])+'…');
     ids.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}
@@ -6108,6 +6160,8 @@ var TW=(()=>{
   }
   // coming back from the record sheet reopens the workshop on the same note
   const _openRec=openRec;openRec=function(on){_openRec(on);if(!on&&back){back=false;show(true)}};
+  // one pitch check for the whole app: the record sheet and "Make my pans sound their best" read notes the way the workshop does
+  const _centsOff=centsOff;centsOff=function(id){const c=centsNow(id);return c===undefined?_centsOff(id):c};
   // fill notes in wherever Advanced tuning would be asked
   const _borrow=borrowOf;borrowOf=function(id){return fillOf(id)||_borrow(id)};
   PAN_HOOKS.push(()=>{if(open)render()});
@@ -6116,7 +6170,14 @@ var TW=(()=>{
   const bi=window.backupIn;window.backupIn=async p=>{let m=bi?await bi(p):'';const f=p&&p.panFill;
     if(f&&typeof f==='object'){for(const [k,v] of Object.entries(f))if(SETS[k]&&v&&typeof v==='object')st[k]={on:!!v.on,skip:Array.isArray(v.skip)?v.skip.filter(id=>typeof id==='string'&&FIELDS.has(id)):[]};store();m+=' Tuning workshop choices added.'}
     return m}},0);
-  return {allowed:!inApk,open:show,skip,fillOf,reading,analyse,get isOpen(){return open}};
+  function centsNow(id){
+    const b=SAMPLES.wav[id];if(!b)return null;let r=CACHE.get(b);
+    if(!r){const buf=SAMPLES.buf[id];if(!buf)return undefined;const x=new Float32Array(buf.length);
+      for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<x.length;i++)x[i]+=d[i]/buf.numberOfChannels}
+      r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
+    return r.ok&&r.parts[0].heard?r.parts[0].cents:null;
+  }
+  return {centsNow,allowed:true,open:show,skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();
 
 /* ---------- 3D pans: the tenor hangs between two stand poles; the others stand as shiny drums ---------- */

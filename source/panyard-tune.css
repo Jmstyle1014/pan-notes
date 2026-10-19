@@ -15,26 +15,39 @@ body.tw-open #gdToast{display:none!important}
 .twfill input:checked+.twsw{background:var(--teal)}
 .twfill input:checked+.twsw::after{transform:translateX(18px);background:var(--text)}
 .twfill input:focus-visible+.twsw{outline:2px solid var(--gold);outline-offset:2px}
-.twstrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px}
-.twc{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 2px 6px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;font:inherit;min-height:48px;transition:transform .12s}
-.twc b{font-size:.95rem;font-variant-numeric:tabular-nums}
-.twc small{font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.twfams{display:flex;flex-direction:column;gap:8px}
+.twfam{--fc:var(--muted);display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.twfam:has(.twc.on){border-color:var(--fc)}
+.twfh{display:flex;align-items:center;gap:8px;min-width:0}
+.twfh b{font-size:.95rem}
+.twfh small{color:var(--muted);font-size:.8rem}
+.twdot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--fc)}
+.twfam.loose .twdot{background:transparent;border:1.5px dashed var(--muted)}
+.twfs{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--muted);white-space:nowrap}
+.twfs.good{color:#5fd48a}.twfs.near{color:var(--gold)}.twfs.off{color:var(--danger)}
+.twfp{flex:none;width:44px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--text);font:inherit;cursor:pointer}
+.twfp:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.twchips{display:flex;flex-wrap:wrap;gap:6px}
+.twc{display:inline-flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:6px 8px 5px;border-radius:9px;border:1.5px solid var(--line);background:transparent;color:var(--text);cursor:pointer;font:inherit;min-height:44px;transition:transform .12s}
+.twc b{font-size:.92rem;font-variant-numeric:tabular-nums}
+.twc small{font-size:.7rem;color:var(--muted);white-space:nowrap}
 .twc small.good{color:#5fd48a}.twc small.near{color:var(--gold)}.twc small.off{color:var(--danger)}
-.twc.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--surface))}
-.twc.fil{border-style:dashed;border-color:var(--teal)}
-.twc.bin{opacity:.6}
-.twc.rough{text-decoration:line-through;text-decoration-color:var(--muted)}
-.twc.rough b{text-decoration:line-through}
-.twc.on{outline:2px solid var(--text);outline-offset:1px}
-.twc.ping{transform:scale(1.1);background:var(--gold);color:var(--gold-ink)}
-.twc.ping small{color:var(--gold-ink)}
+.twc.anc{background:var(--fc,var(--gold));border-color:var(--fc,var(--gold));color:#1a1030}
+.twc.anc small,.twc.anc small.good,.twc.anc small.near,.twc.anc small.off{color:#1a1030;opacity:.8}
+.twc.fil{border-style:dashed;border-color:var(--fc,var(--teal))}
+.twc.dim{opacity:.5}
+.twc.bin{border-style:dotted;opacity:.75}
+.twc.rough b,.twc.rough small{text-decoration:line-through}
+.twc.rough{opacity:.7}
+.twc.on{outline:2px solid var(--text);outline-offset:2px}
+.twc.ping{transform:scale(1.12)}
 .twc:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.twdetail{border:1.5px solid var(--fc,var(--line))}
 .twkey{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:0;color:var(--muted);font-size:.8rem}
 .twkey>span{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .twkey .k{display:inline-block;width:14px;height:10px;border-radius:3px;border:1.5px solid var(--line)}
-.twkey .k.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 25%,transparent)}
+.twkey .k.anc{border-color:var(--gold);background:var(--gold)}
 .twkey .k.fil{border:1.5px dashed var(--teal)}
-.twkey .k.bin{opacity:.6}
 .twdetail{background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .twtop{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
 .twname{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--gold)}
@@ -42,7 +55,8 @@ body.tw-open #gdToast{display:none!important}
 .twstate{display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:60%;text-align:right}
 .twtag{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:99px;border:1.5px solid var(--line)}
 .twtag.anc{border-color:var(--gold);color:var(--gold)}
-.twtag.fil{border:1.5px dashed var(--teal);color:var(--teal)}
+.twtag.fil{border:1.5px dashed var(--fc,var(--teal));color:var(--fc,var(--teal))}
+.twtag.anc{border-color:var(--fc,var(--gold));color:var(--fc,var(--gold))}
 .twtag.bin{color:var(--muted)}
 .twnote{color:var(--muted);font-size:.84rem}
 .twq{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.88rem;color:var(--muted)}
@@ -69,8 +83,5 @@ body.tw-open #gdToast{display:none!important}
 .twmsg{margin:0;min-height:1.2em;color:var(--teal);font-size:.88rem}
 .twhow summary{cursor:pointer;color:var(--muted);font-weight:700}
 .twhow p{color:var(--muted);font-size:.88rem;max-width:65ch}
-/* on a phone the notes run in one row you slide along, like a keyboard, so the chosen note's readings sit right below */
-@media (max-width:640px){.twstrip{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:60px;overflow-x:auto;padding:3px 3px 6px;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
-  .twc{scroll-snap-align:center}}
 @media (max-width:520px){.twstate{max-width:100%;align-items:flex-start;text-align:left}.twname{font-size:2rem}}
 @media (prefers-reduced-motion:reduce){.twc,.twsw,.twsw::after{transition:none}}

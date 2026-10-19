@@ -164,6 +164,22 @@ rep("'Pan photos':'photos',", "'Pan photos':'photos','Pan look':'photos',")
 rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + open(os.path.join(HERE, 'panyard-tune.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
 # a recording you've marked rough is played from a cleaner neighbour instead
 rep('let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=borrowOf(id);', "let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=borrowOf(id);")
+# one pitch per recording: "Make my pans sound their best" tunes exactly like the workshop (fine steps, and leaves a note
+# that sounds like a different note alone), and every sound profile shares each note's pitch fix
+rep("const off=centsOff(id);if(off!==null&&Math.abs(off)>4){T.cents=Math.max(-60,Math.min(60,-Math.round(off)));tuned++}",
+    "const off=centsOff(id);if(off!==null&&Math.abs(off)>0.5&&Math.abs(off)<=55){T.cents=-Math.round(off*10)/10;tuned++}")
+rep("const saveTune=()=>{const p=profNow();if(p)p.tune=SAMPLES.tune;saveProfiles()};",
+    """// a note's pitch fix belongs to the recording, not the room: every sound profile shares it (trim, volume and fade stay per profile)
+function syncPitch(merge){
+  const p=profNow();if(!p)return;const t0=p.tune||(p.tune={});
+  if(merge)for(const q of PROF.list)if(q!==p&&q.tune)for(const [id,v] of Object.entries(q.tune))if(v&&+v.cents&&!(t0[id]&&+t0[id].cents))t0[id]=Object.assign({},t0[id]||{},{cents:+v.cents});
+  for(const q of PROF.list){if(q===p)continue;const t=q.tune||(q.tune={});
+    for(const id of new Set([...Object.keys(t),...Object.keys(t0)])){const c=+((t0[id]||{}).cents)||0;
+      if(c)t[id]=Object.assign({},t[id]||{},{cents:c});else if(t[id]){delete t[id].cents;if(!Object.keys(t[id]).length)delete t[id]}}}
+}
+const saveTune=()=>{const p=profNow();if(p)p.tune=SAMPLES.tune;syncPitch();saveProfiles()};""")
+rep("  const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});\n  applyFx();renderProfiles();",
+    "  const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});\n  syncPitch(true);saveProfiles();\n  applyFx();renderProfiles();")
 rep("  renderSaveInfo();\n  initStore();\n})();", "  renderSaveInfo();\n  initStore();\n  showView('home');\n})();")
 open(OUT, 'w', encoding='utf-8').write(s)
 print('wrote', OUT)
