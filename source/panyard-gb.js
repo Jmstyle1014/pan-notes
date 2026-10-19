@@ -111,6 +111,8 @@ const GB={
     if(!$('gbBar'))return;const inst=document.body.classList.contains('st-inst');
     $('gbView').querySelectorAll('[data-v]').forEach(b=>{const on=(b.dataset.v==='inst')===inst;if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});
     const tg=(el,on)=>{if(el.classList.contains('on')!==on)el.classList.toggle('on',on)};
+    // the instrument button is named for the chosen track: Pans, Drums, Beat…
+    {const il=document.querySelector('#stViews [data-sv="inst"]'),gv=$('gbView').querySelector('[data-v="inst"] span');if(il&&gv){const t=il.textContent.replace(/^\S+\s/,'');if(t&&gv.textContent!==t)gv.textContent=t}}
     tg($('gbMetro'),$('stMetro').getAttribute('aria-pressed')==='true');tg($('gbLoop'),$('stLoop').getAttribute('aria-pressed')==='true');
     const on=document.querySelector('.st-tchips .chip.on'),pill=$('gbPill');
     if(pill&&on){const t=on.textContent.trim();if(pill.dataset.t!==t){pill.dataset.t=t;pill.textContent=t+' ▾'}}

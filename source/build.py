@@ -71,7 +71,7 @@ for _, _, f in FONTS: shutil.copy(os.path.join(VENDOR, f), os.path.join(OUT, 'fo
 shutil.copy(os.path.join(VENDOR, 'jspdf.umd.min.js'), os.path.join(OUT, 'jspdf.umd.min.js'))
 if 'lame.min.js' in src: shutil.copy(os.path.join(VENDOR, 'lame.min.js'), os.path.join(OUT, 'lame.min.js'))   # MP3 export (Studio)
 # Studio's Real drum kit (recorded drums and percussion), for the versions that have Studio
-if "fetch('drums/kit.json')" in src and os.path.isdir(os.path.join(HERE, 'drums')): shutil.copytree(os.path.join(HERE, 'drums'), os.path.join(OUT, 'drums'), dirs_exist_ok=True)
+if ("fetch('drums/kit.json')" in src or "dir:'drums/'" in src) and os.path.isdir(os.path.join(HERE, 'drums')): shutil.copytree(os.path.join(HERE, 'drums'), os.path.join(OUT, 'drums'), dirs_exist_ok=True)
 
 # icons: a gold pan on the dark stage colour
 def icon(size, maskable):
@@ -110,17 +110,18 @@ json.dump(manifest, open(os.path.join(OUT, 'manifest.webmanifest'), 'w'), indent
 # service worker: keeps every app file on the phone so it opens with no internet
 files = sorted(os.path.relpath(os.path.join(dp, f), OUT).replace(os.sep, '/') for dp, _, fs in os.walk(OUT) for f in fs)
 h = hashlib.sha1(b''.join(open(os.path.join(OUT, f), 'rb').read() for f in files)).hexdigest()[:10]
-shell = ['./'] + files
+shell = ['./'] + [f for f in files if not re.match(r'drums/[^/]+/', f)]   # extra drum kits are saved when first used
 sw = f'''// Pan Notes offline cache ({h})
 const CACHE='{NAME.lower().replace(' ','-')}-{h}',FILES={json.dumps(shell)};
-self.addEventListener('install',e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))}});
+self.addEventListener('install',e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{{cache:'reload'}})))).then(()=>self.skipWaiting()))}});
 self.addEventListener('activate',e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&/^{re.escape(NAME.lower().replace(' ','-'))}-[0-9a-f]{{10}}$/.test(k)).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))}});
 self.addEventListener('fetch',e=>{{
   if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;
   // the page itself: try for a newer version first, fall back to the saved copy when offline
   // only this app's own page; another version living in a sub-folder looks after itself
-  if(e.request.mode==='navigate'){{if(new URL(e.request.url).pathname!==new URL('./',location).pathname)return;e.respondWith(fetch(e.request).then(r=>{{const cp=r.clone();caches.open(CACHE).then(c=>c.put('./',cp));return r}}).catch(()=>caches.match('./')));return}}
-  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
+  if(e.request.mode==='navigate'){{if(new URL(e.request.url).pathname!==new URL('./',location).pathname)return;e.respondWith(fetch(e.request.url,{{cache:'no-cache',credentials:'same-origin'}}).then(r=>{{const cp=r.clone();caches.open(CACHE).then(c=>c.put('./',cp));return r}}).catch(()=>caches.match('./')));return}}
+  // an extra drum kit's sounds: kept once fetched, so a kit you've used works offline
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{{if(res.ok&&/\\/drums\\/[^/]+\\//.test(new URL(e.request.url).pathname)){{const cp=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cp))}}return res}})));
 }});
 '''
 open(os.path.join(OUT, 'sw.js'), 'w').write(sw)

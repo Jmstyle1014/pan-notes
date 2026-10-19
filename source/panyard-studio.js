@@ -17,6 +17,16 @@ const GCOL={};for(const k in SETS)(SETS[k].groups||[]).forEach(g=>{if(!GCOL[g.ke
 const gcol=id=>{const g=grpOf(id);return 'var(--'+g+','+(GCOL[g]||'#9d93c9')+')'};
 const pname=id=>{const f=FIELDS.get(id);return (f?f.label.replace(/[\u0307\u0308\u0323\u0324]/g,''):id)+PITCH[id].slice(-1)};
 const mtof=m=>440*Math.pow(2,(m-69)/12);
+/* ---- drum kits: the Real kit is in drums/, each other kit in its own folder, loaded the first time it's used ----
+   lay: how the kit is drawn to play (a drum kit seen from above, the engine room, or drum machine pads) */
+const KITS={
+  real:{name:'Panyard Real kit',feel:'Steelband drums and percussion',dir:'drums/',lay:'kit',by:'Versilian Community Sample Library (CC0)'},
+  engine:{name:'Engine Room',feel:'Iron, scratcher, cowbell, shak-shak, congas',dir:'drums/',lay:'engine',by:'Versilian Community Sample Library (CC0)'},
+  rusty:{name:'Big Rusty',feel:'1980s rock kit, big and roomy',dir:'drums/rusty/',lay:'kit',by:'Big Rusty Drums by Karoryfer Samples (CC0)'},
+  jazz:{name:'Virtuosity Jazz',feel:'Jazz kit for calypso and kaiso',dir:'drums/jazz/',lay:'kit',by:'Virtuosity Drums by Versilian Studios and Karoryfer Samples (CC0)'},
+  pearl:{name:'Black Pearl',feel:'Clean studio kit for pop and rock',dir:'drums/pearl/',lay:'kit',by:'Black Pearl from AVL Drumkits by Glen MacArthur (CC BY-SA 3.0)'},
+  machine:{name:'Drum Machine',feel:'TR-808 electronic drums',dir:'drums/machine/',lay:'pads',by:'Roland TR-808 samples by Michael Fischer, given away free'}
+};
 
 /* ---- the studio song: one per Panyard song ---- */
 let song=null,songKey=null,loading=null;
@@ -25,12 +35,14 @@ function trk(type,extra){
   if(type==='pan'){t.notes=[];t.panSet=setKey();t.name=SETS[t.panSet].name}
   if(type==='audio'){t.take=null;t.start=0;t.dur=0;t.peaks=null;t.lagMs=0;t.name='Mic'}
   if(type==='beats'){t.len=16;t.swing=0;t.unit=8;t.off=[];t.rows=[36,38,42,46].map(m=>({m,steps:Array(16).fill(0)}));t.name='Beat'}
+  // a drum track: a kit you play with your fingers; every hit is a note (p = the drum's number) on the track
+  if(type==='drums'){t.notes=[];t.kit='rusty';t.name=KITS.rusty.name}
   if(type==='practice')t.name='Your recording';
   if(type==='part')t.name='My part';
   return Object.assign(t,extra||{});
 }
 const blank=()=>{const part=trk('part');part.name='My part (Write)';return{v:1,bpm:100,metro:false,countIn:true,recMode:'add',snap:'off',snapRec:false,cycle:null,master:.85,sel:part.id,minBars:8,tracks:[trk('practice'),part]}};
-const MIXDEF={practice:.04,audio:.08,pan:.22,part:.22,beats:.05},DECAY={practice:1.2,audio:1.4,pan:1.9,part:1.9,beats:.9};
+const MIXDEF={practice:.04,audio:.08,pan:.22,part:.22,beats:.05,drums:.06},DECAY={practice:1.2,audio:1.4,pan:1.9,part:1.9,beats:.9,drums:.9};
 const mixOf=tr=>tr.mix==null?MIXDEF[tr.type]:tr.mix;
 // each track's own settings (Track settings): tone, echo and room; for pan tracks also quantize and transpose
 const FX0={treble:0,bass:0,comp:0,echo:0,echoT:'q',room:0};
@@ -93,13 +105,14 @@ function partNotes(){
 }
 const notesOf=tr=>tr.type==='part'?partNotes():tr.notes||[];
 const isPanish=tr=>tr.type==='pan'||tr.type==='part';
+const isNotey=tr=>isPanish(tr)||tr.type==='drums';   // tracks made of hits you play: pans, your part, drums
 const audioOf=tr=>tr.type==='practice'?pBuf:tr.type==='audio'&&tr.take?buffers[tr.take]:null;
 const startOf=tr=>tr.type==='practice'?pracStart():tr.start||0;
 function contentEnd(){let e=0;
   for(const tr of song.tracks){
     const a=audioOf(tr);if(a)e=Math.max(e,startOf(tr)+a.duration/spb());
     else if(tr.type==='audio'&&tr.dur)e=Math.max(e,tr.start+tr.dur/spb());
-    if(isPanish(tr))for(const n of notesOf(tr))e=Math.max(e,n.t+n.d);
+    if(isNotey(tr))for(const n of notesOf(tr))e=Math.max(e,n.t+n.d);
   }return e}
 const bars=()=>Math.max(song.minBars||8,Math.ceil(contentEnd()/BPB()-.1));   // a last note ringing a moment past the bar line doesn't add a bar
 const L=()=>bars()*BPB();
@@ -137,7 +150,7 @@ function channel(tr){
   let c=chans.get(tr.id);
   if(!c){
     const out=ctx.createGain(),play=ctx.createGain(),hp=ctx.createBiquadFilter(),pan=ctx.createStereoPanner?ctx.createStereoPanner():null,dry=ctx.createGain(),send=ctx.createGain(),meter=ctx.createAnalyser();
-    hp.type='highpass';hp.frequency.value=tr.type==='beats'?20:45;hp.Q.value=.6;meter.fftSize=512;
+    hp.type='highpass';hp.frequency.value=tr.type==='beats'||tr.type==='drums'?20:45;hp.Q.value=.6;meter.fftSize=512;
     // tone: bass and treble shelves, then a compressor with a little make-up gain
     const lo=ctx.createBiquadFilter(),hi=ctx.createBiquadFilter(),comp=ctx.createDynamicsCompressor(),mk=ctx.createGain();
     lo.type='lowshelf';lo.frequency.value=220;hi.type='highshelf';hi.frequency.value=3200;comp.attack.value=.005;comp.release.value=.18;comp.knee.value=8;
@@ -199,6 +212,40 @@ const SOUNDS=[{m:36,n:'Kick'},{m:38,n:'Snare'},{m:39,n:'Clap'},{m:37,n:'Rim'},{m
   {m:60,n:'Bongo high'},{m:61,n:'Bongo low'},{m:67,n:'Agogo high'},{m:68,n:'Agogo low'},{m:54,n:'Tambourine'},{m:76,n:'Woodblock'},{m:94,n:'Cajon'},
   {m:90,n:'Doum'},{m:91,n:'Tek'},{m:92,n:'Ka'},{m:93,n:'Log drum'}];
 const DRUM_NAME=Object.fromEntries(SOUNDS.map(s=>[s.m,s.n]));
+/* ---- playing a drum track: a kit seen from above, the engine room's percussion, or drum machine pads ---- */
+// [drum, name, x %, y %, width %, kind]: kind is a drum head, a kick, a cymbal or a small block
+const KIT_LAY=[[49,'Crash',6,3,19,'cym'],[51,'Ride',72,3,21,'cym'],[42,'Hi-hat',1,38,15,'cym'],[46,'Open hat',1,78,15,'blk'],
+  [48,'High tom',30,5,13,'drum'],[45,'Low tom',45,6,14,'drum'],[38,'Snare',17,40,17,'drum'],[37,'Rim',19,82,13,'blk'],
+  [36,'Kick',36,34,22,'kick'],[43,'Floor tom',60,42,17,'drum']];
+// held upright the kit stands taller (a 9:13 stage): cymbals on top, then toms, then hi-hat, snare and floor tom, the kick at the bottom
+const KIT_TALL=[[49,'Crash',2,2,36,'cym'],[51,'Ride',62,2,36,'cym'],[48,'High tom',25,23,24,'drum'],[45,'Low tom',51,24,25,'drum'],
+  [42,'Hi-hat',1,42,30,'cym'],[38,'Snare',30,45,29,'drum'],[43,'Floor tom',63,44,34,'drum'],[36,'Kick',29,65,38,'kick'],
+  [46,'Open hat',1,66,24,'blk'],[37,'Rim',1,75,24,'blk']];
+const KIT_TALL_EXTRA={real:[[81,'Iron',74,70,25,'blk'],[73,'Scratcher',74,79,25,'blk']],other:[[53,'Ride bell',74,70,25,'blk'],[44,'Hat pedal',74,79,25,'blk']]};
+const tallStage=()=>innerHeight>innerWidth*1.1;
+const KIT_EXTRA={real:[[81,'Iron',82,60,15,'blk'],[73,'Scratcher',82,78,15,'blk']],
+  other:[[53,'Ride bell',82,60,15,'blk'],[44,'Hat pedal',82,78,15,'blk']]};
+const PADS={
+  engine:[[81,'Iron','#9fb0c0'],[80,'Iron muted','#9fb0c0'],[73,'Scratcher','#7ee2a8'],[70,'Shak-shak','#7ee2a8'],
+    [56,'Cowbell','#ffd166'],[67,'Agogo high','#ffd166'],[68,'Agogo low','#ffd166'],[75,'Clave','#ffd166'],
+    [63,'Conga high','#ff8a5c'],[62,'Conga slap','#ff8a5c'],[64,'Conga low','#ff8a5c'],[54,'Tambourine','#c792ff'],
+    [60,'Bongo high','#ff7ab8'],[61,'Bongo low','#ff7ab8'],[76,'Woodblock','#c792ff'],[39,'Clap','#6fb7ff']],
+  pads:[[49,'Cymbal','#ffd166'],[46,'Open hat','#6fb7ff'],[42,'Closed hat','#6fb7ff'],[56,'Cowbell','#9fe07a'],
+    [48,'High tom','#c792ff'],[47,'Mid tom','#c792ff'],[45,'Low tom','#c792ff'],[75,'Clave','#9fe07a'],
+    [39,'Clap','#ff7ab8'],[37,'Rim','#ff8a5c'],[40,'Snare 2','#ff8a5c'],[38,'Snare','#ff8a5c'],
+    [70,'Maraca','#9fe07a'],[63,'Conga','#9fe07a'],[35,'Boom','#4fd6d6'],[36,'Kick','#4fd6d6']]};
+// a drum track's lane: cymbals on top, kick at the bottom
+const DRUM_ROW=m=>[49,51,52,53,55,57,59].includes(m)?0:[42,44,46].includes(m)?1:[41,43,45,47,48,50].includes(m)?2:[37,38,39,40].includes(m)?3:[35,36].includes(m)?4:5;
+const ROW_COL=['#ffd166','#6fb7ff','#c792ff','#ff8a5c','#4fd6d6','#9fe07a'];
+function kitHTML(tr){
+  const id=realKit(tr)||'real',K=KITS[id]||KITS.real;
+  const tall=tallStage();
+  let h='<div class="st-kitstage lay-'+K.lay+(tall?' tall':'')+'" id="stKit">';
+  if(K.lay==='kit')for(const [m,n,x,y,w,k] of tall?KIT_TALL.concat(KIT_TALL_EXTRA[id]||KIT_TALL_EXTRA.other):KIT_LAY.concat(KIT_EXTRA[id]||KIT_EXTRA.other))
+    h+='<button class="st-dp k-'+k+'" data-m="'+m+'" style="left:'+x+'%;top:'+y+'%;width:'+w+'%" aria-label="'+n+'"><span>'+n+'</span></button>';
+  else h+='<div class="st-pads">'+PADS[K.lay].map(([m,n,c])=>'<button class="st-dp k-pad" data-m="'+m+'" style="--pc:'+c+'"><span>'+n+'</span></button>').join('')+'</div>';
+  return h+'<button class="st-kitname" data-st="kitsheet" aria-label="Change kit: '+esc(K.name)+'">'+esc(K.name)+' ▾</button></div>';
+}
 const DRUMS={
   36:(d,t,v)=>{const gn=ctx.createGain();env(gn,t,1.1*v,.45);gn.connect(d);const o=osc('sine',160,t,t+.5,gn);o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(42,t+.12)},
   38:(d,t,v)=>{const gn=ctx.createGain(),hp=filt('highpass',1400);env(gn,t,.65*v,.2);hp.connect(gn);gn.connect(d);noiseSrc(t,.25,hp);tone(d,t,190,.4*v,.12,'triangle')},
@@ -231,19 +278,28 @@ Object.assign(DRUMS,{
 /* ---- the Real kit: recorded drums and percussion (CC0, from the Versilian Community Sample Library) ----
    Each sound has one to three recorded hits; the app picks among them so a run of the same note never sounds
    like a machine. If the files can't load (or a beat is set to Classic), the built-in tones play instead. */
-const KIT={buf:new Map(),loading:null,ok:false};
-function loadKit(){
-  if(KIT.loading)return KIT.loading;
-  KIT.loading=(async()=>{try{
-    const meta=await (await fetch('drums/kit.json')).json(),ac=panCtx();
+// one set of sounds per folder (the Engine Room shares the Real kit's)
+const KITBUF=new Map();
+const kitBuf=id=>{const dir=(KITS[id]||KITS.real).dir;let k=KITBUF.get(dir);if(!k){k={buf:new Map(),loading:null,ok:false};KITBUF.set(dir,k)}return k};
+const KIT=kitBuf('real');
+function loadKit(id){
+  const K=kitBuf(id),dir=(KITS[id]||KITS.real).dir;
+  if(K.loading)return K.loading;
+  K.loading=(async()=>{try{
+    const meta=await (await fetch(dir+'kit.json')).json(),ac=panCtx();
     await Promise.all(Object.entries(meta).map(async([m,k])=>{const bs=[];
-      for(const f of k.f){try{const ab=await (await fetch('drums/'+f)).arrayBuffer();bs.push(await new Promise((res,rej)=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)}))}catch{}}
-      if(bs.length)KIT.buf.set(+m,{b:bs,lv:+k.lv||1,last:-1})}));
-    KIT.ok=KIT.buf.size>0;
-  }catch{KIT.ok=false}})();
-  return KIT.loading;
+      for(const f of k.f){try{const ab=await (await fetch(dir+f)).arrayBuffer();bs.push(await new Promise((res,rej)=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)}))}catch{}}
+      if(bs.length)K.buf.set(+m,{b:bs,lv:+k.lv||1,last:-1})}));
+    K.ok=K.buf.size>0;
+  }catch{K.ok=false}
+    if(!K.ok)K.loading=null;   // offline the first time: try again next time it's chosen
+  })();
+  return K.loading;
 }
-const realKit=tr=>!tr||tr.kit!=='synth';
+// which kit a beat or drum track plays: a kit's id, or false for the Classic (made-in-the-app) sounds
+const realKit=tr=>!tr||tr.kit!=='synth'?(tr&&KITS[tr.kit]?tr.kit:'real'):false;
+// a drum a kit doesn't have borrows the nearest one it does (a floor tom from the low tom, a pedal hi-hat from the closed one)
+const DRUM_ALT={35:36,40:38,41:45,43:45,47:48,50:48,44:42,53:51,59:51,52:49,55:49,57:49,82:70,69:70};
 const DRUM_BUF=new Map();let drumWarm=null;
 async function cacheDrum(m){
   if(DRUM_BUF.has(m)||!DRUMS[m])return;
@@ -251,9 +307,17 @@ async function cacheDrum(m){
   ctx=off;try{DRUMS[m](off.destination,0,1)}finally{ctx=live}   // the build is synchronous, so live sounds never see the swap
   DRUM_BUF.set(m,await off.startRendering());
 }
-function warmDrums(){if(!drumWarm)drumWarm=(async()=>{await loadKit();for(const s of SOUNDS)await cacheDrum(s.m)})().finally(()=>{drumWarm=null});return drumWarm}
+function warmDrums(){if(!drumWarm)drumWarm=(async()=>{const ids=new Set(['real']);if(song)for(const t of song.tracks){const k=realKit(t);if((t.type==='beats'||t.type==='drums')&&k)ids.add(k)}
+  await Promise.all([...ids].map(loadKit));for(const s of SOUNDS)await cacheDrum(s.m)})().finally(()=>{drumWarm=null});return drumWarm}
+// the recorded hit for drum m in this kit: its own, else a stand-in from the same kit, else the Real kit's
+function kitHit(m,kit){
+  const id=kit===true?'real':kit;if(!id)return null;const K=kitBuf(id);
+  if(!K.ok&&!K.loading)loadKit(id);
+  return K.buf.get(m)||K.buf.get(DRUM_ALT[m])||(id!=='real'?KIT.buf.get(m)||KIT.buf.get(DRUM_ALT[m]):null)||null;
+}
 function playDrum(m,dest,t,v,real=true){
-  const k=real&&KIT.buf.get(m);
+  if(!DRUMS[m]&&DRUM_ALT[m]&&!kitHit(m,real))m=DRUM_ALT[m];
+  const k=kitHit(m,real);
   if(k){let i=Math.floor(Math.random()*k.b.length);if(k.b.length>1&&i===k.last)i=(i+1)%k.b.length;k.last=i;   // never the same recorded hit twice in a row
     const s=ctx.createBufferSource(),gn=ctx.createGain();s.buffer=k.b[i];gn.gain.value=v*k.lv*1.5;s.connect(gn);gn.connect(dest);s.start(Math.max(t,ctx.currentTime));lineUp(s,t);return}
   const b=DRUM_BUF.get(m);
@@ -382,6 +446,8 @@ function scheduleRange1(a,b,off){
   for(const tr of song.tracks){
     const c=channel(tr);
     if(tr.type==='beats'){const rk=realKit(tr);for(const [bt,m,v] of beatHits(tr,a,b))playDrum(m,c.play,u2t(bt+off),v,rk);continue}
+    if(tr.type==='drums'){const rk=realKit(tr),hush=T.rec&&(song.recMode==='replace'||song.recMode==='take')&&tr.id===T.recTid;
+      for(const n of tr.notes)if(n.t>=a&&n.t<b&&n.tk!==T.take&&!(hush&&n.t>=T.recFrom-1e-6))playDrum(+n.p,c.play,u2t(n.t+off),n.v,rk);continue}
     const buf=audioOf(tr);
     if(buf){if(T.mic&&T.mic.tr===tr)continue;const st=startOf(tr);
       const endT=looping()?u2t(off+loopE()):0;
@@ -458,11 +524,11 @@ function toggleRec(){
   if(T.mic){micStop();return}
   if(T.rec){T.rec=false;if(WR.on)writeRecEnd();else endNoteRec();renderTransport();return}
   const tr=selTr();
-  if(tr&&(tr.type==='pan'||tr.type==='part')&&!PR.cal&&!PR.askTap){PR.askTap=1;savePR();AC();openSheet('timing','first');return}
+  if(tr&&(tr.type==='pan'||tr.type==='part'||tr.type==='drums')&&!PR.cal&&!PR.askTap){PR.askTap=1;savePR();AC();openSheet('timing','first');return}
   if(tr&&tr.type==='audio'&&PR.micLag==null&&!PR.askMic){PR.askMic=1;savePR();AC();openSheet('timing','firstmic');return}
   if(tr.type==='audio'){micStart(tr);return}
   if(tr.type==='part'){if(!AC())return;writeRecStart(tr);return}
-  if(tr.type!=='pan'){say('Choose a Mic or Pan taps track to record into, or add one with + Add track.');return}
+  if(tr.type!=='pan'&&tr.type!=='drums'){say('Choose a Mic, Pan taps or Drum kit track to record into, or add one with + Add track.');return}
   if(!AC())return;pushHistory();T.take++;T.recTid=tr.id;T.rec=true;T.mb0=song.minBars;
   if(song.recMode==='take')takeBegin(tr);
   T.recFrom=T.playing?beatNow():T.pos;
@@ -483,6 +549,18 @@ function panDown(e,el){
   el.classList.add('hit');
   const r={el,n,timer:0,rolls:[]};
   const go=()=>{const v=.5+Math.random()*.25;panVoice(c.out,id,ctx.currentTime+.003,v);const rn=recNote(tr,id,v);if(rn){rn.d=.25;r.rolls.push(rn)}r.timer=setTimeout(go,60+Math.random()*18)};
+  r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);
+}
+{let wasTall=null;addEventListener('resize',()=>{const t=tallStage();if(t===wasTall)return;wasTall=t;if(song&&VIEW==='inst'&&selTr().type==='drums')renderInst()})}
+function drumDown(e,el){
+  e.preventDefault();if(!AC())return;const tr=selTr();if(tr.type!=='drums')return;
+  const m=+el.dataset.m,c=channel(tr),rk=realKit(tr),bx=el.getBoundingClientRect();let v=.95;
+  // on a drum or cymbal, the middle is a full hit and the edge a softer one
+  if(!el.classList.contains('k-blk')&&!el.classList.contains('k-pad')){const dx=(e.clientX-bx.left)/bx.width-.5,dy=(e.clientY-bx.top)/bx.height-.5;v=+(1-.45*Math.min(1,Math.hypot(dx,dy)*2)).toFixed(2)}
+  playDrum(m,c.out,ctx.currentTime+.003,v,rk);const n=recNote(tr,m,v,tapT(e));
+  el.classList.add('hit');
+  const r={el,n,timer:0,rolls:[]};
+  const go=()=>{const vv=.45+Math.random()*.25;playDrum(m,c.out,ctx.currentTime+.003,vv,rk);const rn=recNote(tr,m,vv);if(rn){rn.d=.25;r.rolls.push(rn)}r.timer=setTimeout(go,55+Math.random()*15)};
   r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);
 }
 function panUp(e){const r=held.get(e.pointerId);if(!r)return;clearTimeout(r.timer);setTimeout(()=>r.el.classList.remove('hit'),90);
@@ -694,7 +772,7 @@ window.backupExtra=async()=>{
 window.backupIn=async p=>{
   const st=p&&p.studio;if(!st||!Array.isArray(st.tracks))return'';
   const num=(v,a,b,d)=>Number.isFinite(+v)?Math.max(a,Math.min(b,+v)):d;
-  const tracks=st.tracks.filter(t=>t&&['practice','part','pan','beats'].includes(t.type)).slice(0,24).map(t=>{
+  const tracks=st.tracks.filter(t=>t&&['practice','part','pan','beats','drums'].includes(t.type)).slice(0,24).map(t=>{
     const o=trk(t.type,{name:String(t.name||'').slice(0,28)||trk(t.type).name,vol:num(t.vol,0,1.5,.85),pan:num(t.pan,-1,1,0),mute:!!t.mute,solo:!!t.solo,mix:t.mix==null?null:num(t.mix,0,1,null)});
     const cleanN=arr=>(Array.isArray(arr)?arr:[]).filter(n=>n&&PITCH[n.p]&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.5),p:n.p,v:num(n.v,0,1,.9),...(n.roll?{roll:1}:{})}));
     if(t.fx&&typeof t.fx==='object')o.fx={treble:num(t.fx.treble,-12,12,0),bass:num(t.fx.bass,-12,12,0),comp:num(t.fx.comp,0,1,0),echo:num(t.fx.echo,0,.6,0),echoT:ECHOES[t.fx.echoT]?t.fx.echoT:'q',room:ROOMS.some(r=>r[0]===+t.fx.room)?+t.fx.room:0};
@@ -702,7 +780,8 @@ window.backupIn=async p=>{
       if(t.q&&QNT[t.q.mode])o.q={mode:t.q.mode,div:[1,.5,.25].includes(+t.q.div)?+t.q.div:.5,sw:t.q.sw==='heavy'?'heavy':'light'};
       if(Number.isInteger(t.tp)&&t.tp&&Math.abs(t.tp)<=24)o.tp=t.tp;
       if(Array.isArray(t.takes)&&t.takes.length>1&&Number.isInteger(t.tk)&&t.takes[t.tk]){o.takes=t.takes.slice(0,50).map((k,i)=>({name:String(k&&k.name||'Take '+(i+1)).slice(0,28),notes:i===t.tk?null:cleanN(k&&k.notes)}));o.tk=Math.min(t.tk,o.takes.length-1)}}
-    if(t.type==='beats'){if(t.kit==='synth')o.kit='synth';o.len=Number.isInteger(t.len)&&t.len>=1&&t.len<=64?t.len:16;o.unit=Number.isInteger(t.unit)&&t.unit>=1&&t.unit<=32?t.unit:8;o.swing=num(t.swing,0,.75,0);o.off=(Array.isArray(t.off)?t.off:[]).filter(Number.isInteger);if(typeof t.style==='string')o.style=t.style.slice(0,30);
+    if(t.type==='drums'){o.kit=KITS[t.kit]?t.kit:'rusty';o.notes=(Array.isArray(t.notes)?t.notes:[]).filter(n=>n&&Number.isInteger(+n.p)&&+n.p>=27&&+n.p<=94&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.25),p:+n.p,v:num(n.v,0,1,.9)}))}
+    if(t.type==='beats'){if(t.kit==='synth'||KITS[t.kit])o.kit=t.kit;o.len=Number.isInteger(t.len)&&t.len>=1&&t.len<=64?t.len:16;o.unit=Number.isInteger(t.unit)&&t.unit>=1&&t.unit<=32?t.unit:8;o.swing=num(t.swing,0,.75,0);o.off=(Array.isArray(t.off)?t.off:[]).filter(Number.isInteger);if(typeof t.style==='string')o.style=t.style.slice(0,30);
       o.rows=(Array.isArray(t.rows)?t.rows:[]).filter(r=>r&&Number.isFinite(+r.m)&&Array.isArray(r.steps)).slice(0,16).map(r=>({m:+r.m,steps:r.steps.slice(0,o.len).map(v=>num(v,0,2,0))}))}
     return o});
   if(!tracks.some(t=>t.type==='practice'))tracks.unshift(trk('practice'));
@@ -753,8 +832,8 @@ async function practiceLoad(){
 let SEL=null;   // selected bars on one track: {tid,anchor,a,b}, b exclusive
 const zoomPx=()=>Math.round((innerWidth<560?64:92)*(PR.zoom||1));
 const HDW=()=>innerWidth<560?112:150;
-const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'My part · linked to Write',beats:'Beat'};
-const ICON={practice:'♪',audio:'🎙',pan:'◉',part:'✎',beats:'▦'};
+const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'My part · linked to Write',beats:'Beat',drums:'Drum kit'};
+const ICON={practice:'♪',audio:'🎙',pan:'◉',part:'✎',beats:'▦',drums:'🥁'};
 function renderTransport(){
   const p=q('#stPlay'),r=q('#stRec');if(!p)return;
   p.textContent=T.playing?'■':'▶';p.setAttribute('aria-label',T.playing?'Stop':'Play');
@@ -784,10 +863,11 @@ function trackRegions(tr){
 }
 function regionsHTML(tr,bar){
   const regs=trackRegions(tr),beat=bar/BPB();
-  if(!regs.length)return '<div class="st-empty">'+(tr.type==='practice'?'Add your recording in Setup':tr.type==='audio'?'Select, then ● Rec or import a file':tr.type==='beats'?'Tap steps below to make a beat':'Select, then ● Rec and tap the pans')+'</div>';
+  if(!regs.length)return '<div class="st-empty">'+(tr.type==='practice'?'Add your recording in Setup':tr.type==='audio'?'Select, then ● Rec or import a file':tr.type==='beats'?'Tap steps below to make a beat':tr.type==='drums'?'Select, then ● Rec and play the kit':'Select, then ● Rec and tap the pans')+'</div>';
   return regs.map(([s,e])=>{
     let inner='';
     if(tr.type==='practice'||tr.type==='audio')inner='<canvas data-peaks="'+tr.id+'" width="'+Math.max(1,Math.round((e-s)*bar))+'" height="64"></canvas>';
+    else if(tr.type==='drums'){for(const n of tr.notes)if(n.t>=s*BPB()&&n.t<e*BPB()){const rw=DRUM_ROW(+n.p);inner+='<i style="background:'+ROW_COL[rw]+';left:'+((n.t-s*BPB())*beat).toFixed(1)+'px;top:'+(14+rw*7.5).toFixed(1)+'px;width:'+Math.max(2,beat/4-2).toFixed(1)+'px;height:5px"></i>'}}
     else if(isPanish(tr)){const ps=pidsOf(tr),sc=44/Math.max(1,ps.length);for(const n of pnotes(tr))if(n.t>=s*BPB()&&n.t<e*BPB()){const y=ps.indexOf(n.p);inner+='<i style="background:'+gcol(n.p)+';left:'+((n.t-s*BPB())*beat).toFixed(1)+'px;top:'+(16+y*sc).toFixed(1)+'px;width:'+Math.max(3,Math.min(n.d,e*BPB()-n.t)*beat-1).toFixed(1)+'px"></i>'}}
     else{const rh=Math.min(7,42/Math.max(1,tr.rows.length));for(let b=s;b<e;b++){const base=(b*BPB()*4)%tr.len;tr.rows.forEach((row,r)=>{for(let i=0;i<BPB()*4;i++)if(row.steps[(base+i)%tr.len])inner+='<i style="left:'+((b-s)*bar+i*beat/4+1).toFixed(1)+'px;top:'+(16+r*rh).toFixed(1)+'px;width:'+Math.max(2,beat/4-2).toFixed(1)+'px"></i>'})}}
     return '<div class="st-region" style="left:'+(s*bar+1)+'px;width:'+Math.max(4,(e-s)*bar-2)+'px">'+inner+'</div>';
@@ -834,6 +914,13 @@ function lightPans(){
   const k=ids.join();if(k===litKey)return;litKey=k;if(!box)return;const on=new Set(ids);
   box.querySelectorAll('.field').forEach(f=>f.classList.toggle('play-hit',on.has(f.dataset.field)));
 }
+let litDrums='';
+function lightDrums(){
+  const box=q('#stKit');if(!box)return;let ms=[];
+  if(T.playing&&VIEW==='inst'){const tr=selTr();if(tr.type==='drums'){const b=beatNow();for(const n of tr.notes)if(n.t<=b+.02&&b<n.t+.18)ms.push(+n.p)}}
+  const k=ms.join();if(k===litDrums)return;litDrums=k;const on=new Set(ms);
+  box.querySelectorAll('.st-dp').forEach(d=>d.classList.toggle('play-hit',on.has(+d.dataset.m)));
+}
 // the visual count-in (big 1 2 3 4 over the pans) and a flash on the bar counter with every beat
 let visB=null;
 function beatVis(){
@@ -847,13 +934,14 @@ function beatVis(){
   if(lcd){const b=T.playing&&ctx&&ctx.currentTime>=T.t0?Math.floor(beatNow()+1e-6):null;
     if(b!==visB){visB=b;if(b!==null&&song.metro){lcd.classList.remove('tick','tick1');void lcd.offsetWidth;lcd.classList.add(b%BPB()===0?'tick1':'tick')}}}
 }
-{const lp=()=>{if(document.body.dataset.view==='studio'||litKey)lightPans();if(document.body.dataset.view==='studio')beatVis();requestAnimationFrame(lp)};requestAnimationFrame(lp)}
+{const lp=()=>{if(document.body.dataset.view==='studio'||litKey)lightPans();if(document.body.dataset.view==='studio')lightDrums();if(document.body.dataset.view==='studio')beatVis();requestAnimationFrame(lp)};requestAnimationFrame(lp)}
 function frame(){if(!T.playing)return;updatePlayhead();if(seqGridOpen())renderSeqNow();if(q('#stSheet')&&!q('#stSheet').hidden&&SH.kind==='mixer')meters();T.raf=requestAnimationFrame(frame)}
 function selBarHTML(){
   const tr=trById(SEL.tid);if(!tr)return '';const range=SEL.b-SEL.a>1?'Bars '+(SEL.a+1)+'–'+SEL.b:'Bar '+(SEL.a+1);
   const b=(act,label)=>'<button class="btn sm" data-st="r-'+act+'">'+label+'</button>';
-  const n=isPanish(tr)?' · '+selNotes(tr).filter(x=>!x.roll).length+' notes':'';
+  const n=isNotey(tr)?' · '+selNotes(tr).filter(x=>!x.roll).length+' notes':'';
   let tools=b('loop','⟲ Loop');
+  if(tr.type==='drums')tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy after')+b('repeat','Repeat to end')+b('snap','Snap')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
   if(isPanish(tr))tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy after')+b('repeat','Repeat to end')+b('snap','Snap')+b('notes','Edit notes')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
   if(tr.type==='audio'&&tr.take)tools=b('left','◀ Bar')+b('right','Bar ▶')+tools+'<button class="btn sm danger" data-st="r-delete">Remove take</button>';
   if(tr.type==='beats')tools=b('silence',(tr.off||[]).includes(SEL.a)?'Play these bars':'Silence these bars')+tools;
@@ -883,7 +971,7 @@ function regionOp(op){
     else if(op==='delete'){const k=BARS.del(sa,sb);msg=k?'Deleted '+k+' cue'+(k===1?'':'s')+'. Undo is in ▦ Edit in bars.':'There are no notes in those bars.'}
     renderAll();if(msg)say(msg);return;
   }
-  if(tr.type!=='pan')return;
+  if(tr.type!=='pan'&&tr.type!=='drums')return;
   const inSel=selNotes(tr);
   if(op==='left'||op==='right'){const d=op==='left'?-1:1;if(SEL.a+d<0){say("That's the start of the song.");return}pushHistory();inSel.forEach(n=>{n.t=+(n.t+d*bpb).toFixed(3)});SEL.a+=d;SEL.b+=d;SEL.anchor+=d}
   else if(op==='copy'){if(!inSel.length){say('There are no notes in those bars to copy.');return}pushHistory();inSel.forEach(n=>tr.notes.push({...n,t:+(n.t+len*bpb).toFixed(3)}));SEL={tid:tr.id,anchor:SEL.b,a:SEL.b,b:SEL.b+len};song.minBars=Math.max(song.minBars||8,SEL.b+1);say('Copied. The copy is selected.')}
@@ -930,17 +1018,28 @@ function renderInst(){
     h+='<div class="row"><div class="seg st-mode" role="group" aria-label="Recording"><button data-st="mode" data-v="add" aria-pressed="'+(!song.recMode||song.recMode==='add')+'">Merge</button><button data-st="mode" data-v="replace" aria-pressed="'+(song.recMode==='replace')+'">Replace</button><button data-st="mode" data-v="take" aria-pressed="'+(song.recMode==='take')+'">New take</button></div>'+(tr.takes&&tr.takes.length>1?'<button class="btn sm" data-st="tset">'+esc(tr.takes[tr.tk].name)+' of '+tr.takes.length+' ›</button>':'')
       +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
       +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'+head.replace('st-ihead','st-ihead st-iend')+'</div>';
+  }else if(tr.type==='drums'){
+    const K=KITS[realKit(tr)||'real']||KITS.real,head=h.slice(headAt);
+    h=h.slice(0,headAt)+kitHTML(tr)+'<div class="st-popts" id="stPopts" role="dialog" aria-label="Drum kit options">'
+      +'<p class="help">Tap <b>● Rec</b> and play the kit. '+(K.lay==='kit'?'Tap the middle of a drum for a full hit, near the edge for a softer one. ':'')+'Hold a drum to roll.</p>'
+      +'<div class="row"><button class="btn" data-st="kitsheet">Kit: '+esc(K.name)+' ▾</button></div>'
+      +'<div class="row"><div class="seg st-mode" role="group" aria-label="Recording"><button data-st="mode" data-v="add" aria-pressed="'+(!song.recMode||song.recMode==='add')+'">Merge</button><button data-st="mode" data-v="replace" aria-pressed="'+(song.recMode==='replace')+'">Replace</button><button data-st="mode" data-v="take" aria-pressed="'+(song.recMode==='take')+'">New take</button></div>'
+      +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
+      +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'
+      +head.replace('st-ihead','st-ihead st-iend')+'</div>';
   }else h+=seqHTML(tr);
   el.innerHTML=h;
   requestAnimationFrame(fitPans);
   el.querySelectorAll('#stPans .field').forEach(f=>f.addEventListener('pointerdown',e=>panDown(e,f)));
+  el.querySelectorAll('#stKit .st-dp').forEach(f=>f.addEventListener('pointerdown',e=>drumDown(e,f)));
+  if(tr.type==='drums'&&realKit(tr))loadKit(realKit(tr));
 }
 function seqHTML(tr){
   const len=tr.len,lab=n=>BPB()===4?(n/16===1?'1 bar':'2 bars'):(n/4)+' beats';
   let g='<div class="row st-seqtools"><label class="lab">Style<select id="stStyle"><option value="">Choose a style…</option>'+Object.entries(STYLES).map(([k,s])=>'<option value="'+k+'"'+(tr.style===k?' selected':'')+'>'+esc(s.name)+' · '+s.bpm+' bpm</option>').join('')+'</select></label>'
     +'<div class="seg" role="group" aria-label="Pattern length"><button data-st="seqlen" data-v="16" aria-pressed="'+(len===16)+'">'+lab(16)+'</button><button data-st="seqlen" data-v="32" aria-pressed="'+(len===32)+'">'+lab(32)+'</button></div>'
     +'<label class="lab">Swing<input id="stSwing" type="range" min="0" max="1" step=".05" value="'+tr.swing+'"></label>'
-    +'<div class="seg" role="group" aria-label="Drum sounds"><button data-st="kit" data-v="real" aria-pressed="'+realKit(tr)+'">Real kit</button><button data-st="kit" data-v="synth" aria-pressed="'+!realKit(tr)+'">Classic</button></div></div>';
+    +'<button class="btn sm" data-st="kitsheet">Kit: '+(realKit(tr)?esc(KITS[realKit(tr)].name):'Classic')+' ▾</button></div>';
   g+='<div class="st-seq"><div class="st-grid" id="stGrid" style="grid-template-columns:64px repeat('+len+',minmax(15px,1fr)) 26px;min-width:'+(64+len*18+26)+'px">';
   tr.rows.forEach((row,r)=>{const nm=DRUM_NAME[row.m]||'Sound';g+='<span class="st-seqlab">'+esc(nm)+'</span>';
     for(let i=0;i<len;i++){const v=row.steps[i];g+='<button class="stc'+(i%4===0?' q':'')+(i%16===0&&i?' b2':'')+(v?' on':'')+(v===2?' acc':'')+'" data-r="'+r+'" data-c="'+i+'" aria-label="'+esc(nm)+' step '+(i+1)+(v===2?', accented':'')+'" aria-pressed="'+!!v+'"></button>'}
@@ -961,7 +1060,7 @@ function fitPans(){
   const top=svgs[0].getBoundingClientRect().top,room=Math.max(140,Math.floor(dock-top-10));
   svgs.forEach(s=>{s.style.maxHeight=room+'px'});
 }
-const INST_LABEL={practice:'♪ Recording',audio:'🎙 Mic',pan:'◉ Pans',part:'✎ My part',beats:'▦ Beat'};
+const INST_LABEL={practice:'♪ Recording',audio:'🎙 Mic',pan:'◉ Pans',part:'✎ My part',beats:'▦ Beat',drums:'🥁 Drums'};
 function setView(v){VIEW=v;document.body.classList.toggle('st-inst',v==='inst');renderViews();window.scrollTo({top:0});if(v==='inst')renderInst();else renderTimeline()}
 function renderViews(){
   const t=q('#stViews');if(!t||!song)return;const tr=selTr();
@@ -984,8 +1083,15 @@ function renderSheet(){
     h=head('Add a track')+'<div class="st-addlist">'
       +'<button class="st-add" data-st="addk" data-v="audio"><b>🎙 Mic or audio file</b><span>Record yourself, a singer, or another pan. Or bring in a file.</span></button>'
       +'<div class="st-add st-addpans"><b>◉ Pan taps</b><span>Choose the pan, then play it on screen; every hit is a note you can edit.</span><div class="st-addp">'+Object.keys(SETS).map(k=>'<button data-st="addk" data-v="pan" data-set="'+k+'">'+(typeof HOME!=='undefined'?HOME.mini(k,34):'')+'<span>'+esc(SETS[k].name)+'</span></button>').join('')+'</div></div>'
+      +'<button class="st-add st-addnew" data-st="addk" data-v="drums" data-set="rusty"><b>🥁 Drum kit</b><span>Play a real drum kit with your fingers. Pick from '+Object.keys(KITS).length+' kits.</span></button>'
+      +'<button class="st-add" data-st="addk" data-v="drums" data-set="engine"><b>⛓ Engine room</b><span>Iron, scratcher, cowbell, shak-shak and congas to tap.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="beats"><b>▦ Beat</b><span>A drum pattern: soca, calypso, panorama jam and more, or build your own.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="part"><b>✎ Your part from Write</b><span>'+(cues?'Your '+cues+' cues as a pan track, linked: edit it here or in Write and both follow.':'Linked to your cues in Write; write some cues and they play here.')+'</span></button></div>';
+  }else if(SH.kind==='kits'){
+    const tr=trById(SH.arg)||selTr(),cur=realKit(tr)||'synth',beat=tr.type==='beats';
+    h=head('Kits')+'<p class="help">Every kit is free to use. Kits other than the Real kit download the first time you choose them, then work offline.</p><div class="st-kits">'
+      +Object.entries(KITS).filter(([k,K])=>beat||k!=='engine'||tr.kit==='engine').map(([k,K])=>'<button class="st-kitc'+(k===cur?' on':'')+'" data-st="setkit" data-v="'+k+'" aria-pressed="'+(k===cur)+'"><b>'+esc(K.name)+'</b><span>'+esc(K.feel)+'</span><small>'+esc(K.by)+'</small></button>').join('')
+      +(beat?'<button class="st-kitc'+(cur==='synth'?' on':'')+'" data-st="setkit" data-v="synth" aria-pressed="'+(cur==='synth')+'"><b>Classic</b><span>The built-in drum tones</span><small>Made in the app</small></button>':'')+'</div>';
   }else if(SH.kind==='mixer'){
     h=head('Mixer')+'<p class="help st-mixhint">Every track\'s level here. Tap <b>Sound ›</b> on a track for its tone, echo, quantize and takes.</p><div class="st-mix">'+song.tracks.map(tr=>'<div class="st-mrow k-'+tr.type+'" data-tid="'+tr.id+'"><div class="st-mname"><b>'+esc(tr.name)+'</b><button class="btn sm tsetb" data-st="tset" aria-label="Sound settings for '+esc(tr.name)+'">Sound ›</button><span class="st-ms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'">M</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'">S</button></span></div>'
       +'<label class="lab">Volume<input type="range" data-mk="vol" min="0" max="1.2" step=".01" value="'+tr.vol+'"></label>'
@@ -1080,10 +1186,11 @@ function addTrack(kind,set){
   if(kind==='part'){const ex=song.tracks.find(t=>t.type==='part');if(ex){H.u.pop();song.sel=ex.id;closeSheet();say('My part is already here, linked to Write.');return}tr=trk('part')}
   else tr=trk(kind);
   if(kind==='pan'&&SETS[set]){tr.panSet=set;tr.name=SETS[set].name}
+  if(kind==='drums'&&KITS[set]){tr.kit=set;tr.name=KITS[set].name}
   // numbered among its own kind: a second Six Bass is "Six Bass 2", a first tenor is just "Low C Tenor"
-  const same=song.tracks.filter(t=>t.type===tr.type&&(tr.type!=='pan'||t.panSet===tr.panSet)).length;if(same&&kind!=='part')tr.name+=' '+(same+1);
+  const same=song.tracks.filter(t=>t.type===tr.type&&(tr.type!=='pan'||t.panSet===tr.panSet)&&(tr.type!=='drums'||t.kit===tr.kit)).length;if(same&&kind!=='part')tr.name+=' '+(same+1);
   song.tracks.push(tr);song.sel=tr.id;dirty();closeSheet();setView('inst');
-  if(kind==='beats')AC()&&warmDrums();
+  if(kind==='beats'||kind==='drums')AC()&&warmDrums();
   say(kind==='part'?'Added My part, linked to your cues in Write.':'Added '+tr.name+'.');
 }
 // your cues (Write) as pan notes, on the studio's bars
@@ -1149,7 +1256,7 @@ function neAct(act,v){
 
 /* ---- export: the whole song, or each track, as MP3 or WAV ---- */
 const EXP={fmt:'mp3',what:'mix'};
-const hasContent=tr=>tr.type==='beats'?tr.rows.some(r=>r.steps.some(Boolean)):isPanish(tr)?notesOf(tr).length>0:!!audioOf(tr);
+const hasContent=tr=>tr.type==='beats'?tr.rows.some(r=>r.steps.some(Boolean)):isNotey(tr)?notesOf(tr).length>0:!!audioOf(tr);
 async function renderSong(only,onProgress){
   AC();await warmDrums();await warmPans();
   const live={ctx,master,meterM,reverbs,PV},saved=new Map(chans);
@@ -1161,6 +1268,7 @@ async function renderSong(only,onProgress){
       if(only?tr!==only:!audible(tr)||!hasContent(tr))continue;
       const c=channel(tr).play;c.gain.value=1;
       if(tr.type==='beats'){const rk=realKit(tr);for(const [bt,mm,v] of beatHits(tr,0,Lb)){const t=T0+bt*sp;ev.push({t,fn:()=>playDrum(mm,c,t,v,rk)})}}
+      else if(tr.type==='drums'){const rk=realKit(tr);for(const n of tr.notes)if(n.t<Lb){const t=T0+n.t*sp;ev.push({t,fn:()=>playDrum(+n.p,c,t,n.v,rk)})}}
       else if(isPanish(tr)){for(const n of pnotes(tr))if(n.t<Lb){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v)})}}
       else{const b=audioOf(tr);if(b){let t=T0+startOf(tr)*sp,o=0;if(t<0){o=-t;t=0}ev.push({t,fn:()=>{const s=off.createBufferSource();s.buffer=b;s.connect(c);s.start(t,o);s.stop(T0+Lb*sp)}})}}
     }
@@ -1255,6 +1363,13 @@ function onClick(e){
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
     case 'csound':song.click={...ck(),sound:b.dataset.v};dirty();if(AC()){const t0=ctx.currentTime+.02;for(let i=0;i<4;i++)click(t0+i*.32,i===0)}renderSheet();break;
     case 'cbars':song.click={...ck(),bars:+b.dataset.v};dirty();renderSheet();break;
+    case 'kitsheet':{const t=selTr();openSheet('kits',t.id);break}
+    case 'setkit':{const t=trById(SH.arg)||selTr(),v=b.dataset.v;if(!t||(t.type!=='drums'&&t.type!=='beats'))break;pushHistory();
+      const was=KITS[realKit(t)]?KITS[realKit(t)].name:'';if(v==='synth'&&t.type==='beats')t.kit='synth';else if(KITS[v])t.kit=v;
+      if(t.type==='drums'&&(t.name===was||/^(Big Rusty|Virtuosity Jazz|Black Pearl|Drum Machine|Panyard Real kit|Engine Room)( \d+)?$/.test(t.name))&&KITS[v])t.name=KITS[v].name;
+      dirty();closeSheet();setView('inst');
+      if(KITS[v]&&AC())loadKit(v).then(()=>playDrum(t.type==='beats'&&t.rows&&t.rows[0]?t.rows[0].m:KITS[v].lay==='engine'?81:38,channel(t).out,ctx.currentTime+.01,.95,v));
+      say(v==='synth'?'Classic: the built-in drum tones.':KITS[v].name+': '+KITS[v].feel.toLowerCase()+'.');break}
     case 'kit':{const tr=selTr();if(!tr||tr.type!=='beats')break;pushHistory();if(b.dataset.v==='synth')tr.kit='synth';else delete tr.kit;dirty();renderInst();
       if(AC()){warmDrums();const r=tr.rows&&tr.rows.find(x=>x.steps.some(Boolean));if(r)setTimeout(()=>playDrum(r.m,channel(tr).out,ctx.currentTime+.003,1,realKit(tr)),b.dataset.v==='real'&&!KIT.ok?400:0)}
       say(b.dataset.v==='synth'?'Classic: the built-in drum tones.':'Real kit: recorded drums and percussion.');break}
@@ -1363,7 +1478,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{kit:()=>({ok:KIT.ok,sounds:KIT.buf.size}),parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';

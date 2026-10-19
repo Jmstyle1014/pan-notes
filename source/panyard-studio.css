@@ -240,3 +240,41 @@ body.st-inst #stSecs{display:none}
 .st-first{border:1px solid var(--gold);background:rgb(255 209 102 / .08);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .st-first b{color:var(--gold)}.st-first p{margin:4px 0 8px;color:var(--text)}
 .st-diag{font-size:12px;opacity:.85}
+
+/* ---------- drum tracks: the kit from above, the engine room, drum machine pads ---------- */
+.st-kitstage{position:relative;width:min(100%,calc((100dvh - 190px)*16/9));aspect-ratio:16/9;margin:6px auto 0;border-radius:18px;
+  background:radial-gradient(ellipse at 50% 72%,color-mix(in srgb,var(--gold) 9%,var(--surface)) 0%,var(--bg) 72%);touch-action:none;user-select:none;-webkit-user-select:none}
+body.gbmode .st-kitstage{width:min(100%,calc((100dvh - 150px)*16/9))}
+.st-dp{position:absolute;aspect-ratio:1;border-radius:50%;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font:700 clamp(10px,1.6vw,14px) var(--display,inherit);touch-action:none;transition:transform .06s,box-shadow .12s;-webkit-tap-highlight-color:transparent}
+.st-dp span{pointer-events:none;padding:2px 7px;border-radius:99px}
+.st-dp.k-drum,.st-dp.k-kick{border:clamp(4px,.8vw,9px) solid #b8402f;color:#3a2e1a;
+  background:radial-gradient(circle at 45% 40%,#f4efe2 0%,#ddd5c1 62%,#bfb59d 100%);box-shadow:0 6px 16px #0009}
+.st-dp.k-kick{border-color:#8f2f24}
+.st-dp.k-drum[data-m="38"]{border-color:#9aa4ad}
+.st-dp.k-cym{border:0;color:#3a2a06;background:repeating-radial-gradient(circle,#e7b84a 0 3px,#d4a23a 3px 6px);box-shadow:0 6px 16px #0009}
+.st-dp.k-cym span{background:#f6d77ecc}
+.st-dp.k-blk{aspect-ratio:auto;height:12%;border-radius:12px;border:2px solid color-mix(in srgb,var(--text) 15%,transparent);background:var(--raised);color:var(--text)}
+.st-dp[data-m="81"].k-blk{background:#7c8a96;color:#10161b}
+.st-dp[data-m="73"].k-blk{background:#3f6e4a;color:#eafff0}
+.st-dp.hit,.st-dp.play-hit{box-shadow:0 0 0 4px var(--gold),0 0 26px color-mix(in srgb,var(--gold) 70%,transparent)}
+.st-dp.hit{transform:scale(.97)}
+.st-pads{position:absolute;inset:3%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));gap:2.2%}
+.st-dp.k-pad{position:relative;aspect-ratio:auto;border-radius:14px;border:2px solid var(--pc);color:var(--text);background:color-mix(in srgb,var(--pc) 16%,var(--surface))}
+.st-dp.k-pad.hit,.st-dp.k-pad.play-hit{background:var(--pc);color:#1a1030;box-shadow:0 0 22px color-mix(in srgb,var(--pc) 70%,transparent)}
+.st-kitname{position:absolute;left:50%;bottom:3%;transform:translateX(-50%);white-space:nowrap;z-index:2;min-height:40px;padding:0 14px;border-radius:12px;border:1px solid var(--gold);
+  background:color-mix(in srgb,var(--gold) 14%,var(--surface));color:var(--gold);font:700 13px inherit;cursor:pointer}
+.lay-pads .st-kitname,.lay-engine .st-kitname{position:static;transform:none;display:block;margin:0 0 6px;align-self:flex-start}
+.lay-pads,.lay-engine{aspect-ratio:auto;width:100%;height:min(calc(100dvh - 170px),62vw);display:flex;flex-direction:column;padding:6px}
+.lay-pads .st-pads,.lay-engine .st-pads{position:relative;inset:auto;flex:1}
+.st-kits{display:flex;flex-direction:column;gap:8px}
+.st-kitc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;cursor:pointer;min-height:56px}
+.st-kitc b{font-size:15px}.st-kitc span{color:var(--muted);font-size:13px}.st-kitc small{color:var(--muted);font-size:11px;opacity:.85}
+.st-kitc.on{border:2px solid var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--surface))}
+.st-add.st-addnew{border-color:var(--gold)}
+.st-kitstage.tall{aspect-ratio:9/13;width:min(100%,calc((100dvh - 210px)*9/13))}
+body.gbmode .st-kitstage.tall{width:min(100%,calc((100dvh - 170px)*9/13))}
+.st-kitstage.tall .st-dp.k-blk{height:6.5%}
+.st-kitstage.tall .st-kitname{bottom:1.5%}
+.lay-pads.tall,.lay-engine.tall{aspect-ratio:auto;height:calc(100dvh - 230px)}
+@media (prefers-reduced-motion:reduce){.st-dp{transition:none}}
