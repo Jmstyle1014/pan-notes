@@ -1,0 +1,76 @@
+
+/* ---------- Tuning workshop (Studio ⋯) ---------- */
+.tw .twbox{max-width:900px;max-height:94%;overflow:auto;gap:12px}
+.tw .twbox>*{flex:none}
+body.tw-open #gdToast{display:none!important}
+.twhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.twhead h2{margin:2px 0 0;font-size:1.35rem}
+.twsub{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.twfill{display:flex;gap:12px;align-items:center;background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
+.twfill input{position:absolute;opacity:0;width:1px;height:1px}
+.twfill b{display:block;font-size:.98rem}
+.twfill small{display:block;color:var(--muted);font-size:.84rem;margin-top:2px}
+.twsw{flex:none;width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;transition:background .15s}
+.twsw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--steel);transition:transform .15s}
+.twfill input:checked+.twsw{background:var(--teal)}
+.twfill input:checked+.twsw::after{transform:translateX(18px);background:var(--text)}
+.twfill input:focus-visible+.twsw{outline:2px solid var(--gold);outline-offset:2px}
+.twstrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px}
+.twc{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 2px 6px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;font:inherit;min-height:48px;transition:transform .12s}
+.twc b{font-size:.95rem;font-variant-numeric:tabular-nums}
+.twc small{font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.twc small.good{color:#5fd48a}.twc small.near{color:var(--gold)}.twc small.off{color:var(--danger)}
+.twc.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--surface))}
+.twc.fil{border-style:dashed;border-color:var(--teal)}
+.twc.bin{opacity:.6}
+.twc.rough{text-decoration:line-through;text-decoration-color:var(--muted)}
+.twc.rough b{text-decoration:line-through}
+.twc.on{outline:2px solid var(--text);outline-offset:1px}
+.twc.ping{transform:scale(1.1);background:var(--gold);color:var(--gold-ink)}
+.twc.ping small{color:var(--gold-ink)}
+.twc:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.twkey{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:0;color:var(--muted);font-size:.8rem}
+.twkey>span{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.twkey .k{display:inline-block;width:14px;height:10px;border-radius:3px;border:1.5px solid var(--line)}
+.twkey .k.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 25%,transparent)}
+.twkey .k.fil{border:1.5px dashed var(--teal)}
+.twkey .k.bin{opacity:.6}
+.twdetail{background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.twtop{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.twname{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--gold)}
+.twpos{color:var(--muted);font-size:.85rem;margin-top:4px}
+.twstate{display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:60%;text-align:right}
+.twtag{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:99px;border:1.5px solid var(--line)}
+.twtag.anc{border-color:var(--gold);color:var(--gold)}
+.twtag.fil{border:1.5px dashed var(--teal);color:var(--teal)}
+.twtag.bin{color:var(--muted)}
+.twnote{color:var(--muted);font-size:.84rem}
+.twq{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.88rem;color:var(--muted)}
+.twq b{color:var(--text)}
+.twbar{height:8px;border-radius:4px;background:var(--surface);overflow:hidden}
+.twbar i{display:block;height:100%;border-radius:4px;background:var(--danger)}
+.twq.mid .twbar i{background:var(--gold)}.twq.ok .twbar i{background:#5fd48a}
+.twstrobes{display:flex;flex-direction:column;gap:10px}
+.twrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.twrn{font-weight:700}
+.twrn small{font-weight:400;color:var(--muted);margin-left:6px;font-size:.8rem}
+.twrc{display:flex;gap:8px;align-items:center;font-variant-numeric:tabular-nums}
+.twv{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:99px;background:var(--surface)}
+.twv.ok{color:#5fd48a}.twv.mid{color:var(--gold)}.twv.bad{color:var(--danger)}.twv.none{color:var(--muted)}
+.twrow canvas{grid-column:1/-1;width:100%;height:36px;display:block;border-radius:6px;background:var(--bg)}
+.twcmp{grid-column:1/-1;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.twcmp b{color:var(--text);font-weight:600}
+.twspec{width:100%;height:120px;display:block;border-radius:8px;background:var(--bg)}
+.twbtns,.twacts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.twbtns .btn,.twacts .btn{min-height:42px}
+.tw .btn.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.twok{color:#5fd48a;font-weight:700;font-size:.9rem}
+.twhint{margin:0;color:var(--muted);font-size:.86rem}
+.twmsg{margin:0;min-height:1.2em;color:var(--teal);font-size:.88rem}
+.twhow summary{cursor:pointer;color:var(--muted);font-weight:700}
+.twhow p{color:var(--muted);font-size:.88rem;max-width:65ch}
+/* on a phone the notes run in one row you slide along, like a keyboard, so the chosen note's readings sit right below */
+@media (max-width:640px){.twstrip{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:60px;overflow-x:auto;padding:3px 3px 6px;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+  .twc{scroll-snap-align:center}}
+@media (max-width:520px){.twstate{max-width:100%;align-items:flex-start;text-align:left}.twname{font-size:2rem}}
+@media (prefers-reduced-motion:reduce){.twc,.twsw,.twsw::after{transition:none}}

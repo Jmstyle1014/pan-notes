@@ -289,7 +289,7 @@ function panVoice(dest,id,t,v){
   if(!PITCH[id])return;const light=v<.78;
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
-    let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
+    let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
     if(src){const b=SAMPLES.buf[src];if(b){const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light);return}sampleBuf(src)}}
   panTone(dest,pitchHz(id),t,v,light);
 }

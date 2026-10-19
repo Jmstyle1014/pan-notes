@@ -1424,6 +1424,83 @@ html.day{filter:invert(.92) hue-rotate(180deg);background:#0d0a1a}
 html.day :is(img,video,image,.lk-th,.thumb,.lk-photo,.lk-mini,.hm-mini svg image){filter:invert(1) hue-rotate(180deg)}
 /* while a panel (Mixer, Add a track…) is open on an upright phone, the floating track name steps out of its way */
 body.gbmode:not(.gb-inbar):has(#stSheet:not([hidden])) #gbPills{display:none!important}
+
+
+/* ---------- Tuning workshop (Studio ⋯) ---------- */
+.tw .twbox{max-width:900px;max-height:94%;overflow:auto;gap:12px}
+.tw .twbox>*{flex:none}
+body.tw-open #gdToast{display:none!important}
+.twhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.twhead h2{margin:2px 0 0;font-size:1.35rem}
+.twsub{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.twfill{display:flex;gap:12px;align-items:center;background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
+.twfill input{position:absolute;opacity:0;width:1px;height:1px}
+.twfill b{display:block;font-size:.98rem}
+.twfill small{display:block;color:var(--muted);font-size:.84rem;margin-top:2px}
+.twsw{flex:none;width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;transition:background .15s}
+.twsw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--steel);transition:transform .15s}
+.twfill input:checked+.twsw{background:var(--teal)}
+.twfill input:checked+.twsw::after{transform:translateX(18px);background:var(--text)}
+.twfill input:focus-visible+.twsw{outline:2px solid var(--gold);outline-offset:2px}
+.twstrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px}
+.twc{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 2px 6px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;font:inherit;min-height:48px;transition:transform .12s}
+.twc b{font-size:.95rem;font-variant-numeric:tabular-nums}
+.twc small{font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.twc small.good{color:#5fd48a}.twc small.near{color:var(--gold)}.twc small.off{color:var(--danger)}
+.twc.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--surface))}
+.twc.fil{border-style:dashed;border-color:var(--teal)}
+.twc.bin{opacity:.6}
+.twc.rough{text-decoration:line-through;text-decoration-color:var(--muted)}
+.twc.rough b{text-decoration:line-through}
+.twc.on{outline:2px solid var(--text);outline-offset:1px}
+.twc.ping{transform:scale(1.1);background:var(--gold);color:var(--gold-ink)}
+.twc.ping small{color:var(--gold-ink)}
+.twc:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.twkey{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:0;color:var(--muted);font-size:.8rem}
+.twkey>span{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.twkey .k{display:inline-block;width:14px;height:10px;border-radius:3px;border:1.5px solid var(--line)}
+.twkey .k.anc{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 25%,transparent)}
+.twkey .k.fil{border:1.5px dashed var(--teal)}
+.twkey .k.bin{opacity:.6}
+.twdetail{background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.twtop{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.twname{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--gold)}
+.twpos{color:var(--muted);font-size:.85rem;margin-top:4px}
+.twstate{display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:60%;text-align:right}
+.twtag{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:99px;border:1.5px solid var(--line)}
+.twtag.anc{border-color:var(--gold);color:var(--gold)}
+.twtag.fil{border:1.5px dashed var(--teal);color:var(--teal)}
+.twtag.bin{color:var(--muted)}
+.twnote{color:var(--muted);font-size:.84rem}
+.twq{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.88rem;color:var(--muted)}
+.twq b{color:var(--text)}
+.twbar{height:8px;border-radius:4px;background:var(--surface);overflow:hidden}
+.twbar i{display:block;height:100%;border-radius:4px;background:var(--danger)}
+.twq.mid .twbar i{background:var(--gold)}.twq.ok .twbar i{background:#5fd48a}
+.twstrobes{display:flex;flex-direction:column;gap:10px}
+.twrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.twrn{font-weight:700}
+.twrn small{font-weight:400;color:var(--muted);margin-left:6px;font-size:.8rem}
+.twrc{display:flex;gap:8px;align-items:center;font-variant-numeric:tabular-nums}
+.twv{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:99px;background:var(--surface)}
+.twv.ok{color:#5fd48a}.twv.mid{color:var(--gold)}.twv.bad{color:var(--danger)}.twv.none{color:var(--muted)}
+.twrow canvas{grid-column:1/-1;width:100%;height:36px;display:block;border-radius:6px;background:var(--bg)}
+.twcmp{grid-column:1/-1;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.twcmp b{color:var(--text);font-weight:600}
+.twspec{width:100%;height:120px;display:block;border-radius:8px;background:var(--bg)}
+.twbtns,.twacts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.twbtns .btn,.twacts .btn{min-height:42px}
+.tw .btn.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.twok{color:#5fd48a;font-weight:700;font-size:.9rem}
+.twhint{margin:0;color:var(--muted);font-size:.86rem}
+.twmsg{margin:0;min-height:1.2em;color:var(--teal);font-size:.88rem}
+.twhow summary{cursor:pointer;color:var(--muted);font-weight:700}
+.twhow p{color:var(--muted);font-size:.88rem;max-width:65ch}
+/* on a phone the notes run in one row you slide along, like a keyboard, so the chosen note's readings sit right below */
+@media (max-width:640px){.twstrip{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:60px;overflow-x:auto;padding:3px 3px 6px;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+  .twc{scroll-snap-align:center}}
+@media (max-width:520px){.twstate{max-width:100%;align-items:flex-start;text-align:left}.twname{font-size:2rem}}
+@media (prefers-reduced-motion:reduce){.twc,.twsw,.twsw::after{transition:none}}
 </style>
 <header class="appbar"><button class="ttl songbtn" data-open-songs aria-label="Your songs"><span class="eyebrow">Panyard · night session</span><span class="songname"><span id="appTitle">Pan Notes</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="acts"><button class="iconbtn" id="shareBtnTop" aria-label="Share with your band"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg></button><button class="iconbtn" id="setupBtn" aria-label="Setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><button class="iconbtn" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button></div></header>
 <main>
@@ -4021,7 +4098,7 @@ function playSample(id,vel,light,shift,key){
 // strike() asks this first: true means your recording played
 function strikeMine(id,vel,light){
   if(S.panVoice!=='mine')return false;
-  let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=borrowOf(id);if(!bw)return false;src=bw.src;sh=bw.cents}
+  let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=borrowOf(id);if(!bw)return false;src=bw.src;sh=bw.cents}
   if(!SAMPLES.warm){SAMPLES.warm=true;Object.keys(SAMPLES.wav).forEach(sampleBuf)}
   if(SAMPLES.buf[src])return playSample(src,vel,light,sh,id);
   sampleBuf(src);return false;   // still getting it ready: the built-in tone covers this one hit
@@ -5772,6 +5849,286 @@ $('labReset').onclick=()=>{LAB=JSON.parse(JSON.stringify(LAB_DEF));labSave();lab
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('labSheet').hidden)labOpen(false)});
 
+
+/* ---------- Tuning workshop (Studio ⋯): read each recorded pan note like a tuner, then fill in the rest ---------- */
+// Each recording is read the way a strobe tuner reads a real pan note: the note itself, its octave, and on the
+// higher pans the twelfth (an octave and a fifth up). "Tune" keeps a pitch correction next to the recording, the same
+// setting the record sheet's fine-tuning uses, so nothing is re-recorded and it can always be undone.
+// "Fill the gaps" plays every note you haven't recorded (or have marked rough) from the closest clean recording on the
+// same pan, retuned to the right note. Tuning one recording therefore also tunes every note made from it.
+// Kept on this device and in backups. Hidden inside the Android app for now (the app opens this same website).
+var TW=(()=>{
+  const LS='panyard-fill',FILL_MAX=7;   // semitones: further than this a pan note stops sounding like itself
+  const st=(()=>{try{const x=JSON.parse(localStorage.getItem(LS)||'{}');return x&&typeof x==='object'?x:{}}catch{return {}}})();
+  const store=()=>{try{localStorage.setItem(LS,JSON.stringify(st))}catch{}};
+  const cfg=k=>{const c=st[k]||{};return {on:!!c.on,skip:Array.isArray(c.skip)?c.skip.filter(id=>FIELDS.has(id)):[]}};
+  const setCfg=(k,c)=>{st[k]={on:!!c.on,skip:[...new Set(c.skip)]};store()};
+  const inApk=(()=>{try{if(/^android-app:\/\//.test(document.referrer))sessionStorage.setItem('py-apk','1');return sessionStorage.getItem('py-apk')==='1'}catch{return /^android-app:/.test(document.referrer)}})();
+  const setOf=id=>(FIELDS.get(id)||{}).set||'guitar';
+  const mid=id=>midiOf(PITCH[id]);
+  const nice=id=>PITCH[id].replace('#','♯').replace(/([A-G])b/,'$1♭');
+  const stdHz=id=>440*Math.pow(2,(mid(id)-69)/12);   // the note at A = 440; the song's own A is added when it plays
+  const PARTS=k=>['six','fcello'].includes(k)?[[1,'Note','the note itself'],[2,'Octave','twice as high']]
+    :[[1,'Note','the note itself'],[2,'Octave','twice as high'],[3,'Twelfth','an octave and a fifth up']];
+
+  /* which recording plays each note */
+  function fillOf(id){
+    if(!PITCH[id])return null;const k=setOf(id),c=cfg(k);if(!c.on)return null;
+    const m=mid(id);let best=null;
+    for(const s of Object.keys(SAMPLES.wav)){if(s===id||setOf(s)!==k||!PITCH[s]||c.skip.includes(s))continue;
+      const d=m-mid(s),cost=Math.abs(d)+(d>0?.1:0);   // a tie goes to shifting down, which keeps more ring
+      if(!best||cost<best.cost)best={src:s,st:d,cost}}
+    return best&&Math.abs(best.st)<=FILL_MAX?{src:best.src,st:best.st,cents:best.st*100,fill:true}:null;
+  }
+  // a recording you've marked rough is left out, but only when a clean one nearby can stand in for it
+  const skip=id=>!!SAMPLES.wav[id]&&cfg(setOf(id)).skip.includes(id)&&!!fillOf(id);
+
+  /* ---- reading a recording ---- */
+  function fft(re,im){
+    const n=re.length;
+    for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
+    for(let len=2;len<=n;len<<=1){const h=len>>1,a=-2*Math.PI/len;
+      for(let k=0;k<h;k++){const wr=Math.cos(a*k),wi=Math.sin(a*k);
+        for(let i=k;i<n;i+=len){const j=i+h,tr=re[j]*wr-im[j]*wi,ti=re[j]*wi+im[j]*wr;re[j]=re[i]-tr;im[j]=im[i]-ti;re[i]+=tr;im[i]+=ti}}}
+  }
+  async function decode(blob){
+    const ab=await blob.arrayBuffer(),C=window.OfflineAudioContext||window.webkitOfflineAudioContext,oc=new C(1,1,44100);
+    const b=await new Promise((res,rej)=>{const p=oc.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});
+    const x=new Float32Array(b.length);for(let c=0;c<b.numberOfChannels;c++){const d=b.getChannelData(c);for(let i=0;i<x.length;i++)x[i]+=d[i]/b.numberOfChannels}
+    return {x,sr:b.sampleRate};
+  }
+  function peakNear(a,f,win){
+    const lo=Math.max(2,Math.floor(f*Math.pow(2,-win/1200)/a.bin)),hi=Math.min(a.mag.length-2,Math.ceil(f*Math.pow(2,win/1200)/a.bin));
+    if(hi<=lo)return {hz:f,mag:0,edge:true};
+    let bi=lo;for(let i=lo;i<=hi;i++)if(a.mag[i]>a.mag[bi])bi=i;
+    const l=Math.log(a.mag[bi-1]+1e-12),c=Math.log(a.mag[bi]+1e-12),r=Math.log(a.mag[bi+1]+1e-12),d=l-2*c+r,off=d?Math.max(-1,Math.min(1,.5*(l-r)/d)):0;
+    return {hz:(bi+off)*a.bin,mag:a.mag[bi],edge:bi===lo||bi===hi};
+  }
+  function analyse(x,sr,id){
+    let pk=0;for(let i=0;i<x.length;i++)pk=Math.max(pk,Math.abs(x[i]));
+    let on=0;while(on<x.length&&Math.abs(x[on])<pk*.3)on++;
+    const start=Math.min(x.length-1,on+Math.round(.04*sr)),N=Math.min(16384,x.length-start);
+    if(N<2048||pk<.005)return {ok:false};
+    const M=65536,re=new Float64Array(M),im=new Float64Array(M);
+    for(let i=0;i<N;i++)re[i]=x[start+i]*(.5-.5*Math.cos(2*Math.PI*i/(N-1)));
+    fft(re,im);const mag=new Float64Array(M/2);for(let i=0;i<M/2;i++)mag[i]=Math.hypot(re[i],im[i]);
+    const f0=stdHz(id),bin=sr/M,a={mag,bin};let max=1e-12;
+    for(let i=Math.floor(40/bin);i<Math.min(M/2,8000/bin);i++)if(mag[i]>max)max=mag[i];a.max=max;
+    const parts=PARTS(setOf(id)).map(([k,name,sub])=>{const p=peakNear(a,k*f0,k===1?60:80),db=20*Math.log10(p.mag/max+1e-12);
+      return {k,name,sub,cents:1200*Math.log2(p.hz/(k*f0)),db,heard:db>-42&&!p.edge}});
+    // how clean it is: how much of the sound sits on the pan's own tones (not buzz, rattle or room noise)…
+    let tones=0,all=0;const lo=Math.floor(f0*.8/bin),hi=Math.min(mag.length-1,Math.floor(Math.min(sr/2-50,f0*5.5)/bin));
+    for(let i=lo;i<=hi;i++)all+=mag[i]*mag[i];
+    for(const k of [1,2,3,4]){const p=peakNear(a,k*f0,70),c=p.hz/bin,w=Math.max(2,c*(Math.pow(2,35/1200)-1));
+      for(let i=Math.max(lo,Math.floor(c-w));i<=Math.min(hi,Math.ceil(c+w));i++)tones+=mag[i]*mag[i]}
+    const harm=all?Math.min(1,tones/all):0;
+    // …how far the note stands above the hiss and room noise underneath it…
+    const band=Array.from(mag.subarray(lo,hi+1)).sort((p,q)=>p-q),floor=band[band.length>>1]||1e-12;
+    const top=Math.max(...[1,2].map(k=>peakNear(a,k*f0,70).mag)),snr=20*Math.log10(top/floor);
+    // …and how long it rings before it fades away
+    const F=1024;let peakR=0,peakAt=0;const rms=[];
+    for(let i=on;i+F<=x.length;i+=F){let s=0;for(let j=i;j<i+F;j++)s+=x[j]*x[j];const r=Math.sqrt(s/F);rms.push(r);if(r>peakR){peakR=r;peakAt=rms.length-1}}
+    let t30=rms.length;for(let i=peakAt;i<rms.length;i++)if(rms[i]<peakR*.0316){t30=i;break}
+    const ring=t30*F/sr,want=1.1*Math.pow(261.6/f0,.35),ringS=Math.min(1,ring/want);
+    const cl=v=>Math.max(0,Math.min(1,v)),score=Math.round(100*(.35*cl((snr-25)/35)+.45*cl((harm-.75)/.22)+.2*ringS));
+    return {ok:true,parts,score,harm,snr,ring,a,f0,on:on/sr};
+  }
+  const CACHE=new WeakMap();
+  async function reading(id){
+    const b=SAMPLES.wav[id];if(!b)return null;if(CACHE.has(b))return CACHE.get(b);
+    let r;try{const {x,sr}=await decode(b);r=analyse(x,sr,id)}catch{r={ok:false}}
+    CACHE.set(b,r);return r;
+  }
+  const quality=s=>s>=75?['ok','Clean']:s>=55?['mid','OK']:['bad','Rough'];
+  const tuneC=id=>{try{return tuneOf(id).cents||0}catch{return 0}};
+
+  /* ---- the sheet ---- */
+  let sel=null,open=false,raf=0,run=0,busy=false;const strobes=[];
+  function build(){
+    if($('twSheet'))return;
+    const sh=document.createElement('div');sh.id='twSheet';sh.className='sheetov tw';sh.hidden=true;sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');sh.setAttribute('aria-labelledby','twTitle');
+    sh.innerHTML='<div class="sheetbox twbox">'
+      +'<div class="twhead"><div><span class="eyebrow">Studio · pan sounds</span><h2 id="twTitle">Tuning workshop</h2><p class="twsub" id="twSub"></p></div><button class="btn" id="twClose">Done</button></div>'
+      +'<label class="twfill"><input type="checkbox" id="twFill"><span class="twsw" aria-hidden="true"></span><span><b>Fill the gaps from my best notes</b><small id="twFillInfo"></small></span></label>'
+      +'<div class="twstrip" id="twStrip" role="listbox" aria-label="Every note on this pan, low to high"></div>'
+      +'<p class="twkey"><span><i class="k anc"></i>Your recording</span><span><i class="k fil"></i>Made from a nearby recording</span><span><i class="k bin"></i>Built-in sound</span></p>'
+      +'<div class="twdetail" id="twDetail"></div>'
+      +'<div class="twacts"><button class="btn" id="twAll">▶ Play the whole pan</button><button class="btn gold" id="twTuneAll">✨ Tune all my recordings</button><button class="btn" id="twPick">Pick the cleanest for me</button></div>'
+      +'<p class="twmsg" id="twMsg" aria-live="polite"></p>'
+      +'<details class="twhow"><summary>How the workshop works</summary>'
+      +'<p>When you hit a pan note it rings several tones at once: the note, its octave (twice as high) and, on the higher pans, the twelfth (an octave and a fifth up). A tuner hammers the note until those tones line up on a strobe tuner. Here every recording gets the same check: when a strobe band stands still the tone is on pitch, drifting right is sharp, drifting left is flat.</p>'
+      +'<p><b>Tune</b> moves the whole recording to the right pitch. It cannot move the octave on its own the way a hammer can, so if the octave is still far off after tuning, that note on your real pan is out, or the take was. Recording it again usually helps.</p>'
+      +'<p><b>Fill the gaps</b> makes every note you haven\'t recorded from the closest of your recordings on this pan, up to 7 notes away, retuned to the right pitch. A recording you mark <b>rough</b> is filled from a cleaner neighbour instead. Record a handful of clean notes spread across the pan (one every 3 or 4 notes, on the outer, middle and inner rings) and the rest will sound like your pan.</p>'
+      +'</details></div>';
+    document.body.appendChild(sh);
+    sh.addEventListener('click',e=>{if(e.target===sh)show(false)});
+    $('twClose').onclick=()=>show(false);
+    $('twFill').onchange=e=>{const k=setKey(),c=cfg(k);c.on=e.target.checked;setCfg(k,c);mineOn();changed();
+      msg(c.on?'Gaps filled. Tap ▶ Play the whole pan to hear it.':'Gaps off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.')};
+    $('twAll').onclick=playAll;$('twTuneAll').onclick=tuneAll;$('twPick').onclick=pickClean;
+    $('twStrip').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(!b)return;sel=b.dataset.id;render();const c=$('twStrip').querySelector('.on');if(c)c.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});try{strike(sel,.9)}catch{}});
+    $('twStrip').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const ids=order(),i=ids.indexOf(sel),n=ids[Math.max(0,Math.min(ids.length-1,i+(e.key==='ArrowRight'?1:-1)))];
+      if(n){sel=n;render();const b=$('twStrip').querySelector('[data-id="'+CSS.escape(n)+'"]');if(b)b.focus();try{strike(n,.9)}catch{}}});
+    $('twDetail').addEventListener('click',onDetail);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&open)show(false)});
+  }
+  const msg=t=>{const m=$('twMsg');if(m)m.textContent=t||''};
+  const order=()=>REC_ORDER.filter(id=>PITCH[id]).slice().sort((a,b)=>mid(a)-mid(b)||REC_ORDER.indexOf(a)-REC_ORDER.indexOf(b));
+  function mineOn(){if(S.panVoice!=='mine'){S.panVoice='mine';try{save()}catch{}}}
+  function changed(){try{renderVoice()}catch{}try{renderBorrow()}catch{}try{warmAll()}catch{}render()}
+  function warmAll(){SAMPLES.warm=true;Object.keys(SAMPLES.wav).forEach(id=>sampleBuf(id))}
+  // what plays when you tap this note right now
+  function sourceOf(id){
+    if(SAMPLES.wav[id]&&!skip(id))return {kind:'own'};
+    const f=fillOf(id);if(f)return {kind:'fill',src:f.src,st:f.st};
+    if(S.panVoice==='mine'&&!SAMPLES.wav[id]){try{const b=borrowOf(id);if(b)return {kind:'borrow',src:b.src,st:b.st}}catch{}}
+    if(SAMPLES.wav[id])return {kind:'own'};
+    return {kind:'built'};
+  }
+  const Rget=id=>{const b=SAMPLES.wav[id];return b?CACHE.get(b):undefined};   // the reading of each note's current recording
+  function chip(id){
+    const s=sourceOf(id),r=Rget(id),rough=SAMPLES.wav[id]&&skip(id),tc=tuneC(id);let line='';
+    if(s.kind==='own'){if(r&&r.ok&&r.parts[0].heard){const c=r.parts[0].cents+tc;line=(Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢')}else line=r?'unclear':'…'}
+    else if(s.kind==='fill'||s.kind==='borrow')line='from '+nice(s.src);else line='built-in';
+    const c0=r&&r.ok&&r.parts[0].heard?r.parts[0].cents+tc:null,cls=s.kind==='own'?'anc':s.kind==='built'?'bin':'fil';
+    const tone=c0==null?'':Math.abs(c0)<=3?' good':Math.abs(c0)<=10?' near':' off';
+    return '<button class="twc '+cls+(rough?' rough':'')+(id===sel?' on':'')+'" role="option" aria-selected="'+(id===sel)+'" tabindex="'+(id===sel?0:-1)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small class="'+tone.trim()+'">'+line+'</small></button>';
+  }
+  function render(){
+    if(!open)return;const k=setKey(),c=cfg(k),ids=order();
+    if(!sel||!ids.includes(sel))sel=ids.find(id=>SAMPLES.wav[id])||ids[0];
+    const own=ids.filter(id=>SAMPLES.wav[id]).length;
+    $('twSub').textContent=curSet().name+' · '+own+' of '+ids.length+' notes recorded';
+    $('twFill').checked=c.on;
+    const filled=ids.filter(id=>sourceOf(id).kind==='fill').length,built=ids.filter(id=>sourceOf(id).kind==='built').length;
+    $('twFillInfo').textContent=!own?'Record a few notes on this pan first.':c.on?filled+' note'+(filled===1?'':'s')+' made from your recordings'+(built?', '+built+' too far from any recording (built-in sound)':'')+'.':'Off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.';
+    $('twStrip').innerHTML=ids.map(chip).join('');
+    detail();
+    $('twTuneAll').disabled=!own;$('twPick').disabled=own<2;
+  }
+  function detail(){
+    const id=sel,box=$('twDetail');strobes.length=0;if(!id){box.innerHTML='';return}
+    const f=FIELDS.get(id),s=sourceOf(id),r=Rget(id),has=!!SAMPLES.wav[id],rough=has&&cfg(setOf(id)).skip.includes(id),tc=tuneC(id);
+    let h='<div class="twtop"><div><div class="twname">'+nice(id)+'</div><div class="twpos">'+[f.pos,f.pan].filter(Boolean).join(' · ')+'</div></div><div class="twstate">';
+    if(s.kind==='own')h+='<span class="twtag anc">Your recording</span>';
+    else if(s.kind==='fill')h+='<span class="twtag fil">Made from '+nice(s.src)+'</span><span class="twnote">'+Math.abs(s.st)+' note'+(Math.abs(s.st)===1?'':'s')+' '+(s.st>0?'up':'down')+(rough?', because you marked this recording rough':'')+'</span>';
+    else if(s.kind==='borrow')h+='<span class="twtag fil">Borrowed from '+nice(s.src)+'</span><span class="twnote">Advanced tuning, from another pan</span>';
+    else h+='<span class="twtag bin">Built-in sound</span><span class="twnote">'+(cfg(setOf(id)).on?'No recording within 7 notes. Recording this one, or one nearby, would help.':'Turn on Fill the gaps, or record this note.')+'</span>';
+    h+='</div></div>';
+    if(has){
+      if(!r)h+='<p class="twhint">Listening…</p>';
+      else if(!r.ok)h+='<p class="twhint">This recording was too short or quiet to read. Record it again, letting the note ring.</p>';
+      else{const [q,ql]=quality(r.score);
+        if(s.kind!=='own')h+='<p class="twhint">Below are the readings of your own recording of '+nice(id)+', which isn\'t playing right now.</p>';
+        h+='<div class="twq '+q+'"><span>Sound quality</span><div class="twbar"><i style="width:'+r.score+'%"></i></div><b>'+ql+'</b></div>';
+        h+='<div class="twstrobes">'+r.parts.map((p,i)=>{const now=p.cents+tc;return '<div class="twrow"><div class="twrn">'+p.name+'<small>'+p.sub+'</small></div><div class="twrc" id="twC'+i+'"></div><canvas id="twS'+i+'"></canvas>'
+          +'<div class="twcmp">'+(p.heard?'as recorded '+fmt(p.cents)+(tc?' · with tuning <b>'+fmt(now)+'</b>':''):'too quiet to read in this take')+'</div></div>'}).join('')+'</div>';
+        h+='<canvas class="twspec" id="twSpec" aria-label="The tones inside this recording, with dashed lines where they should be"></canvas>';
+      }
+    }
+    h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button>';
+    if(has)h+='<button class="btn" data-a="raw">▶ As recorded</button>';
+    if(has&&r&&r.ok&&r.parts[0].heard)h+=Math.abs(r.parts[0].cents+tc)>0.5?'<button class="btn gold" data-a="tune">Tune to pitch ('+fmt(-(r.parts[0].cents))+')</button>':'<span class="twok">✓ Tuned</span>';
+    if(has&&tc)h+='<button class="btn" data-a="untune">Undo tuning</button>';
+    if(has)h+=rough?'<button class="btn" data-a="keep">Use my recording again</button>':'<button class="btn" data-a="rough">Rough: fill this note instead</button>';
+    h+='<button class="btn" data-a="rec">● '+(has?'Record again':'Record this note')+'</button></div>';
+    if(has&&r&&r.ok){const o=r.parts[1];if(o&&o.heard&&r.parts[0].heard&&Math.abs(o.cents-r.parts[0].cents)>12)
+      h+='<p class="twhint">The octave is '+Math.abs(o.cents-r.parts[0].cents).toFixed(0)+' cents '+(o.cents>r.parts[0].cents?'sharp':'flat')+' of the note itself. Tuning can\'t fix that part, so this note may sound a little sour. That\'s on the pan (or the take): a fresh recording, or a neighbour marked as the anchor, may sound sweeter.</p>'}
+    box.innerHTML=h;
+    if(has&&r&&r.ok){r.parts.forEach((p,i)=>{strobes.push({cv:$('twS'+i),c:p.cents+tc,heard:p.heard,off:0});const el=$('twC'+i),[cl,t]=verdict(p.cents+tc,p.heard);el.innerHTML='<span>'+(p.heard?fmt(p.cents+tc):'–')+'</span><span class="twv '+cl+'">'+t+'</span>'});drawSpec(r,tc)}
+  }
+  const fmt=c=>(c>=0?'+':'−')+Math.abs(c).toFixed(1)+'¢';
+  const verdict=(c,h)=>!h?['none','Not heard']:Math.abs(c)<=3?['ok','In tune']:Math.abs(c)<=10?['mid',c>0?'A bit sharp':'A bit flat']:['bad',c>0?'Sharp':'Flat'];
+  function drawSpec(r,tc){
+    const cv=$('twSpec');if(!cv)return;const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;if(!w)return;
+    cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+    const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim()||'#ccc';
+    const f0=r.f0,ks=r.parts.map(p=>p.k),fl=f0*.6,fh=f0*(ks[ks.length-1]+1.2),X=f=>6+Math.log(f/fl)/Math.log(fh/fl)*(w-12),Y=db=>8+(-db/60)*(h-28);
+    g.beginPath();g.moveTo(X(fl),Y(-60));const a=r.a,shift=Math.pow(2,tc/1200);
+    for(let px=0;px<=w-12;px++){const f=fl*Math.pow(fh/fl,px/(w-12)),f2=fl*Math.pow(fh/fl,(px+1)/(w-12));let m=0;
+      for(let b=Math.floor(f/shift/a.bin);b<=Math.ceil(f2/shift/a.bin)&&b<a.mag.length;b++)m=Math.max(m,a.mag[b]);
+      g.lineTo(6+px,Y(Math.max(-60,20*Math.log10(m/a.max+1e-9))))}
+    g.lineTo(X(fh),Y(-60));g.closePath();const gold=col('--gold');
+    g.globalAlpha=.35;g.fillStyle=gold;g.fill();g.globalAlpha=1;g.strokeStyle=gold;g.lineWidth=1.2;g.stroke();
+    g.font='11px system-ui,sans-serif';g.fillStyle=col('--muted');g.strokeStyle=col('--steel');g.globalAlpha=.8;
+    ks.forEach((k,i)=>{const x=X(k*f0);g.setLineDash([3,4]);g.beginPath();g.moveTo(x,6);g.lineTo(x,h-18);g.stroke();g.setLineDash([]);g.textAlign='center';g.fillText(k===1?nice(sel):k+'×',Math.max(14,Math.min(w-14,x)),h-4)});
+    g.globalAlpha=1;
+  }
+  function tick(t){
+    if(!open){raf=0;return}raf=requestAnimationFrame(tick);
+    const dt=Math.min(.05,(t-(tick.l||t))/1000);tick.l=t;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim();
+    for(const s of strobes){const cv=s.cv;if(!cv||!cv.isConnected)continue;const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;if(!w)continue;
+      if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
+      const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+      if(!reduce)s.off+=Math.max(-160,Math.min(160,s.c*5))*dt;
+      const a=Math.abs(s.c);g.fillStyle=!s.heard?col('--line'):a<=3?'#5fd48a':a<=10?col('--gold'):col('--danger');
+      for(const [p,y,bh] of [[16,0,h/2-1],[8,h/2+1,h/2-1]]){const per=p*2,o=((s.off*(16/p)%per)+per)%per;for(let x=-per+o;x<w;x+=per)g.fillRect(x,y,p,bh)}
+      g.fillStyle=col('--text');g.globalAlpha=.55;g.fillRect(w/2-1,0,2,h);g.globalAlpha=1}
+  }
+  async function listen(){
+    const me=++run,ids=order().filter(id=>SAMPLES.wav[id]&&!Rget(id));let n=0;
+    for(const id of ids){if(me!==run||!open)return;msg('Listening to your notes… '+(++n)+' of '+ids.length);
+      await reading(id);await new Promise(r=>setTimeout(r,0));if(me===run&&open)render()}
+    if(me===run)msg(ids.length?'':$('twMsg').textContent);
+  }
+  async function onDetail(e){
+    const b=e.target.closest('[data-a]');if(!b)return;const id=sel,a=b.dataset.a,k=setOf(id);
+    if(a==='hear'){mineOn();try{warmAll();strike(id,.95)}catch{}}
+    else if(a==='raw'){const ac=panCtx(),buf=await sampleBuf(id);if(ac&&buf){const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.9;s.buffer=buf;s.connect(g);g.connect(pBus);s.start()}}
+    else if(a==='tune'){const r=Rget(id);if(!r||!r.ok)return;setTune(id,-r.parts[0].cents);mineOn();changed();msg(nice(id)+' tuned'+(fills(id)?', and the '+fills(id)+' note'+(fills(id)===1?'':'s')+' made from it':'')+'.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
+    else if(a==='untune'){setTune(id,0);changed();msg('Tuning undone for '+nice(id)+'.')}
+    else if(a==='rough'){const c=cfg(k);c.skip.push(id);c.on=true;setCfg(k,c);mineOn();changed();
+      const s=sourceOf(id);msg(s.kind==='fill'?nice(id)+' will now be made from '+nice(s.src)+'.':'No other recording within 7 notes, so '+nice(id)+' keeps your recording for now.')}
+    else if(a==='keep'){const c=cfg(k);c.skip=c.skip.filter(x=>x!==id);setCfg(k,c);changed();msg(nice(id)+' uses your recording again.')}
+    else if(a==='rec'){show(false);back=true;recSel=id;openRec(true)}
+  }
+  const fills=id=>order().filter(x=>{const s=sourceOf(x);return s.kind==='fill'&&s.src===id}).length;
+  function setTune(id,c){const t=Object.assign({},SAMPLES.tune[id]||{});t.cents=Math.round(c*10)/10;if(!t.cents)delete t.cents;
+    if(Object.keys(t).length)SAMPLES.tune[id]=t;else delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}}
+  async function tuneAll(){
+    mineOn();msg('Listening…');await listenAll();let n=0,odd=[];
+    for(const id of order()){const r=Rget(id);if(!SAMPLES.wav[id]||!r||!r.ok||!r.parts[0].heard)continue;
+      if(Math.abs(r.parts[0].cents)>55){odd.push(nice(id));continue}setTune(id,-r.parts[0].cents);n++}
+    changed();msg(n?'Tuned '+n+' recording'+(n===1?'':'s')+' to pitch'+(cfg(setKey()).on?', and every note made from them':'')+'.'+(odd.length?' Left alone (they sound like a different note, so check them): '+odd.join(', ')+'.':''):'Nothing to tune yet.');
+  }
+  async function listenAll(){for(const id of order())if(SAMPLES.wav[id]&&!Rget(id))await reading(id)}
+  async function pickClean(){
+    msg('Listening…');await listenAll();const k=setKey(),c=cfg(k),ids=order().filter(id=>SAMPLES.wav[id]&&Rget(id)&&Rget(id).ok);
+    // rough = below "Good", or clearly worse than the rest of your recordings on this pan
+    const sc=ids.map(id=>Rget(id).score).sort((p,q)=>p-q),med=sc[sc.length>>1]||0;
+    const clean=id=>Rget(id).score>=55&&Rget(id).score>=med-15,marked=[];c.skip=c.skip.filter(id=>!ids.includes(id)||!clean(id));
+    for(const id of ids){if(clean(id)||c.skip.includes(id))continue;
+      if(ids.some(o=>o!==id&&clean(o)&&Math.abs(mid(o)-mid(id))<=4)){c.skip.push(id);marked.push(nice(id))}}
+    c.on=true;setCfg(k,c);mineOn();changed();
+    msg(marked.length?'Marked '+marked.length+' rough recording'+(marked.length===1?'':'s')+' ('+marked.join(', ')+'). '+(marked.length===1?'It\'s':'They\'re')+' now made from a cleaner neighbour, and the gaps are filled.':'All your recordings sound clean enough to keep. Gaps are filled from them.');
+  }
+  let allRun=0;
+  function playAll(){
+    const me=++allRun,ids=order();mineOn();warmAll();msg('Playing '+nice(ids[0])+' to '+nice(ids[ids.length-1])+'…');
+    ids.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}
+      const b=$('twStrip').querySelector('[data-id="'+CSS.escape(id)+'"]');if(b){b.classList.add('ping');setTimeout(()=>b.classList.remove('ping'),260)}
+      if(i===ids.length-1)setTimeout(()=>msg(''),400)},300+i*260));
+  }
+  let back=false;
+  function show(on){
+    build();open=!!on;$('twSheet').hidden=!on;document.body.classList.toggle('tw-open',open);
+    if(on){++allRun;render();listen();if(!raf)raf=requestAnimationFrame(tick);setTimeout(()=>{const b=$('twStrip').querySelector('.on');if(b)b.scrollIntoView({block:'nearest',inline:'center'})},50)}
+    else{++run;++allRun}
+  }
+  // coming back from the record sheet reopens the workshop on the same note
+  const _openRec=openRec;openRec=function(on){_openRec(on);if(!on&&back){back=false;show(true)}};
+  // fill notes in wherever Advanced tuning would be asked
+  const _borrow=borrowOf;borrowOf=function(id){return fillOf(id)||_borrow(id)};
+  PAN_HOOKS.push(()=>{if(open)render()});
+  // backups carry the workshop choices too (hooked in once Studio has set up its own)
+  setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>Object.assign(be?await be():{},{panFill:JSON.parse(JSON.stringify(st))});
+  const bi=window.backupIn;window.backupIn=async p=>{let m=bi?await bi(p):'';const f=p&&p.panFill;
+    if(f&&typeof f==='object'){for(const [k,v] of Object.entries(f))if(SETS[k]&&v&&typeof v==='object')st[k]={on:!!v.on,skip:Array.isArray(v.skip)?v.skip.filter(id=>typeof id==='string'&&FIELDS.has(id)):[]};store();m+=' Tuning workshop choices added.'}
+    return m}},0);
+  return {allowed:!inApk,open:show,skip,fillOf,reading,analyse,get isOpen(){return open}};
+})();
+
 /* ---------- 3D pans: the tenor hangs between two stand poles; the others stand as shiny drums ---------- */
 // Only the look changes: every note keeps the shape and place measured from the real pan, so taps land the same.
 const HANG={
@@ -6131,7 +6488,7 @@ function panVoice(dest,id,t,v){
   if(!PITCH[id])return;const light=v<.78;
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
-    let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
+    let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
     if(src){const b=SAMPLES.buf[src];if(b){const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light);return}sampleBuf(src)}}
   panTone(dest,pitchHz(id),t,v,light);
 }
@@ -7572,6 +7929,7 @@ const GB={
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
     const lp=document.createElement('button');lp.className='btn gbloopm';lp.textContent='⟲ Loop on / off';lp.onclick=()=>{this.menu(false);$('stLoop').click();this.sync()};list.prepend(lp);
     const tun=document.createElement('button');tun.className='btn';tun.textContent='♮ Tuning (match a recording)';tun.onclick=()=>{this.menu(false);showView('setup');try{SETUP.show('tune')}catch{}};list.prepend(tun);
+    if(typeof TW!=='undefined'&&TW.allowed){const tw=document.createElement('button');tw.className='btn';tw.id='gbWorkshop';tw.textContent='🔧 Tuning workshop (pan sounds)';tw.onclick=()=>{this.menu(false);TW.open(true)};list.prepend(tw)}
     const tmp=document.createElement('button');tmp.className='btn';tmp.id='gbTempo';tmp.textContent='♩ Tempo & metronome';tmp.onclick=()=>{this.menu(false);STUDIO.tempoSheet()};list.prepend(tmp);
     const mx=document.createElement('button');mx.className='btn gbmix';mx.textContent='🎚 Mixer & sound';mx.onclick=()=>{this.menu(false);$('stMix').click()};list.prepend(mx);
     const toWrite=document.createElement('button');toWrite.className='btn';toWrite.textContent='✎ Go to Write';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);

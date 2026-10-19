@@ -133,6 +133,8 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
   </section>
 
   <!-- CUES -->''')
+# the Tuning workshop goes in before Studio, whose ⋯ menu offers it
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-tune.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-hang.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-studio.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('      <details><summary>Hearing the pans when you tap</summary>', """      <details><summary>Studio: recording in layers</summary>
@@ -158,6 +160,10 @@ rep("this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('
 rep("photos:'Pan photos & order'", "photos:'Pan look'")
 rep("case 'photos':return S.look==='photo'?'Photos':'Diagram';", "case 'photos':return typeof LOOK!=='undefined'?(LOOK.STYLES.find(s=>s[0]===LOOK.of(setKey()).style)||['','Night'])[1]:(S.look==='photo'?'Photos':'Diagram');")
 rep("'Pan photos':'photos',", "'Pan photos':'photos','Pan look':'photos',")
+# Tuning workshop (Studio ⋯): read each recorded note like a strobe tuner, tune it, and fill the gaps from the cleanest notes
+rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + open(os.path.join(HERE, 'panyard-tune.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
+# a recording you've marked rough is played from a cleaner neighbour instead
+rep('let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=borrowOf(id);', "let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=borrowOf(id);")
 rep("  renderSaveInfo();\n  initStore();\n})();", "  renderSaveInfo();\n  initStore();\n  showView('home');\n})();")
 open(OUT, 'w', encoding='utf-8').write(s)
 print('wrote', OUT)
