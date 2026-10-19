@@ -21,9 +21,10 @@ const GB={
     const v=$('view-studio');if(!v||!$('stPlay'))return;
     const bar=document.createElement('div');bar.id='gbBar';bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Studio');
     bar.innerHTML='<div class="gbl"><button class="gbi" id="gbBack" aria-label="Leave Studio">'+this.svg('back')+'</button>'
-      +'<button class="gbi" id="gbView" aria-label="Show the pans">'+this.svg('pans')+'</button>'
-      +'<button class="gbi" id="gbMix" aria-label="Mixer">'+this.svg('mixer')+'</button>'
-      +'<button class="gbi" id="gbSet" aria-label="Track settings: tone, echo, quantize, takes">'+this.svg('tset')+'</button></div>'
+      // which view you're on is always shown: the pans or the track lanes, one of the two lit
+      +'<div class="gbseg" id="gbView" role="group" aria-label="View"><button class="gbi gbt" data-v="inst" aria-pressed="true" aria-label="Pans">'+this.svg('pans')+'<span>Pans</span></button>'
+      +'<button class="gbi gbt" data-v="tracks" aria-pressed="false" aria-label="Tracks">'+this.svg('tracks')+'<span>Tracks</span></button></div>'
+      +'<button class="gbi gbt" id="gbMix" aria-label="Mixer: levels, tone and echo for every track">'+this.svg('mixer')+'<span>Mixer</span></button></div>'
       +'<div class="gbc"></div>'
       +'<div class="gbr"><button class="gbi gbw" id="gbWrite" aria-label="Write">'+this.svg('write')+'<span>Write</span></button><span class="gblcd"></span><button class="gbi" id="gbMetro" aria-label="Click (metronome)">'+this.svg('metro')+'</button>'
       +'<button class="gbi" id="gbLoop" aria-label="Loop">'+this.svg('loop')+'</button>'
@@ -44,9 +45,8 @@ const GB={
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
     const lp=document.createElement('button');lp.className='btn gbloopm';lp.textContent='⟲ Loop on / off';lp.onclick=()=>{this.menu(false);$('stLoop').click();this.sync()};list.prepend(lp);
     const tun=document.createElement('button');tun.className='btn';tun.textContent='♮ Tuning (match a recording)';tun.onclick=()=>{this.menu(false);showView('setup');try{SETUP.show('tune')}catch{}};list.prepend(tun);
-    const tset=document.createElement('button');tset.className='btn';tset.textContent='⚙ Track settings';tset.onclick=()=>{this.menu(false);STUDIO.trackSheet()};list.prepend(tset);
     const tmp=document.createElement('button');tmp.className='btn';tmp.id='gbTempo';tmp.textContent='♩ Tempo & metronome';tmp.onclick=()=>{this.menu(false);STUDIO.tempoSheet()};list.prepend(tmp);
-    const mx=document.createElement('button');mx.className='btn gbmix';mx.textContent='🎚 Mixer';mx.onclick=()=>{this.menu(false);$('stMix').click()};list.prepend(mx);
+    const mx=document.createElement('button');mx.className='btn gbmix';mx.textContent='🎚 Mixer & sound';mx.onclick=()=>{this.menu(false);$('stMix').click()};list.prepend(mx);
     const toWrite=document.createElement('button');toWrite.className='btn';toWrite.textContent='✎ Go to Write';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);
     $('stExp').textContent='⤓ Export / share';$('stTime').textContent='⏱ Timing fix';
     // the floating track pill (Pans view) and the ruler
@@ -65,10 +65,18 @@ const GB={
     const ru=document.createElement('div');ru.id='gbRuler';ru.innerHTML='<canvas aria-label="Bars: tap to move the playhead"></canvas>';bar.after(ru);
     // wiring: the new icons press the old buttons, so Studio's own logic does the work
     $('gbBack').onclick=()=>{showView('home')};
-    $('gbView').onclick=()=>{const inst=document.body.classList.contains('st-inst');const b=document.querySelector('#stViews [data-sv="'+(inst?'tracks':'inst')+'"]');if(b)b.click();this.sync()};
+    $('gbView').onclick=e=>{const t=e.target.closest('[data-v]');if(!t)return;const b=document.querySelector('#stViews [data-sv="'+t.dataset.v+'"]');if(b)b.click();this.sync()};
     $('gbMix').onclick=()=>$('stMix').click();
+    // names for the icons: a hover tip on a computer, and press and hold on a phone shows the name
+    bar.querySelectorAll('.gbl .gbi').forEach(b=>{const n=b.getAttribute('aria-label')||'';if(!b.title)b.title=n.split(':')[0]});
+    {let tt=0,tip=null,held=false;
+     const hide=()=>{clearTimeout(tt);if(tip){tip.remove();tip=null}};
+     bar.querySelector('.gbl').addEventListener('pointerdown',e=>{const b=e.target.closest('.gbi');if(!b||e.pointerType==='mouse')return;held=false;hide();
+       tt=setTimeout(()=>{held=true;const r=b.getBoundingClientRect();tip=document.createElement('div');tip.className='gbtip';tip.textContent=b.title;document.body.appendChild(tip);
+         tip.style.left=Math.max(6,Math.min(innerWidth-tip.offsetWidth-6,r.left+r.width/2-tip.offsetWidth/2))+'px';tip.style.top=(r.bottom+6)+'px'},450)});
+     ['pointerup','pointercancel','pointerleave'].forEach(ev=>bar.querySelector('.gbl').addEventListener(ev,()=>{clearTimeout(tt);setTimeout(hide,ev==='pointerup'?900:0)}));
+     bar.querySelector('.gbl').addEventListener('click',e=>{if(held){held=false;e.preventDefault();e.stopPropagation()}},true)}
     $('gbWrite').onclick=()=>showView('cues');
-    $('gbSet').onclick=()=>STUDIO.trackSheet();
     // tap the metronome to switch it on or off; hold it for its settings
     {const m=$('gbMetro');let lt=0,long=false;m.title='Tap: click on/off · Hold: tempo & metronome';
      m.addEventListener('pointerdown',()=>{long=false;clearTimeout(lt);lt=setTimeout(()=>{long=true;STUDIO.tempoSheet()},550)});
@@ -100,7 +108,7 @@ const GB={
   secs(){return[...document.querySelectorAll('#stSecs [data-sec]')].map(c=>{const [a,b]=c.dataset.sec.split(',').map(Number);return{a,b,name:c.textContent.replace(/^⟲\s*/,''),on:c.classList.contains('on')}})},
   sync(){
     if(!$('gbBar'))return;const inst=document.body.classList.contains('st-inst');
-    const gv=$('gbView');if(gv.dataset.v!==String(inst)){gv.dataset.v=String(inst);gv.innerHTML=this.svg(inst?'tracks':'pans');gv.setAttribute('aria-label',inst?'Show the tracks':'Show the instrument')}
+    $('gbView').querySelectorAll('[data-v]').forEach(b=>{const on=(b.dataset.v==='inst')===inst;if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});
     const tg=(el,on)=>{if(el.classList.contains('on')!==on)el.classList.toggle('on',on)};
     tg($('gbMetro'),$('stMetro').getAttribute('aria-pressed')==='true');tg($('gbLoop'),$('stLoop').getAttribute('aria-pressed')==='true');
     const on=document.querySelector('.st-tchips .chip.on'),pill=$('gbPill');
@@ -108,7 +116,7 @@ const GB={
     const ob=$('gbOpts'),has=!!$('stPopts');if(ob&&ob.hidden===has)ob.hidden=!has;if(!has&&document.body.classList.contains('gb-opts'))this.opts(false);
     const list=document.querySelector('#stInst>.st-tchips');
     if(list&&!list.querySelector('#gbSetItem')){const add=(id,t)=>{const b=document.createElement('button');b.className='chip gbitem';b.id=id;b.textContent=t;list.appendChild(b)};
-      if(has)add('gbOptItem','⚙ Pan & recording options');add('gbSetItem','🎚 Track settings: tone, echo, takes')}
+      if(has)add('gbOptItem','⚙ Pan & recording options');add('gbSetItem','🎚 This track\'s sound: tone, echo, takes')}
   },
   drawRuler(){
     const cv=document.querySelector('#gbRuler canvas');if(!cv||!cv.offsetParent)return;

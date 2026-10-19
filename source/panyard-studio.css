@@ -195,6 +195,9 @@ body.st-inst #stSecs{display:none}
 .tstp button{height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:22px;cursor:pointer}
 .st-ms .g{background:none;border:1px solid var(--line);border-radius:8px;color:var(--muted);min-width:30px;cursor:pointer}
 .tsetb{margin-left:auto}
+.st-mname .tsetb{min-height:32px;padding:4px 10px;margin-right:6px}
+.st-tsethead{gap:8px}.st-tsethead h2{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-mixhint{margin:-4px 0 6px}
 /* the big count-in numbers */
 #stCountVis{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);z-index:60;pointer-events:none;font:900 min(34vw,34vh)/1 var(--display,system-ui);color:var(--text);opacity:0;text-shadow:0 0 40px rgba(0,0,0,.6)}
 #stCountVis.on{opacity:.92}#stCountVis.acc{color:var(--gold)}

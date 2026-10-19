@@ -450,7 +450,7 @@ function endNoteRec(){
   tr.notes.forEach(n=>{delete n.tk});tr.notes.sort((x,y)=>x.t-y.t);
   if(song.recMode==='take'&&tr.takes){
     if(!mineN.length){if(H.u.length)restore(H.u.pop());else takeDrop(tr);renderUndo();renderAll();say('Nothing was played, so no new take.');return}
-    dirty();renderAll();say(tr.takes[tr.tk].name+' recorded on '+tr.name+'. Choose between takes in ⚙ Track settings.');return}
+    dirty();renderAll();say(tr.takes[tr.tk].name+' recorded on '+tr.name+'. Choose between takes in the Mixer: Sound › on this track.');return}
   if(!mineN.length&&song.recMode!=='replace'){H.u.pop();renderUndo();renderAll();return}
   dirty();renderAll();say(song.recMode==='replace'?'Take recorded on '+tr.name+'.':'Recorded '+mineN.length+' note'+(mineN.length===1?'':'s')+' on '+tr.name+'.');
 }
@@ -987,8 +987,8 @@ function renderSheet(){
       +'<button class="st-add" data-st="addk" data-v="beats"><b>▦ Beat</b><span>A drum pattern: soca, calypso, panorama jam and more, or build your own.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="part"><b>✎ Your part from Write</b><span>'+(cues?'Your '+cues+' cues as a pan track, linked: edit it here or in Write and both follow.':'Linked to your cues in Write; write some cues and they play here.')+'</span></button></div>';
   }else if(SH.kind==='mixer'){
-    h=head('Mixer')+'<div class="st-mix">'+song.tracks.map(tr=>'<div class="st-mrow k-'+tr.type+'" data-tid="'+tr.id+'"><div class="st-mname"><b>'+esc(tr.name)+'</b><span class="st-ms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'">M</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'">S</button></span></div>'
-      +'<button class="btn sm tsetb" data-st="tset">⚙ Settings</button><label class="lab">Volume<input type="range" data-mk="vol" min="0" max="1.2" step=".01" value="'+tr.vol+'"></label>'
+    h=head('Mixer')+'<p class="help st-mixhint">Every track\'s level here. Tap <b>Sound ›</b> on a track for its tone, echo, quantize and takes.</p><div class="st-mix">'+song.tracks.map(tr=>'<div class="st-mrow k-'+tr.type+'" data-tid="'+tr.id+'"><div class="st-mname"><b>'+esc(tr.name)+'</b><button class="btn sm tsetb" data-st="tset" aria-label="Sound settings for '+esc(tr.name)+'">Sound ›</button><span class="st-ms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'">M</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'">S</button></span></div>'
+      +'<label class="lab">Volume<input type="range" data-mk="vol" min="0" max="1.2" step=".01" value="'+tr.vol+'"></label>'
       +'<label class="lab">Left · Right<input type="range" data-mk="pan" min="-1" max="1" step=".05" value="'+(tr.pan||0)+'"></label>'
       +'<label class="lab">Reverb<input type="range" data-mk="mix" min="0" max=".6" step=".02" value="'+mixOf(tr)+'"></label>'
       +'<div class="st-meter" aria-hidden="true"><i data-meter="'+tr.id+'"></i></div></div>').join('')
@@ -1033,7 +1033,8 @@ function renderSheet(){
     const sec=(t,body)=>'<div class="tsec"><h3>'+t+'</h3>'+body+'</div>';
     const sl=(key,label,min,max,step,val,shown,attr)=>'<label class="lab tsl"><span>'+label+' <b data-show="'+key+'">'+shown+'</b></span><input type="range" '+(attr||'data-fx')+'="'+key+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'"></label>';
     const db=x=>(x>0?'+':'')+Math.round(x)+' dB',pct=x=>Math.round(x*100)+'%';
-    h=head('Track settings')+'<div class="tchips" role="group" aria-label="Choose a track">'+song.tracks.map(t=>'<button class="chip'+(t.id===tr.id?' on':'')+'" data-st="tsetpick" data-v="'+t.id+'" aria-pressed="'+(t.id===tr.id)+'">'+ICON[t.type]+' '+esc(t.name)+'</button>').join('')+'</div>'
+    // part of the Mixer: one panel for all the sound settings, with a way back to every track
+    h='<div class="sheethead st-tsethead"><button class="btn sm" data-st="tomix" aria-label="Back to the Mixer">‹ Mixer</button><h2>'+esc(tr.name)+'</h2><button class="btn" data-st="close">Done</button></div>'+'<div class="tchips" role="group" aria-label="Choose a track">'+song.tracks.map(t=>'<button class="chip'+(t.id===tr.id?' on':'')+'" data-st="tsetpick" data-v="'+t.id+'" aria-pressed="'+(t.id===tr.id)+'">'+ICON[t.type]+' '+esc(t.name)+'</button>').join('')+'</div>'
       +'<div data-tid="'+tr.id+'" class="tset">'
       +sec('Output',sl('vol','Volume',0,1.2,.01,tr.vol,pct(tr.vol/1.2),'data-mk')+sl('pan','Left · Right',-1,1,.05,tr.pan||0,lr(tr.pan||0),'data-mk')
         +'<div class="row st-ms tms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'">Mute</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'">Solo</button></div>')
@@ -1246,6 +1247,7 @@ function onClick(e){
     case 'lane':break;
     case 'mute':case 'solo':pushHistory();tr[act]=!tr[act];refreshGains();dirty();if(SH.kind==='mixer'||SH.kind==='track')renderSheet();renderTimeline();break;
     case 'tset':openSheet('track',tr?tr.id:selTr().id);break;
+    case 'tomix':openSheet('mixer');break;
     case 'tsetpick':SH.arg=b.dataset.v;song.sel=b.dataset.v;renderSheet();break;
     case 'tempo':setTempo(Math.round(bpm())+(+b.dataset.v));break;
     case 'taptempo':tapTempo();break;

@@ -12,7 +12,7 @@ var GUIDE={   // var: other parts can ask about it early
   closeAll(){try{openHelp(false)}catch{}try{if(!$('shareSheet').hidden)openShare(false)}catch{}try{if(!$('recSheet').hidden)openRec(false)}catch{}
     try{GB.menu(false)}catch{}try{WB.pop(null)}catch{}try{if(!$('songsSheet').hidden)openSongs(false)}catch{}},
   studio(view){if(document.body.dataset.view!=='studio')showView('studio');
-    setTimeout(()=>{const inst=document.body.classList.contains('st-inst');if(view&&(view==='inst')!==inst){const b=$('gbView');if(b)b.click()}},120)},
+    setTimeout(()=>{const inst=document.body.classList.contains('st-inst');if(view&&(view==='inst')!==inst){const b=document.querySelector('#gbView [data-v="'+view+'"]');if(b)b.click()}},120)},
   closeStudioSheet(){const s=$('stSheet');if(s&&!s.hidden){const d=s.querySelector('[data-st=close]');if(d)d.click()}},
 
   /* the walk-throughs. Each step: where to go (go), what to ring (el), what to say, and what moves it on (tap / change) */
@@ -49,7 +49,7 @@ var GUIDE={   // var: other parts can ask about it early
       {go:()=>GUIDE.studio('tracks'),el:'#stRec',t:'Record',x:'Records onto the selected track. A bar of clicks counts you in first.'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbMetro',t:'The click',x:'Tap for the metronome on or off. Hold it for the tempo.'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbLoop',t:'Loop',x:'Loops the bars you select, so you can go over one bit again and again.'},
-      {go:()=>GUIDE.studio('tracks'),el:'#gbView',t:'Tracks or instrument',x:'Switch between the list of tracks and the instrument you play (the pans, or the mic).'},
+      {go:()=>GUIDE.studio('tracks'),el:'#gbView',t:'Pans or Tracks',x:'Switch between the instrument you play (the pans, or the mic) and the list of tracks. The one you\'re on is lit.'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbMix,#gbMore',t:'Mixer',x:'Each track’s volume, left/right, and reverb (in ⋯ on a narrow screen).'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbMore',t:'More',x:'Count-in, undo, Export / share, and ⏱ Timing fix. Run Timing fix once so your taps land on the beat.'},
       {go:()=>GUIDE.studio('tracks'),el:'[data-st=addsheet]',t:'Add a track',x:'Ready for more? Try the “Add a pan track” or “Record yourself” guides.'}]},
