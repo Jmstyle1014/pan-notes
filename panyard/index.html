@@ -1092,6 +1092,21 @@ body.gbmode .st-kitstage.tall{width:min(100%,calc((100dvh - 170px)*9/13))}
 .st-kitstage.tall .st-kitname{bottom:1.5%}
 .lay-pads.tall,.lay-engine.tall{aspect-ratio:auto;height:calc(100dvh - 230px)}
 @media (prefers-reduced-motion:reduce){.st-dp{transition:none}}
+/* song templates and whole-section tools */
+.st-sectools{display:inline-flex;gap:6px;flex-wrap:wrap;margin-left:4px;padding-left:8px;border-left:1px solid var(--line,#30275a)}
+.st-secs .st-sectools .chip{border-color:var(--line,#30275a);color:var(--text)}
+.st-tplc small{display:block;margin-top:4px;opacity:.75;font-size:12px;line-height:1.35}
+/* the section names on the ruler loop their section when tapped */
+.st-secl{pointer-events:auto;cursor:pointer;border-top:0;border-right:0;border-bottom:0;min-height:22px;padding:3px 8px 3px 5px;overflow:hidden;text-overflow:ellipsis;border-radius:0 6px 0 0}
+.st-secl.on{background:var(--gold);color:var(--gold-ink)}
+/* in Studio the chip row stays hidden, except for the tools of a looped template section */
+body.gbmode:not(.st-inst) #stSecs:has(.st-sectools){display:flex!important;padding:4px 10px}
+body.gbmode #stSecs:has(.st-sectools)>.chip,body.gbmode #stSecs:has(.st-sectools)>.help{display:none}
+body.gbmode #stSecs .st-sectools{border-left:0;margin-left:0;padding-left:0}
+body.gbmode #stSecs .st-sectools::before{content:attr(data-name);align-self:center;font:700 13px var(--display);color:var(--gold);margin-right:4px}
+body.gbmode #stSecs .st-sectools{flex-wrap:nowrap;overflow-x:auto}
+body.gbmode #stSecs .st-sectools .chip{min-height:36px;padding:0 10px;font-size:13px;white-space:nowrap}
+body.gbmode #stSecs .st-sectools::before{white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- Home (panyard-home.js) ---------- */
 body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="home"] .dock .transport{display:none!important}
@@ -7074,7 +7089,7 @@ window.backupIn=async p=>{
   const st=p&&p.studio;if(!st||!Array.isArray(st.tracks))return'';
   const num=(v,a,b,d)=>Number.isFinite(+v)?Math.max(a,Math.min(b,+v)):d;
   const tracks=st.tracks.filter(t=>t&&['practice','part','pan','beats','drums'].includes(t.type)).slice(0,24).map(t=>{
-    const o=trk(t.type,{name:String(t.name||'').slice(0,28)||trk(t.type).name,vol:num(t.vol,0,1.5,.85),pan:num(t.pan,-1,1,0),mute:!!t.mute,solo:!!t.solo,mix:t.mix==null?null:num(t.mix,0,1,null)});
+    const o=trk(t.type,{...(typeof t.role==='string'?{role:t.role.slice(0,20)}:{}),name:String(t.name||'').slice(0,28)||trk(t.type).name,vol:num(t.vol,0,1.5,.85),pan:num(t.pan,-1,1,0),mute:!!t.mute,solo:!!t.solo,mix:t.mix==null?null:num(t.mix,0,1,null)});
     const cleanN=arr=>(Array.isArray(arr)?arr:[]).filter(n=>n&&PITCH[n.p]&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.5),p:n.p,v:num(n.v,0,1,.9),...(n.roll?{roll:1}:{})}));
     if(t.fx&&typeof t.fx==='object')o.fx={treble:num(t.fx.treble,-12,12,0),bass:num(t.fx.bass,-12,12,0),comp:num(t.fx.comp,0,1,0),echo:num(t.fx.echo,0,.6,0),echoT:ECHOES[t.fx.echoT]?t.fx.echoT:'q',room:ROOMS.some(r=>r[0]===+t.fx.room)?+t.fx.room:0};
     if(t.type==='pan'){o.panSet=SETS[t.panSet]?t.panSet:'guitar';o.notes=cleanN(t.notes);if(t.chart)o.chart=true;if(typeof t.chartText==='string')o.chartText=t.chartText.slice(0,40000);
@@ -7088,6 +7103,8 @@ window.backupIn=async p=>{
   if(!tracks.some(t=>t.type==='practice'))tracks.unshift(trk('practice'));
   const C=st.click&&typeof st.click==='object'?st.click:{};
   const sg=Object.assign(blank(),{click:{sound:CLICKS.some(c=>c[0]===C.sound)?C.sound:CK0.sound,level:num(C.level,0,1,CK0.level),bars:C.bars===2?2:1,visual:C.visual!==false,recOnly:!!C.recOnly},recMode:['add','replace','take'].includes(st.recMode)?st.recMode:'add',bpm:num(st.bpm,30,300,100),metro:!!st.metro,countIn:st.countIn!==false,master:num(st.master,0,1.5,.85),minBars:num(st.minBars,1,999,8),tracks,sel:tracks[0].id});
+  if(Array.isArray(st.secs)){const ok=st.secs.filter(x=>x&&typeof x.name==='string'&&Number.isInteger(+x.a)&&Number.isInteger(+x.b)&&+x.a>=0&&+x.b>+x.a).slice(0,64);
+    if(ok.length){sg.secs=ok.map(x=>({name:x.name.slice(0,30),a:+x.a,b:+x.b,en:num(x.en,1,5,3)}));if(typeof st.tpl==='string')sg.tpl=st.tpl.slice(0,12)}}
   if(st.cycle&&Number.isFinite(+st.cycle.s)&&Number.isFinite(+st.cycle.e))sg.cycle={on:!!st.cycle.on,s:+st.cycle.s,e:+st.cycle.e};
   if(T.playing)stop(false);await idbPut('studio:'+keyNow(),sg);song=null;songKey=null;
   return ' '+(tracks.length-1)+' Studio tracks added.';
@@ -7144,14 +7161,82 @@ function renderTransport(){
   document.body.classList.toggle('st-recording',T.rec);
   updatePlayhead();
 }
+/* ---- song templates: a band's arrangement laid out as named sections, with a track for each layer of the band ----
+   [section name, bars, energy 1–5]; the energy is what the beat dice will follow */
+const TEMPLATES=[
+  {id:'pano',name:'Panorama, full',feel:'The whole journey: variations, jam, minor, recap',bpm:128,style:'engine',
+   secs:[['Intro',8,3],['Verse',16,3],['Chorus',16,4],['Bridge',16,3],['Variation',32,4],['Jam',32,5],['Key change and bass solo',16,3],['Minor',24,2],['Recap',32,5],['Ending',8,5]]},
+  {id:'panop',name:'Panorama, practice',feel:'A shorter panorama to learn the shape',bpm:128,style:'engine',
+   secs:[['Intro',8,3],['Verse',16,3],['Chorus',16,4],['Variation',16,4],['Jam',16,5],['Recap',16,5],['Ending',4,5]]},
+  {id:'road',name:'Road march',feel:'Soca for the road: verses, builds and big choruses',bpm:155,style:'roadmarch',
+   secs:[['Intro',8,3],['Verse 1',16,3],['Build',8,4],['Chorus',16,5],['Verse 2',16,3],['Build 2',8,4],['Chorus 2',16,5],['Breakdown',8,2],['Last chorus',32,5],['Outro',8,4]]},
+  {id:'calypso',name:'Calypso',feel:'Four verses, each with its chorus',bpm:112,style:'calypso',
+   secs:[['Intro',8,3],['Verse 1',16,2],['Chorus',8,4],['Verse 2',16,2],['Chorus 2',8,4],['Verse 3',16,2],['Chorus 3',8,4],['Verse 4',16,2],['Last chorus',8,4],['Ending',4,4]]},
+  {id:'bomb',name:'Bomb tune',feel:'Any song (pop, a film theme) at calypso tempo, for J\'Ouvert',bpm:120,style:'calypso',
+   secs:[['Intro',4,3],['Theme A',16,3],['Theme B',16,4],['Jam',16,5],['Theme A again',16,4],['Ending',4,5]]},
+  {id:'jam',name:'Jam loop',feel:'One 8-bar loop to practise over',bpm:140,style:'panorama',loop:true,secs:[['Jam',8,4]]}];
+const tplBars=tp=>tp.secs.reduce((n,x)=>n+x[1],0);
+const tplTime=tp=>{const sec=Math.round(tplBars(tp)*4*60/tp.bpm);return Math.floor(sec/60)+' min '+String(sec%60).padStart(2,'0')+' s'};
+const LAYERS=[['Front line','tenor'],['Middle','guitar'],['Bass','six']];
+function applyTemplate(id){
+  const tp=TEMPLATES.find(x=>x.id===id);if(!tp)return;pushHistory();
+  let a=0;song.secs=tp.secs.map(([name,n,en])=>{const x={name,a,b:a+n,en};a+=n;return x});
+  song.minBars=Math.max(8,a);song.tpl=tp.id;
+  // one track per layer of the band; a pan track you already have for that pan takes the job
+  for(const [role,set] of LAYERS){if(!SETS[set]||song.tracks.some(t=>t.role===role))continue;
+    const have=song.tracks.find(t=>t.type==='pan'&&!t.role&&t.panSet===set);
+    if(have)have.role=role;else{const t=trk('pan',{panSet:set,role});t.name=role+' · '+SETS[set].name;song.tracks.push(t)}}
+  const st=STYLES[tp.style],eng=song.tracks.find(t=>t.role==='Engine room');
+  if(eng&&eng.type==='beats')Object.assign(eng,{rows:styleRows(st),len:st.len,swing:st.swing,unit:st.unit,style:tp.style});
+  else if(!eng){const t=trk('beats',{role:'Engine room'});Object.assign(t,{rows:styleRows(st),len:st.len,swing:st.swing,unit:st.unit,style:tp.style});t.name='Engine room · '+st.name;song.tracks.push(t)}
+  song.cycle=tp.loop?{on:true,s:0,e:a}:song.cycle&&{...song.cycle,on:false};
+  const kept=!!pBuf;if(!kept)setTempo(tp.bpm);   // with your recording loaded, its tempo stays
+  dirty();closeSheet();setView('tracks');renderAll();AC()&&warmDrums();
+  say(tp.name+': '+tp.secs.length+' section'+(tp.secs.length===1?'':'s')+' over '+a+' bars, with front line, middle, bass and engine room tracks.'+(kept?' Your recording sets the tempo, so it stays at '+Math.round(bpm())+' bpm.':''));
+}
+/* whole sections, for the whole band: duplicate one (everything after it moves along) or delete one (everything closes up) */
+function shiftFrom(atBar,dBars){
+  const at=atBar*BPB(),d=dBars*BPB();
+  for(const tr of song.tracks){
+    if((tr.type==='pan'||tr.type==='drums')&&tr.notes)tr.notes.forEach(n=>{if(n.t>=at-1e-6)n.t=+(n.t+d).toFixed(3)});
+    if(tr.type==='beats'&&tr.off)tr.off=tr.off.map(b=>b>=atBar?b+dBars:b);
+    if(tr.type==='audio'&&tr.take&&tr.start>=at-1e-6)tr.start=+(tr.start+d).toFixed(4);
+  }
+  song.secs.forEach(x=>{if(x.a>=atBar){x.a+=dBars;x.b+=dBars}});
+}
+function secOp(op,i){
+  const x=song.secs&&song.secs[i];if(!x)return;const n=x.b-x.a,A=x.a*BPB(),B=x.b*BPB(),bpb=BPB();
+  const fixed=pBuf||song.tracks.some(t=>t.type==='part'&&notesOf(t).length)?' Your recording and My part (Write) stay where they are.':'';
+  if(op==='ren'){const v=prompt('Name this section',x.name);if(v==null||!v.trim())return;pushHistory();x.name=v.trim().slice(0,30);dirty();renderAll();return}
+  pushHistory();
+  if(op==='dup'){
+    const copies=[];for(const tr of song.tracks)if((tr.type==='pan'||tr.type==='drums')&&tr.notes)for(const nt of tr.notes)if(nt.t>=A-1e-6&&nt.t<B-1e-6)copies.push([tr,{...nt,t:+(nt.t+n*bpb).toFixed(3)}]);
+    const offs=song.tracks.filter(t=>t.type==='beats'&&t.off).map(t=>[t,t.off.filter(b=>b>=x.a&&b<x.b).map(b=>b+n)]);
+    shiftFrom(x.b,n);copies.forEach(([tr,nt])=>tr.notes.push(nt));offs.forEach(([t,o])=>{t.off=[...new Set(t.off.concat(o))].sort((p,q)=>p-q)});
+    song.secs.splice(i+1,0,{...x,a:x.b,b:x.b+n,name:/ again$/.test(x.name)?x.name:x.name+' again'});song.minBars=(song.minBars||8)+n;
+    song.tracks.forEach(t=>t.notes&&t.notes.sort((p,q)=>p.t-q.t));
+    say('Copied '+x.name+' ('+n+' bars) right after it, for every track.'+fixed);
+  }else if(op==='del'){
+    if(song.secs.length===1){H.u.pop();say('That\'s the only section. Pick a new template to start over.');return}
+    for(const tr of song.tracks)if((tr.type==='pan'||tr.type==='drums')&&tr.notes)tr.notes=tr.notes.filter(nt=>!(nt.t>=A-1e-6&&nt.t<B-1e-6));
+    song.tracks.forEach(t=>{if(t.type==='beats'&&t.off)t.off=t.off.filter(b=>b<x.a||b>=x.b)});
+    song.secs.splice(i,1);shiftFrom(x.b,-n);song.minBars=Math.max(8,(song.minBars||8)-n);
+    if(song.cycle)song.cycle.on=false;
+    say('Deleted '+x.name+' and closed the gap. Undo brings it back.'+fixed);
+  }
+  dirty();renderAll();
+}
 function sections(){
+  if(song&&Array.isArray(song.secs)&&song.secs.length)return song.secs.map(x=>({name:x.name,a:x.a*BPB(),b:x.b*BPB(),en:x.en}));
   if(typeof sectionsNow!=='function')return[];
   return sectionsNow().map(s=>({name:s.name,a:(s.t-origin())/spb(),b:(s.end-origin())/spb()}));
 }
 function renderSecs(){
   const el=q('#stSecs'),ss=sections();el.hidden=!ss.length;if(!ss.length)return;
-  el.innerHTML='<span class="help">Loop</span>'+ss.map((s,i)=>{const a=Math.max(0,Math.floor(s.a/BPB()+.02)),b=Math.max(a+1,Math.ceil(s.b/BPB()-.02)),on=cycOn()&&song.cycle.s===a&&song.cycle.e===b;
-    return '<button class="chip'+(on?' on':'')+'" data-sec="'+a+','+b+'" aria-pressed="'+on+'">'+esc(s.name)+'</button>'}).join('');
+  const own=!!(song.secs&&song.secs.length);let pick=-1;
+  el.innerHTML='<span class="help">'+(own?'Sections':'Loop')+'</span>'+ss.map((s,i)=>{const a=Math.max(0,Math.floor(s.a/BPB()+.02)),b=Math.max(a+1,Math.ceil(s.b/BPB()-.02)),on=cycOn()&&song.cycle.s===a&&song.cycle.e===b;if(on)pick=i;
+    return '<button class="chip'+(on?' on':'')+'" data-sec="'+a+','+b+'" aria-pressed="'+on+'">'+esc(s.name)+'</button>'}).join('')
+    +(own&&pick>=0?'<span class="st-sectools" role="group" data-name="'+esc(ss[pick].name)+':" aria-label="'+esc(ss[pick].name)+', for the whole band"><button class="chip" data-st="secdup" data-v="'+pick+'">⧉ Duplicate</button><button class="chip" data-st="secren" data-v="'+pick+'">✎ Rename</button><button class="chip" data-st="secdel" data-v="'+pick+'">✕ Delete</button></span>':'');
 }
 function trackRegions(tr){
   const n=bars();
@@ -7188,7 +7273,7 @@ function renderTimeline(){
   h+='<div class="st-row st-ruler"><div class="st-hd st-corner"><button class="st-addt" data-st="addsheet" aria-label="Add a track">+ Track</button><span class="st-zm"><button data-st="zout" aria-label="Zoom out">−</button><button data-st="zin" aria-label="Zoom in">+</button></span></div><div class="st-lane" id="stRuler" style="width:'+W+'px">';
   if(song.cycle&&song.cycle.e>song.cycle.s)h+='<span class="st-cyc'+(cycOn()?'':' off')+'" style="left:'+song.cycle.s*bar+'px;width:'+(song.cycle.e-song.cycle.s)*bar+'px"></span>';
   for(let b=0;b<n;b++)h+='<span class="st-barn" style="left:'+b*bar+'px">'+(b+1)+'</span>';
-  for(const s of sections())if(s.a<n*BPB())h+='<span class="st-secl" style="left:'+Math.max(0,s.a/BPB()*bar)+'px">'+esc(s.name)+'</span>';
+  for(const s of sections())if(s.a<n*BPB()){const A=Math.max(0,Math.floor(s.a/BPB()+.02)),B=Math.max(A+1,Math.ceil(s.b/BPB()-.02)),on=cycOn()&&song.cycle.s===A&&song.cycle.e===B;h+='<button class="st-secl'+(on?' on':'')+'" data-sec="'+A+','+B+'" aria-pressed="'+on+'" aria-label="Loop '+esc(s.name)+'" style="left:'+Math.max(0,s.a/BPB()*bar)+'px;max-width:'+Math.max(24,(s.b-s.a)/BPB()*bar-4)+'px">'+esc(s.name)+'</button>'}
   h+='</div></div>';
   for(const tr of song.tracks){
     const sel=tr.id===song.sel;
@@ -7388,6 +7473,10 @@ function renderSheet(){
       +'<button class="st-add" data-st="addk" data-v="drums" data-set="engine"><b>⛓ Engine room</b><span>Iron, scratcher, cowbell, shak-shak and congas to tap.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="beats"><b>▦ Beat</b><span>A drum pattern: soca, calypso, panorama jam and more, or build your own.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="part"><b>✎ Your part from Write</b><span>'+(cues?'Your '+cues+' cues as a pan track, linked: edit it here or in Write and both follow.':'Linked to your cues in Write; write some cues and they play here.')+'</span></button></div>';
+  }else if(SH.kind==='tpl'){
+    h=head('New song from a template')+'<p class="help">Lays out the sections on the ruler and adds a track for each part of the band: front line, middle, bass and an engine room already playing a groove. Your notes stay; undo takes it back.</p><div class="st-kits">'
+      +TEMPLATES.map(tp=>'<button class="st-kitc st-tplc'+(song.tpl===tp.id?' on':'')+'" data-st="tplpick" data-v="'+tp.id+'"><b>'+esc(tp.name)+'</b><span>'+esc(tp.feel)+'</span><small>'+tp.bpm+' bpm · '+tplBars(tp)+' bars'+(tp.loop?', looping':', about '+tplTime(tp))+' · '+esc(tp.secs.map(x=>x[0]).join(', '))+'</small></button>').join('')+'</div>'
+      +(pBuf?'<p class="help">Your recording is loaded, so its tempo stays as it is.</p>':'');
   }else if(SH.kind==='kits'){
     const tr=trById(SH.arg)||selTr(),cur=realKit(tr)||'synth',beat=tr.type==='beats';
     h=head('Kits')+'<p class="help">Every kit is free to use. Kits other than the Real kit download the first time you choose them, then work offline.</p><div class="st-kits">'
@@ -7664,6 +7753,10 @@ function onClick(e){
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
     case 'csound':song.click={...ck(),sound:b.dataset.v};dirty();if(AC()){const t0=ctx.currentTime+.02;for(let i=0;i<4;i++)click(t0+i*.32,i===0)}renderSheet();break;
     case 'cbars':song.click={...ck(),bars:+b.dataset.v};dirty();renderSheet();break;
+    case 'tplpick':applyTemplate(b.dataset.v);break;
+    case 'secdup':secOp('dup',+b.dataset.v);break;
+    case 'secdel':secOp('del',+b.dataset.v);break;
+    case 'secren':secOp('ren',+b.dataset.v);break;
     case 'kitsheet':{const t=selTr();openSheet('kits',t.id);break}
     case 'setkit':{const t=trById(SH.arg)||selTr(),v=b.dataset.v;if(!t||(t.type!=='drums'&&t.type!=='beats'))break;pushHistory();
       const was=KITS[realKit(t)]?KITS[realKit(t)].name:'';if(v==='synth'&&t.type==='beats')t.kit='synth';else if(KITS[v])t.kit=v;
@@ -7779,7 +7872,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{templates:()=>{AC();openSheet('tpl')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
@@ -8146,6 +8239,7 @@ const GB={
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
     const lp=document.createElement('button');lp.className='btn gbloopm';lp.textContent='⟲ Loop on / off';lp.onclick=()=>{this.menu(false);$('stLoop').click();this.sync()};list.prepend(lp);
     const tun=document.createElement('button');tun.className='btn';tun.textContent='♮ Tuning (match a recording)';tun.onclick=()=>{this.menu(false);showView('setup');try{SETUP.show('tune')}catch{}};list.prepend(tun);
+    {const tb=document.createElement('button');tb.className='btn';tb.id='gbTemplate';tb.textContent='🎼 New song from a template';tb.onclick=()=>{this.menu(false);STUDIO.templates()};list.prepend(tb)}
     if(typeof TW!=='undefined'&&TW.allowed){const tw=document.createElement('button');tw.className='btn';tw.id='gbWorkshop';tw.textContent='🔧 Tuning workshop (pan sounds)';tw.onclick=()=>{this.menu(false);TW.open(true)};list.prepend(tw)}
     const tmp=document.createElement('button');tmp.className='btn';tmp.id='gbTempo';tmp.textContent='♩ Tempo & metronome';tmp.onclick=()=>{this.menu(false);STUDIO.tempoSheet()};list.prepend(tmp);
     const mx=document.createElement('button');mx.className='btn gbmix';mx.textContent='🎚 Mixer & sound';mx.onclick=()=>{this.menu(false);$('stMix').click()};list.prepend(mx);
@@ -8932,6 +9026,12 @@ var GUIDE={   // var: other parts can ask about it early
       {go:()=>GUIDE.studio('tracks'),el:'#gbMix,#gbMore',t:'Mixer',x:'Each track’s volume, left/right, and reverb (in ⋯ on a narrow screen).'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbMore',t:'More',x:'Count-in, undo, Export / share, and ⏱ Timing fix. Run Timing fix once so your taps land on the beat.'},
       {go:()=>GUIDE.studio('tracks'),el:'[data-st=addsheet]',t:'Add a track',x:'Ready for more? Try the “Add a pan track” or “Record yourself” guides.'}]},
+    {id:'build',title:'Build a song',blurb:'Start from a template: sections, a track for each part of the band, and a groove.',kw:'build song template arrangement panorama road march calypso bomb jam sections verse chorus intro structure producer',steps:[
+      {go:()=>{GUIDE.closeAll();GUIDE.closeStudioSheet();GUIDE.studio('tracks');setTimeout(()=>STUDIO.templates(),250)},el:'.st-tplc',t:'Pick a template',x:'Each template is a song shape bands really use. Panorama runs intro, verse, chorus, then variations, a jam, a minor section and a big recap. Road march and calypso alternate verses and choruses. Tap one.',tapIn:'.st-tplc'},
+      {go:()=>{GUIDE.closeStudioSheet();GUIDE.studio('tracks')},el:'.st-secl',t:'Your sections',x:'The sections are now along the top of the tracks. Tap a name to loop that section while you work on it. Duplicate, Rename and Delete then appear, and they change every track at once.'},
+      {go:()=>GUIDE.studio('tracks'),el:'.st-row[data-tid]',t:'The band, in layers',x:'You get a track for each part of the band: the front line (tenors carry the tune), the middle (guitars and cellos strum the chords), the bass, and the engine room already playing a groove.'},
+      {go:()=>GUIDE.studio('tracks'),el:'#stRec',t:'Build it up',x:'Work like a producer: loop the chorus, select the Front line track and record the melody, then the middle\u2019s strum, then the bass. Copy a finished section with Duplicate.'},
+      {go:()=>GUIDE.studio('tracks'),el:'#stPlay',t:'Hear it all',x:'Tap the loop off and play from the start to hear the whole song build. Undo takes back any step, including the template.'}]},
     {id:'pan',title:'Add a pan track and play it',blurb:'Pick your pan, then play it on screen into Studio.',kw:'add track pick pan choose pan tenor guitar cello bass six dsec double second play record pans studio',steps:[
       {go:()=>{GUIDE.closeAll();GUIDE.closeStudioSheet();GUIDE.studio('tracks')},el:'[data-st=addsheet]',t:'+ Track',x:'Tap + Track to add a new layer.',tap:1},
       {go:()=>{if(!$('stSheet')||$('stSheet').hidden){GUIDE.studio('tracks');setTimeout(()=>{const b=GUIDE.find('[data-st=addsheet]');if(b)b.click()},250)}},el:'.st-addpans',t:'Pick your pan',x:'Under Pan taps, tap the pan you play: tenor, double second, guitar, cello or bass.',tapIn:'.st-addp button'},
