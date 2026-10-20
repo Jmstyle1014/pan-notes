@@ -117,9 +117,13 @@ self.addEventListener('install',e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.ad
 self.addEventListener('activate',e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&/^{re.escape(NAME.lower().replace(' ','-'))}-[0-9a-f]{{10}}$/.test(k)).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))}});
 self.addEventListener('fetch',e=>{{
   if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;
-  // the page itself: try for a newer version first, fall back to the saved copy when offline
+  // the page itself: try for a newer version first, but on a slow connection open the saved copy after 1.5 s
+  // (the newer one still downloads and is saved for next time); the saved copy straight away when offline
   // only this app's own page; another version living in a sub-folder looks after itself
-  if(e.request.mode==='navigate'){{if(new URL(e.request.url).pathname!==new URL('./',location).pathname)return;e.respondWith(fetch(e.request.url,{{cache:'no-cache',credentials:'same-origin'}}).then(r=>{{const cp=r.clone();caches.open(CACHE).then(c=>c.put('./',cp));return r}}).catch(()=>caches.match('./')));return}}
+  if(e.request.mode==='navigate'){{if(new URL(e.request.url).pathname!==new URL('./',location).pathname)return;
+    const net=fetch(e.request.url,{{cache:'no-cache',credentials:'same-origin'}}).then(r=>{{if(r.ok){{const cp=r.clone();caches.open(CACHE).then(c=>c.put('./',cp))}}return r}});
+    e.waitUntil(net.catch(()=>{{}}));
+    e.respondWith(caches.match('./').then(saved=>saved?Promise.race([net.catch(()=>saved),new Promise(ok=>setTimeout(()=>ok(saved),1500))]):net));return}}
   // an extra drum kit's sounds: kept once fetched, so a kit you've used works offline
   e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{{if(res.ok&&/\\/drums\\/[^/]+\\//.test(new URL(e.request.url).pathname)){{const cp=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cp))}}return res}})));
 }});

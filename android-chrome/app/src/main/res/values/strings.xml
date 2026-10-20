@@ -4,4 +4,7 @@
     <string name="launch_url">https://jmstyle1014.github.io/pan-notes/panyard/</string>
     <string name="asset_statements">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://jmstyle1014.github.io\"}}]</string>
     <color name="bg">#140f26</color>
+    <!-- the splash screen while Chrome starts: the app icon on Panyard's own background, so it fades straight in -->
+    <color name="splash_bg">#110c20</color>
+    <string name="provider_authority">com.jmstyle.panyard.twa.fileprovider</string>
 </resources>

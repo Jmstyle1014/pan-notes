@@ -12,7 +12,7 @@ Every version is one self-contained HTML file built from `source/`:
 2. `python3 source/make_next.py` builds `source/pan-notes-next.html` (the new look, `next-look.css`).
 3. `python3 source/make_panyard.py` builds `source/pan-notes-panyard.html` from the Next file. It adds the
    Panyard modules in this order: game, lab and tune, then hang, studio, home, tabs, stage, gb, wb, looks, role,
-   parts, guide, polish, cloud and themes (most go just before the `/* ---------- start ---------- */` marker). It also makes small text replacements with
+   parts, guide, polish, cloud, themes and back (the phone's back button) (most go just before the `/* ---------- start ---------- */` marker). It also makes small text replacements with
    `rep()`, which asserts that each target is found exactly once. Last, it builds the Chrome Day / Chrome Night
    colours (`make_themes.py`, needs `pip install tinycss2`; without it, the saved `panyard-themes.css` is used)
    and routes the canvas colours through `THEME.c()`.
