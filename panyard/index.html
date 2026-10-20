@@ -1118,6 +1118,29 @@ body.gbmode #stSecs .st-sectools::before{white-space:nowrap;max-width:30vw;overf
 .st-addnew{border-style:dashed}
 .st-addopts .chip{min-height:40px}.st-addopts .chip.on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink,#2a1d00)}
 
+/* the arrangement: tracks down, sections across */
+.st-arr{overflow-x:auto;margin:4px -4px 0;padding:0 4px 6px}
+.st-arrg{display:grid;grid-template-columns:96px repeat(var(--n),minmax(62px,1fr));gap:4px;align-items:stretch;min-width:min-content}
+.st-arrc0{position:sticky;left:0;z-index:1;background:var(--surface);display:flex;align-items:center;font-size:12px;font-weight:700;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding-right:4px}
+.st-arrc0.mute{opacity:.5}
+.st-arrh{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:44px;padding:4px 6px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--text);font:inherit;cursor:pointer;text-align:left;overflow:hidden}
+.st-arrh b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.st-arrh small{font-size:10px;color:var(--muted)}
+.st-arrh.on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink,#2a1d00)}.st-arrh.on small{color:inherit}
+.st-arrb{position:relative;min-height:44px;border-radius:8px;cursor:pointer;border:1px solid transparent;font:inherit;color:#1a1030;
+  background:linear-gradient(90deg,var(--c) var(--f),color-mix(in srgb,var(--c) 22%,transparent) var(--f))}
+.st-arrb.k-notes{--c:#c9a2ff}.st-arrb.k-beat{--c:#4fd6d6}
+.st-arrb.empty{background:none;border:1px dashed #4a3f7a}
+.st-arrb.mute{opacity:.45}
+.st-arrb.sel{outline:2px solid var(--gold);outline-offset:2px}
+.st-arrb i{position:absolute;right:5px;bottom:3px;font-style:normal;font-size:10px;font-weight:700}
+.st-arrlg{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:8px 0}
+.st-arrlg em{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.st-arrlg em.k-notes{background:#c9a2ff}.st-arrlg em.k-beat{background:#4fd6d6}.st-arrlg em.empty{border:1px dashed #4a3f7a}
+.st-arrdet{border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+.st-arrdet p{margin:0 0 8px}.st-arrdet .row{display:flex;gap:6px;flex-wrap:wrap}
+.st-arrfrom{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}.st-arrfrom p{width:100%;margin:0}
+.st-arr,.st-arrlg,.st-arrdet,.st-arrtip{flex:none}
+
 /* ---------- Home (panyard-home.js) ---------- */
 body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="home"] .dock .transport{display:none!important}
 .home{position:relative;max-width:560px;margin:0 auto;padding:6px 2px 24px;display:flex;flex-direction:column;gap:14px}
@@ -1241,7 +1264,7 @@ body.gbmode #gbBar{display:grid;grid-template-columns:1fr auto 1fr;align-items:c
 @media (min-width:1280px){
   .gbt{width:auto!important;padding:0 12px 0 9px;display:flex;align-items:center;gap:7px;font:700 13px var(--body,system-ui)}
   .gbt span{display:inline}
-  #gbMix.gbt{border:1px solid var(--line);height:40px;color:var(--text)}
+  #gbMix.gbt,#gbArr.gbt{border:1px solid var(--line);height:40px;color:var(--text)}
 }
 .gbtip{position:fixed;z-index:60;padding:6px 10px;border-radius:8px;background:var(--raised);border:1px solid var(--line);color:var(--text);font:700 13px var(--body,system-ui);box-shadow:0 8px 20px rgb(0 0 0 / .45);pointer-events:none}
 /* a phone held upright: the switch stays, and Loop moves into ⋯ to make room for it */
@@ -1277,7 +1300,7 @@ body.gbmode #status{top:98px;bottom:auto;font-size:13px;padding:6px 12px}
 /* the sheets (mixer, export, timing) come in from the side over the instrument, like GarageBand's panels */
 @media (min-width:700px){body.gbmode .st-sheet .sheetbox{position:fixed;top:56px;right:0;bottom:0;left:auto;width:min(420px,46vw);max-height:none;border-radius:18px 0 0 18px;margin:0;overflow:auto}}
 .gbmix{display:none!important}
-@media (max-width:560px){body.gbmode #gbBar{gap:4px;padding:0 6px}.gbi{width:36px;height:40px}#gbMix,.gblcd{display:none!important}.gbmix{display:flex!important}
+@media (max-width:560px){body.gbmode #gbBar{gap:4px;padding:0 6px}.gbi{width:36px;height:40px}#gbMix,#gbArr,.gblcd{display:none!important}.gbmix,.gbarrm{display:flex!important}
   body.gbmode .gbc .btn{min-width:42px}body.gbmode .gbc #stPlay{min-width:52px}}
 body.gbmode.st-inst #stInst:not(:has(#stPans)){padding-top:48px}
 @media (min-width:700px){body.gbmode .st-sheet .st-mrow{grid-template-columns:1fr 1fr;align-items:center}body.gbmode .st-sheet .st-mrow .st-mname{grid-column:1 / -1}body.gbmode .st-sheet .st-mrow input[type=range]{width:100%}}
@@ -1513,6 +1536,9 @@ body.wbmode.wb-tl #wbTL{bottom:calc(64px + env(safe-area-inset-bottom))}
 /* the edit bar does the floating selection bar's job here */
 body.wbmode #selBar{display:none!important}
 #wbEdit.picked{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);padding-right:28px}
+
+.gbarrm{display:none!important}
+@media (max-width:560px){.gbarrm{display:flex!important}}
 
 
 /* ---------- Tuning workshop (Studio ⋯) ---------- */
@@ -7286,6 +7312,60 @@ function addTo(target){
   const times=ad.fill==='once'?1:Math.ceil((x.b-x.a)/L);
   say('Put '+(L===1?'1 bar':L+' bars')+' into '+x.name+(times>1?' (×'+times+')':'')+' on '+(trs.length===1?trs[0].name:trs.length+' tracks')+'. Undo takes it back.');
 }
+/* ---- the arrangement: one row per track, one box per section, lit where there's something playing ---- */
+const ARR_T=t=>['pan','drums','beats','part'].includes(t.type);
+function arrCell(tr,x){
+  const bpb=BPB(),n=x.b-x.a;
+  if(tr.type==='beats'){const off=new Set(tr.off||[]);let on=0;for(let b=x.a;b<x.b;b++)if(!off.has(b))on++;return{kind:'beat',fill:on/n,notes:0}}
+  const ns=notesOf(tr).filter(m=>m.t>=x.a*bpb&&m.t<x.b*bpb),used=new Set(ns.map(m=>Math.floor(m.t/bpb)));
+  return{kind:'notes',fill:used.size/n,notes:ns.length}
+}
+function arrHTML(){
+  const ss=ownSecs(),trs=song.tracks.filter(ARR_T),sel=SH.arr||{},cyc=cycOn()?song.cycle:null;
+  if(!ss.length)return '<p class="help">Your song has no sections yet. Start from a template (⋯ → New song from a template), or pick some bars on a track and use ＋ Add to… → New section.</p>';
+  if(!trs.length)return '<p class="help">Add a pan or drum track first (+ Track).</p>';
+  let h='<div class="st-arr" style="--n:'+ss.length+'"><div class="st-arrg" role="grid" aria-label="Arrangement"><span class="st-arrc0"></span>'
+    +ss.map((x,i)=>{const on=cyc&&cyc.s===x.a&&cyc.e===x.b;return '<button class="st-arrh'+(on?' on':'')+'" data-st="arrsec" data-v="'+i+'" aria-pressed="'+!!on+'" title="Loop '+esc(x.name)+'"><b>'+esc(x.name)+'</b><small>'+(x.b-x.a)+' bars</small></button>'}).join('');
+  for(const tr of trs){
+    h+='<span class="st-arrc0'+(tr.mute?' mute':'')+'" title="'+esc(tr.name)+'">'+ICON[tr.type]+' '+esc(tr.name.split(' · ')[0].replace(/ \(Write\)$/,''))+'</span>';
+    ss.forEach((x,i)=>{const c=arrCell(tr,x),on=sel.tid===tr.id&&sel.i===i,pct=Math.round(c.fill*100);
+      h+='<button class="st-arrb k-'+c.kind+(pct?'':' empty')+(on?' sel':'')+(tr.mute?' mute':'')+'" data-st="arrbox" data-tid="'+tr.id+'" data-v="'+i+'" style="--f:'+pct+'%" aria-label="'+esc(tr.name)+', '+esc(x.name)+': '+(pct?(c.kind==='beat'?'groove playing':c.notes+' notes')+(pct<100?', '+pct+'% of the bars':''):'empty')+'">'+(c.notes?'<i>'+c.notes+'</i>':'')+'</button>'})
+  }
+  h+='</div></div><div class="st-arrlg"><span><em class="k-notes"></em>Notes</span><span><em class="k-beat"></em>Groove playing</span><span><em class="empty"></em>Empty</span><span>Half lit: only some bars</span></div>';
+  // what the tapped box can do
+  const tr=sel.tid&&trById(sel.tid),x=tr&&ss[sel.i];
+  if(tr&&x){
+    const c=arrCell(tr,x),full=c.fill>0,b=(k,l,cls)=>'<button class="btn sm'+(cls?' '+cls:'')+'" data-st="arrdo" data-v="'+k+'">'+l+'</button>',noteT=tr.type==='pan'||tr.type==='drums';
+    const st=tr.type==='beats'?(full?'the groove plays in '+Math.round(c.fill*(x.b-x.a))+' of '+(x.b-x.a)+' bars':'the groove is silenced here'):(full?c.notes+' note'+(c.notes===1?'':'s')+(c.fill<1?', in '+Math.round(c.fill*(x.b-x.a))+' of '+(x.b-x.a)+' bars':''):'empty');
+    h+='<div class="st-arrdet"><p><b>'+esc(tr.name)+' · '+esc(x.name)+'</b>: '+st+'.</p><div class="row">'
+      +b('loop','⟲ Loop it')+b('play','▶ Play from here')+b('solo',tr.solo?'Solo off':'Solo this track')
+      +(full||tr.type==='part'?b('show','Show on tracks'):'')
+      +(!full&&noteT?b('rec','● Record here'):'')
+      +(noteT?b('from','Copy from…'):'')
+      +(tr.type==='beats'?b(full?'silence':'unsilence',full?'Silence the groove here':'Play the groove here'):'')
+      +(full&&noteT?b('clear','Clear','danger'):'')
+      +'</div>';
+    if(SH.arrFrom&&noteT){const src=ss.map((y,j)=>[y,j,arrCell(tr,y)]).filter(([y,j,cc])=>j!==sel.i&&cc.notes);
+      h+='<div class="st-arrfrom"><p class="help">Copy '+esc(tr.name)+' from which section into '+esc(x.name)+'? It repeats to fill and replaces what\'s there.</p>'+(src.length?src.map(([y,j,cc])=>'<button class="chip" data-st="arrcopy" data-v="'+j+'">'+esc(y.name)+' · '+cc.notes+' notes</button>').join(''):'<p class="help">No other section has notes on this track yet.</p>')+'</div>'}
+    h+='</div>';
+  }else h+='<p class="help st-arrtip">Tap a box to loop it, play from it, record into it or copy into it. Tap a section name to loop the whole band there.</p>';
+  return h;
+}
+const arrKeep=fn=>{const bx=q('#stSheet .sheetbox'),y=bx?bx.scrollTop:0,ax=q('.st-arr'),x=ax?ax.scrollLeft:0;fn();const b2=q('#stSheet .sheetbox'),a2=q('.st-arr');if(b2)b2.scrollTop=y;if(a2)a2.scrollLeft=x};
+function arrDo(k){
+  const sel=SH.arr||{},tr=trById(sel.tid),ss=ownSecs(),x=ss[sel.i];if(!tr||!x)return;const bpb=BPB();
+  const loopIt=()=>{song.cycle={on:true,s:x.a,e:x.b};restartIfPlaying();renderTransport();renderSecs()};
+  if(k==='loop'){pushHistory();loopIt();dirty();say('Looping '+x.name+'.')}
+  else if(k==='play'){seek(x.a*bpb);if(!T.playing)play(false)}
+  else if(k==='solo'){pushHistory();tr.solo=!tr.solo;refreshGains();dirty()}
+  else if(k==='show'||k==='rec'){song.sel=tr.id;SEL={tid:tr.id,anchor:x.a,a:x.a,b:x.b};if(k==='rec'){pushHistory();loopIt()}seek(x.a*bpb);dirty();closeSheet();setView(k==='rec'?'inst':'tracks');
+    requestAnimationFrame(()=>{const tl=q('#stTl');if(tl)tl.scrollLeft=Math.max(0,x.a*zoomPx()-40)});
+    if(k==='rec')say(x.name+' is looping on '+tr.name+'. Tap ● to record into it.');return}
+  else if(k==='from'){SH.arrFrom=!SH.arrFrom}
+  else if(k==='clear'){pushHistory();const n=tr.notes.length;tr.notes=tr.notes.filter(m=>!(m.t>=x.a*bpb&&m.t<x.b*bpb));dirty();say('Cleared '+(n-tr.notes.length)+' notes from '+x.name+'. Undo brings them back.')}
+  else if(k==='silence'||k==='unsilence'){pushHistory();const off=new Set(tr.off||[]);for(let b=x.a;b<x.b;b++)k==='silence'?off.add(b):off.delete(b);tr.off=[...off].sort((p,q2)=>p-q2);dirty();restartIfPlaying()}
+  arrKeep(()=>{renderSheet();renderTimeline()});
+}
 function sections(){
   if(song&&Array.isArray(song.secs)&&song.secs.length)return song.secs.map(x=>({name:x.name,a:x.a*BPB(),b:x.b*BPB(),en:x.en}));
   if(typeof sectionsNow!=='function')return[];
@@ -7548,6 +7628,8 @@ function renderSheet(){
         return '<button class="st-addsec" data-st="addsec" data-v="'+i+'"><b>'+esc(x.name)+'</b><small>'+len+' bar'+(len===1?'':'s')+rep+' · '+(n?n+' note'+(n===1?'':'s')+' will be replaced':'empty')+(over?' · your pick is in here':'')+(cover<len?' · fills the first '+cover:'')+'</small></button>'}).join('')
       +'<button class="st-addsec st-addnew" data-st="addsec" data-v="new"><b>＋ New section</b><small>'+L+' bar'+(L===1?'':'s')+', at the end of the song</small></button></div>'
       +'<p class="help">Your notes are copied, so the bars you picked stay where they are. Your band recording isn\'t copied.</p>';
+  }else if(SH.kind==='arr'){
+    h=head('Arrangement')+arrHTML();
   }else if(SH.kind==='tpl'){
     h=head('New song from a template')+'<p class="help">Lays out the sections on the ruler and adds a track for each part of the band: front line, middle, bass and an engine room already playing a groove. Your notes stay; undo takes it back.</p><div class="st-kits">'
       +TEMPLATES.map(tp=>'<button class="st-kitc st-tplc'+(song.tpl===tp.id?' on':'')+'" data-st="tplpick" data-v="'+tp.id+'"><b>'+esc(tp.name)+'</b><span>'+esc(tp.feel)+'</span><small>'+tp.bpm+' bpm · '+tplBars(tp)+' bars'+(tp.loop?', looping':', about '+tplTime(tp))+' · '+esc(tp.secs.map(x=>x[0]).join(', '))+'</small></button>').join('')+'</div>'
@@ -7828,6 +7910,10 @@ function onClick(e){
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
     case 'csound':song.click={...ck(),sound:b.dataset.v};dirty();if(AC()){const t0=ctx.currentTime+.02;for(let i=0;i<4;i++)click(t0+i*.32,i===0)}renderSheet();break;
     case 'cbars':song.click={...ck(),bars:+b.dataset.v};dirty();renderSheet();break;
+    case 'arrsec':{const x=ownSecs()[+b.dataset.v];if(!x)break;pushHistory();const on=cycOn()&&song.cycle.s===x.a&&song.cycle.e===x.b;song.cycle={on:!on,s:x.a,e:x.b};if(!on)seek(x.a*BPB());restartIfPlaying();dirty();renderTransport();renderSecs();renderTimeline();arrKeep(renderSheet);say(on?'Loop off.':'Looping '+x.name+', every track.');break}
+    case 'arrbox':{const v={tid:b.dataset.tid,i:+b.dataset.v},same=SH.arr&&SH.arr.tid===v.tid&&SH.arr.i===v.i;SH.arr=same?null:v;SH.arrFrom=false;arrKeep(renderSheet);break}
+    case 'arrdo':arrDo(b.dataset.v);break;
+    case 'arrcopy':{const sel=SH.arr,tr=trById(sel.tid),y=ownSecs()[+b.dataset.v];if(!tr||!y)break;SH.add={tid:tr.id,a:y.a,b:y.b,scope:'one',fill:'repeat'};SH.arrFrom=false;addTo(String(sel.i));openSheet('arr');{const a2=q('.st-arr');if(a2)a2.scrollLeft=Math.max(0,(sel.i-1)*66)}break}
     case 'addopt':if(SH.add){SH.add[b.dataset.k]=b.dataset.v;renderSheet()}break;
     case 'addsec':addTo(b.dataset.v);break;
     case 'tplpick':applyTemplate(b.dataset.v);break;
@@ -7949,7 +8035,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{templates:()=>{AC();openSheet('tpl')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
@@ -8279,6 +8365,7 @@ const GB={
     back:'<path d="M15 5l-7 7 7 7"/>',
     tracks:'<path d="M4 6h16M4 12h16M4 18h16"/><rect x="6" y="4" width="6" height="4" rx="1" fill="currentColor"/><rect x="10" y="10" width="7" height="4" rx="1" fill="currentColor"/><rect x="5" y="16" width="5" height="4" rx="1" fill="currentColor"/>',
     pans:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v5.5M12 15v5.5M3.5 12H9M15 12h5.5"/>',
+    arr:'<rect x="3" y="5" width="5" height="4" rx="1" fill="currentColor"/><rect x="9.5" y="5" width="5" height="4" rx="1"/><rect x="16" y="5" width="5" height="4" rx="1" fill="currentColor"/><rect x="3" y="10.5" width="5" height="4" rx="1"/><rect x="9.5" y="10.5" width="5" height="4" rx="1" fill="currentColor"/><rect x="16" y="10.5" width="5" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="3" rx="1" fill="currentColor" opacity=".5"/>',
     mixer:'<path d="M6 4v16M12 4v16M18 4v16"/><rect x="4" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="16" y="11" width="4" height="3" rx="1" fill="currentColor"/>',
     metro:'<path d="M9 3h6l3.5 17h-13z"/><path d="M12 16l5-9"/><circle cx="17.2" cy="6.6" r="1.3" fill="currentColor"/>',
     loop:'<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 014-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 01-4 4H4"/>',
@@ -8295,7 +8382,8 @@ const GB={
       // which view you're on is always shown: the pans or the track lanes, one of the two lit
       +'<div class="gbseg" id="gbView" role="group" aria-label="View"><button class="gbi gbt" data-v="inst" aria-pressed="true" aria-label="Pans">'+this.svg('pans')+'<span>Pans</span></button>'
       +'<button class="gbi gbt" data-v="tracks" aria-pressed="false" aria-label="Tracks">'+this.svg('tracks')+'<span>Tracks</span></button></div>'
-      +'<button class="gbi gbt" id="gbMix" aria-label="Mixer: levels, tone and echo for every track">'+this.svg('mixer')+'<span>Mixer</span></button></div>'
+      +'<button class="gbi gbt" id="gbMix" aria-label="Mixer: levels, tone and echo for every track">'+this.svg('mixer')+'<span>Mixer</span></button>'
+      +'<button class="gbi gbt" id="gbArr" aria-label="Arrangement: every section, every track">'+this.svg('arr')+'<span>Arrangement</span></button></div>'
       +'<div class="gbc"></div>'
       +'<div class="gbr"><button class="gbi gbw" id="gbWrite" aria-label="Write">'+this.svg('write')+'<span>Write</span></button><span class="gblcd"></span><button class="gbi" id="gbMetro" aria-label="Click (metronome)">'+this.svg('metro')+'</button>'
       +'<button class="gbi" id="gbLoop" aria-label="Loop">'+this.svg('loop')+'</button>'
@@ -8316,6 +8404,7 @@ const GB={
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
     const lp=document.createElement('button');lp.className='btn gbloopm';lp.textContent='⟲ Loop on / off';lp.onclick=()=>{this.menu(false);$('stLoop').click();this.sync()};list.prepend(lp);
     const tun=document.createElement('button');tun.className='btn';tun.textContent='♮ Tuning (match a recording)';tun.onclick=()=>{this.menu(false);showView('setup');try{SETUP.show('tune')}catch{}};list.prepend(tun);
+    {const ab=document.createElement('button');ab.className='btn gbarrm';ab.textContent='▦ Arrangement';ab.onclick=()=>{this.menu(false);STUDIO.arrangement()};list.prepend(ab)}
     {const tb=document.createElement('button');tb.className='btn';tb.id='gbTemplate';tb.textContent='🎼 New song from a template';tb.onclick=()=>{this.menu(false);STUDIO.templates()};list.prepend(tb)}
     if(typeof TW!=='undefined'&&TW.allowed){const tw=document.createElement('button');tw.className='btn';tw.id='gbWorkshop';tw.textContent='🔧 Tuning workshop (pan sounds)';tw.onclick=()=>{this.menu(false);TW.open(true)};list.prepend(tw)}
     const tmp=document.createElement('button');tmp.className='btn';tmp.id='gbTempo';tmp.textContent='♩ Tempo & metronome';tmp.onclick=()=>{this.menu(false);STUDIO.tempoSheet()};list.prepend(tmp);
@@ -8340,6 +8429,7 @@ const GB={
     $('gbBack').onclick=()=>{showView('home')};
     $('gbView').onclick=e=>{const t=e.target.closest('[data-v]');if(!t)return;const b=document.querySelector('#stViews [data-sv="'+t.dataset.v+'"]');if(b)b.click();this.sync()};
     $('gbMix').onclick=()=>$('stMix').click();
+    $('gbArr').onclick=()=>STUDIO.arrangement();
     // names for the icons: a hover tip on a computer, and press and hold on a phone shows the name
     bar.querySelectorAll('.gbl .gbi').forEach(b=>{const n=b.getAttribute('aria-label')||'';if(!b.title)b.title=n.split(':')[0]});
     {let tt=0,tip=null,held=false;

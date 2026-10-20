@@ -934,6 +934,60 @@ function addTo(target){
   const times=ad.fill==='once'?1:Math.ceil((x.b-x.a)/L);
   say('Put '+(L===1?'1 bar':L+' bars')+' into '+x.name+(times>1?' (×'+times+')':'')+' on '+(trs.length===1?trs[0].name:trs.length+' tracks')+'. Undo takes it back.');
 }
+/* ---- the arrangement: one row per track, one box per section, lit where there's something playing ---- */
+const ARR_T=t=>['pan','drums','beats','part'].includes(t.type);
+function arrCell(tr,x){
+  const bpb=BPB(),n=x.b-x.a;
+  if(tr.type==='beats'){const off=new Set(tr.off||[]);let on=0;for(let b=x.a;b<x.b;b++)if(!off.has(b))on++;return{kind:'beat',fill:on/n,notes:0}}
+  const ns=notesOf(tr).filter(m=>m.t>=x.a*bpb&&m.t<x.b*bpb),used=new Set(ns.map(m=>Math.floor(m.t/bpb)));
+  return{kind:'notes',fill:used.size/n,notes:ns.length}
+}
+function arrHTML(){
+  const ss=ownSecs(),trs=song.tracks.filter(ARR_T),sel=SH.arr||{},cyc=cycOn()?song.cycle:null;
+  if(!ss.length)return '<p class="help">Your song has no sections yet. Start from a template (⋯ → New song from a template), or pick some bars on a track and use ＋ Add to… → New section.</p>';
+  if(!trs.length)return '<p class="help">Add a pan or drum track first (+ Track).</p>';
+  let h='<div class="st-arr" style="--n:'+ss.length+'"><div class="st-arrg" role="grid" aria-label="Arrangement"><span class="st-arrc0"></span>'
+    +ss.map((x,i)=>{const on=cyc&&cyc.s===x.a&&cyc.e===x.b;return '<button class="st-arrh'+(on?' on':'')+'" data-st="arrsec" data-v="'+i+'" aria-pressed="'+!!on+'" title="Loop '+esc(x.name)+'"><b>'+esc(x.name)+'</b><small>'+(x.b-x.a)+' bars</small></button>'}).join('');
+  for(const tr of trs){
+    h+='<span class="st-arrc0'+(tr.mute?' mute':'')+'" title="'+esc(tr.name)+'">'+ICON[tr.type]+' '+esc(tr.name.split(' · ')[0].replace(/ \(Write\)$/,''))+'</span>';
+    ss.forEach((x,i)=>{const c=arrCell(tr,x),on=sel.tid===tr.id&&sel.i===i,pct=Math.round(c.fill*100);
+      h+='<button class="st-arrb k-'+c.kind+(pct?'':' empty')+(on?' sel':'')+(tr.mute?' mute':'')+'" data-st="arrbox" data-tid="'+tr.id+'" data-v="'+i+'" style="--f:'+pct+'%" aria-label="'+esc(tr.name)+', '+esc(x.name)+': '+(pct?(c.kind==='beat'?'groove playing':c.notes+' notes')+(pct<100?', '+pct+'% of the bars':''):'empty')+'">'+(c.notes?'<i>'+c.notes+'</i>':'')+'</button>'})
+  }
+  h+='</div></div><div class="st-arrlg"><span><em class="k-notes"></em>Notes</span><span><em class="k-beat"></em>Groove playing</span><span><em class="empty"></em>Empty</span><span>Half lit: only some bars</span></div>';
+  // what the tapped box can do
+  const tr=sel.tid&&trById(sel.tid),x=tr&&ss[sel.i];
+  if(tr&&x){
+    const c=arrCell(tr,x),full=c.fill>0,b=(k,l,cls)=>'<button class="btn sm'+(cls?' '+cls:'')+'" data-st="arrdo" data-v="'+k+'">'+l+'</button>',noteT=tr.type==='pan'||tr.type==='drums';
+    const st=tr.type==='beats'?(full?'the groove plays in '+Math.round(c.fill*(x.b-x.a))+' of '+(x.b-x.a)+' bars':'the groove is silenced here'):(full?c.notes+' note'+(c.notes===1?'':'s')+(c.fill<1?', in '+Math.round(c.fill*(x.b-x.a))+' of '+(x.b-x.a)+' bars':''):'empty');
+    h+='<div class="st-arrdet"><p><b>'+esc(tr.name)+' · '+esc(x.name)+'</b>: '+st+'.</p><div class="row">'
+      +b('loop','⟲ Loop it')+b('play','▶ Play from here')+b('solo',tr.solo?'Solo off':'Solo this track')
+      +(full||tr.type==='part'?b('show','Show on tracks'):'')
+      +(!full&&noteT?b('rec','● Record here'):'')
+      +(noteT?b('from','Copy from…'):'')
+      +(tr.type==='beats'?b(full?'silence':'unsilence',full?'Silence the groove here':'Play the groove here'):'')
+      +(full&&noteT?b('clear','Clear','danger'):'')
+      +'</div>';
+    if(SH.arrFrom&&noteT){const src=ss.map((y,j)=>[y,j,arrCell(tr,y)]).filter(([y,j,cc])=>j!==sel.i&&cc.notes);
+      h+='<div class="st-arrfrom"><p class="help">Copy '+esc(tr.name)+' from which section into '+esc(x.name)+'? It repeats to fill and replaces what\'s there.</p>'+(src.length?src.map(([y,j,cc])=>'<button class="chip" data-st="arrcopy" data-v="'+j+'">'+esc(y.name)+' · '+cc.notes+' notes</button>').join(''):'<p class="help">No other section has notes on this track yet.</p>')+'</div>'}
+    h+='</div>';
+  }else h+='<p class="help st-arrtip">Tap a box to loop it, play from it, record into it or copy into it. Tap a section name to loop the whole band there.</p>';
+  return h;
+}
+const arrKeep=fn=>{const bx=q('#stSheet .sheetbox'),y=bx?bx.scrollTop:0,ax=q('.st-arr'),x=ax?ax.scrollLeft:0;fn();const b2=q('#stSheet .sheetbox'),a2=q('.st-arr');if(b2)b2.scrollTop=y;if(a2)a2.scrollLeft=x};
+function arrDo(k){
+  const sel=SH.arr||{},tr=trById(sel.tid),ss=ownSecs(),x=ss[sel.i];if(!tr||!x)return;const bpb=BPB();
+  const loopIt=()=>{song.cycle={on:true,s:x.a,e:x.b};restartIfPlaying();renderTransport();renderSecs()};
+  if(k==='loop'){pushHistory();loopIt();dirty();say('Looping '+x.name+'.')}
+  else if(k==='play'){seek(x.a*bpb);if(!T.playing)play(false)}
+  else if(k==='solo'){pushHistory();tr.solo=!tr.solo;refreshGains();dirty()}
+  else if(k==='show'||k==='rec'){song.sel=tr.id;SEL={tid:tr.id,anchor:x.a,a:x.a,b:x.b};if(k==='rec'){pushHistory();loopIt()}seek(x.a*bpb);dirty();closeSheet();setView(k==='rec'?'inst':'tracks');
+    requestAnimationFrame(()=>{const tl=q('#stTl');if(tl)tl.scrollLeft=Math.max(0,x.a*zoomPx()-40)});
+    if(k==='rec')say(x.name+' is looping on '+tr.name+'. Tap ● to record into it.');return}
+  else if(k==='from'){SH.arrFrom=!SH.arrFrom}
+  else if(k==='clear'){pushHistory();const n=tr.notes.length;tr.notes=tr.notes.filter(m=>!(m.t>=x.a*bpb&&m.t<x.b*bpb));dirty();say('Cleared '+(n-tr.notes.length)+' notes from '+x.name+'. Undo brings them back.')}
+  else if(k==='silence'||k==='unsilence'){pushHistory();const off=new Set(tr.off||[]);for(let b=x.a;b<x.b;b++)k==='silence'?off.add(b):off.delete(b);tr.off=[...off].sort((p,q2)=>p-q2);dirty();restartIfPlaying()}
+  arrKeep(()=>{renderSheet();renderTimeline()});
+}
 function sections(){
   if(song&&Array.isArray(song.secs)&&song.secs.length)return song.secs.map(x=>({name:x.name,a:x.a*BPB(),b:x.b*BPB(),en:x.en}));
   if(typeof sectionsNow!=='function')return[];
@@ -1196,6 +1250,8 @@ function renderSheet(){
         return '<button class="st-addsec" data-st="addsec" data-v="'+i+'"><b>'+esc(x.name)+'</b><small>'+len+' bar'+(len===1?'':'s')+rep+' · '+(n?n+' note'+(n===1?'':'s')+' will be replaced':'empty')+(over?' · your pick is in here':'')+(cover<len?' · fills the first '+cover:'')+'</small></button>'}).join('')
       +'<button class="st-addsec st-addnew" data-st="addsec" data-v="new"><b>＋ New section</b><small>'+L+' bar'+(L===1?'':'s')+', at the end of the song</small></button></div>'
       +'<p class="help">Your notes are copied, so the bars you picked stay where they are. Your band recording isn\'t copied.</p>';
+  }else if(SH.kind==='arr'){
+    h=head('Arrangement')+arrHTML();
   }else if(SH.kind==='tpl'){
     h=head('New song from a template')+'<p class="help">Lays out the sections on the ruler and adds a track for each part of the band: front line, middle, bass and an engine room already playing a groove. Your notes stay; undo takes it back.</p><div class="st-kits">'
       +TEMPLATES.map(tp=>'<button class="st-kitc st-tplc'+(song.tpl===tp.id?' on':'')+'" data-st="tplpick" data-v="'+tp.id+'"><b>'+esc(tp.name)+'</b><span>'+esc(tp.feel)+'</span><small>'+tp.bpm+' bpm · '+tplBars(tp)+' bars'+(tp.loop?', looping':', about '+tplTime(tp))+' · '+esc(tp.secs.map(x=>x[0]).join(', '))+'</small></button>').join('')+'</div>'
@@ -1476,6 +1532,10 @@ function onClick(e){
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
     case 'csound':song.click={...ck(),sound:b.dataset.v};dirty();if(AC()){const t0=ctx.currentTime+.02;for(let i=0;i<4;i++)click(t0+i*.32,i===0)}renderSheet();break;
     case 'cbars':song.click={...ck(),bars:+b.dataset.v};dirty();renderSheet();break;
+    case 'arrsec':{const x=ownSecs()[+b.dataset.v];if(!x)break;pushHistory();const on=cycOn()&&song.cycle.s===x.a&&song.cycle.e===x.b;song.cycle={on:!on,s:x.a,e:x.b};if(!on)seek(x.a*BPB());restartIfPlaying();dirty();renderTransport();renderSecs();renderTimeline();arrKeep(renderSheet);say(on?'Loop off.':'Looping '+x.name+', every track.');break}
+    case 'arrbox':{const v={tid:b.dataset.tid,i:+b.dataset.v},same=SH.arr&&SH.arr.tid===v.tid&&SH.arr.i===v.i;SH.arr=same?null:v;SH.arrFrom=false;arrKeep(renderSheet);break}
+    case 'arrdo':arrDo(b.dataset.v);break;
+    case 'arrcopy':{const sel=SH.arr,tr=trById(sel.tid),y=ownSecs()[+b.dataset.v];if(!tr||!y)break;SH.add={tid:tr.id,a:y.a,b:y.b,scope:'one',fill:'repeat'};SH.arrFrom=false;addTo(String(sel.i));openSheet('arr');{const a2=q('.st-arr');if(a2)a2.scrollLeft=Math.max(0,(sel.i-1)*66)}break}
     case 'addopt':if(SH.add){SH.add[b.dataset.k]=b.dataset.v;renderSheet()}break;
     case 'addsec':addTo(b.dataset.v);break;
     case 'tplpick':applyTemplate(b.dataset.v);break;
@@ -1597,7 +1657,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{templates:()=>{AC();openSheet('tpl')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
