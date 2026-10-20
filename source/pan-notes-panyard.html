@@ -7729,10 +7729,12 @@ function renderSheet(){
       +'<div class="st-mrow master"><div class="st-mname"><b>Master</b><span class="help">A limiter keeps loud moments from distorting.</span></div><label class="lab">Volume<input type="range" data-mk="master" min="0" max="1" step=".01" value="'+song.master+'"></label><div class="st-meter" aria-hidden="true"><i data-meter="master"></i></div></div></div>'
       +'<p class="help">Press play with the mixer open to watch the levels.</p><div class="row"><button class="btn primary" data-st="play">'+(T.playing?'■ Stop':'▶ Play')+'</button></div>';
   }else if(SH.kind==='export'){
-    const secs=Math.round(L()*spb());
-    h=head('Export audio')+'<div class="lab">What<div class="seg" id="stExWhat"><button data-v="mix" aria-pressed="'+(EXP.what==='mix')+'">Whole song</button><button data-v="stems" aria-pressed="'+(EXP.what==='stems')+'">Each track</button></div></div>'
+    const rg=expRange(),secs=Math.round((rg.b-rg.a)*spb()),songV=VIEW==='song'&&zoneOn(),nb=Math.round((rg.b-rg.a)/BPB());
+    h=head('Export audio')+(songV&&rg.sec?'<div class="lab">How much<div class="seg" id="stExPart"><button data-v="all" aria-pressed="'+(EXP.part!=='sec')+'">The whole song</button><button data-v="sec" aria-pressed="'+(EXP.part==='sec')+'">Just '+esc(rg.sec.name)+'</button></div></div>':'')
+      +'<div class="lab">What<div class="seg" id="stExWhat"><button data-v="mix" aria-pressed="'+(EXP.what==='mix')+'">All mixed together</button><button data-v="stems" aria-pressed="'+(EXP.what==='stems')+'">Each track</button></div></div>'
       +'<div class="lab">Format<div class="seg" id="stExFmt"><button data-v="mp3" aria-pressed="'+(EXP.fmt==='mp3')+'">MP3 · small, for WhatsApp</button><button data-v="wav" aria-pressed="'+(EXP.fmt==='wav')+'">WAV · best quality</button></div></div>'
-      +'<p class="help">'+bars()+' bars at '+(+bpm().toFixed(1))+' bpm, about '+fmt(secs).replace(/\.\d$/,'')+'. Muted tracks are left out of the whole song. Each track comes as a .zip of separate files.</p>'
+      +'<p class="help">'+(songV?'Your song: only the song\'s tracks'+(song.band?' and the band recording':'')+', '+(rg.name?rg.name+', ':'to the end of the last section, ')
+        :zoneOn()&&VIEW==='tracks'?'Your takes and the band recording, ':'')+nb+' bars at '+(+bpm().toFixed(1))+' bpm, about '+fmt(secs).replace(/\.\d$/,'')+'. Muted tracks are left out. Each track comes as a .zip of separate files.</p>'
       +'<p class="help" id="stExBusy" role="status" hidden></p><div class="row"><button class="btn primary grow" data-st="expgo">Save the audio</button></div>';
   }else if(SH.kind==='timing'){
     const lag=PR.micLag!=null?PR.micLag:Math.round(((ctx&&ctx.outputLatency)||0)*1000+((ctx&&ctx.baseLatency)||0)*1000+12);
@@ -7883,22 +7885,30 @@ function neAct(act,v){
 }
 
 /* ---- export: the whole song, or each track, as MP3 or WAV ---- */
-const EXP={fmt:'mp3',what:'mix'};
+const EXP={fmt:'mp3',what:'mix',part:'all'};
+// what Export covers: on the Song tab, the song up to the end of its last section (or just the looped section)
+function expRange(){
+  const songV=VIEW==='song'&&zoneOn(),ss=ownSecs(),bpb=BPB(),cyc=cycOn()?song.cycle:null;
+  const sec=songV&&cyc?ss.find(x=>x.a===cyc.s&&x.b===cyc.e):null;
+  if(sec&&EXP.part==='sec')return{a:sec.a*bpb,b:sec.b*bpb,name:sec.name,sec};
+  if(songV&&ss.length)return{a:0,b:Math.max(...ss.map(x=>x.b))*bpb,name:'',sec};
+  return{a:0,b:L(),name:'',sec};
+}
 const hasContent=tr=>tr.type==='beats'?tr.rows.some(r=>r.steps.some(Boolean)):isNotey(tr)?notesOf(tr).length>0:!!audioOf(tr);
-async function renderSong(only,onProgress){
+async function renderSong(only,onProgress,RG){
   AC();await warmDrums();await warmPans();
   const live={ctx,master,meterM,reverbs,PV},saved=new Map(chans);
-  const sr=44100,sp=spb(),Lb=L(),T0=.05,off=new OfflineAudioContext(2,Math.ceil(sr*(Lb*sp+T0+3)),sr);
+  const RA=RG?RG.a:0,RB=RG?RG.b:L(),sr=44100,sp=spb(),Lb=RB,T0=.05-RA*sp,off=new OfflineAudioContext(2,Math.ceil(sr*((RB-RA)*sp+.05+3)),sr);
   try{
     ctx=off;chans.clear();PV=new Map();reverbs=new Map();const m=buildMaster(off);master=m.vol;meterM=m.an;
     const ev=[];
     for(const tr of song.tracks){
       if(only?tr!==only:!audible(tr)||!hasContent(tr))continue;
       const c=channel(tr).play;c.gain.value=1;
-      if(tr.type==='beats'){const rk=realKit(tr);for(const [bt,mm,v] of beatHits(tr,0,Lb)){const t=T0+bt*sp;ev.push({t,fn:()=>playDrum(mm,c,t,v,rk)})}}
-      else if(tr.type==='drums'){const rk=realKit(tr);for(const n of tr.notes)if(n.t<Lb){const t=T0+n.t*sp;ev.push({t,fn:()=>playDrum(+n.p,c,t,n.v,rk)})}}
-      else if(isPanish(tr)){for(const n of pnotes(tr))if(n.t<Lb){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v)})}}
-      else{const b=audioOf(tr);if(b){let t=T0+startOf(tr)*sp,o=0;if(t<0){o=-t;t=0}ev.push({t,fn:()=>{const s=off.createBufferSource();s.buffer=b;s.connect(c);s.start(t,o);s.stop(T0+Lb*sp)}})}}
+      if(tr.type==='beats'){const rk=realKit(tr);for(const [bt,mm,v] of beatHits(tr,RA,Lb)){if(bt<RA)continue;const t=T0+bt*sp;ev.push({t,fn:()=>playDrum(mm,c,t,v,rk)})}}
+      else if(tr.type==='drums'){const rk=realKit(tr);for(const n of tr.notes)if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>playDrum(+n.p,c,t,n.v,rk)})}}
+      else if(isPanish(tr)){for(const n of pnotes(tr))if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v)})}}
+      else{const b=audioOf(tr);if(b){let t=T0+startOf(tr)*sp,o=0;if(t<0){o=-t;t=0}ev.push({t,fn:()=>{const s=off.createBufferSource();s.buffer=b;s.connect(c);s.start(t,o);s.stop(Math.max(t,T0+Lb*sp))}})}}
     }
     ev.sort((x,y)=>x.t-y.t);
     const CH=4,total=off.length/sr;let i=0;
@@ -7945,16 +7955,17 @@ const safe=s=>String(s||'song').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60)
 async function runExport(){
   const busy=q('#stExBusy'),go=q('[data-st="expgo"]');const base=safe(S.title||'Panyard song')+' - studio';
   const encode=async b=>EXP.fmt==='mp3'?mp3Bytes(b):new Blob([wavBytes(b)],{type:'audio/wav'});
+  const rg=expRange(),tail=VIEW==='song'&&zoneOn()?(rg.name?' - '+safe(rg.name):' - song'):'';
   if(T.playing)stop(false);busy.hidden=false;go.disabled=true;
   try{
     if(EXP.what==='mix'){
       if(!song.tracks.some(t=>audible(t)&&hasContent(t))){say("There's nothing to export yet. Record something first.");return}
-      const data=await encode(await renderSong(null,p=>{busy.textContent='Exporting your song… '+Math.round(p*100)+'%'}));
-      busy.textContent='Ready.';await offerFile(base+'.'+EXP.fmt,data);
+      const data=await encode(await renderSong(null,p=>{busy.textContent='Exporting your song… '+Math.round(p*100)+'%'},rg));
+      busy.textContent='Ready.';await offerFile(base+tail+'.'+EXP.fmt,data);
     }else{
-      const todo=song.tracks.filter(hasContent),files=[];if(!todo.length){say("There's nothing to export yet. Record something first.");return}
-      for(const [k,tr] of todo.entries()){const b=await encode(await renderSong(tr,p=>{busy.textContent='Exporting '+tr.name+' ('+(k+1)+' of '+todo.length+')… '+Math.round(p*100)+'%'}));files.push({name:safe(tr.name)+' '+(k+1)+'.'+EXP.fmt,data:new Uint8Array(await b.arrayBuffer())})}
-      busy.textContent='Ready.';await offerFile(base+' - tracks.zip',zipStore(files));
+      const todo=song.tracks.filter(t=>hasContent(t)&&inMode(t)&&(!rg.name||t.type!=='practice'||song.band)),files=[];if(!todo.length){say("There's nothing to export yet. Record something first.");return}
+      for(const [k,tr] of todo.entries()){const b=await encode(await renderSong(tr,p=>{busy.textContent='Exporting '+tr.name+' ('+(k+1)+' of '+todo.length+')… '+Math.round(p*100)+'%'},rg));files.push({name:safe(tr.name)+' '+(k+1)+'.'+EXP.fmt,data:new Uint8Array(await b.arrayBuffer())})}
+      busy.textContent='Ready.';await offerFile(base+tail+' - tracks.zip',zipStore(files));
     }
   }catch(e){say(e&&e.message==='mp3'?'MP3 needs an internet connection the first time. Try WAV, or connect and try again.':"The export didn't finish. Try again, or try WAV.")}
   finally{if(busy.isConnected)busy.hidden=true;if(go.isConnected)go.disabled=false}
@@ -8101,7 +8112,7 @@ function init(){
   sh.addEventListener('click',e=>{if(e.target===sh){closeSheet();return}if(e.target.closest('#neGrid')){neTap(e);return}onClick(e)});
   sh.addEventListener('input',onInput);
   sh.addEventListener('pointerdown',e=>{if(e.target.closest('#stCalTap')){e.preventDefault();if(CAL.on)CAL.taps.push(tapT(e))}});
-  sh.addEventListener('click',e=>{const b=e.target.closest('#stExWhat button,#stExFmt button');if(!b)return;if(b.closest('#stExWhat'))EXP.what=b.dataset.v;else EXP.fmt=b.dataset.v;renderSheet()},true);
+  sh.addEventListener('click',e=>{const b=e.target.closest('#stExWhat button,#stExFmt button,#stExPart button');if(!b)return;if(b.closest('#stExWhat'))EXP.what=b.dataset.v;else if(b.closest('#stExPart'))EXP.part=b.dataset.v;else EXP.fmt=b.dataset.v;renderSheet()},true);
   q('#stPlay').onclick=()=>{T.playing?stop(false):play(false)};
   q('#stHome').onclick=()=>seek(looping()?loopS():0);
   q('#stRec').onclick=toggleRec;
