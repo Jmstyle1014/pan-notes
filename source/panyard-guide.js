@@ -79,13 +79,15 @@ var GUIDE={   // var: other parts can ask about it early
       {go:()=>{GUIDE.closeAll();showView('part')},el:'#sheet',t:'Your chart',x:'Your part written out: stacks are notes played together, ×2 means play it twice.'},
       {go:()=>showView('part'),skipIf:()=>!GUIDE.find('#shareBtnTop'),el:'#shareBtnTop',t:'Share',x:'Tap Share.',tap:1,after:500},
       {go:()=>{if($('shareSheet').hidden)openShare(true)},el:'#shareSheet .sheetbox',t:'Pick what to send',x:'The chart as a PDF or picture, the whole arrangement, the audio, or a video of the pans lighting up.'}]},
-    {id:'look',title:'Change how your pan looks',blurb:'Night, Steel, Painted, or your own photos.',kw:'look style colour color photo picture theme pan look note names day night',steps:[
+    {id:'look',title:'Change how your pan looks',blurb:'Night, Steel, Painted, your own photos, and the chrome looks.',kw:'look style colour color photo picture theme pan look note names day night chrome silver steel app look',steps:[
       {go:()=>{GUIDE.closeAll();showView('setup');SETUP.show(null)},el:'[data-row=photos]',t:'Pan look',x:'Tap Pan look.',tap:1},
       {go:()=>{showView('setup');SETUP.show('photos')},el:'#view-setup .panel.sx-on',t:'Pick a style',x:'Choose a style, the note names and the hit colour. My photos uses your own pictures of the pan.'},
-      {go:()=>showView('home'),el:'#dayBtn',t:'Day or night',x:'This button switches the whole app between night and day colours.'}]},
-    {id:'backup',title:'Back up your songs',blurb:'Save a file so nothing is lost.',kw:'backup save restore file phone move export import lose',steps:[
+      {go:()=>{showView('setup');SETUP.show(null)},el:'[data-row=look]',t:'App look',x:'The colours of the whole app: Night, Day, Chrome Day or Chrome Night. The chrome looks make every pan polished steel.'},
+      {go:()=>showView('home'),el:'#dayBtn',t:'Day or night',x:'This button switches between day and night, in the same family: Night and Day, or Chrome Day and Chrome Night.'}]},
+    {id:'backup',title:'Back up your songs',blurb:'Google Drive keeps every song safe, by itself.',kw:'backup save restore file phone move export import lose cloud google drive new phone bring back',steps:[
       {go:()=>{GUIDE.closeAll();showView('setup');SETUP.show(null)},el:'[data-row=save]',t:'Backup',x:'Tap Backup.',tap:1},
-      {go:()=>{showView('setup');SETUP.show('save')},el:'#expJson',t:'Save a backup',x:'Saves everything to one file. Keep it somewhere safe, like Google Drive. Open it on any phone to bring it all back.'}]}
+      {go:()=>{showView('setup');SETUP.show('save')},el:'#clCard',t:'Cloud backup',x:'Connect Google Drive once. Every song, recording, pan sound and photo then backs up by itself after each change. On a new phone, tap Bring my songs back.'},
+      {go:()=>{showView('setup');SETUP.show('save')},el:'#expJson',t:'A file too',x:'Save backup file keeps one song as a file you can send or keep anywhere.'}]}
   ],
 
   /* ---- running a guide ---- */

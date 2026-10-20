@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Makes pan-notes-panyard.html (Panyard, the night-session look) from pan-notes-next.html.
 Same app and features; night colours, falling lanes and play-along scoring on the Play tab."""
-import os
+import os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, 'pan-notes-next.html')
 OUT = os.path.join(HERE, 'pan-notes-panyard.html')
@@ -93,6 +93,12 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-lab.js
 rep('      <details><summary>Hearing the pans when you tap</summary>', """      <details><summary>Mallet Lab: playing with a controller (test)</summary>
         <p>Setup → Play along → <b>Mallet Lab</b>. Connect a game controller, or use a handheld like the Retroid, and press any button so the app can see it. The <b>left stick</b> is your left mallet over the left pan and the <b>right stick</b> your right mallet over the right pan; a gold ring shows where each one is pointing.</p>
         <p><b>Aim + strike</b>: point, then hit with your mallet buttons (L1 / R1 to start; analog triggers play softer or harder depending on how quickly you pull them). Hold to roll. <b>Flick</b>: push a stick out quickly to strike where it points, then let it come back. Tap <b>Calibrate</b> to measure your sticks and pick your mallet buttons. No controller? Drag inside the stick circles and hold <b>Hit</b>.</p></details>
+      <details><summary>Cloud backup with Google Drive</summary>
+        <p>Setup → Backup → <b>Connect Google Drive</b>. Sign in once, and every song, recording, pan sound, photo and Studio track is kept in Panyard's own private folder in your Google Drive (it doesn't show among your files, and Panyard can't see anything else in your Drive). After that it backs up by itself a little after each change, and before the app goes into the background.</p>
+        <p>Google keeps you connected for about an hour. If you've made changes after that, a <b>☁ Back up</b> button appears on Home: one tap and it carries on.</p>
+        <p>New phone? Open Panyard, go to Setup → Backup and tap <b>Bring my songs back</b>. Your phone's own timing fix stays with each phone, so run Timing fix once on the new one.</p></details>
+      <details><summary>App look: Night, Day, Chrome Day, Chrome Night</summary>
+        <p>Setup → <b>App look</b> sets the colours of the whole app. <b>Chrome Day</b> is lavender silver and champagne, like a pan in the sun; <b>Chrome Night</b> is polished steel under warm lights. In the chrome looks a struck note glows like polished chrome instead of turning orange. The ☀ / 🌙 button on Home switches between day and night in the same family. Each pan's own style (Setup → Pan look) still works on top.</p></details>
       <details><summary>Hearing the pans when you tap</summary>""")
 
 # Studio: record in layers over the practice recording (the multi-track recorder from Pocket Band)
@@ -156,6 +162,9 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-looks.
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-role.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-parts.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-guide.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-polish.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-cloud.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-themes.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # Setup: "Pan look" for every pan (it was "Pan photos & order", for the Double Guitar only)
 rep("this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):''", "this.vis('photos')?row('photos','Pan look',this.val('photos')):''")
 rep("photos:'Pan photos & order'", "photos:'Pan look'")
@@ -182,5 +191,28 @@ const saveTune=()=>{const p=profNow();if(p)p.tune=SAMPLES.tune;syncPitch();saveP
 rep("  const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});\n  applyFx();renderProfiles();",
     "  const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});\n  syncPitch(true);saveProfiles();\n  applyFx();renderProfiles();")
 rep("  renderSaveInfo();\n  initStore();\n})();", "  renderSaveInfo();\n  initStore();\n  showView('home');\n})();")
+# messages leave a little sooner
+rep("sayTimer=setTimeout(()=>el.classList.remove('show'),Math.min(7000,2500+t.length*35))", "sayTimer=setTimeout(()=>el.classList.remove('show'),Math.min(5000,1800+t.length*28))")
+
+# App look: Chrome Day and Chrome Night. Their colours are made from every style in the finished app
+# (make_themes.py, which needs tinycss2: pip install tinycss2); without it the last saved panyard-themes.css is used.
+try:
+    import make_themes
+    tcss = make_themes.theme_css(s)
+    open(os.path.join(HERE, 'panyard-themes.css'), 'w', encoding='utf-8').write(tcss)
+except ImportError:
+    print('tinycss2 missing: using the saved panyard-themes.css')
+    tcss = open(os.path.join(HERE, 'panyard-themes.css'), encoding='utf-8').read()
+rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + tcss + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
+# the canvases (falling lanes, rulers, sound waves) take their colours through THEME.c(), so they follow the look too
+LIT = re.compile(r"'(#[0-9a-fA-F]{3,8}|rgba?\([^')]*\))'")
+def themed(start, end):
+    global s
+    i = s.index(start); j = s.index(end, i + len(start))
+    s = s[:i] + LIT.sub(lambda m: "THEME.c('" + m.group(1) + "')", s[i:j]) + s[j:]
+themed('function drawLanes(t){', '\nfunction ')
+themed('function drawPeaks(c,tr){', '\nfunction ')
+for obj in ('const GB={', 'const WB={'):
+    k = s.index('  drawRuler(){', s.index(obj)); themed(s[k:k + 60], '\n  },')
 open(OUT, 'w', encoding='utf-8').write(s)
 print('wrote', OUT)
