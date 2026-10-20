@@ -293,3 +293,13 @@ body.gbmode #stSecs .st-sectools::before{content:attr(data-name);align-self:cent
 body.gbmode #stSecs .st-sectools{flex-wrap:nowrap;overflow-x:auto}
 body.gbmode #stSecs .st-sectools .chip{min-height:36px;padding:0 10px;font-size:13px;white-space:nowrap}
 body.gbmode #stSecs .st-sectools::before{white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+
+/* Add to…: send picked bars into a section */
+.st-addto{border-color:var(--gold)!important;color:var(--gold)!important}
+.st-addopts{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}.st-addopts .row{display:flex;gap:6px;flex-wrap:wrap}
+.st-addsecs{display:flex;flex-direction:column;gap:6px}
+.st-addsec{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--raised,#231b40);color:var(--text);font:inherit;cursor:pointer;min-height:48px}
+.st-addsec b{font-size:15px}.st-addsec small{color:var(--muted);font-size:12px}
+.st-addsec:active{border-color:var(--gold)}
+.st-addnew{border-style:dashed}
+.st-addopts .chip{min-height:40px}.st-addopts .chip.on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink,#2a1d00)}

@@ -1096,6 +1096,16 @@ body.gbmode #stSecs .st-sectools{flex-wrap:nowrap;overflow-x:auto}
 body.gbmode #stSecs .st-sectools .chip{min-height:36px;padding:0 10px;font-size:13px;white-space:nowrap}
 body.gbmode #stSecs .st-sectools::before{white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
 
+/* Add to…: send picked bars into a section */
+.st-addto{border-color:var(--gold)!important;color:var(--gold)!important}
+.st-addopts{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}.st-addopts .row{display:flex;gap:6px;flex-wrap:wrap}
+.st-addsecs{display:flex;flex-direction:column;gap:6px}
+.st-addsec{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--raised,#231b40);color:var(--text);font:inherit;cursor:pointer;min-height:48px}
+.st-addsec b{font-size:15px}.st-addsec small{color:var(--muted);font-size:12px}
+.st-addsec:active{border-color:var(--gold)}
+.st-addnew{border-style:dashed}
+.st-addopts .chip{min-height:40px}.st-addopts .chip.on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink,#2a1d00)}
+
 /* ---------- Home (panyard-home.js) ---------- */
 body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="home"] .dock .transport{display:none!important}
 .home{position:relative;max-width:560px;margin:0 auto;padding:6px 2px 24px;display:flex;flex-direction:column;gap:14px}
@@ -7242,6 +7252,30 @@ function secOp(op,i){
   }
   dirty();renderAll();
 }
+/* ---- Add to…: send the bars you picked into a section of your arrangement ----
+   The notes are copied (your take stays where it is), and replace what that track had in the section. */
+const ownSecs=()=>song.secs&&song.secs.length?song.secs:sections().map(s=>({name:s.name,a:Math.max(0,Math.round(s.a/BPB())),b:Math.max(1,Math.round(s.b/BPB())),en:3})).filter(x=>x.b>x.a);
+const addSrc=(a,b)=>{const A=a*BPB(),B=b*BPB();return song.tracks.filter(t=>(t.type==='pan'||t.type==='drums')&&(t.notes||[]).some(n=>n.t>=A&&n.t<B))};
+function addTracks(){const ad=SH.add,me=trById(ad.tid);if(ad.scope==='all'){const all=addSrc(ad.a,ad.b);if(me&&!all.includes(me))all.unshift(me);return all}return me?[me]:[]}
+function addTo(target){
+  const ad=SH.add;if(!ad)return;const bpb=BPB(),L=ad.b-ad.a,trs=addTracks();if(!trs.length)return;
+  pushHistory();if(!song.secs||!song.secs.length)song.secs=ownSecs().map(x=>({...x}));
+  let x;
+  if(target==='new'){const v=prompt('Name the new section (it goes at the end of the song)','Section '+(song.secs.length+1));if(v==null||!v.trim()){H.u.pop();return}
+    const end=song.secs.length?Math.max(...song.secs.map(z=>z.b)):bars();x={name:v.trim().slice(0,30),a:end,b:end+L,en:3};song.secs.push(x)}
+  else{x=song.secs[+target];if(!x){H.u.pop();return}}
+  const XA=x.a*bpb,XB=x.b*bpb,SA=ad.a*bpb,SB=ad.b*bpb;let put=0;
+  for(const tr of trs){
+    const src=tr.notes.filter(n=>n.t>=SA&&n.t<SB).map(n=>({...n}));
+    tr.notes=tr.notes.filter(n=>!(n.t>=XA&&n.t<XB));
+    for(let k=0;x.a+k*L<x.b;k++){const off=XA-SA+k*L*bpb;for(const n of src){const t=+(n.t+off).toFixed(3);if(t<XB){tr.notes.push({...n,t});put++}}if(ad.fill==='once')break}
+    tr.notes.sort((p,q2)=>p.t-q2.t)}
+  song.minBars=Math.max(song.minBars||8,x.b);   // your pick stays picked, so it can go into more sections
+  
+  dirty();closeSheet();seek(XA);renderAll();
+  const times=ad.fill==='once'?1:Math.ceil((x.b-x.a)/L);
+  say('Put '+(L===1?'1 bar':L+' bars')+' into '+x.name+(times>1?' (×'+times+')':'')+' on '+(trs.length===1?trs[0].name:trs.length+' tracks')+'. Undo takes it back.');
+}
 function sections(){
   if(song&&Array.isArray(song.secs)&&song.secs.length)return song.secs.map(x=>({name:x.name,a:x.a*BPB(),b:x.b*BPB(),en:x.en}));
   if(typeof sectionsNow!=='function')return[];
@@ -7346,6 +7380,7 @@ function selBarHTML(){
   if(tr.type==='drums')tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy after')+b('repeat','Repeat to end')+b('snap','Snap')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
   if(isPanish(tr))tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy after')+b('repeat','Repeat to end')+b('snap','Snap')+b('notes','Edit notes')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
   if(tr.type==='audio'&&tr.take)tools=b('left','◀ Bar')+b('right','Bar ▶')+tools+'<button class="btn sm danger" data-st="r-delete">Remove take</button>';
+  if(tr.type==='pan'||tr.type==='drums')tools='<button class="btn sm st-addto" data-st="r-addto">＋ Add to…</button>'+tools;
   if(tr.type==='beats')tools=b('silence',(tr.off||[]).includes(SEL.a)?'Play these bars':'Silence these bars')+tools;
   return '<div class="st-selin" role="toolbar" aria-label="Edit '+esc(range)+' of '+esc(tr.name)+'"><span class="st-selinfo"><b>'+range+'</b> · '+esc(tr.name)+n+'</span>'+tools+'<button class="btn sm" data-st="r-close" aria-label="Clear selection">✕</button></div>';
 }
@@ -7356,6 +7391,8 @@ const selNotes=tr=>{const A=SEL.a*BPB(),B=SEL.b*BPB();return notesOf(tr).filter(
 function regionOp(op){
   const tr=trById(SEL.tid);if(!tr)return;const len=SEL.b-SEL.a,bpb=BPB(),A=SEL.a*bpb,B=SEL.b*bpb;
   if(op==='close'){SEL=null;renderTimeline();return}
+  if(op==='addto'){if(!selNotes(tr).length&&!addSrc(SEL.a,SEL.b).length){say('There are no notes in those bars yet. Record something first.');return}
+    SH.add={tid:tr.id,a:SEL.a,b:SEL.b,scope:SH.add&&SH.add.scope||'one',fill:SH.add&&SH.add.fill||'repeat'};openSheet('addto');return}
   if(op==='loop'){pushHistory();song.cycle={on:true,s:SEL.a,e:SEL.b};dirty();restartIfPlaying();renderTimeline();renderTransport();renderSecs();say('Looping bars '+(SEL.a+1)+'–'+SEL.b+'.');return}
   if(op==='notes'){if(tr.type==='part'){BARS.open({a:origin()+A*spb(),b:origin()+B*spb()-1e-3,grid:true});return}openNotes(tr,SEL.a,SEL.b);return}
   if(tr.type==='beats'&&op==='silence'){pushHistory();const off=new Set(tr.off||[]),on=off.has(SEL.a);for(let b=SEL.a;b<SEL.b;b++)on?off.delete(b):off.add(b);tr.off=[...off].sort((x,y)=>x-y);dirty();renderTimeline();return}
@@ -7489,6 +7526,18 @@ function renderSheet(){
       +'<button class="st-add" data-st="addk" data-v="drums" data-set="engine"><b>⛓ Engine room</b><span>Iron, scratcher, cowbell, shak-shak and congas to tap.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="beats"><b>▦ Beat</b><span>A drum pattern: soca, calypso, panorama jam and more, or build your own.</span></button>'
       +'<button class="st-add" data-st="addk" data-v="part"><b>✎ Your part from Write</b><span>'+(cues?'Your '+cues+' cues as a pan track, linked: edit it here or in Write and both follow.':'Linked to your cues in Write; write some cues and they play here.')+'</span></button></div>';
+  }else if(SH.kind==='addto'){
+    const ad=SH.add,L=ad.b-ad.a,trs=addTracks(),all=addSrc(ad.a,ad.b),me=trById(ad.tid),ss=ownSecs(),bpb=BPB();
+    const opt=(k,v,label)=>'<button class="chip'+(ad[k]===v?' on':'')+'" data-st="addopt" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+(ad[k]===v)+'">'+label+'</button>';
+    h=head('Add '+(L>1?'bars '+(ad.a+1)+'–'+ad.b:'bar '+(ad.a+1))+' to…')
+      +'<div class="st-addopts"><div class="row">'+opt('scope','one','Only '+esc(me?me.name:'this track'))+(all.length>1||(all.length===1&&all[0]!==me)?opt('scope','all','Every track here ('+Math.max(all.length,1)+')'):'')+'</div>'
+      +'<div class="row">'+opt('fill','repeat','Repeat to fill the section')+opt('fill','once','Just once')+'</div></div>'
+      +(ss.length?'':'<p class="help">Your song has no sections yet. Make one below, or start from a template (⋯ → New song from a template).</p>')
+      +'<div class="st-addsecs">'+ss.map((x,i)=>{const n=trs.reduce((k,t)=>k+(t.notes||[]).filter(m=>m.t>=x.a*bpb&&m.t<x.b*bpb).length,0),len=x.b-x.a,cover=ad.fill==='once'?Math.min(L,len):len,rep=ad.fill==='once'?'':(len>L?' · plays ×'+Math.ceil(len/L):'');
+        const over=x.a<ad.b&&x.b>ad.a;
+        return '<button class="st-addsec" data-st="addsec" data-v="'+i+'"><b>'+esc(x.name)+'</b><small>'+len+' bar'+(len===1?'':'s')+rep+' · '+(n?n+' note'+(n===1?'':'s')+' will be replaced':'empty')+(over?' · your pick is in here':'')+(cover<len?' · fills the first '+cover:'')+'</small></button>'}).join('')
+      +'<button class="st-addsec st-addnew" data-st="addsec" data-v="new"><b>＋ New section</b><small>'+L+' bar'+(L===1?'':'s')+', at the end of the song</small></button></div>'
+      +'<p class="help">Your notes are copied, so the bars you picked stay where they are. Your band recording isn\'t copied.</p>';
   }else if(SH.kind==='tpl'){
     h=head('New song from a template')+'<p class="help">Lays out the sections on the ruler and adds a track for each part of the band: front line, middle, bass and an engine room already playing a groove. Your notes stay; undo takes it back.</p><div class="st-kits">'
       +TEMPLATES.map(tp=>'<button class="st-kitc st-tplc'+(song.tpl===tp.id?' on':'')+'" data-st="tplpick" data-v="'+tp.id+'"><b>'+esc(tp.name)+'</b><span>'+esc(tp.feel)+'</span><small>'+tp.bpm+' bpm · '+tplBars(tp)+' bars'+(tp.loop?', looping':', about '+tplTime(tp))+' · '+esc(tp.secs.map(x=>x[0]).join(', '))+'</small></button>').join('')+'</div>'
@@ -7769,6 +7818,8 @@ function onClick(e){
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
     case 'csound':song.click={...ck(),sound:b.dataset.v};dirty();if(AC()){const t0=ctx.currentTime+.02;for(let i=0;i<4;i++)click(t0+i*.32,i===0)}renderSheet();break;
     case 'cbars':song.click={...ck(),bars:+b.dataset.v};dirty();renderSheet();break;
+    case 'addopt':if(SH.add){SH.add[b.dataset.k]=b.dataset.v;renderSheet()}break;
+    case 'addsec':addTo(b.dataset.v);break;
     case 'tplpick':applyTemplate(b.dataset.v);break;
     case 'secdup':secOp('dup',+b.dataset.v);break;
     case 'secdel':secOp('del',+b.dataset.v);break;
