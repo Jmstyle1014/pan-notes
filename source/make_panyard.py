@@ -132,7 +132,7 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
       <div class="st-songbar" id="stSongBar" role="toolbar" aria-label="Song" hidden></div>
       <div class="st-tl" id="stTl"></div>
       <div class="st-tlrow"><button class="btn primary" id="stAdd">+ Add track</button><button class="btn sm" id="stZout" aria-label="Zoom out">−</button><button class="btn sm" id="stZin" aria-label="Zoom in">+</button>
-        <span class="help">Tap a track's name to choose it. Tap its lane to select a bar, then another bar to select the bars between. Tap the bar numbers to move the playhead.</span></div>
+        <span class="help">Tap a track's name to choose it. Tap its lane to pick some notes, then tap further along to pick everything between, or drag the pink handles. Zoom in to pick by the beat, ½ beat or ¼ beat (the ticks on the ruler show how fine). Tap the bar numbers to move the playhead.</span></div>
     </div>
     <div id="stSel" class="st-selbar" hidden></div>
     <div class="panel" id="stInst"></div>
