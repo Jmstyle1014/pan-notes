@@ -326,3 +326,20 @@ body.gbmode #stSecs .st-sectools::before{white-space:nowrap;max-width:30vw;overf
 .st-arrdet p{margin:0 0 8px}.st-arrdet .row{display:flex;gap:6px;flex-wrap:wrap}
 .st-arrfrom{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}.st-arrfrom p{width:100%;margin:0}
 .st-arr,.st-arrlg,.st-arrdet,.st-arrtip{flex:none}
+
+/* Takes and Song: two zones in the tracks */
+.st-zone{height:52px;background:#150f29}
+.st-zone .st-hd{flex-direction:row;align-items:center;justify-content:space-between;background:#1b1434}
+.st-zt{display:flex;flex-direction:column;line-height:1.15;overflow:hidden}.st-zt b{font-family:var(--display);font-size:13px;color:var(--gold)}.st-zt small{font-size:10px;color:var(--muted);white-space:nowrap}
+.st-zm{flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:#231b40;font-size:16px;cursor:pointer}
+.st-zm.off{background:#3a1f2a;border-color:#6a3040}
+.st-zone .st-lane{position:relative}
+.st-zhint{position:sticky;left:8px;display:inline-block;margin:16px 8px;font-size:12px;color:var(--muted);white-space:nowrap}
+.st-zsong{height:60px;border-top:2px solid var(--gold)}
+.st-songb{position:absolute;top:6px;bottom:6px;border-radius:8px;border:1px solid #6a5a2a;background:#3a2f12;color:#ffe2a0;font:inherit;text-align:left;padding:4px 8px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.st-songb b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-songb.on{background:var(--gold);color:var(--gold-ink,#2a1d00);border-color:var(--gold)}
+.st-stripes{display:flex;gap:3px}.st-stripes i{flex:1;max-width:28px;height:5px;border-radius:3px;border:1px dashed #8a7a4a}
+.st-stripes i.f{border:0;background:#c9a2ff}.st-stripes i.f.k-beats{background:#4fd6d6}.st-stripes i.f.k-drums{background:#ff8a5c}
+.st-songb.on .st-stripes i{border-color:#5a4510}
+.st-row.zmuted .st-lane{opacity:.4}.st-row.zmuted .st-name{opacity:.6}
