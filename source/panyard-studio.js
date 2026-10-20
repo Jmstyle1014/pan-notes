@@ -864,6 +864,7 @@ async function practiceLoad(){
 
 /* ---- the screen ---- */
 let SEL=null;   // selected bars on one track: {tid,anchor,a,b}, b exclusive
+let SELMORE=false;   // the edit bar's More row is open
 const zoomPx=()=>Math.round((innerWidth<560?64:92)*(PR.zoom||1));
 const HDW=()=>innerWidth<560?112:150;
 const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'My part · linked to Write',beats:'Beat',drums:'Drum kit'};
@@ -1097,6 +1098,7 @@ function renderTimeline(){
   h+='<div class="st-row st-ruler"><div class="st-hd st-corner"><button class="st-addt" data-st="addsheet" aria-label="Add a track">+ Track</button><span class="st-zm"><button data-st="zout" aria-label="Zoom out">−</button><button data-st="zin" aria-label="Zoom in">+</button></span></div><div class="st-lane" id="stRuler" style="width:'+W+'px">';
   if(song.cycle&&song.cycle.e>song.cycle.s)h+='<span class="st-cyc'+(cycOn()?'':' off')+'" style="left:'+song.cycle.s*bar+'px;width:'+(song.cycle.e-song.cycle.s)*bar+'px"></span>';
   for(let b=0;b<n;b++)h+='<span class="st-barn" style="left:'+b*bar+'px">'+(b+1)+'</span>';
+  {const zs=zoomStep(),bt=bar/BPB();if(zs<1){h+='<span class="st-tk st-tk1" style="--tk:'+bt+'px"></span>';if(zs<=1/(2*BPB()))h+='<span class="st-tk st-tk2" style="--tk:'+bt/2+'px"></span>';if(zs<=1/(4*BPB()))h+='<span class="st-tk st-tk4" style="--tk:'+bt/4+'px"></span>'}}
   for(const s of sections())if(s.a<n*BPB()){const A=Math.max(0,Math.floor(s.a/BPB()+.02)),B=Math.max(A+1,Math.ceil(s.b/BPB()-.02)),on=cycOn()&&song.cycle.s===A&&song.cycle.e===B;h+='<button class="st-secl'+(on?' on':'')+'" data-sec="'+A+','+B+'" aria-pressed="'+on+'" aria-label="Loop '+esc(s.name)+'" style="left:'+Math.max(0,s.a/BPB()*bar)+'px;max-width:'+Math.max(24,(s.b-s.a)/BPB()*bar-4)+'px">'+esc(s.name)+'</button>'}
   h+='</div></div>';
   const zones=zoneOn(),songV=VIEW==='song',order=songV?song.tracks.filter(t=>zones&&inSong(t)):zones?song.tracks.filter(t=>!inSong(t)):song.tracks;
@@ -1113,12 +1115,12 @@ function renderTimeline(){
     const sel=tr.id===song.sel;
     h+='<div class="st-row k-'+tr.type+(zoneMuted(tr)?' zmuted':'')+(sel?' sel':'')+(!hasContent(tr)?' empty':'')+'" data-tid="'+tr.id+'"><div class="st-hd"><button class="st-name" data-st="pick" aria-pressed="'+sel+'"><span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span><span>'+esc(tr.name)+'</span></button>'
       +'<span class="st-ms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'" aria-label="Mute '+esc(tr.name)+'">M</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'" aria-label="Solo '+esc(tr.name)+'">S</button><button class="g" data-st="tset" aria-label="Settings for '+esc(tr.name)+'">⚙</button></span></div>'
-      +'<div class="st-lane" data-st="lane" style="width:'+W+'px">'+regionsHTML(tr,bar)+(SEL&&SEL.tid===tr.id?'<span class="st-bsel" style="left:'+SEL.a*bar+'px;width:'+(SEL.b-SEL.a)*bar+'px"></span>':'')+'</div></div>';
+      +'<div class="st-lane" data-st="lane" style="width:'+W+'px">'+regionsHTML(tr,bar)+(SEL&&SEL.tid===tr.id?'<span class="st-bsel" id="stBsel" style="left:'+SEL.a*bar+'px;width:'+(SEL.b-SEL.a)*bar+'px"><span class="st-hdl l" data-hdl="a" aria-hidden="true"></span><span class="st-hdl r" data-hdl="b" aria-hidden="true"></span></span>':'')+'</div></div>';
   }
   h+='<div class="st-ph" id="stPh" style="left:'+hd+'px"></div></div>';
   tl.innerHTML=h;tl.scrollLeft=keep[0];tl.scrollTop=keep[1];
   tl.querySelectorAll('canvas[data-peaks]').forEach(c=>drawPeaks(c,trById(c.dataset.peaks)));
-  const sb=q('#stSel');sb.innerHTML=SEL?selBarHTML():'';sb.hidden=!SEL||VIEW==='inst';renderSongBar();
+  const sb=q('#stSel');sb.innerHTML=SEL?selBarHTML():'';sb.hidden=!SEL||VIEW==='inst';if(!SEL)SELMORE=false;placeSel();renderSongBar();
   updatePlayhead();
 }
 const PH={w:0,sl:0,t:0};
@@ -1160,20 +1162,50 @@ function beatVis(){
 }
 {const lp=()=>{if(document.body.dataset.view==='studio'||litKey)lightPans();if(document.body.dataset.view==='studio')lightDrums();if(document.body.dataset.view==='studio')beatVis();requestAnimationFrame(lp)};requestAnimationFrame(lp)}
 function frame(){if(!T.playing)return;updatePlayhead();if(seqGridOpen())renderSeqNow();if(q('#stSheet')&&!q('#stSheet').hidden&&SH.kind==='mixer')meters();T.raf=requestAnimationFrame(frame)}
+/* the edit bar for picked bars floats just above them, pointing at them (like GarageBand). The tools you use most sit in one
+   row; the rest are under More. Every tool is the same data-st="r-…" button as before, so regionOp does the work. */
 function selBarHTML(){
   const tr=trById(SEL.tid);if(!tr)return '';const whole=Math.abs(SEL.a-Math.round(SEL.a))<1e-6&&Math.abs(SEL.b-Math.round(SEL.b))<1e-6;
   const range=whole?(SEL.b-SEL.a>1?'Bars '+(SEL.a+1)+'–'+SEL.b:'Bar '+(SEL.a+1)):posLab(SEL.a).replace(/^b/,'B')+' · '+lenLab(SEL.b-SEL.a);
-  const fine=tr.type==='pan'||tr.type==='drums'||tr.type==='part',g=PR.selg||'1';
-  const pickBy=fine?'<span class="st-selg" role="group" aria-label="Pick by">'+SELG.map(([v,l])=>'<button class="btn sm'+(g===v?' on':'')+'" data-st="selg" data-v="'+v+'" aria-pressed="'+(g===v)+'">'+l+'</button>').join('')+'</span>':'';
-  const b=(act,label)=>'<button class="btn sm" data-st="r-'+act+'">'+label+'</button>';
+  const b=(act,ic,label,cls)=>'<button class="st-fb'+(cls?' '+cls:'')+'" data-st="r-'+act+'"><i aria-hidden="true">'+ic+'</i>'+label+'</button>';
+  const m=(act,label)=>'<button class="btn sm" data-st="r-'+act+'">'+label+'</button>';
   const n=isNotey(tr)?' · '+selNotes(tr).filter(x=>!x.roll).length+' notes':'';
-  let tools=b('loop','⟲ Loop');
-  if(tr.type==='drums')tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy after')+b('repeat','Repeat to end')+b('snap','Snap')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
-  if(isPanish(tr))tools=b('left','◀ Move')+b('right','Move ▶')+b('copy','Copy after')+b('repeat','Repeat to end')+b('snap','Snap')+b('notes','Edit notes')+tools+'<button class="btn sm danger" data-st="r-delete">Delete</button>';
-  if(tr.type==='audio'&&tr.take)tools=b('left','◀ Bar')+b('right','Bar ▶')+tools+'<button class="btn sm danger" data-st="r-delete">Remove take</button>';
-  if(tr.type==='pan'||tr.type==='drums')tools='<button class="btn sm st-addto" data-st="r-addto">＋ Add to…</button>'+tools;
-  if(tr.type==='beats')tools=b('silence',(tr.off||[]).includes(SEL.a)?'Play these bars':'Silence these bars')+tools;
-  return '<div class="st-selin" role="toolbar" aria-label="Edit '+esc(range)+' of '+esc(tr.name)+'"><span class="st-selinfo"><b>'+range+'</b> · '+esc(tr.name)+n+'</span>'+pickBy+tools+'<button class="btn sm" data-st="r-close" aria-label="Clear selection">✕</button></div>';
+  let main=b('loop','⟲','Loop'),more='';
+  if(tr.type==='drums'){main+=b('left','◀','Move')+b('right','▶','Move')+b('copy','⧉','Copy after')+b('delete','🗑','Delete','danger');more=m('repeat','Repeat to end')+m('snap','Snap')}
+  if(isPanish(tr)){main+=b('left','◀','Move')+b('right','▶','Move')+b('copy','⧉','Copy after')+b('notes','✎','Notes')+b('delete','🗑','Delete','danger');more=m('repeat','Repeat to end')+m('snap','Snap')}
+  if(tr.type==='audio'&&tr.take)main+=b('left','◀','Bar')+b('right','▶','Bar')+b('delete','🗑','Remove','danger');
+  if(tr.type==='pan'||tr.type==='drums')more='<button class="btn sm st-addto" data-st="r-addto">＋ Add to…</button>'+more;
+  if(tr.type==='beats')main=b('silence',(tr.off||[]).includes(SEL.a)?'▶':'🔇',(tr.off||[]).includes(SEL.a)?'Play':'Silence')+main;
+  if(more)main+='<button class="st-fb" data-selmore aria-expanded="'+SELMORE+'"><i aria-hidden="true">⋯</i>More</button>';
+  return '<div class="st-selin" role="toolbar" aria-label="Edit '+esc(range)+' of '+esc(tr.name)+'">'
+    +(more?'<div class="st-selmore"'+(SELMORE?'':' hidden')+'>'+more+'</div>':'')
+    +'<span class="st-selinfo"><b>'+range+'</b> · '+esc(tr.name)+n+'<button class="st-selx" data-st="r-close" aria-label="Clear selection">✕</button></span>'
+    +'<div class="st-selrow">'+main+'</div><span class="st-selarrow" aria-hidden="true"></span></div>';
+}
+// keeps the edit bar just above the pick (or just below it when there's no room above), inside the screen
+function placeSel(){
+  const sb=q('#stSel'),bx=q('#stBsel'),tl=q('#stTl');if(!sb)return;
+  if(!SEL||sb.hidden||!bx||!tl||!tl.offsetParent){sb.classList.remove('st-float');return}
+  sb.classList.add('st-float');
+  const R=bx.getBoundingClientRect(),T=tl.getBoundingClientRect(),hd=HDW(),L=T.left+hd,Rt=T.right,ruler=34;
+  const x0=Math.max(R.left,L),x1=Math.min(R.right,Rt),vis=x1>x0+4&&R.bottom>T.top+ruler&&R.top<T.bottom;
+  sb.classList.toggle('st-off',!vis);if(!vis)return;
+  const w=sb.offsetWidth,h=sb.offsetHeight,mid=(x0+x1)/2,left=Math.max(6,Math.min(innerWidth-w-6,mid-w/2));
+  let top=R.top-h-6,below=false;if(top<Math.max(6,T.top+ruler-h*.35)){top=R.bottom+6;below=true}
+  top=Math.max(6,Math.min(innerHeight-h-6,top));
+  sb.style.left=left+'px';sb.style.top=top+'px';sb.classList.toggle('below',below);
+  sb.style.setProperty('--ax',Math.max(16,Math.min(w-16,mid-left))+'px');
+}
+// the pink handles: drag one to stretch or shrink the pick; it lands on the ruler's ticks
+const HDL={on:null};
+function hdlDown(e,el){
+  const tr=trById(SEL&&SEL.tid);if(!tr)return;e.preventDefault();e.stopPropagation();
+  const lane=el.closest('.st-lane'),st=stepOf(tr);HDL.on={k:el.dataset.hdl,lane,st,id:e.pointerId};
+  try{el.setPointerCapture(e.pointerId)}catch{}
+  el.onpointermove=ev=>{if(!HDL.on)return;const bar=zoomPx(),x=(ev.clientX-lane.getBoundingClientRect().left)/bar,v=r6(Math.round(x/st)*st);
+    if(HDL.on.k==='a')SEL.a=r6(Math.max(0,Math.min(SEL.b-st,v)));else SEL.b=r6(Math.min(bars(),Math.max(SEL.a+st,v)));
+    SEL.anchor=SEL.a;SEL.st=st;const bx=q('#stBsel');if(bx){bx.style.left=SEL.a*bar+'px';bx.style.width=(SEL.b-SEL.a)*bar+'px'}placeSel()};
+  el.onpointerup=el.onpointercancel=()=>{el.onpointermove=el.onpointerup=el.onpointercancel=null;HDL.on=null;renderTimeline()};
 }
 const SNAPS=[['off','Free'],['0.25','¼ beat'],['0.5','½ beat'],['1','Beat']];
 const snapBeat=(t,gq)=>Math.max(0,Math.round(t/gq)*gq);
@@ -1608,7 +1640,10 @@ async function runExport(){
 /* picking finer than a bar: Bar, Beat, ½ beat or ¼ beat (a 16th). Beats and recordings stay whole bars. */
 const SELG=[['1','Bar'],['b','Beat'],['h','½ beat'],['q','¼ beat']];
 const gStep=g=>g==='b'?1/BPB():g==='h'?1/(2*BPB()):g==='q'?1/(4*BPB()):1;
-const stepOf=tr=>tr.type==='pan'||tr.type==='drums'||tr.type==='part'?gStep(PR.selg||'1'):1;
+// how finely you pick follows the zoom: the finest ruler ticks that sit at least TICK_PX apart (¼ beat, ½ beat, beat), else whole bars
+const TICK_PX=22;
+function zoomStep(){const bar=zoomPx(),b=BPB();for(const k of[4,2,1])if(bar/(b*k)>=TICK_PX)return 1/(b*k);return 1}
+const stepOf=tr=>tr.type==='pan'||tr.type==='drums'||tr.type==='part'?zoomStep():1;
 const r6=x=>Math.round(x*1e6)/1e6;
 function posLab(x){const bar=Math.floor(x+1e-6),bt=r6((x-bar)*BPB()),b0=Math.floor(bt+1e-6),fr=r6(bt-b0);
   return 'bar '+(bar+1)+(bt>1e-6?' beat '+(b0+1)+(fr>1e-6?({0.25:'¼',0.5:'½',0.75:'¾'}[fr]||''):''):'')}
@@ -1752,7 +1787,10 @@ function init(){
   const v=q('#view-studio');if(!v)return;
   v.addEventListener('click',onClick);
   q('#stViews').addEventListener('click',e=>{const b=e.target.closest('[data-sv]');if(b)setView(b.dataset.sv)});v.addEventListener('input',onInput);v.addEventListener('change',onChange);
-  v.addEventListener('pointerdown',e=>{const row=e.target.closest('.st-row[data-tid]');if(row&&e.target.closest('.st-lane')&&!e.target.closest('button'))laneTap(e,row)});
+  v.addEventListener('pointerdown',e=>{const hd=e.target.closest('.st-hdl');if(hd){hdlDown(e,hd);return}const row=e.target.closest('.st-row[data-tid]');if(row&&e.target.closest('.st-lane')&&!e.target.closest('button'))laneTap(e,row)});
+  v.addEventListener('click',e=>{const mb=e.target.closest('[data-selmore]');if(!mb)return;SELMORE=!SELMORE;const box=q('#stSel .st-selmore');if(box)box.hidden=!SELMORE;mb.setAttribute('aria-expanded',String(SELMORE));placeSel()});
+  q('#stTl').addEventListener('scroll',()=>{if(SEL)placeSel()},{passive:true});
+  window.addEventListener('scroll',()=>{if(SEL)placeSel()},{passive:true});
   q('#stRuler')||0;
   v.addEventListener('click',e=>{const r=e.target.closest('#stRuler');if(r){const x=e.clientX-r.getBoundingClientRect().left;seek(Math.floor(x/zoomPx())*BPB())}});
   const sh=document.createElement('div');sh.id='stSheet';sh.className='sheetov st-sheet';sh.hidden=true;sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');
@@ -1772,6 +1810,7 @@ function init(){
   q('#stZin').onclick=()=>{PR.zoom=Math.min(8,(PR.zoom||1)*1.25);savePR();renderTimeline()};q('#stZout').onclick=()=>{PR.zoom=Math.max(.4,(PR.zoom||1)/1.25);savePR();renderTimeline()};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!q('#stSheet').hidden)closeSheet()});
   window.addEventListener('resize',()=>{if(document.body.dataset.view==='studio'){renderTimeline();fitPans()}});
+  window.addEventListener('resize',()=>requestAnimationFrame(placeSel));
   // a different song opened from the songs list: its own studio comes with it
   if(typeof songOpen==='function'){const _o=songOpen;songOpen=async function(id,fresh){const r=await _o(id,fresh);if(document.body.dataset.view==='studio')enter();else{song=null;songKey=null}return r}}
 }
