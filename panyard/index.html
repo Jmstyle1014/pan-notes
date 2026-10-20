@@ -3894,7 +3894,7 @@ function tenorSet(){
   const cx=500,cy=500,R=445,fields=[],add=(n,pos,grp,path,x,y,fs)=>{const m=nmOf(n);fields.push(['tenor:'+m,PC_LAB[m%12],pos,path,f1(x),f1(y),fs,grp,0])};
   fifthsRing(4,0).forEach(([n,a])=>{const [x,y]=arcXY(cx,cy,R*.81,a);add(n,'outer','gTo',ringTile(cx,cy,R*.665,R*.955,a-15,a+15,R*.035,R*.09),x,y,58)});
   fifthsRing(5,0).forEach(([n,a])=>{const [x,y]=arcXY(cx,cy,R*.5,a);add(n,'middle','gTm',ellPath(x,y,R*.112,R*.135,a+90),x,y,46)});
-  [['C6',111,97],['C#6',-158,108],['D6',11,51],['Eb6',158,128],['E6',-87,90]].forEach(([n,a,d])=>{const [x,y]=arcXY(cx,cy,d,a);add(n,'centre','gTc',ellPath(x,y,R*.11,R*.11,0),x,y,42)});
+  [['C6',90,96],['C#6',-126,96],['D6',18,96],['Eb6',162,96],['E6',-54,96]].forEach(([n,a,d])=>{const [x,y]=arcXY(cx,cy,d,a);add(n,'centre','gTc',ellPath(x,y,R*.11,R*.11,0),x,y,42)});
   const ds=[{name:'Low C Tenor',cx,cy,rx:R,ry:R}];
   return{name:'Low C Tenor',key:'tenor',view:stageViewBox(ds),cx,cy,rx:R,ry:R,drums:ds,fields};
 }
