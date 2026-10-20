@@ -139,7 +139,7 @@ var GUIDE={   // var: other parts can ask about it early
   done(T,nx){const n=nx&&this.TOURS.find(t=>t.id===nx);
     this.toast('✓ '+T.title+' done.',n?['Next: '+n.title,()=>this.start(n.id)]:['More guides',()=>this.sheet(true)])},
   toast(msg,act,more){this.mount();let b=$('gdToast');if(!b){b=document.createElement('div');b.id='gdToast';b.setAttribute('role','status');document.body.appendChild(b)}
-    b.innerHTML='<span>'+msg+'</span>'+(act?'<button class="btn primary" data-a="go">'+act[0]+'</button>':'')+(more?more.map((m,i)=>'<button class="btn" data-a="m'+i+'">'+m[0]+'</button>').join(''):'')+'<button class="gd-tx" data-a="x" aria-label="Close">✕</button>';
+    b.innerHTML='<span class="gd-tm">'+msg+(more?more.map((m,i)=>' <button class="gd-link" data-a="m'+i+'">'+m[0]+'</button>').join(''):'')+'</span>'+(act?'<button class="btn primary" data-a="go">'+act[0]+'</button>':'')+'<button class="gd-tx" data-a="x" aria-label="Close">✕</button>';
     b.hidden=false;clearTimeout(this.tt);this.tt=setTimeout(()=>{b.hidden=true},14000);
     b.onclick=e=>{const a=(e.target.closest('[data-a]')||{}).dataset;if(!a||!a.a)return;b.hidden=true;if(a.a==='go')act[1]();else if(a.a[0]==='m')more[+a.a.slice(1)][1]()}},
 
@@ -213,9 +213,12 @@ var GUIDE={   // var: other parts can ask about it early
 #gdP{margin:0 0 10px;font-size:15px;line-height:1.4}
 .gd-act{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .gd-act .btn{min-height:40px}
-#gdToast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom));width:min(460px,calc(100vw - 24px));box-sizing:border-box;z-index:99999;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(520px,calc(100vw - 24px));background:var(--surface,#221a3d);border:1px solid var(--gold,#ffd166);border-radius:16px;padding:10px 10px 10px 14px;box-shadow:0 14px 40px rgb(0 0 0/.5);font-size:14px}
+#gdToast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom));width:min(440px,calc(100vw - 24px));box-sizing:border-box;z-index:99999;display:flex;align-items:center;gap:8px;background:var(--surface,#221a3d);border:1px solid var(--gold,#ffd166);border-radius:14px;padding:6px 4px 6px 12px;box-shadow:0 10px 30px rgb(0 0 0/.45);font-size:13.5px;line-height:1.3}
+#gdToast .btn{min-height:38px;padding:0 14px;white-space:nowrap}
+.gd-tm{flex:1}
+.gd-link{background:none;border:0;padding:2px 0;color:var(--muted,#b3a9d6);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;display:block}
+@media (max-height:500px){#gdToast{left:auto;right:12px;transform:none;top:auto;bottom:12px;width:min(380px,calc(100vw - 24px))}}
 #gdToast[hidden]{display:none}
-#gdToast>span{flex:1 1 180px}
 .gd-tx{background:none;border:0;color:var(--muted,#b3a9d6);font-size:15px;min-width:36px;min-height:36px;cursor:pointer}
 #gdSheet{z-index:90}
 .gd-box{max-height:88vh;overflow:auto}

@@ -355,3 +355,8 @@ body.st-song #stSecs{display:none!important}
 .st-fillt{margin:0 0 10px}.st-fillt b{display:block;margin-bottom:6px;font-size:14px}.st-fillt .row{display:flex;gap:6px;flex-wrap:wrap}
 .st-ph{will-change:transform;left:0}
 .st-selg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:10px;margin-right:4px;flex:none}.st-selg .btn{min-height:34px;padding:0 9px;border:0}.st-selg .btn.on{background:var(--gold);color:var(--gold-ink,#2a1d00)}
+/* bigger finger targets for M / S / ⚙ without changing how they look */
+.st-ms button{position:relative}
+.st-ms button::after{content:"";position:absolute;inset:-6px -2px}
+/* the ⋯ menus scroll when they are taller than the screen (a phone held sideways) */
+#gbMenu:not([hidden]),#wbMenu:not([hidden]){max-height:calc(100dvh - 72px);overflow-y:auto;overscroll-behavior:contain}
