@@ -343,3 +343,13 @@ body.gbmode #stSecs .st-sectools::before{white-space:nowrap;max-width:30vw;overf
 .st-stripes i.f{border:0;background:#c9a2ff}.st-stripes i.f.k-beats{background:#4fd6d6}.st-stripes i.f.k-drums{background:#ff8a5c}
 .st-songb.on .st-stripes i{border-color:#5a4510}
 .st-row.zmuted .st-lane{opacity:.4}.st-row.zmuted .st-name{opacity:.6}
+
+/* the Song tab */
+.st-songbar{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;padding:6px 8px;border-bottom:1px solid var(--line);background:#1b1434}
+.st-songbar::-webkit-scrollbar{display:none}
+.st-songbar .btn{flex:none;white-space:nowrap;min-height:38px}
+.st-songbar .btn.on{background:var(--gold);color:var(--gold-ink,#2a1d00);border-color:var(--gold)}
+.st-sbn{flex:none;font-family:var(--display);color:var(--gold);font-size:14px;margin-right:4px;white-space:nowrap}
+.st-sbh{flex:1;min-width:150px;font-size:12px;color:var(--muted)}
+body.st-song #stSecs{display:none!important}
+.st-fillt{margin:0 0 10px}.st-fillt b{display:block;margin-bottom:6px;font-size:14px}.st-fillt .row{display:flex;gap:6px;flex-wrap:wrap}

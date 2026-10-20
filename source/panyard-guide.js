@@ -12,7 +12,7 @@ var GUIDE={   // var: other parts can ask about it early
   closeAll(){try{openHelp(false)}catch{}try{if(!$('shareSheet').hidden)openShare(false)}catch{}try{if(!$('recSheet').hidden)openRec(false)}catch{}
     try{GB.menu(false)}catch{}try{WB.pop(null)}catch{}try{if(!$('songsSheet').hidden)openSongs(false)}catch{}},
   studio(view){if(document.body.dataset.view!=='studio')showView('studio');
-    setTimeout(()=>{const inst=document.body.classList.contains('st-inst');if(view&&(view==='inst')!==inst){const b=document.querySelector('#gbView [data-v="'+view+'"]');if(b)b.click()}},120)},
+    setTimeout(()=>{const cur=STUDIO.view?STUDIO.view():(document.body.classList.contains('st-inst')?'inst':'tracks');if(view&&view!==cur){const b=document.querySelector('#gbView [data-v="'+view+'"]');if(b)b.click()}},120)},
   closeStudioSheet(){const s=$('stSheet');if(s&&!s.hidden){const d=s.querySelector('[data-st=close]');if(d)d.click()}},
 
   /* the walk-throughs. Each step: where to go (go), what to ring (el), what to say, and what moves it on (tap / change) */
@@ -55,10 +55,11 @@ var GUIDE={   // var: other parts can ask about it early
       {go:()=>GUIDE.studio('tracks'),el:'[data-st=addsheet]',t:'Add a track',x:'Ready for more? Try the “Add a pan track” or “Record yourself” guides.'}]},
     {id:'build',title:'Build a song',blurb:'Start from a template: sections, a track for each part of the band, and a groove.',kw:'build song template arrangement panorama road march calypso bomb jam sections verse chorus intro structure producer',steps:[
       {go:()=>{GUIDE.closeAll();GUIDE.closeStudioSheet();GUIDE.studio('tracks');setTimeout(()=>STUDIO.templates(),250)},el:'.st-tplc',t:'Pick a template',x:'Each template is a song shape bands really use. Panorama runs intro, verse, chorus, then variations, a jam, a minor section and a big recap. Road march and calypso alternate verses and choruses. Tap one.',tapIn:'.st-tplc'},
-      {go:()=>{GUIDE.closeStudioSheet();GUIDE.studio('tracks')},el:'.st-secl',t:'Your sections',x:'The sections are now along the top of the tracks. Tap a name to loop that section while you work on it. Duplicate, Rename and Delete then appear, and they change every track at once.'},
-      {go:()=>GUIDE.studio('tracks'),el:'.st-row[data-tid]',t:'The band, in layers',x:'You get a track for each part of the band: the front line (tenors carry the tune), the middle (guitars and cellos strum the chords), the bass, and the engine room already playing a groove.'},
-      {go:()=>GUIDE.studio('tracks'),el:'#stRec',t:'Build it up',x:'Work like a producer: loop the chorus, select the Front line track and record the melody, then the middle\u2019s strum, then the bass. Copy a finished section with Duplicate.'},
-      {go:()=>GUIDE.studio('tracks'),el:'#stPlay',t:'Hear it all',x:'Tap the loop off and play from the start to hear the whole song build. Undo takes back any step, including the template.'}]},
+      {go:()=>{GUIDE.closeStudioSheet();GUIDE.studio('song')},el:'.st-songb',t:'The Song tab',x:'Your song has its own tab. Each section is a block, with a little stripe for each layer that lights up once it has notes. Play here plays only what\u2019s in the sections.'},
+      {go:()=>GUIDE.studio('song'),el:'#stSongBar',t:'Section tools',x:'Tap a block to loop it. The bar above then has Fill from takes, Move, Duplicate, Rename and Delete for that section. ＋ Section adds a new one at the end.'},
+      {go:()=>{GUIDE.closeStudioSheet();GUIDE.studio('tracks')},el:'#gbView [data-v="tracks"]',t:'Takes',x:'Record your ideas on Takes. Play there plays only your takes and the band recording, so you can try things without touching the song.'},
+      {go:()=>GUIDE.studio('tracks'),el:'#stRec',t:'Build it up',x:'Record a few bars on a take, pick the best ones, then ＋ Add to… a section. Or, on the Song tab, loop a section and use Fill from takes.'},
+      {go:()=>GUIDE.studio('song'),el:'#stPlay',t:'Hear the song',x:'On the Song tab, turn the loop off and play from the start to hear your arrangement. Undo takes back any step.'}]},
     {id:'pan',title:'Add a pan track and play it',blurb:'Pick your pan, then play it on screen into Studio.',kw:'add track pick pan choose pan tenor guitar cello bass six dsec double second play record pans studio',steps:[
       {go:()=>{GUIDE.closeAll();GUIDE.closeStudioSheet();GUIDE.studio('tracks')},el:'[data-st=addsheet]',t:'+ Track',x:'Tap + Track to add a new layer.',tap:1},
       {go:()=>{if(!$('stSheet')||$('stSheet').hidden){GUIDE.studio('tracks');setTimeout(()=>{const b=GUIDE.find('[data-st=addsheet]');if(b)b.click()},250)}},el:'.st-addpans',t:'Pick your pan',x:'Under Pan taps, tap the pan you play: tenor, double second, guitar, cello or bass.',tapIn:'.st-addp button'},

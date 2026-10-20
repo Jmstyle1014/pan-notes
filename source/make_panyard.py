@@ -119,10 +119,11 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
         <button class="btn" id="stExp">Export</button>
         <button class="btn" id="stTime">Timing fix</button>
       </div>
-      <div class="seg st-views" id="stViews" role="tablist" aria-label="Studio view"><button data-sv="tracks" role="tab" aria-selected="true">☰ Tracks</button><button data-sv="inst" role="tab" aria-selected="false">◉ Pans</button></div>
+      <div class="seg st-views" id="stViews" role="tablist" aria-label="Studio view"><button data-sv="tracks" role="tab" aria-selected="true">☰ Tracks</button><button data-sv="inst" role="tab" aria-selected="false">◉ Pans</button><button data-sv="song" role="tab" aria-selected="false">♫ Song</button></div>
     </div>
     <div class="st-secs" id="stSecs" hidden></div>
     <div class="panel st-tlp">
+      <div class="st-songbar" id="stSongBar" role="toolbar" aria-label="Song" hidden></div>
       <div class="st-tl" id="stTl"></div>
       <div class="st-tlrow"><button class="btn primary" id="stAdd">+ Add track</button><button class="btn sm" id="stZout" aria-label="Zoom out">−</button><button class="btn sm" id="stZin" aria-label="Zoom in">+</button>
         <span class="help">Tap a track's name to choose it. Tap its lane to select a bar, then another bar to select the bars between. Tap the bar numbers to move the playhead.</span></div>

@@ -8,6 +8,7 @@ const GB={
     back:'<path d="M15 5l-7 7 7 7"/>',
     tracks:'<path d="M4 6h16M4 12h16M4 18h16"/><rect x="6" y="4" width="6" height="4" rx="1" fill="currentColor"/><rect x="10" y="10" width="7" height="4" rx="1" fill="currentColor"/><rect x="5" y="16" width="5" height="4" rx="1" fill="currentColor"/>',
     pans:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v5.5M12 15v5.5M3.5 12H9M15 12h5.5"/>',
+    song:'<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/>',
     arr:'<rect x="3" y="5" width="5" height="4" rx="1" fill="currentColor"/><rect x="9.5" y="5" width="5" height="4" rx="1"/><rect x="16" y="5" width="5" height="4" rx="1" fill="currentColor"/><rect x="3" y="10.5" width="5" height="4" rx="1"/><rect x="9.5" y="10.5" width="5" height="4" rx="1" fill="currentColor"/><rect x="16" y="10.5" width="5" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="3" rx="1" fill="currentColor" opacity=".5"/>',
     mixer:'<path d="M6 4v16M12 4v16M18 4v16"/><rect x="4" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="16" y="11" width="4" height="3" rx="1" fill="currentColor"/>',
     metro:'<path d="M9 3h6l3.5 17h-13z"/><path d="M12 16l5-9"/><circle cx="17.2" cy="6.6" r="1.3" fill="currentColor"/>',
@@ -24,9 +25,10 @@ const GB={
     bar.innerHTML='<div class="gbl"><button class="gbi" id="gbBack" aria-label="Leave Studio">'+this.svg('back')+'</button>'
       // which view you're on is always shown: the pans or the track lanes, one of the two lit
       +'<div class="gbseg" id="gbView" role="group" aria-label="View"><button class="gbi gbt" data-v="inst" aria-pressed="true" aria-label="Pans">'+this.svg('pans')+'<span>Pans</span></button>'
-      +'<button class="gbi gbt" data-v="tracks" aria-pressed="false" aria-label="Tracks">'+this.svg('tracks')+'<span>Tracks</span></button></div>'
+      +'<button class="gbi gbt" data-v="tracks" aria-pressed="false" aria-label="Tracks">'+this.svg('tracks')+'<span>Tracks</span></button>'
+      +'<button class="gbi gbt" data-v="song" aria-pressed="false" aria-label="Song: only what\'s in the sections">'+this.svg('song')+'<span>Song</span></button></div>'
       +'<button class="gbi gbt" id="gbMix" aria-label="Mixer: levels, tone and echo for every track">'+this.svg('mixer')+'<span>Mixer</span></button>'
-      +'<button class="gbi gbt" id="gbArr" aria-label="Arrangement: every section, every track">'+this.svg('arr')+'<span>Arrangement</span></button></div>'
++'</div>'
       +'<div class="gbc"></div>'
       +'<div class="gbr"><button class="gbi gbw" id="gbWrite" aria-label="Write">'+this.svg('write')+'<span>Write</span></button><span class="gblcd"></span><button class="gbi" id="gbMetro" aria-label="Click (metronome)">'+this.svg('metro')+'</button>'
       +'<button class="gbi" id="gbLoop" aria-label="Loop">'+this.svg('loop')+'</button>'
@@ -45,6 +47,7 @@ const GB={
     v.appendChild(menu);
     menu.querySelector('#gbMUndo').append($('stUndo'),$('stRedo'));
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
+    const wm=document.createElement('button');wm.className='btn gbwritem';wm.textContent='✎ Write your part';wm.onclick=()=>{this.menu(false);showView('cues')};list.prepend(wm);
     const lp=document.createElement('button');lp.className='btn gbloopm';lp.textContent='⟲ Loop on / off';lp.onclick=()=>{this.menu(false);$('stLoop').click();this.sync()};list.prepend(lp);
     const tun=document.createElement('button');tun.className='btn';tun.textContent='♮ Tuning (match a recording)';tun.onclick=()=>{this.menu(false);showView('setup');try{SETUP.show('tune')}catch{}};list.prepend(tun);
     {const ab=document.createElement('button');ab.className='btn gbarrm';ab.textContent='▦ Arrangement';ab.onclick=()=>{this.menu(false);STUDIO.arrangement()};list.prepend(ab)}
@@ -72,7 +75,6 @@ const GB={
     $('gbBack').onclick=()=>{showView('home')};
     $('gbView').onclick=e=>{const t=e.target.closest('[data-v]');if(!t)return;const b=document.querySelector('#stViews [data-sv="'+t.dataset.v+'"]');if(b)b.click();this.sync()};
     $('gbMix').onclick=()=>$('stMix').click();
-    $('gbArr').onclick=()=>STUDIO.arrangement();
     // names for the icons: a hover tip on a computer, and press and hold on a phone shows the name
     bar.querySelectorAll('.gbl .gbi').forEach(b=>{const n=b.getAttribute('aria-label')||'';if(!b.title)b.title=n.split(':')[0]});
     {let tt=0,tip=null,held=false;
@@ -114,7 +116,9 @@ const GB={
   secs(){return[...document.querySelectorAll('#stSecs [data-sec]')].map(c=>{const [a,b]=c.dataset.sec.split(',').map(Number);return{a,b,name:c.textContent.replace(/^⟲\s*/,''),on:c.classList.contains('on')}})},
   sync(){
     if(!$('gbBar'))return;const inst=document.body.classList.contains('st-inst');
-    $('gbView').querySelectorAll('[data-v]').forEach(b=>{const on=(b.dataset.v==='inst')===inst;if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});
+    const cur=(document.querySelector('#stViews [aria-selected="true"]')||{dataset:{sv:inst?'inst':'tracks'}}).dataset.sv;
+    {const tb=$('gbView').querySelector('[data-v="tracks"]'),lab=STUDIO.zones&&STUDIO.zones()?'Takes':'Tracks';if(tb&&tb.dataset.l!==lab){tb.dataset.l=lab;tb.querySelector('span').textContent=lab;tb.setAttribute('aria-label',lab==='Takes'?'Takes: your recordings':'Tracks')}}
+    $('gbView').querySelectorAll('[data-v]').forEach(b=>{const on=b.dataset.v===cur;if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});
     const tg=(el,on)=>{if(el.classList.contains('on')!==on)el.classList.toggle('on',on)};
     // the instrument button is named for the chosen track: Pans, Drums, Beat…
     {const il=document.querySelector('#stViews [data-sv="inst"]'),gv=$('gbView').querySelector('[data-v="inst"] span');if(il&&gv){const t=il.textContent.replace(/^\S+\s/,'');if(t&&gv.textContent!==t)gv.textContent=t}}
