@@ -818,6 +818,19 @@ function chartParts(){
   return song.tracks.filter(t=>t.type==='pan'&&t.chart).map(t=>({id:t.id,name:t.name,panSet:trSet(t),cues:partCues(t),text:typeof t.chartText==='string'?t.chartText:null}));
 }
 const songGeo=()=>({spb:spb(),bpb:BPB(),origin:origin(),bars:bars()});
+/* the arrangement for the Chart tab: the song's sections, and each pan in the song with its notes as cues.
+   Drums and the engine room are left off. A section that's note-for-note the same as an earlier one says so. */
+const PAN_RANK=k=>({tenor:0,dsec:1,guitar:2,fcello:3,six:5}[k]??4);
+function arrangementData(){
+  if(!song)return null;const ss=ownSecs(),bpb=BPB();
+  const trs=song.tracks.filter(t=>t.type==='pan'&&(zoneOn()?inSong(t):(t.notes||[]).length)).sort((x,y)=>PAN_RANK(trSet(x))-PAN_RANK(trSet(y)));
+  if(!ss.length||!trs.length)return null;
+  const sig=x=>trs.map(t=>pnotes(t).filter(n=>n.t>=x.a*bpb-1e-6&&n.t<x.b*bpb-1e-6).map(n=>(n.t-x.a*bpb).toFixed(2)+':'+n.p).join(',')).join('|')+'#'+(x.b-x.a);
+  const sigs=ss.map(sig);
+  return{title:(typeof S!=='undefined'&&S.title)||(typeof curName==='string'&&curName)||'My song',bpm:bpm(),
+    secs:ss.map((x,i)=>{const j=sigs[i].replace(/[|#\d]/g,'')?sigs.findIndex(g=>g===sigs[i]):-1;return{name:x.name,a:x.a,b:x.b,same:j>=0&&j<i?j:-1}}),
+    tracks:trs.map(t=>({id:t.id,name:SETS[trSet(t)]?SETS[trSet(t)].name:t.name,role:t.role||'',panSet:trSet(t),cues:partCues(t)})),geo:songGeo()};
+}
 function setPartText(id,text){const tr=trById(id);if(!tr)return;if(text==null)delete tr.chartText;else tr.chartText=String(text).slice(0,40000);dirty()}
 async function load(){
   const k=keyNow();if(song&&songKey===k)return;
@@ -934,7 +947,7 @@ function secOp(op,i){
    The notes are copied (your take stays where it is), and replace what that track had in the section. */
 const ownSecs=()=>song.secs&&song.secs.length?song.secs:sections().map(s=>({name:s.name,a:Math.max(0,Math.round(s.a/BPB())),b:Math.max(1,Math.round(s.b/BPB())),en:3})).filter(x=>x.b>x.a);
 const addSrc=(a,b)=>{const A=a*BPB(),B=b*BPB();return song.tracks.filter(t=>(t.type==='pan'||t.type==='drums')&&(t.notes||[]).some(n=>n.t>=A&&n.t<B))};
-const LAYER_OF={tenor:'Front line',dsec:'Front line',guitar:'Middle',cello:'Middle',six:'Bass',bass:'Bass'};
+const LAYER_OF={tenor:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',six:'Bass'};
 function songTwin(tr){
   if(inSong(tr))return tr;
   let t=song.tracks.find(x=>inSong(x)&&x.type===tr.type&&(tr.type!=='pan'||x.panSet===tr.panSet));
@@ -1745,7 +1758,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{arrangementData,zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
