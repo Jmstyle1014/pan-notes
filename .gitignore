@@ -1,8 +1,9 @@
-android/app/src/main/assets/
-android/.gradle/
-android/build/
-android/app/build/
-android-chrome/.gradle/
-android-chrome/build/
-android-chrome/app/build/
 __pycache__/
+android-chrome/.gradle/
+android-chrome/app/build/
+android-chrome/build/
+android/.gradle/
+android/app/build/
+android/app/src/main/assets/
+android/build/
+tests/work/
