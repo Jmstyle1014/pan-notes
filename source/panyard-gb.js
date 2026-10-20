@@ -135,7 +135,7 @@ const GB={
     const W=cv.clientWidth,H=cv.clientHeight,d=devicePixelRatio||1;if(!W)return;
     if(cv.width!==Math.round(W*d)||cv.height!==Math.round(H*d)){cv.width=Math.round(W*d);cv.height=Math.round(H*d)}
     const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,W,H);
-    const n=this.nBars();if(!n)return;const bw=W/n,FF=getComputedStyle(document.body).fontFamily;
+    const n=this.nBars();if(!n)return;const bw=W/n,FF=this.ff||(this.ff=getComputedStyle(document.body).fontFamily);
     // sections along the top, like GarageBand's A / B / C markers: tap one to loop it
     this.secs().forEach((s,i)=>{const x0=s.a*bw,x1=s.b*bw;g.fillStyle=s.on?'rgba(255,209,102,.28)':(i%2?'rgba(143,199,255,.12)':'rgba(201,162,255,.12)');g.fillRect(x0+1,0,Math.max(0,x1-x0-2),16);
       g.fillStyle=s.on?'#ffd166':'#c3bbe8';g.font='700 10px '+FF;g.textBaseline='middle';g.textAlign='left';g.save();g.beginPath();g.rect(x0,0,x1-x0,16);g.clip();g.fillText((s.on?'⟲ ':'')+s.name.toUpperCase(),x0+5,8.5);g.restore()});
