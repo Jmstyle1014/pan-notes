@@ -5,3 +5,4 @@ android/app/build/
 android-chrome/.gradle/
 android-chrome/build/
 android-chrome/app/build/
+__pycache__/
