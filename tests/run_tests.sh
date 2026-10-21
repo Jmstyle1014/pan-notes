@@ -11,7 +11,7 @@ mkdir -p "$WORK/rt" "$WORK/pass" "$WORK/lk" && cp -r "$HERE/fixtures/." "$WORK/"
 cd "$WORK"
 # name and the arguments it takes
 ALL=(
-  "tlooks" "tcloud" "tpass" "tguide" "rt" "tfloat" "ttw" "tband" "tgb" "tgame" "tlook" "trole" "tparts" "tkit" "tmodes" "tlite"
+  "tlooks" "tcloud" "tpass" "tguide" "rt" "tfloat" "ttw" "tband" "ttt" "tgb" "tgame" "tlook" "trole" "tparts" "tkit" "tmodes" "tlite"
   "tbackup $APP" "twb $APP" "tmetro $APP" "tsets $APP pq" "ttune $APP" "tstage $APP pq guitar,tenor"
   "tspk" "ttapload $APP 6" "tlate $APP"
 )

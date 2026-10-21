@@ -71,6 +71,8 @@ for _, _, f in FONTS: shutil.copy(os.path.join(VENDOR, f), os.path.join(OUT, 'fo
 shutil.copy(os.path.join(VENDOR, 'jspdf.umd.min.js'), os.path.join(OUT, 'jspdf.umd.min.js'))
 if 'lame.min.js' in src: shutil.copy(os.path.join(VENDOR, 'lame.min.js'), os.path.join(OUT, 'lame.min.js'))   # MP3 export (Studio)
 # Studio's Real drum kit (recorded drums and percussion), for the versions that have Studio
+# Panyard's picture backgrounds (App look → Trinidad & Tobago)
+if "'backgrounds/" in src and os.path.isdir(os.path.join(HERE, 'backgrounds')): shutil.copytree(os.path.join(HERE, 'backgrounds'), os.path.join(OUT, 'backgrounds'), dirs_exist_ok=True)
 if ("fetch('drums/kit.json')" in src or "dir:'drums/'" in src) and os.path.isdir(os.path.join(HERE, 'drums')): shutil.copytree(os.path.join(HERE, 'drums'), os.path.join(OUT, 'drums'), dirs_exist_ok=True)
 
 # icons: a gold pan on the dark stage colour

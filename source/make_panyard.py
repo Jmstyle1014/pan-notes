@@ -175,6 +175,8 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-guide.
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-polish.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-cloud.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-themes.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+# the Trinidad & Tobago look and its backgrounds (on top of Chrome Night)
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-trini.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-back.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # Setup: "Pan look" for every pan (it was "Pan photos & order", for the Double Guitar only)
 rep("this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):''", "this.vis('photos')?row('photos','Pan look',this.val('photos')):''")
@@ -214,7 +216,7 @@ try:
 except ImportError:
     print('tinycss2 missing: using the saved panyard-themes.css')
     tcss = open(os.path.join(HERE, 'panyard-themes.css'), encoding='utf-8').read()
-rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + tcss + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
+rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + tcss + open(os.path.join(HERE, 'panyard-trini.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
 # the canvases (falling lanes, rulers, sound waves) take their colours through THEME.c(), so they follow the look too
 LIT = re.compile(r"'(#[0-9a-fA-F]{3,8}|rgba?\([^')]*\))'")
 def themed(start, end):
