@@ -1195,6 +1195,9 @@ body.st-song #stSecs{display:none!important}
 #stSel.below .st-selin{flex-direction:column-reverse}
 #stSel.below .st-selarrow{bottom:auto;top:-6px;transform:rotate(225deg)}
 @media (max-width:480px){.st-fb{min-width:42px;padding:4px 5px;font-size:11px}}
+/* pan tracks: a drawing of the pans in place of the dot */
+.st-ic.st-icpan{width:30px;height:30px;background:transparent;border-radius:0}
+.st-ic.st-icpan svg{width:30px;height:30px;display:block}
 
 /* ---------- Home (panyard-home.js) ---------- */
 body[data-view="home"] .appbar,body[data-view="home"] #cueTop,body[data-view="home"] .dock .transport{display:none!important}
@@ -10514,6 +10517,11 @@ const zoomPx=()=>Math.round((innerWidth<560?64:92)*(PR.zoom||1));
 const HDW=()=>innerWidth<560?112:150;
 const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'My part · linked to Write',beats:'Beat',drums:'Drum kit'};
 const ICON={practice:'♪',audio:'🎙',pan:'◉',part:'✎',beats:'▦',drums:'🥁'};
+// a pan track shows a little drawing of its pans (one for the tenor, six for the bass) and a short name, so you can
+// tell them apart in the narrow track column; a name you gave it yourself stays as you wrote it
+const SHORT={tenor:'Tenor',guitar:'Guitar',dsec:'Seconds',fcello:'Cello',six:'Bass'};
+const trIcon=tr=>tr.type==='pan'&&SETS[tr.panSet]&&typeof HOME!=='undefined'?'<span class="st-ic st-icpan" aria-hidden="true">'+HOME.mini(tr.panSet,28)+'</span>':'<span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span>';
+const trName=tr=>tr.type==='pan'&&SETS[tr.panSet]&&tr.name===SETS[tr.panSet].name&&SHORT[tr.panSet]?SHORT[tr.panSet]:tr.name;
 function renderTransport(){
   const p=q('#stPlay'),r=q('#stRec');if(!p)return;
   p.textContent=T.playing?'■':'▶';p.setAttribute('aria-label',T.playing?'Stop':'Play');
@@ -10719,7 +10727,7 @@ function trackRegions(tr){
 }
 function regionsHTML(tr,bar){
   const regs=trackRegions(tr),beat=bar/BPB();
-  if(!regs.length)return '<div class="st-empty">'+(tr.type==='practice'?'Add your recording in Setup':tr.type==='audio'?'Select, then ● Rec or import a file':tr.type==='beats'?'Tap steps below to make a beat':tr.type==='drums'?'Select, then ● Rec and play the kit':'Select, then ● Rec and tap the pans')+'</div>';
+  if(!regs.length)return tr.id!==song.sel?'':'<div class="st-empty">'+(tr.type==='practice'?'Add your recording in Setup':tr.type==='audio'?'● Rec, or import a file':tr.type==='beats'?'Tap steps below to make a beat':tr.type==='drums'?'● Rec, then play the kit':'● Rec, then tap the pans')+'</div>';
   return regs.map(([s,e])=>{
     let inner='';
     if(tr.type==='practice'||tr.type==='audio')inner='<canvas data-peaks="'+tr.id+'" width="'+Math.max(1,Math.round((e-s)*bar))+'" height="64"></canvas>';
@@ -10758,7 +10766,7 @@ function renderTimeline(){
         +(ss.length?'':'<span class="st-zhint">No sections yet: tap ＋ Section, or ⋯ → New song from a template.</span>')+'</div></div>'}
     if(!tr){h+='<div class="st-row st-zone"><div class="st-hd"></div><div class="st-lane" style="width:'+W+'px"><span class="st-zhint">The song\'s own tracks show here. Start from a template, or pick bars on a take and ＋ Add to… a section.</span></div></div>';continue}
     const sel=tr.id===song.sel;
-    h+='<div class="st-row k-'+tr.type+(zoneMuted(tr)?' zmuted':'')+(sel?' sel':'')+(!hasContent(tr)?' empty':'')+'" data-tid="'+tr.id+'"><div class="st-hd"><button class="st-name" data-st="pick" aria-pressed="'+sel+'"><span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span><span>'+esc(tr.name)+'</span></button>'
+    h+='<div class="st-row k-'+tr.type+(zoneMuted(tr)?' zmuted':'')+(sel?' sel':'')+(!hasContent(tr)?' empty':'')+'" data-tid="'+tr.id+'"><div class="st-hd"><button class="st-name" data-st="pick" aria-pressed="'+sel+'">'+trIcon(tr)+'<span>'+esc(trName(tr))+'</span></button>'
       +'<span class="st-ms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'" aria-label="Mute '+esc(tr.name)+'">M</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'" aria-label="Solo '+esc(tr.name)+'">S</button><button class="g" data-st="tset" aria-label="Settings for '+esc(tr.name)+'">⚙</button></span></div>'
       +'<div class="st-lane" data-st="lane" style="width:'+W+'px">'+regionsHTML(tr,bar)+(SEL&&SEL.tid===tr.id?'<span class="st-bsel" id="stBsel" style="left:'+SEL.a*bar+'px;width:'+(SEL.b-SEL.a)*bar+'px"><span class="st-hdl l" data-hdl="a" aria-hidden="true"></span><span class="st-hdl r" data-hdl="b" aria-hidden="true"></span></span>':'')+'</div></div>';
   }

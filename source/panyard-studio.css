@@ -392,3 +392,6 @@ body.st-song #stSecs{display:none!important}
 #stSel.below .st-selin{flex-direction:column-reverse}
 #stSel.below .st-selarrow{bottom:auto;top:-6px;transform:rotate(225deg)}
 @media (max-width:480px){.st-fb{min-width:42px;padding:4px 5px;font-size:11px}}
+/* pan tracks: a drawing of the pans in place of the dot */
+.st-ic.st-icpan{width:30px;height:30px;background:transparent;border-radius:0}
+.st-ic.st-icpan svg{width:30px;height:30px;display:block}
