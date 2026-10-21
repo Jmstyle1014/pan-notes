@@ -750,6 +750,17 @@ html.th-cday .twtki em.ok{color:#37ce83}
 html.th-cday .twtki em.mid{color:var(--gold)}
 html.th-cday .twtki em.bad{color:var(--danger)}
 html.th-cday .twtkon{color:var(--gold)}
+html.th-cday .twtabs{border:1px solid var(--line);background:var(--bg)}
+html.th-cday .twtabs button{color:var(--muted)}
+html.th-cday .twtabs button[aria-selected="true"]{background:var(--text);color:var(--bg)}
+html.th-cday .twrecbar{border-bottom:1px solid var(--line)}
+html.th-cday .twrc small{color:var(--muted)}
+html.th-cday .twvoice{color:var(--muted)}
+html.th-cday .twrecgo{color:#f64d4d}
+html.th-cday .twsh p{color:var(--muted)}
+html.th-cday .twsound .profbox{background:var(--surface);border:1px solid var(--line)}
+html.th-cday .twborrow .profbox{border-top:1px solid var(--line)}
+html.th-cday .twhint3{color:var(--muted)}
 html.th-cday .wvtt p{color:var(--muted)}
 html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cday .wvview button{color:var(--muted)}
@@ -1554,6 +1565,17 @@ html.th-cnight .twtki em.ok{color:#5fe0a0}
 html.th-cnight .twtki em.mid{color:var(--gold)}
 html.th-cnight .twtki em.bad{color:var(--danger)}
 html.th-cnight .twtkon{color:var(--gold)}
+html.th-cnight .twtabs{border:1px solid var(--line);background:var(--bg)}
+html.th-cnight .twtabs button{color:var(--muted)}
+html.th-cnight .twtabs button[aria-selected="true"]{background:var(--text);color:var(--bg)}
+html.th-cnight .twrecbar{border-bottom:1px solid var(--line)}
+html.th-cnight .twrc small{color:var(--muted)}
+html.th-cnight .twvoice{color:var(--muted)}
+html.th-cnight .twrecgo{color:#ff8a8a}
+html.th-cnight .twsh p{color:var(--muted)}
+html.th-cnight .twsound .profbox{background:var(--surface);border:1px solid var(--line)}
+html.th-cnight .twborrow .profbox{border-top:1px solid var(--line)}
+html.th-cnight .twhint3{color:var(--muted)}
 html.th-cnight .wvtt p{color:var(--muted)}
 html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cnight .wvview button{color:var(--muted)}

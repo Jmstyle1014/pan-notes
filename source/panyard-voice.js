@@ -52,13 +52,10 @@ function encodeWav24(x,sr){
 // how long a take may ring: low notes ring much longer than high ones, so the basses keep more of theirs
 const takeCap=id=>{const m=midiOf(PITCH[id]||'C4');return m<48?6:m<60?4:2.5};
 
-/* Settings → Sound & saving gets a "Tune my pans" row that opens the tuning screen */
-{const _r=SETUP.render.bind(SETUP);SETUP.render=function(){_r();const L=$('setList');if(!L||typeof TW==='undefined'||L.querySelector('[data-row=tunemy]'))return;
-  const sound=L.querySelector('[data-row=sound]');if(!sound)return;
-  const b=document.createElement('button');b.className='sxrow';b.dataset.row='tunemy';
-  b.innerHTML='<span class="sxic" style="background:#ff8a5c" aria-hidden="true">🎛</span><span class="sxlab"><b>Tune my pans</b><small>Tune, level and edit each recorded note</small></span><span class="sxval"></span><span class="sxchev" aria-hidden="true">›</span>';
-  sound.after(b)};
- document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('#setList [data-row=tunemy]');if(!r)return;e.stopPropagation();TW.open(true)},true)}
+/* Settings → Pan sounds opens the Pan sounds screen (record, tune, sound), which is Tune my pans */
+document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('#setList [data-row=sound]');if(!r||typeof TW==='undefined')return;e.stopPropagation();e.preventDefault();TW.open(true)},true);
+// the old "Make my pans sound their best" (if anything still calls it) does the new clean-up on every recording
+makeBest=async function(){if(typeof TW==='undefined')return;const r=await TW.cleanAll(Object.keys(SAMPLES.wav),true);say(r.n?'Tidied '+r.n+' recordings.':'Record some notes first, then try this.')};
 
 /* ---------- every take of every note is kept: pick the best one later (Tune my pans → Takes) ----------
    A new recording (or a file, or a sound-editor edit) is added as a take and becomes the one in use; earlier takes
@@ -93,6 +90,8 @@ var TAKES=(()=>{
     if(!t.list.length){delete all[id];save();delete SAMPLES.wav[id];delete SAMPLES.buf[id];delete SAMPLES.tune[id];saveSamples();saveTune();return}
     if(i<t.cur)t.cur--;if(was){t.cur=t.list.length-1;pick(id,t.cur)}else save();
   }
-  return {add,pick,drop,list:id=>(ofId(id)||{list:[]}).list,cur:id=>(ofId(id)||{cur:-1}).cur,count:id=>(ofId(id)||{list:[]}).list.length,
+  // a clean-up (smoothing clicks) changes the take in use itself, not a new take
+  function replaceCur(id,b){const t=all[id];if(!t||!t.list[t.cur])return;t.list[t.cur].b=b;save()}
+  return {add,pick,drop,replaceCur,list:id=>(ofId(id)||{list:[]}).list,cur:id=>(ofId(id)||{cur:-1}).cur,count:id=>(ofId(id)||{list:[]}).list.length,
     curTake:id=>{const t=ofId(id);return t?t.list[t.cur]:null},get ready(){return ready}};
 })();
