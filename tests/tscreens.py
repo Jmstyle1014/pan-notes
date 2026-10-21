@@ -72,6 +72,12 @@ with sync_playwright() as p:
     sk=E(pg,"getComputedStyle(document.querySelector('#playPans svg path[fill=\"url(#hgSkirt)\"]')).fill");check('thDaySkirt' in sk,f'Chrome Day: light chrome skirts ({sk})')
     pg.screenshot(path=D+'7-play-day.png')
     E(pg,"THEME.setLook('cnight')");pg.wait_for_timeout(300);pg.screenshot(path=D+'8-play-night.png')
+    # the Chart's Arrangement (the whole band, from Studio) is for a Producer only
+    E(pg,"()=>{STUDIO.arrangementData=()=>({secs:[{},{}],tracks:[],bpm:100})}")
+    E(pg,"ROLE.toProducer()");pg.wait_for_timeout(300);E(pg,"PARTS.refresh()");pg.wait_for_timeout(300)
+    check(E(pg,"!!document.querySelector('[data-part=__arr]')"),'Producer: the Chart offers the Arrangement')
+    E(pg,"PARTS.pick?PARTS.pick('__arr'):0");E(pg,"ROLE.toBand()");pg.wait_for_timeout(500)
+    check(E(pg,"!document.querySelector('[data-part=__arr]')&&PARTS.cur!=='__arr'"),'Band member: no Arrangement on the Chart')
     check(not errs,'no errors '+str(errs[:3]))
     b.close()
 print('FAILED: '+str(len(fails)) if fails else 'all passed')

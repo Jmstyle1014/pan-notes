@@ -78,6 +78,7 @@ var ROLE={   // var: Home can ask about it before this part has run
     }
     try{LOOK.tab=null;LOOK.renderPanel()}catch{}
     try{SETUP.render()}catch{}try{HOME.render()}catch{}
+    try{PARTS.refresh()}catch{}   // the Chart's Arrangement is for a Producer
   },
   init(){
     this.songNew0=songNew;songNew=()=>this.open('new');

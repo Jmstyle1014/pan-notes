@@ -9,8 +9,9 @@ var PARTS={   // var: other parts of the app can ask about it before this has ru
   part(){return this.cur?this.list.find(p=>p.id===this.cur)||null:null},
   async refresh(){
     try{this.list=typeof STUDIO!=='undefined'&&STUDIO.parts?await STUDIO.parts():[]}catch{this.list=[]}
-    try{ARR.data=typeof STUDIO!=='undefined'&&STUDIO.arrangementData?STUDIO.arrangementData():null}catch{ARR.data=null}
-    if(this.cur==='__arr'?!ARR.data:this.cur&&!this.part())this.cur=null;this.renderPick();
+    // the whole band's arrangement is a Producer's (it comes from Studio): a band member sees their own part
+    try{ARR.data=typeof STUDIO!=='undefined'&&STUDIO.arrangementData&&!(typeof ROLE!=='undefined'&&ROLE.band())?STUDIO.arrangementData():null}catch{ARR.data=null}
+    const was=this.cur;if(this.cur==='__arr'?!ARR.data:this.cur&&!this.part())this.cur=null;this.renderPick();if(was==='__arr'&&!this.cur)try{renderCues()}catch{}
   },
   // the song's sections, from your own chart; every 8 bars when there aren't any
   sections(){
@@ -58,7 +59,7 @@ var PARTS={   // var: other parts of the app can ask about it before this has ru
     let bar=$('partPick');const sheet=$('sheet');if(!sheet)return;
     if(!bar){bar=document.createElement('div');bar.id='partPick';bar.setAttribute('role','group');bar.setAttribute('aria-label','Which part');sheet.parentNode.insertBefore(bar,sheet);
       bar.addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(!b)return;this.pick(b.dataset.part||null)})}
-    bar.hidden=!this.list.length&&!ARR.data;if(bar.hidden)return;
+    bar.hidden=!this.list.length&&!ARR.data;if(bar.hidden){bar.innerHTML='';return}
     bar.innerHTML=[null,...this.list].map(p=>'<button data-part="'+(p?p.id:'')+'" aria-pressed="'+((p?p.id:null)===this.cur)+'">'+(p?HOME.mini(p.panSet,22):HOME.mini(setKey(),22))+'<span>'+this.label(p)+'</span></button>').join('')
       +(ARR.data?'<button data-part="__arr" class="pp-arr" aria-pressed="'+(this.cur==='__arr')+'"><span class="pp-ic" aria-hidden="true">♫</span><span>Arrangement <small>'+ARR.data.secs.length+' sections</small></span></button>':'');
   },
