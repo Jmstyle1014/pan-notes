@@ -1,0 +1,61 @@
+
+/* ---------- your recorded pan notes: Ring and Tone for each note, 24-bit takes, longer bass notes ---------- */
+// Ring bends how a note dies away, −10…+10: shorter (it fades faster) or longer (the fade is held back a little).
+// Tone tilts it darker or brighter, −10…+10, with a gentle shelf above the note (about ±9 dB).
+// Both sit with the note's other fine-tuning (SAMPLES.tune: trim, volume, fade, pitch), so they follow sound
+// profiles and backups, and every note made from the recording (Fill the gaps) gets them too.
+const RING_UP=0.09,RING_DOWN=0.4,RING_MAX=4;   // per second: ×2^(ring·0.09) longer, ×2^(ring·0.4) shorter; never more than ×4 (+12 dB)
+const ringRate=T=>{const r=+T.ring||0;return r?Math.pow(2,r*(r>0?RING_UP:RING_DOWN)):1};
+function toneNode(ac,T,id){
+  const k=+T.tone||0;if(!k)return null;
+  const f=ac.createBiquadFilter();f.type='highshelf';f.frequency.value=Math.max(1200,Math.min(6000,pitchHz(id)*3));f.gain.value=k*0.9;return f;
+}
+// a whole note's volume over time: the 4 ms fade-in, the ring bent shorter or longer, then the fade at the end
+function noteEnvelope(gp,a,t,len,fade,T){
+  const t1=t+Math.max(0.01,len-fade),r=ringRate(T);
+  gp.setValueAtTime(0,t);gp.linearRampToValueAtTime(a,t+0.004);
+  if(r!==1)gp.exponentialRampToValueAtTime(Math.max(1e-4,a*Math.min(RING_MAX,Math.pow(r,t1-t-0.004))),t1);else gp.setValueAtTime(a,t1);
+  gp.linearRampToValueAtTime(0,t+len);
+}
+// the same player as before, with Tone in the path and Ring in the volume
+playSample=function(id,vel,light,shift,key){
+  const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
+  const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003,T=tuneOf(id);
+  // a borrowed note plays faster or slower, so it also lasts shorter or longer
+  const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=(end-start)/Math.pow(2,shift/1200),v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
+  src.buffer=b;if(src.detune)src.detune.value=T.cents+refCents()+shift;else src.playbackRate.value=Math.pow(2,(T.cents+refCents()+shift)/1200);
+  const tn=toneNode(ac,T,id);if(tn){src.connect(tn);tn.connect(g)}else src.connect(g);g.connect(pBus);
+  let stopAt;
+  if(light){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.004);const e=Math.min(len,0.45);g.gain.setValueAtTime(v,t+0.12);g.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+0.01}
+  else{noteEnvelope(g.gain,v,t,len,T.fade,T);stopAt=t+len+0.01}
+  src.start(t,start);src.stop(stopAt);
+  // the same note hit again: the older ring is damped quickly (like a real pan), never cut off
+  const prev=VOICES.get(key);
+  if(prev&&prev.end>t){try{prev.g.gain.cancelScheduledValues(t);prev.g.gain.setValueAtTime(prev.g.gain.value,t);prev.g.gain.linearRampToValueAtTime(0,t+0.03);prev.src.stop(t+0.04)}catch{}}
+  VOICES.set(key,{src,g,end:stopAt});
+  return true;
+};
+// backups: the base restore keeps trim, volume, fade and pitch; Ring and Tone come back here
+setTimeout(()=>{const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';
+  if(p&&p.soundTune&&typeof p.soundTune==='object'){for(const [id,v] of Object.entries(p.soundTune)){const T=SAMPLES.tune[id];if(!T||!v||typeof v!=='object')continue;
+    for(const k of['ring','tone'])if(Number.isFinite(+v[k])&&+v[k])T[k]=Math.max(-10,Math.min(10,Math.round(+v[k])))}saveTune()}
+  return m}},0);
+
+/* 24-bit recordings: a take keeps the quiet end of its ring (and any editing) cleaner than 16-bit. Older 16-bit takes play as before. */
+function encodeWav24(x,sr){
+  const n=x.length,b=new ArrayBuffer(44+n*3),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n*3,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*3,true);v.setUint16(32,3,true);v.setUint16(34,24,true);w(36,'data');v.setUint32(40,n*3,true);
+  for(let i=0,o=44;i<n;i++,o+=3){const s=Math.round(Math.max(-1,Math.min(1,x[i]))*8388607),u=s<0?s+16777216:s;v.setUint8(o,u&255);v.setUint8(o+1,(u>>8)&255);v.setUint8(o+2,(u>>16)&255)}
+  return new Blob([b],{type:'audio/wav'});
+}
+// how long a take may ring: low notes ring much longer than high ones, so the basses keep more of theirs
+const takeCap=id=>{const m=midiOf(PITCH[id]||'C4');return m<48?6:m<60?4:2.5};
+
+/* Settings → Sound & saving gets a "Tune my pans" row that opens the tuning screen */
+{const _r=SETUP.render.bind(SETUP);SETUP.render=function(){_r();const L=$('setList');if(!L||typeof TW==='undefined'||L.querySelector('[data-row=tunemy]'))return;
+  const sound=L.querySelector('[data-row=sound]');if(!sound)return;
+  const b=document.createElement('button');b.className='sxrow';b.dataset.row='tunemy';
+  b.innerHTML='<span class="sxic" style="background:#ff8a5c" aria-hidden="true">🎛</span><span class="sxlab"><b>Tune my pans</b><small>Tune, level and edit each recorded note</small></span><span class="sxval"></span><span class="sxchev" aria-hidden="true">›</span>';
+  sound.after(b)};
+ document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('#setList [data-row=tunemy]');if(!r)return;e.stopPropagation();TW.open(true)},true)}

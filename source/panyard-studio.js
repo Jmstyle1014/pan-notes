@@ -341,11 +341,12 @@ function playDrum(m,dest,t,v,real=true){
 let PV=new Map();
 function playBuf(dest,id,b,T,t,v,light){
   const end=Math.min(b.duration,T.end??b.duration),start=Math.max(0,Math.min(T.start,end-.05)),len=(end-start)/(T.rate||1),a=v*Math.pow(10,T.db/20)*(light?.7:1);
-  const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=(T.cents||0)+refCents();src.connect(gn);gn.connect(dest);
-  gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(a,t+.004);   // a 4 ms fade-in keeps it free of clicks
+  const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=(T.cents||0)+refCents();gn.connect(dest);
+  // the note's Tone (a shelf) and Ring (its fade bent shorter or longer) from Tune my pans
+  const tn=typeof toneNode==='function'?toneNode(ctx,T,id):null;if(tn){src.connect(tn);tn.connect(gn)}else src.connect(gn);
   let stopAt;
-  if(light){const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,t+.12);gn.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+.01}
-  else{gn.gain.setValueAtTime(a,t+Math.max(.01,len-T.fade));gn.gain.linearRampToValueAtTime(0,t+len);stopAt=t+len+.01}
+  if(light){gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(a,t+.004);const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,t+.12);gn.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+.01}
+  else{noteEnvelope(gn.gain,a,t,len,T.fade,T);stopAt=t+len+.01}   // a 4 ms fade-in keeps it free of clicks
   src.start(t,start);src.stop(stopAt);lineUp(src,t);
   // the same note struck again on the same pan damps the older ring, like a real pan. Only that pan's own
   // ring, and only one that has already started: another track (a take of the same pan, say) never cuts it off
