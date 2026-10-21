@@ -70,6 +70,12 @@ upright count is low because a checklist pushes the pans below the play bar ther
   How you play (`panyard-feel.js`, `FEEL`, localStorage `panyard-feel`, not backed up): a hit's strength comes from
   where on the note it lands; Studio records it (`n.r` marks roll strikes, so a soft hit isn't mistaken for one).
   Test with `tband`.
+- **My notes** (`panyard-notes.js` engine `NOTES`, `panyard-notesui.js` screens, `panyard-notes.css`): the notebook in Play
+  (under the pans), Write (beside Coming up), Chart → Notes and full screen. Pages are `S.notePages` (global); which song
+  owns a page is in localStorage `panyard-notebook` (pages with no owner are from before and show in every song).
+  Handwriting stays in `pan-ink-<page>` (the old format, plus `m:1` for marker); text, section tags and background are
+  in `pan-note-<page>`. A song's first page is a blank `new:<song>` page that only becomes real when written on: never
+  create pages or call `save()` while the app starts (that once overwrote the saved song). Test with `tnotes`.
 - **Recorded pan notes:** `SAMPLES.wav` (IndexedDB `samples`) holds each note's take, 24-bit WAV for new takes (old
   16-bit ones still play). `SAMPLES.tune[id]` holds the settings on top of it (start, end, db, fade, cents, ring, tone),
   per sound profile. Every take of every note is kept in IndexedDB `sampleTakes` (`TAKES`, up to 6 per note; the
