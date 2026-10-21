@@ -6097,9 +6097,9 @@ function panCtx(){
   if(!pac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
     // Smoother playback (Studio's Timing fix): a bigger sound cushion for a phone that stutters
     pac=new C((()=>{try{return localStorage.getItem('panyard-smooth')==='1'?{latencyHint:'playback'}:undefined}catch{return undefined}})());const comp=pac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
-    pBus=pac.createGain();pBus.gain.value=0.8;fxBuild(pac,pBus,comp);
-    const lim=pac.createDynamicsCompressor();lim.threshold.value=-3;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.002;lim.release.value=0.12;
-    comp.connect(lim);lim.connect(pac.destination);
+    pBus=pac.createGain();pBus.gain.value=0.6;fxBuild(pac,pBus,comp);
+    const lim=pac.createDynamicsCompressor();lim.threshold.value=-4;lim.knee.value=3;lim.ratio.value=20;lim.attack.value=0.002;lim.release.value=0.12;
+    comp.connect(lim);const sc=softClip(pac);lim.connect(sc);sc.connect(pac.destination);
     const len=Math.floor(pac.sampleRate*0.03);noiseBuf=pac.createBuffer(1,len,pac.sampleRate);const d=noiseBuf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
   if(pac.state==='suspended')pac.resume();
@@ -8004,6 +8004,11 @@ setTimeout(()=>{const bi=window.backupIn;window.backupIn=async p=>{const m=bi?aw
     for(const k of['ring','tone'])if(Number.isFinite(+v[k])&&+v[k])T[k]=Math.max(-10,Math.min(10,Math.round(+v[k])))}saveTune()}
   return m}},0);
 
+/* the very end of the sound: a soft limit that rounds off the rare peak that slips past the limiter, instead of the
+   phone cutting it off flat (that cut-off is the crackle you hear on fast tenor runs and chords) */
+function softClip(ac){const sc=ac.createWaveShaper(),n=2048,cv=new Float32Array(n);
+  for(let i=0;i<n;i++){const x=i/(n-1)*2-1,a=Math.abs(x);cv[i]=a<0.8?x:Math.sign(x)*(0.8+0.2*Math.tanh((a-0.8)/0.2))}sc.curve=cv;sc.oversample='2x';return sc}
+
 /* 24-bit recordings: a take keeps the quiet end of its ring (and any editing) cleaner than 16-bit. Older 16-bit takes play as before. */
 function encodeWav24(x,sr){
   const n=x.length,b=new ArrayBuffer(44+n*3),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
@@ -8059,6 +8064,28 @@ var TAKES=(()=>{
   return {add,pick,drop,replaceCur,list:id=>(ofId(id)||{list:[]}).list,cur:id=>(ofId(id)||{cur:-1}).cur,count:id=>(ofId(id)||{list:[]}).list.length,
     curTake:id=>{const t=ofId(id);return t?t.list[t.cur]:null},get ready(){return ready}};
 })();
+
+/* ---------- your recordings from the first tap: never the built-in tone for a note you've recorded ----------
+   The app gets every recording ready as soon as it opens (this song's pans first, one at a time), and a note tapped
+   before its recording is ready waits that moment for it instead of playing the built-in tone. Only a recording that
+   can't be read at all falls back to the built-in tone. */
+SAMPLES.bad={};
+function warmSamples(){
+  if(SAMPLES.warmed)return;SAMPLES.warmed=SAMPLES.warm=true;
+  const k=setKey(),of=id=>/^(\w+):/.test(id)?id.split(':')[0]:'guitar',ids=Object.keys(SAMPLES.wav).sort((a,b)=>(of(a)===k?0:1)-(of(b)===k?0:1));
+  (async()=>{for(const id of ids){if(SAMPLES.buf[id]||!SAMPLES.wav[id])continue;const b=await sampleBuf(id);if(!b)SAMPLES.bad[id]=1}})();
+}
+{let n=0;const go=()=>{if(Object.keys(SAMPLES.wav).length&&panCtx())warmSamples();else if(++n<40)setTimeout(go,500)};setTimeout(go,800)}
+strikeMine=function(id,vel,light){
+  if(S.panVoice!=='mine')return false;
+  let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=borrowOf(id);if(!bw)return false;src=bw.src;sh=bw.cents}
+  warmSamples();
+  if(SAMPLES.buf[src])return playSample(src,vel,light,sh,id);
+  if(SAMPLES.bad[src])return false;
+  // not ready yet: play it the moment it is (a hit that comes too late to sound right is left out)
+  const t0=performance.now();sampleBuf(src).then(b=>{if(!b){SAMPLES.bad[src]=1;return}if(performance.now()-t0<350)playSample(src,vel,light,sh,id)});
+  return true;
+};
 
 
 /* ---------- the sound editor (Tune my pans → Edit the sound): edit one recorded note ----------
@@ -9081,7 +9108,7 @@ function buildMaster(ac){
   const vol=ac.createGain(),comp=ac.createDynamicsCompressor(),lim=ac.createDynamicsCompressor(),an=ac.createAnalyser();
   vol.gain.value=song?song.master:.85;comp.threshold.value=-12;comp.ratio.value=4;
   lim.threshold.value=-1;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.1;   // keeps loud moments from distorting
-  an.fftSize=512;vol.connect(comp);comp.connect(lim);lim.connect(an);an.connect(ac.destination);
+  an.fftSize=512;vol.connect(comp);comp.connect(lim);const sc=softClip(ac);lim.connect(sc);sc.connect(an);an.connect(ac.destination);   // a soft limit last: no crackle on loud moments
   return{vol,an};
 }
 function AC(){
@@ -9329,7 +9356,10 @@ function panVoice(dest,id,t,v,light){
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
-    if(src){const b=SAMPLES.buf[src];if(b){const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light);return}sampleBuf(src)}}
+    const go=b=>{const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light)};
+    if(src){const b=SAMPLES.buf[src];if(b){go(b);return}
+      // not ready yet: your recording as soon as it is, never the built-in tone (unless it can't be read)
+      if(!(SAMPLES.bad&&SAMPLES.bad[src])){if(typeof warmSamples==='function')warmSamples();sampleBuf(src).then(b=>{if(!b){if(SAMPLES.bad)SAMPLES.bad[src]=1;return}if(ctx.currentTime<t+.3){t=Math.max(t,ctx.currentTime+.003);go(b)}});return}}}
   panTone(dest,pitchHz(id),t,v,light);
 }
 const warmPans=()=>Promise.all(Object.keys(SAMPLES.wav).filter(mine).map(sampleBuf));

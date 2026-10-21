@@ -52,6 +52,9 @@ Drive), `tlooks` (the app looks and the chrome glow), `tguide` (every guide find
 upright count is low because a checklist pushes the pans below the play bar there, so that's expected.
 
 ## Things that are easy to break
+- **Loudness:** the tap sound has headroom (`pBus` 0.6), a soft limiter and `softClip()` last (also on Studio's
+  master), so loud chords never clip. Recordings are decoded when the app opens (`warmSamples`) and a recorded note
+  never falls back to the built-in tone (test with `tfirst`).
 - **Timing:** taps use the event timestamp minus the speaker delay; the lookahead is 0.35 s. On Android, LITE
   mode uses one shared reverb. Test with `tspk`, `ttapload` and `tlate` after touching Studio's audio.
 - **Saved data:** songs live in IndexedDB (`pan-notes` / `files`) and localStorage (`pan-songs`, `pan-notes-v2`,
