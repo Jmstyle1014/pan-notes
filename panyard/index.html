@@ -1782,6 +1782,44 @@ body.tw-open #gdToast{display:none!important}
 .twborrow .help{font-size:.75rem}
 .twhint3{font-size:.75rem;color:var(--muted);cursor:default}
 .twhint3[hidden]{display:none}
+
+/* ---------- Band sounds and How you play (Pan sounds → Sound) ---------- */
+.bandbox{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.bandbox .twmsg:empty{display:none}
+.bandcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}
+.bcard{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 11px 9px;border-radius:14px;border:1.5px solid var(--line);background:var(--raised);color:var(--text);font:inherit;cursor:pointer;min-height:92px}
+.bcard .em{font-size:1.35rem;line-height:1}
+.bcard b{font-size:.92rem;margin-top:3px}
+.bcard small{font-size:.72rem;color:var(--muted);line-height:1.25}
+.bcard .hz{position:absolute;top:9px;right:10px;font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.bcard[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.bcard:active{transform:scale(.97)}
+.bandctl{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.bandnow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bandnow b{font-size:1rem}.bandnow small{color:var(--muted);font-size:.78rem}
+.bandnow .btn{margin-left:auto}
+.bandbox .grp{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.bandbox .sl{display:grid;grid-template-columns:minmax(96px,30%) minmax(0,1fr) 62px;align-items:center;gap:4px 10px}
+.bandbox .sl label{font-weight:700;font-size:.92rem}
+.bandbox .sl label small{display:block;font-weight:400;font-size:.7rem;color:var(--muted);line-height:1.25}
+.bandbox .sl input{width:100%;accent-color:var(--gold);min-height:34px}
+.bandbox .sl output{text-align:right;font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.bandbox .sl .ends{grid-column:2;display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);margin-top:-6px}
+.bandbox .seg{display:flex;gap:4px;padding:3px;border:1px solid var(--line)}
+.bandbox .seg button{flex:1;min-height:40px;border:0;background:none;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
+.bandbox .seg button[aria-pressed="true"]{background:var(--gold);color:#1b1405}
+.bandbox .tog{display:flex;align-items:center;gap:12px;justify-content:space-between;min-height:48px}
+.bandbox .tog b{display:block;font-size:.92rem}
+.bandbox .tog small{display:block;font-size:.72rem;color:var(--muted);line-height:1.3}
+.bandbox .sw{flex:none;width:50px;height:30px;border-radius:99px;border:1px solid var(--line);background:var(--raised);position:relative;cursor:pointer;padding:0}
+.bandbox .sw::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:transform .18s,background-color .18s}
+.bandbox .sw[aria-checked="true"]{background:var(--gold);border-color:var(--gold)}
+.bandbox .sw[aria-checked="true"]::after{transform:translateX(20px);background:#fff}
+.bandrec{display:flex;gap:8px;align-items:flex-start;font-size:.82rem;padding:9px 11px;border-radius:12px;background:var(--raised);border:1px solid var(--line)}
+.bandnote{margin:0;font-size:.74rem;color:var(--muted)}
+.bandbtns{display:flex;flex-wrap:wrap;gap:8px}
+@media (max-width:480px){.bandbox .sl{grid-template-columns:minmax(0,1fr) 58px}.bandbox .sl label{grid-column:1/-1}.bandbox .sl input{grid-column:1}.bandbox .sl .ends{grid-column:1}
+  .bandcards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ---------- the sound editor (Tune my pans → Edit the sound) ---------- */
 .wv{z-index:25}
 .wv .wvbox{max-width:1100px;max-height:96dvh;overflow:auto;gap:10px}
@@ -2576,6 +2614,28 @@ html.th-cday .twsh p{color:var(--muted)}
 html.th-cday .twsound .profbox{background:var(--surface);border:1px solid var(--line)}
 html.th-cday .twborrow .profbox{border-top:1px solid var(--line)}
 html.th-cday .twhint3{color:var(--muted)}
+html.th-cday .bandbox{background:var(--surface);border:1px solid var(--line)}
+html.th-cday .bcard{border:1.5px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cday .bcard small{color:var(--muted)}
+html.th-cday .bcard .hz{color:var(--muted)}
+html.th-cday .bcard[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+html.th-cday .bandctl{border-top:1px solid var(--line)}
+html.th-cday .bandnow small{color:var(--muted)}
+html.th-cday .bandbox .grp{color:var(--muted)}
+html.th-cday .bandbox .sl label small{color:var(--muted)}
+html.th-cday .bandbox .sl input{accent-color:var(--gold)}
+html.th-cday .bandbox .sl output{color:var(--muted)}
+html.th-cday .bandbox .sl .ends{color:var(--muted)}
+html.th-cday .bandbox .seg{border:1px solid var(--line)}
+html.th-cday .bandbox .seg button{color:var(--text)}
+html.th-cday .bandbox .seg button[aria-pressed="true"]{background:var(--gold);color:#181205}
+html.th-cday .bandbox .tog small{color:var(--muted)}
+html.th-cday .bandbox .sw{border:1px solid var(--line);background:var(--raised)}
+html.th-cday .bandbox .sw::after{background:var(--muted)}
+html.th-cday .bandbox .sw[aria-checked="true"]{background:var(--gold);border-color:var(--gold)}
+html.th-cday .bandbox .sw[aria-checked="true"]::after{background:#1c1a23}
+html.th-cday .bandrec{background:var(--raised);border:1px solid var(--line)}
+html.th-cday .bandnote{color:var(--muted)}
 html.th-cday .wvtt p{color:var(--muted)}
 html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cday .wvview button{color:var(--muted)}
@@ -3391,6 +3451,28 @@ html.th-cnight .twsh p{color:var(--muted)}
 html.th-cnight .twsound .profbox{background:var(--surface);border:1px solid var(--line)}
 html.th-cnight .twborrow .profbox{border-top:1px solid var(--line)}
 html.th-cnight .twhint3{color:var(--muted)}
+html.th-cnight .bandbox{background:var(--surface);border:1px solid var(--line)}
+html.th-cnight .bcard{border:1.5px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cnight .bcard small{color:var(--muted)}
+html.th-cnight .bcard .hz{color:var(--muted)}
+html.th-cnight .bcard[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+html.th-cnight .bandctl{border-top:1px solid var(--line)}
+html.th-cnight .bandnow small{color:var(--muted)}
+html.th-cnight .bandbox .grp{color:var(--muted)}
+html.th-cnight .bandbox .sl label small{color:var(--muted)}
+html.th-cnight .bandbox .sl input{accent-color:var(--gold)}
+html.th-cnight .bandbox .sl output{color:var(--muted)}
+html.th-cnight .bandbox .sl .ends{color:var(--muted)}
+html.th-cnight .bandbox .seg{border:1px solid var(--line)}
+html.th-cnight .bandbox .seg button{color:var(--text)}
+html.th-cnight .bandbox .seg button[aria-pressed="true"]{background:var(--gold);color:#1e1302}
+html.th-cnight .bandbox .tog small{color:var(--muted)}
+html.th-cnight .bandbox .sw{border:1px solid var(--line);background:var(--raised)}
+html.th-cnight .bandbox .sw::after{background:var(--muted)}
+html.th-cnight .bandbox .sw[aria-checked="true"]{background:var(--gold);border-color:var(--gold)}
+html.th-cnight .bandbox .sw[aria-checked="true"]::after{background:#f8f7f7}
+html.th-cnight .bandrec{background:var(--raised);border:1px solid var(--line)}
+html.th-cnight .bandnote{color:var(--muted)}
 html.th-cnight .wvtt p{color:var(--muted)}
 html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cnight .wvview button{color:var(--muted)}
@@ -4925,7 +5007,7 @@ function addTapCue(id,el){
 }
 /* Hold = roll: keep a finger (or two, for a chord) on the pan and the note is recorded as a roll
    lasting as long as you hold. A quick tap stays a plain note. */
-const HOLD_MS=280;
+let HOLD_MS=280;   // FEEL: Pan sounds → Sound → Roll starts
 const holds=new Map(),holdFrom=new Map();   // finger → note being held; note → when the first finger landed
 function holdStart(pid,cueId,el){
   const now=performance.now();holds.set(pid,{cueId,el});if(!holdFrom.has(cueId))holdFrom.set(cueId,now);
@@ -7857,26 +7939,31 @@ function toneNode(ac,T,id){
 // a whole note's volume over time: the 4 ms fade-in, the ring bent shorter or longer, then the fade at the end
 function noteEnvelope(gp,a,t,len,fade,T){
   const t1=t+Math.max(0.01,len-fade),r=ringRate(T);
-  gp.setValueAtTime(0,t);gp.linearRampToValueAtTime(a,t+0.004);
+  gp.setValueAtTime(0,t);gp.linearRampToValueAtTime(a,t+(T.att||0.004));   // a soft stick (Band sounds) comes in a little slower
   if(r!==1)gp.exponentialRampToValueAtTime(Math.max(1e-4,a*Math.min(RING_MAX,Math.pow(r,t1-t-0.004))),t1);else gp.setValueAtTime(a,t1);
   gp.linearRampToValueAtTime(0,t+len);
 }
-// the same player as before, with Tone in the path and Ring in the volume
+// the same player as before, with Tone in the path and Ring in the volume, plus this song's band sound (BAND) and how hard you hit (FEEL)
+const holdAt=(p,t)=>{if(p.cancelAndHoldAtTime)p.cancelAndHoldAtTime(t);else{p.cancelScheduledValues(t);p.setValueAtTime(p.value,t)}};
 playSample=function(id,vel,light,shift,key){
   const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
-  const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003,T=tuneOf(id);
+  const t=ac.currentTime+0.003,T=BAND.tune(tuneOf(id)),vin=Math.min(1,vel||1);
   // a borrowed note plays faster or slower, so it also lasts shorter or longer
   const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=(end-start)/Math.pow(2,shift/1200),v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
-  src.buffer=b;if(src.detune)src.detune.value=T.cents+refCents()+shift;else src.playbackRate.value=Math.pow(2,(T.cents+refCents()+shift)/1200);
-  const tn=toneNode(ac,T,id);if(tn){src.connect(tn);tn.connect(g)}else src.connect(g);g.connect(pBus);
-  let stopAt;
-  if(light){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.004);const e=Math.min(len,0.45);g.gain.setValueAtTime(v,t+0.12);g.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+0.01}
-  else{noteEnvelope(g.gain,v,t,len,T.fade,T);stopAt=t+len+0.01}
-  src.start(t,start);src.stop(stopAt);
+  const det=T.cents+refCents()+shift+BAND.cents(id),ch=BAND.chain(ac,T,id,vin,t,light);
+  const one=(d,a,at)=>{const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;if(src.detune)src.detune.value=d;else src.playbackRate.value=Math.pow(2,d/1200);
+    src.connect(g);g.connect(ch?ch.in:pBus);
+    let stopAt;
+    if(light){g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(a,at+0.004);const e=Math.min(len,0.45);g.gain.setValueAtTime(a,at+0.12);g.gain.linearRampToValueAtTime(0,at+e);stopAt=at+e+0.01}
+    else{noteEnvelope(g.gain,a,at,len,T.fade,T);stopAt=at+len+0.01}
+    src.start(at,start);src.stop(stopAt);return {src,g,end:stopAt}};
+  if(ch)ch.out.connect(pBus);
+  const main=one(det,v,t),vs=[main];
+  if(BAND.shimmerOn(light))vs.push(one(det+9,v*0.5,t+0.012));   // Shimmer: a second player a few cents away
   // the same note hit again: the older ring is damped quickly (like a real pan), never cut off
   const prev=VOICES.get(key);
-  if(prev&&prev.end>t){try{prev.g.gain.cancelScheduledValues(t);prev.g.gain.setValueAtTime(prev.g.gain.value,t);prev.g.gain.linearRampToValueAtTime(0,t+0.03);prev.src.stop(t+0.04)}catch{}}
-  VOICES.set(key,{src,g,end:stopAt});
+  if(prev&&prev.end>t){for(const p of prev.vs||[prev])try{holdAt(p.g.gain,t);p.g.gain.linearRampToValueAtTime(0,t+0.03);p.src.stop(t+0.04)}catch{}}
+  VOICES.set(key,{src:main.src,g:main.g,end:Math.max(...vs.map(x=>x.end)),vs});
   return true;
 };
 // backups: the base restore keeps trim, volume, fade and pitch; Ring and Tone come back here
@@ -8543,7 +8630,229 @@ var TW=(()=>{
   }
   // a new take (or a different take) of a note starts fresh: any "rough" mark was about the old one
   const unrough=id=>{const k=setOf(id),c=cfg(k);if(c.skip.includes(id)){c.skip=c.skip.filter(x=>x!==id);setCfg(k,c)}};
-  return {centsNow,allowed:true,open:show,decode,cleanAll,unrough,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
+  return {centsNow,allowed:true,open:show,decode,cleanAll,unrough,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open},get tab(){return tab}};
+})();
+
+
+/* ---------- how you play: dynamics (softer near a note's edge), when a held note starts to roll, and keeping the sound awake ----------
+   Dynamics: a hit in the middle of a note is a full one, nearer the edge a softer and darker one, like a real pan
+   (and like the drum pads in Studio). A bigger finger contact counts as a harder hit on phones that report it.
+   Sensitivity 0 is off: every hit is full. These belong to this phone (localStorage 'panyard-feel', not backed up). */
+var FEEL=(()=>{
+  const K='panyard-feel',D0={sens:5,roll:170,awake:true};
+  let s={...D0};try{Object.assign(s,JSON.parse(localStorage.getItem(K)||'{}'))}catch{}
+  s.sens=Math.max(0,Math.min(10,Math.round(+s.sens||0)));s.roll=Math.max(100,Math.min(300,Math.round(+s.roll||D0.roll)));s.awake=s.awake!==false;
+  const save=()=>{try{localStorage.setItem(K,JSON.stringify(s))}catch{}};
+  HOLD_MS=s.roll;
+  let avgA=0;   // the usual size of a finger's contact, so only a bigger-than-usual one counts as harder
+  function vel(e,el){
+    if(!s.sens||!e||!el||!el.getBoundingClientRect)return 1;
+    const r=el.getBoundingClientRect();if(!r.width||!r.height)return 1;
+    const dx=(e.clientX-(r.left+r.width/2))/(r.width/2),dy=(e.clientY-(r.top+r.height/2))/(r.height/2);
+    let hit=0.25+0.75*(1-Math.pow(Math.min(1,Math.hypot(dx,dy)),1.6));   // 1 in the middle, 0.25 at the edge
+    if(e.pointerType==='touch'&&e.width>1&&e.height>1){const a=e.width*e.height;
+      if(avgA)hit+=Math.max(-0.3,Math.min(0.3,(a/avgA-1)*0.5));avgA=avgA?avgA*0.85+a*0.15:a}
+    hit=Math.max(0,Math.min(1,hit));
+    return +Math.max(0.15,1-(s.sens/10)*0.8*(1-hit)).toFixed(3);
+  }
+  // a tap on any pan note sets how hard this hit is; a held note's roll keeps it
+  const held=new Map();let live=null;
+  window.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('.field');if(!el||!el.dataset.field)return;
+    live={id:el.dataset.field,v:vel(e,el)};held.set(e.pointerId,live);setTimeout(()=>{live=null},0)},true);
+  const up=e=>held.delete(e.pointerId);window.addEventListener('pointerup',up,true);window.addEventListener('pointercancel',up,true);
+  function now(id,light){if(live&&live.id===id)return live.v;if(light)for(const h of held.values())if(h.id===id)return h.v;return 1}
+  // the tap sound everywhere (Play, Write, the tuning pan, the game) goes through strike()
+  const _strike=strike;strike=function(id,v,light){return _strike(id,(v||1)*now(id,light),light)};
+
+  /* Keep the sound awake: many phones (and most Bluetooth speakers and earbuds) switch their sound off after a quiet
+     moment and switch it back on with a small tick when the next note comes. A 20 Hz hum far too quiet to hear
+     keeps them on while the app is open. */
+  let hum=null;
+  function wake(){
+    const ac=pac;if(!ac)return;const on=s.awake&&!document.hidden;
+    if(on&&!hum){const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=20;g.gain.value=0;g.gain.setTargetAtTime(0.0018,ac.currentTime,0.3);o.connect(g);g.connect(ac.destination);o.start();hum={o,g}}
+    else if(!on&&hum){const h=hum;hum=null;try{h.g.gain.setTargetAtTime(0,ac.currentTime,0.05);h.o.stop(ac.currentTime+0.4)}catch{}}
+  }
+  const _pc=panCtx;panCtx=function(){const had=!!pac,a=_pc.apply(this,arguments);if(a&&!had)setTimeout(wake,0);return a};
+  document.addEventListener('visibilitychange',wake);
+
+  function set(k,v){s[k]=v;save();if(k==='roll')HOLD_MS=v;if(k==='awake')wake()}
+  const sensName=v=>!v?'Off':v<=3?'A little':v<=6?'Some':v<=8?'A lot':'Very';
+  // the "How you play" card in Pan sounds → Sound
+  function card(){
+    return '<section class="bandbox" id="feelBox"><div class="twsh"><h3>How you play</h3><p>These belong to this phone.</p></div>'
+      +'<div class="sl"><label for="feelSens">Dynamics<small>hit the middle of a note for a full sound, nearer the edge for a softer one</small></label><input type="range" id="feelSens" min="0" max="10" step="1" value="'+s.sens+'"><output id="feelSensO">'+sensName(s.sens)+'</output><div class="ends"><span>every hit the same</span><span>very sensitive</span></div></div>'
+      +'<div class="sl"><label for="feelRoll">Roll starts<small>how long you hold a note before it rolls</small></label><input type="range" id="feelRoll" min="100" max="300" step="10" value="'+s.roll+'"><output id="feelRollO">'+(s.roll/1000).toFixed(2)+' s</output><div class="ends"><span>sooner</span><span>later</span></div></div>'
+      +'<div class="tog"><span><b>Keep the sound awake</b><small>stops the little tick some phones and Bluetooth speakers make when a note comes after a quiet moment</small></span><button class="sw" role="switch" id="feelAwake" aria-checked="'+s.awake+'" aria-label="Keep the sound awake"></button></div>'
+      +'</section>';
+  }
+  function wire(box){
+    box.querySelector('#feelSens').oninput=e=>{set('sens',+e.target.value);$('feelSensO').textContent=sensName(s.sens)};
+    box.querySelector('#feelRoll').oninput=e=>{set('roll',+e.target.value);$('feelRollO').textContent=(s.roll/1000).toFixed(2)+' s'};
+    box.querySelector('#feelAwake').onclick=e=>{set('awake',!s.awake);e.currentTarget.setAttribute('aria-checked',String(s.awake));
+      say(s.awake?'The sound stays awake while the app is open.':'The sound can sleep when nothing plays.')};
+  }
+  return {vel,now,card,wire,wake,get s(){return {...s}},set,get awake(){return !!hum}};
+})();
+
+/* ---------- Band sounds: how your pans sound for this song (Pan sounds → Sound) ----------
+   A band sound bends your recordings for one song without changing them: the pitch centre (A 432…446), Sweet ↔ Sharp
+   (the top notes a hair sharp, the way bright Panorama pans are tuned), Tone, Ring, Stick (soft rubber ↔ hard), the room,
+   and three effects: Shimmer (a second player a few cents away), Lo-fi (tape warmth, wobble, hiss) and Punch (evens
+   out loud and soft). Start from a preset and shape it. When the song has a band recording its pitch follows the
+   recording (Setup → Tuning) instead. Saved per song in localStorage 'panyard-band' (backed up with everything else).
+   Per note (Play, the tuning pan, Studio): pitch, Sweet ↔ Sharp, Tone, Ring, Stick, Shimmer, and soft hits darker.
+   Room, Lo-fi and Punch work on the tap sound (Studio has its own room and effects per track). While you tune
+   (Pan sounds → Record & tune) notes play as recorded, so you hear the real thing. */
+var BAND=(()=>{
+  const PRESETS=[
+    {id:'kitchen',name:'Kitchen session',em:'🏠',sub:'Your plain, honest pan',a:440,stretch:0,tone:0,ring:0,stick:0,shimmer:0,lofi:0,punch:0,room:'room'},
+    {id:'panorama',name:'Panorama',em:'🏆',sub:'High, bright and sparkly, made to cut',a:442,stretch:5,tone:4,ring:-3,stick:6,shimmer:1,lofi:0,punch:1,room:'yard'},
+    {id:'classical',name:'Classical',em:'🎻',sub:'Dead-centre, long and singing',a:440,stretch:0,tone:-1,ring:5,stick:-4,shimmer:0,lofi:0,punch:0,room:'hall'},
+    {id:'lofi',name:'Lo-fi',em:'📼',sub:'Warm, soft, a little worn',a:432,stretch:0,tone:-6,ring:1,stick:-6,shimmer:0,lofi:1,punch:0,room:'dry'},
+    {id:'tempo',name:'High tempo',em:'⚡',sub:'Short, punchy, in your face',a:440,stretch:3,tone:5,ring:-6,stick:5,shimmer:0,lofi:0,punch:1,room:'room'},
+    {id:'rock',name:'Rock',em:'🎸',sub:'Hard stick, bright, pushed',a:440,stretch:2,tone:6,ring:-2,stick:8,shimmer:1,lofi:0,punch:1,room:'room'},
+  ];
+  const KEYS=['a','stretch','tone','ring','stick','shimmer','lofi','punch','room'];
+  const ROOMS={dry:'Dry',room:'Room',yard:'Panyard',hall:'Hall'};
+  const K='panyard-band';let st={songs:{},own:[]};
+  try{const x=JSON.parse(localStorage.getItem(K)||'null');if(x&&typeof x==='object'){if(x.songs&&typeof x.songs==='object')st.songs=x.songs;if(Array.isArray(x.own))st.own=x.own}}catch{}
+  const keep=()=>{try{localStorage.setItem(K,JSON.stringify(st))}catch{}};
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function clean(b){if(!b||typeof b!=='object')return null;const o={};
+    o.a=clamp(Math.round((+b.a||440)*10)/10,432,446);for(const k of['stretch'])o[k]=clamp(Math.round(+b[k]||0),-6,8);
+    for(const k of['tone','ring','stick'])o[k]=clamp(Math.round(+b[k]||0),-10,10);for(const k of['shimmer','lofi','punch'])o[k]=b[k]?1:0;
+    o.room=ROOMS[b.room]?b.room:'room';o.from=String(b.from||'');o.name=String(b.name||'').slice(0,40);if(Number.isFinite(+b.prevA))o.prevA=+b.prevA;return o}
+  const sid=()=>{try{return isDemo?'demo':songNow().id}catch{return 'demo'}};
+  const forSong=()=>{const b=st.songs[sid()];return b?clean(b):null};
+  const cards=()=>PRESETS.concat(st.own.map(o=>({...clean(o),id:o.id,name:o.name||'My band sound',em:'🥁',sub:'Your own',own:1})));
+  // while you tune, a note plays as recorded
+  const tuning=()=>typeof TW!=='undefined'&&TW.isOpen&&TW.tab==='tune';
+  const now=()=>tuning()?null:forSong();
+  // Sweet ↔ Sharp: notes above the middle of the pans a little sharp, the low ones a touch flat
+  function cents(id){const b=now();if(!b||!b.stretch||!PITCH[id])return 0;return b.stretch*clamp((midiOf(PITCH[id])-66)/12,-1,2)*1.2}
+  // the note's own fine-tuning with the band's Tone and Ring on top (and a slower attack for a soft stick)
+  function tune(T){const b=now();if(!b)return T;const o=Object.assign({},T);
+    o.ring=clamp((+T.ring||0)+b.ring,-10,10);o.tone=clamp((+T.tone||0)+b.tone,-10,10);if(b.stick<0)o.att=0.004+(-b.stick/10)*0.012;return o}
+
+  /* one note's path: Tone (a shelf), then a lowpass for a soft stick or a soft hit, then a hard stick's bite that fades */
+  function chain(ac,T,id,v,t,light){
+    const b=now(),f=pitchHz(id)||440,nodes=[];
+    const tn=toneNode(ac,T,id);if(tn)nodes.push(tn);
+    const stick=b?b.stick:0;
+    let fc=20000;if(v<0.9&&FEEL.s.sens)fc=Math.min(fc,f*(3+30*v*v));   // a soft hit is darker too, as on a real panif(stick<0)fc=Math.min(fc,Math.max(f*3,18000*Math.pow(0.18,-stick/10)));
+    if(fc<16000){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;lp.frequency.value=fc;nodes.push(lp)}
+    if(stick>0&&!light){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=0.9;pk.frequency.value=clamp(f*5,2500,7000);
+      pk.gain.setValueAtTime(stick*0.7,t);pk.gain.setTargetAtTime(stick*0.2,t+0.03,0.08);nodes.push(pk)}
+    for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);
+    return nodes.length?{in:nodes[0],out:nodes[nodes.length-1]}:null;
+  }
+  const shimmerOn=light=>{const b=now();return !!(b&&b.shimmer&&!light)};
+
+  /* Room, Lo-fi and Punch on the tap sound: they sit between the pans and the room (your sound profile's chain) */
+  const G={};
+  function route(){
+    if(!FX.ac||!pBus)return;const ac=FX.ac,b=forSong(),t=ac.currentTime;
+    if(!G.lp){G.lp=ac.createBiquadFilter();G.lp.type='lowpass';G.lp.frequency.value=3200;G.lp.Q.value=0.4;
+      G.dl=ac.createDelay(0.05);G.dl.delayTime.value=0.004;G.lfo=ac.createOscillator();G.lfo.frequency.value=0.7;G.lfoG=ac.createGain();G.lfoG.gain.value=0.0009;G.lfo.connect(G.lfoG);G.lfoG.connect(G.dl.delayTime);G.lfo.start();
+      G.cp=ac.createDynamicsCompressor();G.cp.threshold.value=-24;G.cp.ratio.value=5;G.cp.attack.value=0.003;G.cp.release.value=0.12;G.cp.knee.value=6;G.mk=ac.createGain();G.mk.gain.value=1.6;G.cp.connect(G.mk);
+      G.lp.connect(G.dl);G.sig=''}
+    const lofi=!!(b&&b.lofi),punch=!!(b&&b.punch),sig=lofi+','+punch;
+    if(sig!==G.sig){G.sig=sig;
+      try{pBus.disconnect()}catch{}try{G.dl.disconnect()}catch{}try{G.mk.disconnect()}catch{}
+      let head=pBus;if(lofi){head.connect(G.lp);head=G.dl}if(punch){head.connect(G.cp);head=G.mk}head.connect(FX.hp)}
+    // tape hiss, only while Lo-fi is on
+    if(lofi&&!G.hiss){const n=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),d=n.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+      const s=ac.createBufferSource(),hp=ac.createBiquadFilter(),g=ac.createGain();s.buffer=n;s.loop=true;hp.type='highpass';hp.frequency.value=3000;g.gain.value=0;g.gain.setTargetAtTime(0.004,t,0.1);
+      s.connect(hp);hp.connect(g);g.connect(FX.dry);s.start();G.hiss={s,g}}
+    else if(!lofi&&G.hiss){const h=G.hiss;G.hiss=null;h.g.gain.setTargetAtTime(0,t,0.05);try{h.s.stop(t+0.3)}catch{}}
+  }
+  // the band's room takes the place of the sound profile's room for this song
+  const _ap=applyFx;applyFx=function(){_ap.apply(this,arguments);if(!FX.ac)return;route();const b=forSong();if(!b)return;
+    const R=SPACES[b.room]||SPACES.room,t=FX.ac.currentTime;
+    FX.dry.gain.setTargetAtTime(1-R.mix*0.5,t,0.03);FX.wet.gain.setTargetAtTime(R.mix*1.6,t,0.03);
+    if(R.mix>0&&FX.decay!==R.decay){FX.conv.buffer=makeIR(FX.ac,R.decay);FX.decay=R.decay}};
+  const apply=()=>{try{applyFx()}catch{}};
+  // another song may have another band sound
+  {const _so=songOpen;songOpen=async function(){const r=await _so.apply(this,arguments);apply();if(open)render();return r}}
+
+  /* choosing and shaping */
+  const hasRec=()=>typeof hasAudio!=='undefined'&&!!hasAudio;
+  function setA(a){if(hasRec())return;S.refA=a;save_();try{TUNE_A.render()}catch{}}
+  function save_(){try{window.save()}catch{}}
+  function use(card){
+    const cur=st.songs[sid()],prevA=cur&&Number.isFinite(+cur.prevA)?+cur.prevA:REF_A();
+    if(!card){if(cur){delete st.songs[sid()];keep();if(!hasRec())setA(prevA)}apply();render();return}
+    const b=clean({...card,from:card.id,name:card.name,prevA});st.songs[sid()]=b;keep();setA(b.a);apply();render();riff();
+  }
+  function edit(k,v){const b=forSong();if(!b)return;b[k]=v;st.songs[sid()]=b;keep();if(k==='a')setA(b.a);apply()}
+  const cardOf=id=>cards().find(c=>c.id===id);
+  function resetCard(){const b=forSong();if(!b)return;const c=cardOf(b.from);if(!c){msg('This band sound has nothing to go back to.');return}use(c);msg('Back to '+c.name+' as it started.')}
+  function saveOwn(){const b=forSong();if(!b)return;const id='own'+Date.now().toString(36);const name=(b.name&&!PRESETS.some(p=>p.name===b.name)?b.name:'My band sound '+(st.own.length+1));
+    const o={id,name};KEYS.forEach(k=>o[k]=b[k]);st.own.push(o);b.from=id;b.name=name;st.songs[sid()]=b;keep();render();msg('Saved as “'+name+'”. Pick it for any song.')}
+  function dropOwn(id){st.own=st.own.filter(o=>o.id!==id);for(const b of Object.values(st.songs))if(b&&b.from===id)b.from='';keep();render();msg('Band sound deleted. Songs using it keep their sound.')}
+
+  // hear it: a short line on this song's pan, low to high and back, then a rolled chord
+  let rt=[];
+  function riff(){
+    rt.forEach(clearTimeout);rt=[];
+    const set=SETS[setKey()];if(!set)return;
+    const ids=set.views.flatMap(v=>v.fields.map(f=>f[0])).filter(id=>PITCH[id]).sort((a,b)=>midiOf(PITCH[a])-midiOf(PITCH[b]));if(!ids.length)return;
+    const mid=Math.floor(ids.length*0.35),pick=k=>ids[clamp(mid+k,0,ids.length-1)],bt=300;
+    const L=[[0,0],[2,1],[4,2],[5,3],[4,4],[2,5.5],[3,6],[4,7],[7,8]];
+    L.forEach(([k,b])=>rt.push(setTimeout(()=>{try{strike(pick(k),0.9)}catch{}},b*bt/2)));
+    const ch=[0,2,4];for(let r=0;r<8;r++)ch.forEach((k,i)=>rt.push(setTimeout(()=>{try{strike(pick(k),0.45+((r*7+i)%5)/20,r>0)}catch{}},9*bt/2+400+r*75+i*12)));
+  }
+
+  /* the card in Pan sounds → Sound */
+  let open=false;
+  const msg=t=>{const m=$('bandMsg');if(m){m.textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>{if(m.textContent===t)m.textContent=''},4000)}};
+  const CTL=[['a','Pitch centre','A in hertz: 440 is standard',432,446,1,v=>'A '+v,['lower','higher']],['stretch','Sweet ↔ Sharp','top notes a hair sharp, like a bright Panorama pan',-6,8,1,v=>(v>0?'+':'')+v,['sweet','sharp']],
+    ['tone','Tone','',-10,10,1,v=>(v>0?'+':'')+v,['darker','brighter']],['ring','Ring','how long notes sing',-10,10,1,v=>(v>0?'+':'')+v,['shorter','longer']],['stick','Stick','soft rubber ↔ hard',-10,10,1,v=>v<-3?'soft':v>3?'hard':'medium',['soft','hard']]];
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function html(){
+    const b=forSong(),cs=cards();
+    let h='<div class="twsh"><h3>Band sound for this song</h3><p>Shape how your pans sound for <b>'+esc(S.title||'this song')+'</b>: bright for Panorama, soft for a ballad, in tune with a band. Your recordings stay as they are.</p></div>'
+      +'<div class="bandcards" role="group" aria-label="Band sounds">'
+      +'<button class="bcard" data-b="" aria-pressed="'+!b+'"><span class="em">🎙</span><b>As recorded</b><small>No band sound</small></button>'
+      +cs.map(c=>'<button class="bcard" data-b="'+esc(c.id)+'" aria-pressed="'+!!(b&&b.from===c.id)+'"><span class="em">'+c.em+'</span><b>'+esc(c.name)+'</b><small>'+esc(c.sub)+'</small><span class="hz">A '+c.a+'</span></button>').join('')
+      +'</div>';
+    if(b){const rec=hasRec(),src=cardOf(b.from);
+      h+='<div class="bandctl"><div class="bandnow"><b>'+esc(b.name||(src&&src.name)||'Band sound')+'</b>'+(src?'':'<small> (shaped for this song)</small>')+'<button class="btn" id="bandHear">▶ Hear it</button></div>'
+        +'<div class="grp">Tuning</div>'
+        +(rec?'<div class="bandrec">🎧 <span><b>Pitch follows your band recording</b> (A = '+(+REF_A().toFixed(1))+'), so you stay in tune with it. Change it in Setup → Tuning.</span></div>':sl(CTL[0],b))
+        +sl(CTL[1],b)+'<div class="grp">Sound</div>'+CTL.slice(2).map(c=>sl(c,b)).join('')
+        +'<div class="grp">Room</div><div class="seg" id="bandRoom">'+Object.entries(ROOMS).map(([k,n])=>'<button data-room="'+k+'" aria-pressed="'+(b.room===k)+'">'+n+'</button>').join('')+'</div>'
+        +'<div class="grp">Effects</div>'+[['shimmer','Shimmer','a second player, slightly detuned'],['lofi','Lo-fi','tape warmth, wobble and hiss'],['punch','Punch','evens out loud and soft notes']].map(([k,l,s])=>'<div class="tog"><span><b>'+l+'</b><small>'+s+'</small></span><button class="sw" role="switch" data-tog="'+k+'" aria-checked="'+!!b[k]+'" aria-label="'+l+'"></button></div>').join('')
+        +'<p class="bandnote">Room, Lo-fi and Punch shape the tap sound. Studio tracks keep their own room and effects.</p>'
+        +'<div class="bandbtns"><button class="btn" id="bandReset"'+(src?'':' disabled')+'>↺ Reset</button><button class="btn" id="bandOwn">＋ Save as my own</button>'+(src&&src.own?'<button class="btn" id="bandDrop">Delete “'+esc(src.name)+'”</button>':'')+'</div></div>'}
+    return h+'<p class="twmsg" id="bandMsg" aria-live="polite"></p>';
+  }
+  function sl([k,l,sb,mn,mx,stp,fm,ends],b){return '<div class="sl"><label for="band-'+k+'">'+l+(sb?'<small>'+sb+'</small>':'')+'</label><input type="range" id="band-'+k+'" data-k="'+k+'" min="'+mn+'" max="'+mx+'" step="'+stp+'" value="'+b[k]+'"><output id="bando-'+k+'">'+fm(b[k])+'</output><div class="ends"><span>'+ends[0]+'</span><span>'+ends[1]+'</span></div></div>'}
+  function render(){const box=$('bandBox');if(!box)return;box.innerHTML=html()}
+  function mount(){
+    const snd=$('twSound');if(!snd)return;open=true;
+    if(!$('bandBox')){const box=document.createElement('section');box.className='bandbox';box.id='bandBox';
+      snd.prepend(box);   // above the sound profile (which is for every song)
+      if(!$('feelBox')){box.insertAdjacentHTML('afterend',FEEL.card());FEEL.wire($('feelBox'))}
+      box.addEventListener('click',e=>{
+        const c=e.target.closest('[data-b]');if(c){const id=c.dataset.b;use(id?cardOf(id):null);if(!id)msg('As recorded: your pans with no band sound.');return}
+        const r=e.target.closest('[data-room]');if(r){edit('room',r.dataset.room);render();riff();return}
+        const t=e.target.closest('[data-tog]');if(t){const b=forSong();if(!b)return;edit(t.dataset.tog,b[t.dataset.tog]?0:1);render();riff();return}
+        if(e.target.closest('#bandHear')){riff();return}
+        if(e.target.closest('#bandReset')){resetCard();return}
+        if(e.target.closest('#bandOwn')){saveOwn();return}
+        if(e.target.closest('#bandDrop')){const b=forSong();if(b&&b.from)dropOwn(b.from)}});
+      box.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;const v=+e.target.value;edit(k,v);const c=CTL.find(x=>x[0]===k);const o=$('bando-'+k);if(o&&c)o.textContent=c[6](v)});
+      box.addEventListener('change',e=>{if(e.target.dataset.k)riff()})}
+    render();
+  }
+  // Pan sounds opens: the card is there (and up to date) on the Sound tab
+  setTimeout(()=>{if(typeof TW==='undefined')return;const _o=TW.open;TW.open=function(){const r=_o.apply(this,arguments);try{mount()}catch(e){console.error(e)}return r}},0);
+  // backup files carry this song's band sound (Google Drive backup has all of them)
+  setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const b=forSong();if(b)o.band=b;return o};
+    const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
+  return {PRESETS,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
 })();
 
 /* ---------- 3D pans: the tenor hangs between two stand poles; the others stand as shiny drums ---------- */
@@ -8957,19 +9266,20 @@ function playDrum(m,dest,t,v,real=true){
 let PV=new Map();
 function playBuf(dest,id,b,T,t,v,light){
   const end=Math.min(b.duration,T.end??b.duration),start=Math.max(0,Math.min(T.start,end-.05)),len=(end-start)/(T.rate||1),a=v*Math.pow(10,T.db/20)*(light?.7:1);
-  const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=(T.cents||0)+refCents();gn.connect(dest);
-  // the note's Tone (a shelf) and Ring (its fade bent shorter or longer) from Tune my pans
-  const tn=typeof toneNode==='function'?toneNode(ctx,T,id):null;if(tn){src.connect(tn);tn.connect(gn)}else src.connect(gn);
-  let stopAt;
-  if(light){gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(a,t+.004);const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,t+.12);gn.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+.01}
-  else{noteEnvelope(gn.gain,a,t,len,T.fade,T);stopAt=t+len+.01}   // a 4 ms fade-in keeps it free of clicks
-  src.start(t,start);src.stop(stopAt);lineUp(src,t);
+  // the note's Tone (a shelf) and Ring (its fade bent shorter or longer) from Tune my pans, with this song's band sound on top
+  T=BAND.tune(T);const det=(T.cents||0)+refCents()+BAND.cents(id),ch=BAND.chain(ctx,T,id,Math.min(1,v),t,light);if(ch)ch.out.connect(dest);
+  const one=(d,a,at)=>{const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=d;gn.connect(ch?ch.in:dest);src.connect(gn);
+    let stopAt;
+    if(light){gn.gain.setValueAtTime(0,at);gn.gain.linearRampToValueAtTime(a,at+.004);const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,at+.12);gn.gain.linearRampToValueAtTime(0,at+e);stopAt=at+e+.01}
+    else{noteEnvelope(gn.gain,a,at,len,T.fade,T);stopAt=at+len+.01}   // a 4 ms fade-in keeps it free of clicks
+    src.start(at,start);src.stop(stopAt);lineUp(src,at);return {src,g:gn,end:stopAt}};
+  const main=one(det,a,t),vs=[main];if(BAND.shimmerOn(light))vs.push(one(det+9,a*.5,t+.012));const src=main.src,gn=main.g,stopAt=Math.max(...vs.map(x=>x.end));
   // the same note struck again on the same pan damps the older ring, like a real pan. Only that pan's own
   // ring, and only one that has already started: another track (a take of the same pan, say) never cuts it off
   let pv=PV.get(dest);if(!pv){pv=new Map();PV.set(dest,pv)}
   const prev=pv.get(id);
-  if(prev&&prev.start<t-.001&&prev.end>t){try{hold(prev.g.gain,t);prev.g.gain.linearRampToValueAtTime(0,t+.03);prev.src.stop(t+.04)}catch{}}
-  if(!prev||prev.start<=t)pv.set(id,{src,g:gn,start:t,end:stopAt});
+  if(prev&&prev.start<t-.001&&prev.end>t){for(const p of prev.vs||[prev])try{hold(p.g.gain,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
+  if(!prev||prev.start<=t)pv.set(id,{src,g:gn,start:t,end:stopAt,vs});
 }
 function panTone(dest,f,t,v,light){
   const ring=(light?.7:1.7)*Math.pow(261.6/f,.35),out=ctx.createGain();out.connect(dest);
@@ -8981,8 +9291,9 @@ function panTone(dest,f,t,v,light){
   const bp=filt('bandpass',Math.min(6000,f*4),1.2),ng=ctx.createGain();ng.gain.value=.05*v;bp.connect(ng);ng.connect(out);noiseSrc(t,.03,bp);
 }
 const mine=id=>S.panVoice==='mine'&&SAMPLES.wav[id];
-function panVoice(dest,id,t,v){
-  if(!PITCH[id])return;const light=v<.78;
+// light: a roll's quick strike. Notes recorded before dynamics don't say, so a soft one counts as a roll's
+function panVoice(dest,id,t,v,light){
+  if(!PITCH[id])return;if(light===undefined)light=v<.78;
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
@@ -9087,13 +9398,13 @@ function scheduleRange1(a,b,off){
       if(st>=a&&st<b)startSrc(tr,u2t(st+off),0,endT);
       else if(wrapped&&st<a&&st+buf.duration/sp>a)startSrc(tr,u2t(a+off),(a-st)*sp,endT);   // the loop came round partway into this recording
       continue}
-    if(tr.type==='part'){for(const n of partNotes())if(n.t>=a&&n.t<b)panVoice(c.play,n.p,u2t(n.t+off),n.v);continue}
+    if(tr.type==='part'){for(const n of partNotes())if(n.t>=a&&n.t<b)panVoice(c.play,n.p,u2t(n.t+off),n.v,n.r===undefined?undefined:!!n.r);continue}
     if(tr.type!=='pan')continue;
     // Replace mode: just before the playhead gets there, older notes on the track being recorded are wiped
     // Replace / New take: while you record, the old notes from where you started are silent (they're only
     // removed when you stop, and only in the bars you recorded over)
     const hush=T.rec&&(song.recMode==='replace'||song.recMode==='take')&&tr.id===T.recTid;
-    for(const n of pnotes(tr))if(n.t>=a&&n.t<b&&n.tk!==T.take&&!(hush&&n.t>=T.recFrom-1e-6))panVoice(c.play,n.p,u2t(n.t+off),n.v);
+    for(const n of pnotes(tr))if(n.t>=a&&n.t<b&&n.tk!==T.take&&!(hush&&n.t>=T.recFrom-1e-6))panVoice(c.play,n.p,u2t(n.t+off),n.v,n.r===undefined?undefined:!!n.r);
   }
   if(song.metro&&ck().sound!=='none'&&(!ck().recOnly||T.rec))for(let k=Math.ceil(a-1e-9);k<b;k++)click(u2t(k+off),k%BPB()===0);
 }
@@ -9173,15 +9484,16 @@ const held=new Map();   // finger → the note it's holding (hold for a roll)
 function panDown(e,el){
   e.preventDefault();if(!AC())return;const tr=selTr();
   // My part: the pans play so you can try a line, but notes are written in Write
-  if(tr.type==='part'){const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);el.classList.add('hit');
+  if(tr.type==='part'){const id=el.dataset.field,c=channel(tr),hv=FEEL.now(id);panVoice(c.out,id,ctx.currentTime+.003,.95*hv,false);el.classList.add('hit');
     const r={el,n:null,timer:0,rolls:[],write:writeTap(tr,id,tapT(e)),t0:ctx.currentTime};
-    const go=()=>{panVoice(c.out,id,ctx.currentTime+.003,.5+Math.random()*.25);r.rolls.push(1);r.timer=setTimeout(go,60+Math.random()*18)};
+    const go=()=>{panVoice(c.out,id,ctx.currentTime+.003,(.5+Math.random()*.25)*hv,true);r.rolls.push(1);r.timer=setTimeout(go,60+Math.random()*18)};
     r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);return}
   if(tr.type!=='pan')return;
-  const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);const n=recNote(tr,id,.95,tapT(e));
+  // how hard you hit (Pan sounds → Sound → Dynamics) is played and recorded; a roll keeps it
+  const id=el.dataset.field,c=channel(tr),hv=FEEL.now(id),v0=+(.95*hv).toFixed(3);panVoice(c.out,id,ctx.currentTime+.003,v0,false);const n=recNote(tr,id,v0,tapT(e));if(n)n.r=0;
   el.classList.add('hit');
   const r={el,n,timer:0,rolls:[]};
-  const go=()=>{const v=.5+Math.random()*.25;panVoice(c.out,id,ctx.currentTime+.003,v);const rn=recNote(tr,id,v);if(rn){rn.d=.25;r.rolls.push(rn)}r.timer=setTimeout(go,60+Math.random()*18)};
+  const go=()=>{const v=+((.5+Math.random()*.25)*hv).toFixed(3);panVoice(c.out,id,ctx.currentTime+.003,v,true);const rn=recNote(tr,id,v);if(rn){rn.d=.25;rn.r=1;r.rolls.push(rn)}r.timer=setTimeout(go,60+Math.random()*18)};
   r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);
 }
 {let wasTall=null;addEventListener('resize',()=>{const t=tallStage();if(t===wasTall)return;wasTall=t;if(song&&VIEW==='inst'&&selTr().type==='drums')renderInst()})}
@@ -10189,7 +10501,7 @@ async function renderSong(only,onProgress,RG){
       const c=channel(tr).play;c.gain.value=1;
       if(tr.type==='beats'){const rk=realKit(tr);for(const [bt,mm,v] of beatHits(tr,RA,Lb)){if(bt<RA)continue;const t=T0+bt*sp;ev.push({t,fn:()=>playDrum(mm,c,t,v,rk)})}}
       else if(tr.type==='drums'){const rk=realKit(tr);for(const n of tr.notes)if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>playDrum(+n.p,c,t,n.v,rk)})}}
-      else if(isPanish(tr)){for(const n of pnotes(tr))if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v)})}}
+      else if(isPanish(tr)){for(const n of pnotes(tr))if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v,n.r===undefined?undefined:!!n.r)})}}
       else{const b=audioOf(tr);if(b){let t=T0+startOf(tr)*sp,o=0;if(t<0){o=-t;t=0}ev.push({t,fn:()=>{const s=off.createBufferSource();s.buffer=b;s.connect(c);s.start(t,o);s.stop(Math.max(t,T0+Lb*sp))}})}}
     }
     ev.sort((x,y)=>x.t-y.t);
@@ -12076,7 +12388,7 @@ var CLOUD={
   MAN:'panyard-backup.json',
   K:'panyard-cloud',
   // settings that belong to this phone, not to you (its speaker and mic timing, which tips you've seen)
-  SKIP:/^(panyard-studio|panyard-smooth|panyard-cloud.*|panyard-guide|pan-lastBackup|panyard-subtab|pan-snooze-.*)$/,
+  SKIP:/^(panyard-studio|panyard-smooth|panyard-feel|panyard-cloud.*|panyard-guide|pan-lastBackup|panyard-subtab|pan-snooze-.*)$/,
   st:null,tok:null,dirty:false,busy:false,
   cid(){try{return localStorage.getItem('panyard-gclient')||this.CID}catch{return this.CID}},
   load(){try{this.st=Object.assign({on:0,email:'',last:0,blobs:{},man:''},JSON.parse(localStorage.getItem(this.K)||'{}'))}catch{this.st={on:0,email:'',last:0,blobs:{},man:''}}
