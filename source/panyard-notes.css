@@ -96,3 +96,6 @@
 .nb-pgs button:disabled{opacity:.35}
 .nb-pgs2{margin-top:8px}
 body.nb-full-on{overflow:hidden}
+
+/* the pans-first stage (sideways Play) has no room for the notebook: its tabs sat on top of Practice / Game */
+body.pfmode #nbPlay{display:none!important}

@@ -4,6 +4,25 @@
 // Loop, speed and the rest open from the ⋯ button. The notes, their places on each pan and the taps are unchanged.
 const STAGE={
   on:false,
+  // how far each drum's skirt hangs below its face, as a part of its radius: a real drum's height, seen from where you
+  // stand. The tenor is shortest, the bass a full oil drum. The Arrange pans screen can make any set's longer or shorter.
+  SK:{tenor:.15,dsec:.22,guitar:.32,fcello:.52,six:1},
+  skf(k){const a=this.lay()[k];return (this.SK[k]||.2)*(a&&a.skirt!=null?a.skirt:1)},
+  // your own arrangement (Arrange pans), per set and per way up: {skirt, land:{all,p:{drum:[dx,dy,size]}}, up:{...}}
+  lv:0,_lay:null,
+  lay(){if(!this._lay){try{this._lay=JSON.parse(localStorage.getItem('panyard-layout')||'{}')||{}}catch(e){this._lay={}}}return this._lay},
+  setLay(o){this._lay=o;this.lv++;try{localStorage.setItem('panyard-layout',JSON.stringify(o))}catch(e){}},
+  orient(){return innerWidth>innerHeight?'land':'up'},
+  // move and size the drums as you arranged them: everything grows from the top middle, then each drum moves on its own
+  adjust(L,W,H,key){
+    const a=(this.lay()[key||setKey()]||{})[this.orient()];if(!a||!L||!L.place)return L;
+    const s=a.all||1,ps=L.place.filter(Boolean);if(!ps.length)return L;
+    const top=Math.min(...ps.map(p=>p[1]-p[2]*.94));
+    const place=L.place.map((p,i)=>{if(!p)return p;const o=(a.p||{})[i]||[0,0,1];return[W/2+(p[0]-W/2)*s+o[0]*W,top+(p[1]-top)*s+o[1]*H,p[2]*s*(o[2]||1)]});
+    return Object.assign({},L,{place});
+  },
+  // the far drums first, so the near ones cover their skirts
+  order(L){return L.ds.map((d,i)=>i).sort((a,b)=>(L.place[a]||[0,0])[1]-(L.place[b]||[0,0])[1])},
   wanted(){
     if(document.body.dataset.view!=='play')return false;
     if(document.body.classList.contains('gametab')&&!(GM&&(GM.state==='run'||GM.state==='count')))return false;   // the Game's start and results panels show as usual
@@ -33,13 +52,16 @@ const STAGE={
     return null;
   },
   // where each drum goes and where the two lanes go, for a stage W × H (CSS pixels)
-  layout(W,H,key){
+  layout(W,H,key){return this.adjust(this.layout0(W,H,key),W,H,key)},
+  portrait(W,H,key,force){return this.adjust(this.portrait0(W,H,key,force),W,H,key)},
+  layout0(W,H,key){
     const k=key||setKey(),ds=this.drumsOf(key),pad=8,side=Math.max(14,Math.min(44,W*.04)),hitB=H*.75;
     const place=[],lanes=[];let top=pad;
-    if(ds.length===2){   // double guitar, double seconds: the strip between the two pans
-      const strip=Math.min(150,W*.15),R=Math.min((H-2*pad)/2.12,(W-2*side-strip-24)/4),cy=H/2-R*.06;
-      place.push([W/2-strip/2-12-R,cy,R],[W/2+strip/2+12+R,cy,R]);
-      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=pad+6;
+    if(ds.length===2){   // double guitar, double seconds: a slim strip between the two pans, the pans as tall as the screen
+      // (their skirts run off the bottom, as if you stood at them)
+      const sd=Math.max(8,Math.min(24,W*.02)),strip=Math.min(96,W*.11),R=Math.min((H-4)/(2*.94),(W-2*sd-strip-16)/4),cy=4+R*.94;
+      place.push([W/2-strip/2-8-R,cy,R],[W/2+strip/2+8+R,cy,R]);
+      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=8;
     }else if(ds.length===1){   // tenor: left-hand lane on the left of the pan, right-hand lane on the right
       const R=(H-2*pad)/2.12,lw=Math.max(48,Math.min(80,(W-2*R)/2-side-14));
       place.push([W/2,H/2-R*.06,R]);lanes.push({x:W/2-R-14-lw,w:lw},{x:W/2+R+14,w:lw});top=pad+6;
@@ -54,6 +76,10 @@ const STAGE={
       const strip=Math.min(96,W*.24),R=Math.min((W-strip-28)/4,(H-2*pad)/6.3),gy=R*2.08,used=gy*2+2.1*R,y0=(H-used)/2+R;
       [[2,0],[1,1],[0,2],[3,0],[4,1],[5,2]].forEach(([di,row])=>{const left=di<3;place[di]=[W/2+(left?-1:1)*(strip/2+6+R+(row===1?6:0)),y0+row*gy,R]});
       lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=y0-R;
+    }else if(k==='fcello'&&this.cello(W,H)){   // four cello: the top two touching in the middle, the bottom two out to the sides
+      const strip=Math.min(110,W*.13),c=this.cello(W,H);
+      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});
+      return{ds,place:c.place,lanes,top:c.y1+c.R*.94+4,bottom:Math.min(H-pad,c.y2+c.R*.55)};
     }else{   // four cello: the top two pans together in the middle, the bottom two wider, notes falling below the top pans
       const strip=Math.min(130,W*.15),R=Math.min((H-2*pad)/4.25,(W-2*side-strip-40)/4),y1=pad+R*1.0,y2=H-pad-R*1.15;
       place.push([W/2-R-4,y1,R],[W/2+R+4,y1,R],[W/2-strip/2-10-R,y2,R],[W/2+strip/2+10+R,y2,R]);
@@ -62,47 +88,65 @@ const STAGE={
     }
     return{ds,place,lanes,top,bottom:Math.max(top+120,hitB)};
   },
-  svg(L,W,H){
+  // the biggest four cello that fits a wide box: the top pair touching, the bottom pair as far out as the screen allows
+  // and as high as clears the top pair
+  cello(W,H){
+    const pad=4,side=Math.max(8,Math.min(24,W*.02)),strip=Math.min(110,W*.13),t=.94;
+    for(let R=Math.floor(Math.min(H/(2*t),W/4.2));R>30;R-=2){
+      const y1=pad+R*t,y2=Math.max(y1,H-pad-R*t),dxb=W/2-side-R;
+      if(dxb-R<strip/2+6)continue;
+      if(Math.hypot(dxb-R,(y2-y1)/t)>=2*R+6)return{R,y1,y2,place:[[W/2-R-1,y1,R],[W/2+R+1,y1,R],[W/2-dxb,y2,R],[W/2+dxb,y2,R]]};
+    }
+    return null;
+  },
+  svg(L,W,H,key){
     // take the app's own drawing of each note (shape, letter, everything the highlighting looks for) and move it into place
-    const tmp=document.createElement('div');tmp.innerHTML=PANS.map(p=>panSVG(p,false)).join('');
+    const k=key||setKey(),tmp=document.createElement('div');tmp.innerHTML=(key?SETS[key].views:PANS).map(p=>panSVG(p,false)).join('');
     const fieldEl=id=>tmp.querySelector('.field[data-field="'+CSS.escape(id)+'"]');
     let defs='';tmp.querySelectorAll('defs').forEach(d=>{defs+=d.innerHTML.replace(/id="cp-/g,'id="pfcp-')});
     const t=.94,parts=[];
-    L.ds.forEach((d,i)=>{const p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*.13;
-      parts.push('<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk*1.3)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
+    this.order(L).forEach(i=>{const d=L.ds[i],p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*this.skf(k);
+      parts.push('<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk+R*.03)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
         +'<path d="M'+f1(nx-R)+' '+f1(ny)+' V'+f1(ny+sk)+' A'+f1(R)+' '+f1(R*t)+' 0 0 0 '+f1(nx+R)+' '+f1(ny+sk)+' V'+f1(ny)+' Z" fill="url(#hgSkirt)"/>'
         +'<g data-drum="'+i+'" data-pk="'+d.key+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
         +'<circle class="rim" cx="'+d.cx+'" cy="'+d.cy+'" r="'+d.r+'"/><circle class="bed" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.965)+'"/>'
         +d.ids.map(id=>{const el=fieldEl(id);return el?el.outerHTML.replace(/url\(#cp-/g,'url(#pfcp-'):''}).join('')
         +'<circle class="hg-gloss" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.97)+'" fill="url(#hgGloss)"/></g>')});
-    const k=setKey();
-    return '<div class="pan p3d stage pfsvg pan-'+k+(isGuitar()?' pan-ec':'')+'"><svg viewBox="0 0 '+f1(W)+' '+f1(H)+'" width="'+f1(W)+'" height="'+f1(H)+'" role="img" aria-label="'+esc(curSet().name)+'">'+(defs?'<defs>'+defs+'</defs>':'')+parts.join('')+'</svg></div>';
+    return '<div class="pan p3d stage pfsvg pan-'+k+(k==='guitar'?' pan-ec':'')+'"><svg viewBox="0 0 '+f1(W)+' '+f1(H)+'" width="'+f1(W)+'" height="'+f1(H)+'" role="img" aria-label="'+esc(SETS[k].name)+'">'+(defs?'<defs>'+defs+'</defs>':'')+parts.join('')+'</svg></div>';
   },
   // upright screens with no falling lanes (Write and Studio): the same arrangement, stacked to fill the width
-  portrait(W,H,key,force){
-    const k=key||setKey(),ds=this.drumsOf(key),place=[];
+  portrait0(W,H,key,force){
+    const k=key||setKey(),ds=this.drumsOf(key),place=[],t=.94;
     // force: an upright screen's pans, even in a short wide box (Write's top half): side by side, never the sideways layout
-    if(k==='six'||(!force&&W/H>=1.15))return this.layout(W,H,key);
+    if(!force&&W/H>=1.15)return this.layout0(W,H,key);
+    if(k==='six'){   // two columns with no gap, the top pair almost touching, each row a step lower (and wider when there's room)
+      const g=2,pad=6,sp=.1,R=Math.min((W-2*g-8)/4,(H-2*pad)/(6*t+2*sp)),gy=2*R*t+R*sp,e=Math.max(0,Math.min(R*.35,(W/2-2*R-g-4)/2));
+      const y0=Math.max(pad+R*t,(H-(gy*2+2*R*t))/2+R*t);
+      [[2,0],[1,1],[0,2],[3,0],[4,1],[5,2]].forEach(([di,row])=>{place[di]=[W/2+(di<3?-1:1)*(g/2+R+e*row),y0+row*gy,R]});
+      return{ds,place};
+    }
     // two pans always side by side, as you stand at them: as big as the width allows, the same size
     if(ds.length===2){const g=Math.max(6,W*.015),R=Math.min((W-3*g)/4,(H-16)/2.3);place.push([W/2-R-g/2,H/2,R],[W/2+R+g/2,H/2,R])}
     else if(ds.length===1){const R=Math.min((W-12)/2,(H-12)/2.12);place.push([W/2,H/2,R])}
-    else{const R=Math.min((W-24)/4.1,(H-20)/4.45),st=Math.max(0,Math.min(R*.5,W/2-2*R-12));
-      place.push([W/2-R-4,H/2-R*1.1,R],[W/2+R+4,H/2-R*1.1,R],[W/2-R-4-st,H/2+R*1.12,R],[W/2+R+4+st,H/2+R*1.12,R])}
+    else{   // four cello: the top pair touching, the bottom pair just below (a little wider when there's room)
+      const R=Math.min((W-10)/4.02,(H-12)/(4*t+.1)),st=Math.max(0,Math.min(R*.5,W/2-2*R-6));
+      place.push([W/2-R-1,H/2-R*t-R*.05,R],[W/2+R+1,H/2-R*t-R*.05,R],[W/2-R-1-st,H/2+R*t+R*.05,R],[W/2+R+1+st,H/2+R*t+R*.05,R])}
     return{ds,place};
   },
   // move the notes already on screen (with everything listening to them) into the pans-first arrangement
   stageify(box,W,H,force){
     if(!box)return;const fields=[...box.querySelectorAll('.field')];if(!fields.length)return;
-    const id0=fields[0].dataset.field,key=/^(\w+):/.test(id0)?id0.split(':')[0]:'guitar';if(!SETS[key])return;
+    const id0=fields[0].dataset.field,key=/^(\w+):/.test(id0)?id0.split(':')[0]:'guitar',k=key;if(!SETS[key])return;
     W=Math.round(W);H=Math.round(H);if(W<120||H<120)return;
-    if(box.dataset.pf===W+'x'+H+key+(force?'f':'')&&box.querySelector('.pfsvg'))return;
+    const tag=W+'x'+H+key+(force?'f':'')+'v'+this.lv;
+    if(box.dataset.pf===tag&&box.querySelector('.pfsvg'))return;
     const L=this.portrait(W,H,key,force),byId=new Map(fields.map(f=>[f.dataset.field,f]));
     let defs='';box.querySelectorAll('defs').forEach(d=>defs+=d.innerHTML);
     const t=.94,ns='http://www.w3.org/2000/svg';
     const wrap=document.createElement('div');wrap.className='pan p3d stage pfsvg pan-'+key+(key==='guitar'?' pan-ec':'')+(box.querySelector('.pan.tap')?' tap':'');
     let h='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="width:'+W+'px;height:'+H+'px;max-width:none;max-height:none;min-height:0" role="img" aria-label="'+esc(SETS[key].name)+'">'+(defs?'<defs>'+defs+'</defs>':'');
-    L.ds.forEach((d,i)=>{const p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*.13;
-      h+='<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk*1.3)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
+    this.order(L).forEach(i=>{const d=L.ds[i],p=L.place[i];if(!p)return;const [nx,ny,R]=p,s=R/d.r,sk=R*this.skf(k);
+      h+='<ellipse cx="'+f1(nx)+'" cy="'+f1(ny+R*t+sk+R*.03)+'" rx="'+f1(R*.9)+'" ry="'+f1(R*.08)+'" fill="url(#hgShadow)"/>'
         +'<path d="M'+f1(nx-R)+' '+f1(ny)+' V'+f1(ny+sk)+' A'+f1(R)+' '+f1(R*t)+' 0 0 0 '+f1(nx+R)+' '+f1(ny+sk)+' V'+f1(ny)+' Z" fill="url(#hgSkirt)"/>'
         +'<g data-drum="'+i+'" data-pk="'+d.key+'" class="'+(d.own?'pan-'+d.key:'')+'" transform="translate('+f1(nx)+' '+f1(ny)+') scale('+s.toFixed(4)+' '+(s*t).toFixed(4)+') translate('+(-d.cx)+' '+(-d.cy)+')">'
         +'<circle class="rim" cx="'+d.cx+'" cy="'+d.cy+'" r="'+d.r+'"/><circle class="bed" cx="'+d.cx+'" cy="'+d.cy+'" r="'+f1(d.r*.965)+'"/></g>'});
@@ -110,7 +154,7 @@ const STAGE={
     L.ds.forEach((d,i)=>{const g=wrap.querySelector('g[data-drum="'+i+'"]');if(!g)return;
       d.ids.forEach(id=>{const f=byId.get(id);if(f)g.appendChild(f)});
       const gl=document.createElementNS(ns,'circle');gl.setAttribute('class','hg-gloss');gl.setAttribute('cx',d.cx);gl.setAttribute('cy',d.cy);gl.setAttribute('r',f1(d.r*.97));gl.setAttribute('fill','url(#hgGloss)');g.appendChild(gl)});
-    HANG.defs();box.innerHTML='';box.appendChild(wrap);box.dataset.pf=W+'x'+H+key+(force?'f':'');box.classList.add('pfbox');
+    HANG.defs();box.innerHTML='';box.appendChild(wrap);box.dataset.pf=tag;box.classList.add('pfbox');
   },
   // Write: the tap pans fill the screen width and the screen's height above the play bar
   fitWrite(){

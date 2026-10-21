@@ -837,6 +837,18 @@ html.th-cday .nb-bg-staff{background:repeating-linear-gradient(#e9e7ee 0 5px,#ad
 html.th-cday .nb-bg-grid{background:linear-gradient(#c9c6d5 1px,transparent 1px) 0 0/12px 12px,linear-gradient(90deg,#c9c6d5 1px,#e9e7ee 1px) 0 0/12px 12px}
 html.th-cday .nb-bg-flag{background:radial-gradient(circle at 30% 30%,#c51a2d,#380b12)}
 html.th-cday .nb-pgs button, html.th-cday .nb-pgs2 button{border:1px solid #c9c6d5;background:#dcd9e4;color:#1c1a23}
+html.th-cday #arOv{background:var(--bg,#f5f5f7)}
+html.th-cday #arRing{border:3px solid #dcb356;box-shadow:0 0 18px rgb(220 179 86/0.7)}
+html.th-cday #arSize{background:#dcb356;color:#ffffff}
+html.th-cday #arSheet{background:var(--surface,#ebeaf0);border-top:1px solid var(--line,#d4d2de);color:var(--text,#1c1a23)}
+html.th-cday #arSheet .ar-sets button{border:1px solid var(--line,#d4d2de)}
+html.th-cday #arSheet .ar-sets button[aria-selected=true]{background:var(--accent,#da2f41);color:#1c1a23}
+html.th-cday #arSheet .ar-hint{color:var(--muted,#70698c)}
+html.th-cday #arSheet .ar-sl label{color:var(--muted,#58526d)}
+html.th-cday #arSheet .ar-sl input{accent-color:var(--accent,#da2f41)}
+html.th-cday #arSheet .ar-reset{border:1px solid var(--line,#b6b2c7)}
+html.th-cday #arSheet .ar-done{background:var(--accent,#da2f41);color:#1c1a23}
+html.th-cday #arOv.ar-land #arSheet{background:color-mix(in srgb,var(--surface,#ebeaf0) 88%,transparent)}
 html.th-cday .wvtt p{color:var(--muted)}
 html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cday .wvview button{color:var(--muted)}
@@ -1728,6 +1740,18 @@ html.th-cnight .nb-bg-staff{background:repeating-linear-gradient(#171719 0 5px,#
 html.th-cnight .nb-bg-grid{background:linear-gradient(#38393d 1px,transparent 1px) 0 0/12px 12px,linear-gradient(90deg,#38393d 1px,#171719 1px) 0 0/12px 12px}
 html.th-cnight .nb-bg-flag{background:radial-gradient(circle at 30% 30%,#ce1126,#3a0910)}
 html.th-cnight .nb-pgs button, html.th-cnight .nb-pgs2 button{border:1px solid #38393d;background:#252528;color:#f8f7f7}
+html.th-cnight #arOv{background:var(--bg,#0a0a0b)}
+html.th-cnight #arRing{border:3px solid #f6b74d;box-shadow:0 0 18px rgb(246 183 77/0.7)}
+html.th-cnight #arSize{background:#f6b74d;color:#000000}
+html.th-cnight #arSheet{background:var(--surface,#151517);border-top:1px solid var(--line,#2c2d30);color:var(--text,#f8f7f7)}
+html.th-cnight #arSheet .ar-sets button{border:1px solid var(--line,#2c2d30)}
+html.th-cnight #arSheet .ar-sets button[aria-selected=true]{background:var(--accent,#e3263a);color:#f8f7f7}
+html.th-cnight #arSheet .ar-hint{color:var(--muted,#9c9c9c)}
+html.th-cnight #arSheet .ar-sl label{color:var(--muted,#bcbcbc)}
+html.th-cnight #arSheet .ar-sl input{accent-color:var(--accent,#e3263a)}
+html.th-cnight #arSheet .ar-reset{border:1px solid var(--line,#4e4e4e)}
+html.th-cnight #arSheet .ar-done{background:var(--accent,#e3263a);color:#f8f7f7}
+html.th-cnight #arOv.ar-land #arSheet{background:color-mix(in srgb,var(--surface,#151517) 88%,transparent)}
 html.th-cnight .wvtt p{color:var(--muted)}
 html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cnight .wvview button{color:var(--muted)}
