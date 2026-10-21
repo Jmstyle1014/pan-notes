@@ -115,6 +115,18 @@ with sync_playwright() as p:
         pg.click('#twEd [data-a=edit]');pg.wait_for_timeout(600);pg.keyboard.press('Escape');pg.wait_for_timeout(200)
         check(not E(pg,"WAVE.isOpen") and E(pg,"TW.isOpen"),name+': Escape closes the editor, not the tuning screen')
         if name=='desktop':
+            # low notes are tuned by their octave: a bass note with a faint, off fundamental and an in-tune octave
+            r=E(pg,"""()=>{const id='six:34',sr=48000,n=sr*2,x=new Float32Array(n),f=440*Math.pow(2,(34-69)/12);
+              for(let i=0;i<n;i++){const t=i/sr,e=Math.exp(-t*1.2)*Math.min(1,t*300);x[i]=e*(.03*Math.sin(2*Math.PI*f*Math.pow(2,55/1200)*t)+.6*Math.sin(2*Math.PI*2*f*Math.pow(2,4/1200)*t)+.2*Math.sin(2*Math.PI*3*f*t))}
+              const a=TW.analyse(x,sr,id);return [a.pc,a.pcFrom]}""")
+            check(r[1]=='octave' and abs(r[0]-4)<3,'low notes are tuned by their octave (%s)'%r)
+            # a new take clears that note's rough mark
+            E(pg,"id=>{const k='tenor',c=JSON.parse(localStorage.getItem('panyard-fill')||'{}');c[k]=c[k]||{on:true,skip:[]};c[k].skip=[id];localStorage.setItem('panyard-fill',JSON.stringify(c))}",ids[2])
+            E(pg,"TW.open(false)");pg.reload();pg.wait_for_timeout(2500)
+            check(E(pg,"id=>TW.skip(id)||((JSON.parse(localStorage.getItem('panyard-fill')||'{}').tenor||{}).skip||[]).includes(id)",ids[2]),'a note can be marked rough')
+            E(pg,MAKE,[[ids[2]],[0],48000]);pg.wait_for_timeout(300)
+            check(not E(pg,"id=>((JSON.parse(localStorage.getItem('panyard-fill')||'{}').tenor||{}).skip||[]).includes(id)",ids[2]),'recording a new take clears its rough mark')
+            E(pg,"TW.open(true)");pg.wait_for_timeout(300)
             # how well the noise remover works: a note with hiss under it, and a hiss-only tail to learn from
             r=E(pg,"""()=>{const sr=48000,n=sr*2,x=new Float32Array(n),f=392;let s=9;const rnd=()=>{s=(s*16807)%2147483647;return s/2147483647-.5};
               for(let i=0;i<n;i++){const t=i/sr,e=t<1.6?Math.exp(-t*2)*Math.min(1,t*500):0;x[i]=e*.6*Math.sin(2*Math.PI*f*t)+rnd()*.03}

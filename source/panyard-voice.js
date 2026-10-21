@@ -75,12 +75,13 @@ var TAKES=(()=>{
     if(add)save()}catch{}ready=true})();
   function add(id,b,how,from){
     const t=all[id]||(all[id]={list:[],cur:0});t.list.push({b,at:Date.now(),how:how||'rec',...(from?{from}:{})});t.cur=t.list.length-1;
+    if((how||'rec')==='rec'&&typeof TW!=='undefined'&&TW.unrough)TW.unrough(id);
     while(t.list.length>TAKES_MAX){const i=t.list.findIndex((_,j)=>j!==t.cur);if(i<0)break;t.list.splice(i,1);if(i<t.cur)t.cur--}
     save();return t.cur+1;
   }
   // use another take: its own trim and pitch fix start fresh (they belonged to the old take); volume, ring and tone stay
   function pick(id,i){
-    const t=all[id];if(!t||!t.list[i])return false;t.cur=i;save();
+    const t=all[id];if(!t||!t.list[i])return false;t.cur=i;save();if(typeof TW!=='undefined'&&TW.unrough)TW.unrough(id);
     SAMPLES.wav[id]=t.list[i].b;delete SAMPLES.buf[id];saveSamples();
     const T=SAMPLES.tune[id];if(T){delete T.start;delete T.end;delete T.cents;if(!Object.keys(T).length)delete SAMPLES.tune[id];saveTune()}
     sampleBuf(id);return true;
