@@ -111,7 +111,7 @@ var NOTES=(()=>{
   }
   function render(v){
     if(!v.host.isConnected||!v.host.offsetParent&&v.mode!=='full')return;
-    const p=curPg(),d=load(p.id),w=Math.max(80,v.sc.clientWidth*v.zoom),sc=w/W,h=p.h,dpr=Math.min(2.5,window.devicePixelRatio||1);
+    const p=curPg(),d=load(p.id),w=Math.max(80,v.sc.clientWidth*v.zoom),sc=w/W,h=Math.max(p.h,Math.ceil(v.sc.clientHeight/sc)),dpr=Math.min(2.5,window.devicePixelRatio||1);
     v.scale=sc;v.pg.style.width=w+'px';v.pg.style.height=Math.round(h*sc)+'px';
     const cw=Math.round(w*dpr),ch=Math.round(h*sc*dpr);if(v.cv.width!==cw||v.cv.height!==ch){v.cv.width=cw;v.cv.height=ch}
     v.cv.style.width=w+'px';v.cv.style.height=Math.round(h*sc)+'px';draw(v);layer(v);
@@ -119,7 +119,7 @@ var NOTES=(()=>{
   function draw(v){
     const p=curPg(),d=load(p.id),g=v.cv.getContext('2d'),dpr=v.cv.width/(W*v.scale);
     g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,v.cv.width,v.cv.height);g.setTransform(dpr*v.scale,0,0,dpr*v.scale,0,0);
-    drawBg(g,d,p.h);
+    drawBg(g,d,v.cv.height/dpr/v.scale);
     g.fillStyle=d.bg==='paper'?'rgba(60,60,80,.6)':'rgba(200,206,214,.6)';g.font='600 26px '+getComputedStyle(document.body).fontFamily;g.textBaseline='alphabetic';
     g.fillText(new Date(p.created).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'  ·  '+(S.title||'Practice notes'),40,64);
     const mv=v.move;d.strokes.forEach((k,i)=>drawStroke(g,k,d.bg,mv&&sel.strokes.has(i)?mv.dx:0,mv&&sel.strokes.has(i)?mv.dy:0));

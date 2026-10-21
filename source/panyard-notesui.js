@@ -7,9 +7,9 @@
   // the section chips (and Follow), the same everywhere
   function chips(box){
     const n=NOTES.chipNames(),now=NOTES.nowSec();
-    box.innerHTML=n.map(x=>'<button data-chip="'+esc(x)+'" class="'+(now&&now.toLowerCase()===x.toLowerCase()?'on':'')+'">'+esc(x)+'</button>').join('')
-      +(n.length?'':'<span class="nb-hint">Tag the parts of the song with 🏷 Section</span>')
-      +'<button class="nb-follow" data-follow aria-pressed="'+st.follow+'"><i></i>Follow</button>';
+    box.innerHTML='<button class="nb-follow" data-follow aria-pressed="'+st.follow+'"><i></i>Follow</button>'
+      +n.map(x=>'<button data-chip="'+esc(x)+'" class="'+(now&&now.toLowerCase()===x.toLowerCase()?'on':'')+'">'+esc(x)+'</button>').join('')
+      +(n.length?'':'<span class="nb-hint">Tag the parts of the song with 🏷 Section</span>');
   }
   document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('[data-chip]');if(c){NOTES.jump(c.dataset.chip,false);return}
     const f=e.target.closest&&e.target.closest('[data-follow]');if(f){st.follow=!st.follow;NOTES.keepTools();NOTES.all();if(st.follow)NOTES.follow();say(st.follow?'Your notes follow the song.':'Follow off: your notes stay where you leave them.')}});
