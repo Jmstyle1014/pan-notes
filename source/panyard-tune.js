@@ -419,5 +419,5 @@ var TW=(()=>{
   }
   // a new take (or a different take) of a note starts fresh: any "rough" mark was about the old one
   const unrough=id=>{const k=setOf(id),c=cfg(k);if(c.skip.includes(id)){c.skip=c.skip.filter(x=>x!==id);setCfg(k,c)}};
-  return {centsNow,allowed:true,open:show,decode,cleanAll,unrough,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open},get tab(){return tab}};
+  return {centsNow,allowed:true,open:show,decode,cleanAll,unrough,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open},get tab(){return tab},tabTo:t=>{if($('twSheet'))tabTo(t)}};
 })();

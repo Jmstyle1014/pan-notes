@@ -29,6 +29,10 @@ var THEME={
       +'<radialGradient id="thNightZone" cx=".34" cy=".26" r=".9"><stop offset="0" stop-color="#e9ebef"/><stop offset=".3" stop-color="#9ea2ab"/><stop offset=".62" stop-color="#5a5d65"/><stop offset=".86" stop-color="#8a6a3a"/><stop offset="1" stop-color="#3b3d43"/></radialGradient>'
       // a struck note at night: the steel lights up white-hot with a warm edge
       +'<radialGradient id="thNightHit" cx=".36" cy=".28" r=".92"><stop offset="0" stop-color="#ffffff"/><stop offset=".3" stop-color="#f1efea"/><stop offset=".7" stop-color="#c9c6bf"/><stop offset="1" stop-color="#b48b4c"/></radialGradient>'
+      // the pan's skirt and stand in each chrome look (they were the Night look's purple)
+      +'<linearGradient id="thNightSkirt" x1="0" x2="1"><stop offset="0" stop-color="#121214"/><stop offset=".16" stop-color="#4a4c53"/><stop offset=".3" stop-color="#d9dbe0"/><stop offset=".42" stop-color="#6b6e76"/><stop offset=".7" stop-color="#2b2c31"/><stop offset=".86" stop-color="#a98a55"/><stop offset="1" stop-color="#0d0d0f"/></linearGradient>'
+      +'<linearGradient id="thDaySkirt" x1="0" x2="1"><stop offset="0" stop-color="#8b879b"/><stop offset=".18" stop-color="#d9d6e3"/><stop offset=".32" stop-color="#ffffff"/><stop offset=".45" stop-color="#b9b5c8"/><stop offset=".72" stop-color="#e9e6f0"/><stop offset=".88" stop-color="#cdbf9f"/><stop offset="1" stop-color="#77738a"/></linearGradient>'
+      +'<linearGradient id="thPole" x1="0" x2="1"><stop offset="0" stop-color="#55585f"/><stop offset=".35" stop-color="#ffffff"/><stop offset=".6" stop-color="#9da1a9"/><stop offset="1" stop-color="#3b3e45"/></linearGradient>'
       +'</defs></svg>';document.body.appendChild(d)},
   // canvas colours (the falling lanes, rulers, timelines) go through the same recolouring as the styles
   memo:{},
@@ -60,7 +64,8 @@ var THEME={
   setRow(){const l=$('setList');if(!l)return;const old=l.querySelector('[data-row=day]');let r=l.querySelector('[data-row=look]');
     const name=(this.LOOKS.find(x=>x[0]===this.look())||this.LOOKS[0])[1];
     if(!r){if(!old)return;r=document.createElement('button');r.className='sxrow';r.dataset.row='look';old.replaceWith(r)}else if(old)old.remove();
-    r.innerHTML='<span class="sxic" style="background:#c9d3e6" aria-hidden="true">◐</span><span class="sxlab"><b>App look</b><small>Night, Day, Chrome Day, Chrome Night, Trinidad &amp; Tobago</small></span><span class="sxval">'+name+'</span><span class="sxchev" aria-hidden="true">›</span>'},
+    const sub=this.look()==='tt'&&typeof TT!=='undefined'?'Background: '+TT.bgName():'';
+    r.innerHTML='<span class="sxic" style="background:#c9d3e6" aria-hidden="true">◐</span><span class="sxlab"><b>App look</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="sxval">'+name+'</span><span class="sxchev" aria-hidden="true">›</span>'},
   init(){this.defs();this.apply();
     if(typeof DAY!=='undefined'){
       // html.day (the old Day) only for Day; the sun/moon flips day and night within the family you're in

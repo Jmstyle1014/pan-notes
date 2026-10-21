@@ -57,7 +57,7 @@ var TT=(()=>{
     if(!bg.startsWith('pic:')){d.style.background=(BGS[bg]||BGS.silk)[1];d.dataset.bg=BGS[bg]?bg:'silk'}
     d.style.setProperty('--ttdim',String(Math.max(0,Math.min(.8,c.dim/100))));
   }
-  function pick(bg){st.tt=Object.assign(cfg(),{bg});keep();apply();render()}
+  function pick(bg){st.tt=Object.assign(cfg(),{bg});keep();apply();render();try{THEME.setRow()}catch{}}
   function dim(v){st.tt=Object.assign(cfg(),{dim:+v});keep();apply()}
   /* the chooser, under the looks in App look */
   async function render(){
@@ -94,5 +94,6 @@ var TT=(()=>{
       +'<linearGradient id="ttPole" x1="0" x2="1"><stop offset="0" stop-color="#5b5f67"/><stop offset=".35" stop-color="#ffffff"/><stop offset=".6" stop-color="#9da1a9"/><stop offset="1" stop-color="#3b3e45"/></linearGradient>'
       +'</defs></svg>';document.body.appendChild(d)}
   setTimeout(()=>{apply();if(typeof LOOK!=='undefined')document.querySelectorAll('.pan svg').forEach(glare)},0);
-  return {apply,pick,dim,addPic,BGS,get cfg(){return cfg()},render};
+  const bgName=()=>{const b=cfg().bg;if(b.startsWith('pic:')){const i=pics?Object.keys(pics).sort((a,c)=>pics[a].at-pics[c].at).indexOf(b.slice(4)):-1;return i>=0?'Picture '+(i+1):'Your picture'}return (BGS[b]||BGS.silk)[0]};
+  return {apply,pick,dim,addPic,BGS,bgName,get cfg(){return cfg()},render};
 })();

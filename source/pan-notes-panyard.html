@@ -1547,6 +1547,11 @@ body.wb-next-sm .wbn{height:52px;min-width:56px;padding:4px 10px}body.wb-next-sm
 #nsName{display:block;width:100%;margin-top:6px;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:18px;box-sizing:border-box}
 #nsName.role-need{border-color:#ff7a7a}
 .role-go{min-height:50px;font-size:17px;margin-top:4px}
+.role-sw{display:inline-flex;margin-top:8px;padding:3px;gap:2px;border-radius:99px;border:1px solid var(--line);background:rgb(255 255 255 / .04)}
+.role-sw button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:4px 12px;border:0;border-radius:99px;background:none;color:var(--muted);font:700 13px var(--body,system-ui);cursor:pointer;white-space:nowrap}
+.role-sw button[aria-pressed="true"]{background:var(--raised);color:var(--text);box-shadow:inset 0 0 0 1px var(--gold)}
+.role-card.role-cur{border-color:var(--gold)!important}
+.role-now{font-style:normal;font-size:12px;color:var(--gold);margin-left:6px}
 .role-chip{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 12px 5px 6px;border-radius:99px;border:1px solid var(--line);background:rgb(255 255 255 / .04);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
 /* a band member sees only their pan: no Studio */
 body.band .tabs button[data-tab=studio],body.band #wbmStudio,body.band #gbWrite{display:none!important}
@@ -2490,6 +2495,11 @@ html.th-cday .role-pans button{border:1px solid var(--line);background:var(--bg)
 html.th-cday .role-pans button[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
 html.th-cday #nsName{border:1px solid var(--line);background:var(--bg);color:var(--text)}
 html.th-cday #nsName.role-need{border-color:#f54040}
+html.th-cday .role-sw{border:1px solid var(--line);background:rgb(43 41 50/0.036)}
+html.th-cday .role-sw button{color:var(--muted)}
+html.th-cday .role-sw button[aria-pressed="true"]{background:var(--raised);color:var(--text);box-shadow:inset 0 0 0 1px var(--gold)}
+html.th-cday .role-card.role-cur{border-color:var(--gold)!important}
+html.th-cday .role-now{color:var(--gold)}
 html.th-cday .role-chip{border:1px solid var(--line);background:rgb(43 41 50/0.036);color:var(--text)}
 html.th-cday #partPick .pp-h{color:var(--muted)}
 html.th-cday #partPick button{border:1px solid var(--line);background:var(--bg);color:var(--text)}
@@ -3327,6 +3337,11 @@ html.th-cnight .role-pans button{border:1px solid var(--line);background:var(--b
 html.th-cnight .role-pans button[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
 html.th-cnight #nsName{border:1px solid var(--line);background:var(--bg);color:var(--text)}
 html.th-cnight #nsName.role-need{border-color:#ff7a7a}
+html.th-cnight .role-sw{border:1px solid var(--line);background:rgb(248 247 247/0.04)}
+html.th-cnight .role-sw button{color:var(--muted)}
+html.th-cnight .role-sw button[aria-pressed="true"]{background:var(--raised);color:var(--text);box-shadow:inset 0 0 0 1px var(--gold)}
+html.th-cnight .role-card.role-cur{border-color:var(--gold)!important}
+html.th-cnight .role-now{color:var(--gold)}
 html.th-cnight .role-chip{border:1px solid var(--line);background:rgb(248 247 247/0.04);color:var(--text)}
 html.th-cnight #partPick .pp-h{color:var(--muted)}
 html.th-cnight #partPick button{border:1px solid var(--line);background:var(--bg);color:var(--text)}
@@ -3533,6 +3548,12 @@ html.th-cday .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.act
 html.th-cday .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) text{fill:#1d1930!important;stroke:none}
 html.th-cnight .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) .zone,html.th-cnight .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) :is(.pan-ec,.pan-bf) .field:is(.active,.hit,.play-hit) .zone{fill:url(#thNightHit)!important;stroke:#fffaf0!important;stroke-width:4px!important;animation:panStrike .38s var(--ease),thGlowNight .7s ease-out!important;filter:drop-shadow(0 0 8px rgb(255 240 215/.75))}
 html.th-cnight .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) text{fill:#16161a!important;stroke:none}
+/* the skirt and the stand follow the look too (Trinidad & Tobago paints its own red ones) */
+html.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg path[fill="url(#hgSkirt)"]{fill:url(#thNightSkirt)}
+html.th-cday .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg path[fill="url(#hgSkirt)"]{fill:url(#thDaySkirt)}
+html:is(.th-cday,.th-cnight) .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg :is(rect,circle)[fill="url(#hgPole)"]{fill:url(#thPole)}
+html.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg ellipse[fill="#2a2546"]{fill:#111}
+html.th-cday .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg ellipse[fill="#2a2546"]{fill:#8b879b}
 @keyframes thGlowDay{0%{filter:drop-shadow(0 0 2px rgb(255 255 255/1)) brightness(1.15)}100%{filter:drop-shadow(0 0 7px rgb(150 185 235/.85))}}
 @keyframes thGlowNight{0%{filter:drop-shadow(0 0 3px rgb(255 255 255/1)) brightness(1.25)}100%{filter:drop-shadow(0 0 8px rgb(255 240 215/.75))}}
 @media (prefers-reduced-motion:reduce){html:is(.th-cday,.th-cnight) .pan .field:is(.active,.hit,.play-hit) .zone{animation:none!important}}
@@ -4425,11 +4446,11 @@ async function initStore(){
           say('Loaded your cues from your account. This device had different cues: tap Undo in Cues to use those instead.')}
         else say(hasAudio?'Your cues are loaded.':'Your cues are loaded. Choose your recording in Setup to play along.');
         if(S.audioRef&&!(curName===S.audioRef.name&&curBlob&&curBlob.size===S.audioRef.size))loadRecordingFromAccount();
-        else if(!S.audioRef&&curBlob&&hasAudio&&curName!=='Example tones')uploadRecording(new File([curBlob],curName,{type:curBlob.type||'audio/mpeg'}));
+        else if(!S.audioRef&&curBlob&&hasAudio&&curName!=='Example tones'&&curName!=='Your part')uploadRecording(new File([curBlob],curName,{type:curBlob.type||'audio/mpeg'}));
       } else if(!isDemo){
         // first time this account is used: send up what this device has, recording included
         await pushToAccount(false);
-        if(curBlob&&hasAudio&&curName!=='Example tones')uploadRecording(new File([curBlob],curName,{type:curBlob.type||'audio/mpeg'}));
+        if(curBlob&&hasAudio&&curName!=='Example tones'&&curName!=='Your part')uploadRecording(new File([curBlob],curName,{type:curBlob.type||'audio/mpeg'}));
       }
     }
   }catch(e){if(storeMode==='account')say('Could not reach your account just now. Your cues are kept on this device.')}
@@ -6966,7 +6987,7 @@ function checkSteps(){
   const secs=parseChart(chartText()),named=S.chart&&S.chart.edited&&secs.some(s=>s.name&&!/^(Section \d+|New section)/.test(s.name));
   const s=songNow()||{};
   return [
-    {k:'rec',t:'Add the recording',ok:hasAudio,go:'Choose',act:()=>{showView('setup');setTimeout(()=>$('audioFile').closest('.panel').scrollIntoView({behavior:'smooth',block:'start'}),60)}},
+    {k:'rec',t:'Add the recording',ok:hasAudio&&curName!=='Your part',go:'Choose',act:()=>{showView('setup');setTimeout(()=>$('audioFile').closest('.panel').scrollIntoView({behavior:'smooth',block:'start'}),60)}},
     {k:'tempo',t:'Find the tempo',ok:!!S.grid,go:'Find it',act:runAutoTempo},
     {k:'cues',t:'Tap in your notes',ok:!isDemo&&S.cues.length>=8,go:'Write',act:()=>showView('cues')},
     {k:'secs',t:'Name your sections',ok:!!named,go:'Chart',act:()=>{showView($('view-part')?'part':'play');S.sheetView='chart';renderCues();setTimeout(()=>{openChartEditor();$('sheet').scrollIntoView({behavior:'smooth'})},60)}},
@@ -8689,7 +8710,7 @@ var TW=(()=>{
   }
   // a new take (or a different take) of a note starts fresh: any "rough" mark was about the old one
   const unrough=id=>{const k=setOf(id),c=cfg(k);if(c.skip.includes(id)){c.skip=c.skip.filter(x=>x!==id);setCfg(k,c)}};
-  return {centsNow,allowed:true,open:show,decode,cleanAll,unrough,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open},get tab(){return tab}};
+  return {centsNow,allowed:true,open:show,decode,cleanAll,unrough,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open},get tab(){return tab},tabTo:t=>{if($('twSheet'))tabTo(t)}};
 })();
 
 
@@ -8836,7 +8857,7 @@ var BAND=(()=>{
   {const _so=songOpen;songOpen=async function(){const r=await _so.apply(this,arguments);apply();if(open)render();return r}}
 
   /* choosing and shaping */
-  const hasRec=()=>typeof hasAudio!=='undefined'&&!!hasAudio;
+  const hasRec=()=>typeof hasAudio!=='undefined'&&!!hasAudio&&curName!=='Your part';
   function setA(a){if(hasRec())return;S.refA=a;save_();try{TUNE_A.render()}catch{}}
   function save_(){try{window.save()}catch{}}
   function use(card){
@@ -8912,6 +8933,94 @@ var BAND=(()=>{
   setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const b=forSong();if(b)o.band=b;return o};
     const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
   return {PRESETS,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
+})();
+
+/* ---------- Settings: Band sound (this song) and How you play, one tap from the list ----------
+   Each opens Pan sounds on its Sound tab, at its own card. */
+{
+  const row=(k,ic,col,label,val,sub)=>'<button class="sxrow" data-row="'+k+'"><span class="sxic" style="background:'+col+'" aria-hidden="true">'+ic+'</span><span class="sxlab"><b>'+label+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span><span class="sxval">'+val+'</span><span class="sxchev" aria-hidden="true">›</span></button>';
+  const esc2=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function add(){
+    const list=$('setList');if(!list||typeof TW==='undefined')return;const g=list.querySelectorAll('.sxgroup .sxbox');if(g.length<2)return;
+    const b=BAND.forSong(),f=FEEL.s,sens=['Off','A little','A little','A little','Some','Some','Some','A lot','A lot','Very','Very'][f.sens];
+    if(!list.querySelector('[data-row=band]'))g[0].insertAdjacentHTML('beforeend',row('band','🥁','#ff8fa3','Band sound',b?esc2(b.name||'Shaped'):'As recorded','How your pans sound in this song'));
+    if(!list.querySelector('[data-row=feel]')){const after=g[1].querySelector('[data-row=play]');const h=row('feel','👆','#7be0c3','How you play','Dynamics: '+sens,'Hit strength, roll, sound awake');if(after)after.insertAdjacentHTML('afterend',h);else g[1].insertAdjacentHTML('afterbegin',h)}
+  }
+  const _sr=SETUP.render.bind(SETUP);SETUP.render=function(){_sr();try{add()}catch(e){console.warn(e)}};
+  function openAt(id){TW.open(true);TW.tabTo('sound');setTimeout(()=>{const x=$(id);if(x)x.scrollIntoView({block:'start',behavior:'smooth'})},120)}
+  document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('#setList [data-row=band],#setList [data-row=feel]');if(!r)return;e.stopPropagation();e.preventDefault();openAt(r.dataset.row==='band'?'bandBox':'feelBox')},true);
+}
+
+/* ---------- no recording yet? ▶ plays your part ----------
+   A song with notes but no recording: the play button makes "Your part" (every note you've written, played on your
+   own pan recordings, or the built-in tone where there's none) and plays it like a recording, so the notes fall,
+   the pans light up, and loops, speed and the game all work. It is never kept as the song's recording: nothing is
+   saved, uploaded or backed up, Studio and Tuning don't use it, and choosing a real recording replaces it.
+   Change a note and the next ▶ makes it again. */
+var MYPART=(()=>{
+  const NAME='Your part';
+  const on=()=>hasAudio&&curName===NAME;
+  const can=()=>!hasAudio&&!isDemo&&S.cues.some(c=>c.steps&&c.steps.length);
+  const sig=()=>JSON.stringify(S.cues.map(c=>[c.start,c.duration,c.steps,c.mode,c.fx]))+'|'+REF_A()+'|'+Object.keys(SAMPLES.wav).length;
+  let made='',busy=false;
+  // the play bar when there's no recording
+  function ui(){
+    // a song with no notes yet has nothing to fall: the lanes step aside and the pans move up
+    document.body.classList.toggle('nolanes',!isDemo&&!S.cues.some(c=>c.steps&&c.steps.length));
+    if(hasAudio)return;const ok=can();$('playBtn').disabled=!ok;
+    $('recName').textContent=ok?NAME+' · tap ▶ to hear it':'No recording';
+  }
+  // every note, played on your recordings, into a sound file
+  async function render(){
+    const ev=BARS.events();if(!ev.length)return null;const sr=44100,end=Math.min(1200,ev.reduce((m,e)=>Math.max(m,e.t+e.d),0)+3);
+    const oc=new OfflineAudioContext(1,Math.ceil(sr*end),sr),out=oc.createGain(),cp=oc.createDynamicsCompressor();
+    out.gain.value=0.55;cp.threshold.value=-10;cp.ratio.value=4;out.connect(cp);cp.connect(oc.destination);
+    const one=(id,t,v,light)=>{
+      let src=id,sh=0;if(S.panVoice==='mine'&&(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id)))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
+      const b=S.panVoice==='mine'&&src?SAMPLES.buf[src]:null;
+      if(b){const T=BAND.tune(tuneOf(src)),e2=Math.min(b.duration,T.end??b.duration),st=Math.min(T.start,e2-.05),len=(e2-st)/Math.pow(2,sh/1200);
+        const s=oc.createBufferSource(),g=oc.createGain();s.buffer=b;s.detune.value=(T.cents||0)+refCents()+sh+BAND.cents(id);
+        const tn=toneNode(oc,T,id);if(tn){s.connect(tn);tn.connect(g)}else s.connect(g);g.connect(out);
+        const a=v*Math.pow(10,(T.db||0)/20)*(light?.7:1);
+        if(light){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.004);const e=Math.min(len,.45);g.gain.setValueAtTime(a,t+.12);g.gain.linearRampToValueAtTime(0,t+e);s.start(t,st);s.stop(t+e+.01)}
+        else{noteEnvelope(g.gain,a,t,len,T.fade,T);s.start(t,st);s.stop(t+len+.01)}
+        return}
+      // no recording for this note: the built-in tone
+      const f=pitchHz(id);if(!f)return;const ring=(light?.7:1.7)*Math.pow(261.6/f,.35);
+      for(const [mul,amp,dk] of [[1,1,1],[2,.55,.6],[3.003,.18,.35]]){const o=oc.createOscillator(),g=oc.createGain(),a=amp*v*.3,e=t+ring*dk;
+        o.frequency.value=f*mul;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(a,t+.004);g.gain.exponentialRampToValueAtTime(.0001,e);o.connect(g);g.connect(out);o.start(t);o.stop(e+.02)}
+    };
+    // your recordings first (the ones this part needs)
+    if(S.panVoice==='mine')for(const id of new Set(ev.map(e=>e.p))){const s=SAMPLES.wav[id]?id:(typeof borrowOf==='function'&&(borrowOf(id)||{}).src);if(s&&!SAMPLES.buf[s])await sampleBuf(s)}
+    for(const e of ev){
+      if(e.fx==='roll'){one(e.p,e.t,.95,false);for(let x=.07,k=0;x<e.d-.03;x+=.072,k++)one(e.p,e.t+x,.55+((k*37)%11)/50,true)}
+      else one(e.p,e.t,.95,false)}
+    const buf=await oc.startRendering();
+    return encodeWav(buf.getChannelData(0),sr);
+  }
+  async function make(){
+    if(busy)return false;busy=true;const was=on()?audio.currentTime:0;
+    try{say('Getting your part ready…');const blob=await render();if(!blob){say('Write some notes first, then ▶ plays them.');return false}
+      loadAudio(blob,NAME);made=sig();
+      await new Promise(r=>{if(audio.readyState>=1)r();else{audio.addEventListener('loadedmetadata',r,{once:true});setTimeout(r,3000)}});
+      if(was)try{audio.currentTime=was}catch{}
+      return true}
+    catch(e){console.warn(e);say('Your part couldn\'t be made. Try again.');return false}
+    finally{busy=false}
+  }
+  // ▶ with no recording (or with your part, after you changed a note): make it, then play as usual
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#playBtn');if(!b)return;
+    const stale=on()&&audio.paused&&made!==sig();if(!(can()||stale))return;
+    e.stopImmediatePropagation();e.preventDefault();make().then(ok=>{if(ok)$('playBtn').click()})},true);
+  // the play bar and the loop pill follow whether there's anything to play
+  for(const f of['renderAll','unloadAudio','renderCues'])try{const _f=window[f];if(typeof _f==='function')window[f]=function(){const r=_f.apply(this,arguments);try{ui()}catch{}return r}}catch{}
+  {const _rl=renderLoop;renderLoop=function(){_rl();const p=$('loopPill');if(p&&!hasAudio)p.hidden=true}}
+  // it is not the song's recording: the song list, Settings and the checklist still say there's none
+  {const _st=songTouch;songTouch=function(){_st();if(on()){const s=songNow();if(s){s.rec=false;songsSave()}}}}
+  {const _v=SETUP.val.bind(SETUP);SETUP.val=function(k){return k==='rec'&&on()?'None yet':_v(k)}}
+  {const st=document.createElement('style');st.textContent='html body.nolanes #view-play #lanes{display:none!important}';document.head.appendChild(st)}
+  setTimeout(()=>{try{ui()}catch{}},0);
+  return {on,can,make,ui,NAME};
 })();
 
 /* ---------- 3D pans: the tenor hangs between two stand poles; the others stand as shiny drums ---------- */
@@ -9848,7 +9957,8 @@ async function load(){
   return loading;
 }
 async function practiceLoad(){
-  if(!hasAudio||!curBlob||curName==='Example tones'){pBuf=null;pKey='';pPeaks=null;return}
+  if(!hasAudio||!curBlob||curName==='Example tones'||curName==='Your part'){pBuf=null;   // your part (no recording) isn't a recording
+    pKey='';pPeaks=null;return}
   const k=curName+'|'+curBlob.size;if(k===pKey&&pBuf)return;
   pKey=k;try{pBuf=await decode(curBlob);pPeaks=peaksOf(pBuf)}catch{pBuf=null;pPeaks=null}
 }
@@ -11598,7 +11708,8 @@ WB.init();
 // photo until your real notes sit under the outlines. The Double Guitar's photos are the ones it already had.
 var LOOK={   // var: Setup can ask about it before this part has run
   KEYS:['guitar','tenor','dsec','fcello','six'],
-  STYLES:[['night','Night'],['steel','Steel'],['painted','Painted'],['photo','My photos']],
+  STYLES:[['night','App look'],   // the usual style: it takes the app look's colours (Night, Chrome Night, Trinidad & Tobago...)
+  ['steel','Steel'],['painted','Painted'],['photo','My photos']],
   NAMES:[['oct','Letters + octaves'],['plain','Letters'],['none','Hidden']],
   HITS:['','#ffd166','#7be07b','#ff8fc7','#8fc7ff','#ffffff'],
   GUITAR_COL:{ec:'#e0824f',bf:'#3c9fa6'},
@@ -11797,7 +11908,12 @@ var ROLE={   // var: Home can ask about it before this part has run
   SECTIONS:{front:{name:'Frontline',sub:'The melody: Tenor or Double Seconds',pans:['tenor','dsec']},
             back:{name:'Backline',sub:'The harmony and bass: Double Guitar, Four Cello or Six Bass',pans:['guitar','fcello','six']}},
   get(){try{const x=JSON.parse(localStorage.getItem('panyard-role')||'null');if(x&&(x.role==='producer'||(x.role==='band'&&SETS[x.pan])))return x}catch{}return null},
-  put(x){try{localStorage.setItem('panyard-role',JSON.stringify(x))}catch{}},
+  // the last band pan is kept while you're a Producer, so the switch on Home can go straight back to it
+  put(x){const o=this.get(),last=x.role==='band'?x.pan:(o&&(o.pan||o.lastPan));if(last&&SETS[last])x.lastPan=last;try{localStorage.setItem('panyard-role',JSON.stringify(x))}catch{}},
+  lastPan(){const r=this.get();const k=r&&(r.pan||r.lastPan);return k&&SETS[k]?k:null},
+  // the quick switch on Home
+  toProducer(){if(!this.band())return;this.put({role:'producer'});this.apply();say('Producer: everything is open. Studio, every pan, tuning and mixing.')},
+  toBand(){const k=this.lastPan();if(!k){this.open('section');return}if(this.band())return;this.put({role:'band',pan:k});this.apply(true);say('Band member: just your '+SETS[k].name+'. Studio is hidden.')},
   band(){const r=this.get();return !!(r&&r.role==='band')},
   pan(){const r=this.get();return r&&r.role==='band'?r.pan:null},
   sectionOf(k){return Object.keys(this.SECTIONS).find(s=>this.SECTIONS[s].pans.includes(k))},
@@ -11822,13 +11938,13 @@ var ROLE={   // var: Home can ask about it before this part has run
   },
   open(step){const ov=this.sheet();ov.hidden=false;this.step(step||'who')},
   close(){const ov=$('roleSheet');if(ov){ov.hidden=true;ov.innerHTML=''}},
-  card(r,v,ic,title,sub){return '<button class="role-card" data-r="'+r+'"'+(v?' data-v="'+v+'"':'')+'>'+ic+'<span><b>'+title+'</b><small>'+sub+'</small></span><i aria-hidden="true">›</i></button>'},
+  card(r,v,ic,title,sub,now){return '<button class="role-card'+(now?' role-cur':'')+'" data-r="'+r+'"'+(v?' data-v="'+v+'"':'')+(now?' aria-current="true"':'')+'>'+ic+'<span><b>'+title+(now?' <em class="role-now">✓ Now</em>':'')+'</b><small>'+sub+'</small></span><i aria-hidden="true">›</i></button>'},
   step(s){
     const ov=this.sheet(),r=this.get();let h='';
     const top=(t,p,back)=>'<div class="role-top">'+(back?'<button class="iconbtn" data-r="back" data-to="'+back+'" aria-label="Back">‹</button>':'')+'<div><h2 id="roleT">'+t+'</h2>'+(p?'<p>'+p+'</p>':'')+'</div>'+(r&&s!=='new'?'<button class="mini" data-r="close">Close</button>':'')+'</div>';
     if(s==='who')h=top('Who’s playing today?','You can change this any time from Home.')
-      +this.card('producer','','<span class="role-ic" style="background:#ffd166">🎛</span>','Producer','Make music. Studio, every pan, tuning and mixing.')
-      +this.card('band','','<span class="role-ic" style="background:#8fc7ff">🥁</span>','Band member','Just your pan. Learn your part and play along.');
+      +this.card('producer','','<span class="role-ic" style="background:#ffd166">🎛</span>','Producer','Make music. Studio, every pan, tuning and mixing. Everything is open.',r&&r.role==='producer')
+      +this.card('band','','<span class="role-ic" style="background:#8fc7ff">🥁</span>','Band member',(r&&r.role==='band'?'Your '+esc(SETS[r.pan].name)+'. Tap to change pan. ':'Just your pan. ')+'Learn your part and play along. Studio and the other pans are hidden.',r&&r.role==='band');
     else if(s==='section')h=top('Which section do you play in?','',  'who')
       +Object.entries(this.SECTIONS).map(([k,x])=>this.card('section',k,'<span class="role-ics">'+x.pans.map(p=>HOME.mini(p,30)).join('')+'</span>',x.name,x.sub)).join('');
     else if(s==='pan'){const x=this.SECTIONS[this.sec||'front'];
@@ -11863,6 +11979,7 @@ var ROLE={   // var: Home can ask about it before this part has run
     }
     try{LOOK.tab=null;LOOK.renderPanel()}catch{}
     try{SETUP.render()}catch{}try{HOME.render()}catch{}
+    try{PARTS.refresh()}catch{}   // the Chart's Arrangement is for a Producer
   },
   init(){
     this.songNew0=songNew;songNew=()=>this.open('new');
@@ -11872,8 +11989,10 @@ var ROLE={   // var: Home can ask about it before this part has run
       if(band){keep=SONGS.list;SONGS.list=SONGS.list.filter(s=>s.id===SONGS.active||!s.pan||s.pan===r.pan)}
       try{_r()}finally{if(keep)SONGS.list=keep}
       const top=document.querySelector('#view-home .hm-top>div');if(!top||!r)return;
-      const b=document.createElement('button');b.className='role-chip';b.id='roleChip';b.setAttribute('aria-label','Change who’s playing');
-      b.innerHTML=band?HOME.mini(r.pan,20)+esc(SETS[r.pan].name)+' · Band':'🎛 Producer';top.appendChild(b);b.onclick=()=>ROLE.open('who');
+      // a two-way switch: Producer or your pan (tap your pan again to choose another)
+      const lp=ROLE.lastPan(),b=document.createElement('div');b.className='role-sw';b.id='roleChip';b.setAttribute('role','group');b.setAttribute('aria-label','Who’s playing');
+      b.innerHTML='<button data-rs="p" aria-pressed="'+!band+'">🎛 Producer</button><button data-rs="b" aria-pressed="'+band+'">'+(lp?HOME.mini(lp,18)+esc(SETS[lp].name):'🥁 Band member')+'</button>';
+      top.appendChild(b);b.onclick=e=>{const x=e.target.closest('[data-rs]');if(!x)return;if(x.dataset.rs==='p')ROLE.toProducer();else if(band)ROLE.open('section');else ROLE.toBand()};
       if(band){const j=$('hmJust');if(j)j.lastChild.textContent='Practise'}
       // the example song is for the Double Guitar: a band member on another pan gets their first song instead
       const card=document.querySelector('#view-home .hm-card');
@@ -11927,8 +12046,9 @@ var PARTS={   // var: other parts of the app can ask about it before this has ru
   part(){return this.cur?this.list.find(p=>p.id===this.cur)||null:null},
   async refresh(){
     try{this.list=typeof STUDIO!=='undefined'&&STUDIO.parts?await STUDIO.parts():[]}catch{this.list=[]}
-    try{ARR.data=typeof STUDIO!=='undefined'&&STUDIO.arrangementData?STUDIO.arrangementData():null}catch{ARR.data=null}
-    if(this.cur==='__arr'?!ARR.data:this.cur&&!this.part())this.cur=null;this.renderPick();
+    // the whole band's arrangement is a Producer's (it comes from Studio): a band member sees their own part
+    try{ARR.data=typeof STUDIO!=='undefined'&&STUDIO.arrangementData&&!(typeof ROLE!=='undefined'&&ROLE.band())?STUDIO.arrangementData():null}catch{ARR.data=null}
+    const was=this.cur;if(this.cur==='__arr'?!ARR.data:this.cur&&!this.part())this.cur=null;this.renderPick();if(was==='__arr'&&!this.cur)try{renderCues()}catch{}
   },
   // the song's sections, from your own chart; every 8 bars when there aren't any
   sections(){
@@ -11976,7 +12096,7 @@ var PARTS={   // var: other parts of the app can ask about it before this has ru
     let bar=$('partPick');const sheet=$('sheet');if(!sheet)return;
     if(!bar){bar=document.createElement('div');bar.id='partPick';bar.setAttribute('role','group');bar.setAttribute('aria-label','Which part');sheet.parentNode.insertBefore(bar,sheet);
       bar.addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(!b)return;this.pick(b.dataset.part||null)})}
-    bar.hidden=!this.list.length&&!ARR.data;if(bar.hidden)return;
+    bar.hidden=!this.list.length&&!ARR.data;if(bar.hidden){bar.innerHTML='';return}
     bar.innerHTML=[null,...this.list].map(p=>'<button data-part="'+(p?p.id:'')+'" aria-pressed="'+((p?p.id:null)===this.cur)+'">'+(p?HOME.mini(p.panSet,22):HOME.mini(setKey(),22))+'<span>'+this.label(p)+'</span></button>').join('')
       +(ARR.data?'<button data-part="__arr" class="pp-arr" aria-pressed="'+(this.cur==='__arr')+'"><span class="pp-ic" aria-hidden="true">♫</span><span>Arrangement <small>'+ARR.data.secs.length+' sections</small></span></button>':'');
   },
@@ -12652,6 +12772,10 @@ var THEME={
       +'<radialGradient id="thNightZone" cx=".34" cy=".26" r=".9"><stop offset="0" stop-color="#e9ebef"/><stop offset=".3" stop-color="#9ea2ab"/><stop offset=".62" stop-color="#5a5d65"/><stop offset=".86" stop-color="#8a6a3a"/><stop offset="1" stop-color="#3b3d43"/></radialGradient>'
       // a struck note at night: the steel lights up white-hot with a warm edge
       +'<radialGradient id="thNightHit" cx=".36" cy=".28" r=".92"><stop offset="0" stop-color="#ffffff"/><stop offset=".3" stop-color="#f1efea"/><stop offset=".7" stop-color="#c9c6bf"/><stop offset="1" stop-color="#b48b4c"/></radialGradient>'
+      // the pan's skirt and stand in each chrome look (they were the Night look's purple)
+      +'<linearGradient id="thNightSkirt" x1="0" x2="1"><stop offset="0" stop-color="#121214"/><stop offset=".16" stop-color="#4a4c53"/><stop offset=".3" stop-color="#d9dbe0"/><stop offset=".42" stop-color="#6b6e76"/><stop offset=".7" stop-color="#2b2c31"/><stop offset=".86" stop-color="#a98a55"/><stop offset="1" stop-color="#0d0d0f"/></linearGradient>'
+      +'<linearGradient id="thDaySkirt" x1="0" x2="1"><stop offset="0" stop-color="#8b879b"/><stop offset=".18" stop-color="#d9d6e3"/><stop offset=".32" stop-color="#ffffff"/><stop offset=".45" stop-color="#b9b5c8"/><stop offset=".72" stop-color="#e9e6f0"/><stop offset=".88" stop-color="#cdbf9f"/><stop offset="1" stop-color="#77738a"/></linearGradient>'
+      +'<linearGradient id="thPole" x1="0" x2="1"><stop offset="0" stop-color="#55585f"/><stop offset=".35" stop-color="#ffffff"/><stop offset=".6" stop-color="#9da1a9"/><stop offset="1" stop-color="#3b3e45"/></linearGradient>'
       +'</defs></svg>';document.body.appendChild(d)},
   // canvas colours (the falling lanes, rulers, timelines) go through the same recolouring as the styles
   memo:{},
@@ -12683,7 +12807,8 @@ var THEME={
   setRow(){const l=$('setList');if(!l)return;const old=l.querySelector('[data-row=day]');let r=l.querySelector('[data-row=look]');
     const name=(this.LOOKS.find(x=>x[0]===this.look())||this.LOOKS[0])[1];
     if(!r){if(!old)return;r=document.createElement('button');r.className='sxrow';r.dataset.row='look';old.replaceWith(r)}else if(old)old.remove();
-    r.innerHTML='<span class="sxic" style="background:#c9d3e6" aria-hidden="true">◐</span><span class="sxlab"><b>App look</b><small>Night, Day, Chrome Day, Chrome Night, Trinidad &amp; Tobago</small></span><span class="sxval">'+name+'</span><span class="sxchev" aria-hidden="true">›</span>'},
+    const sub=this.look()==='tt'&&typeof TT!=='undefined'?'Background: '+TT.bgName():'';
+    r.innerHTML='<span class="sxic" style="background:#c9d3e6" aria-hidden="true">◐</span><span class="sxlab"><b>App look</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="sxval">'+name+'</span><span class="sxchev" aria-hidden="true">›</span>'},
   init(){this.defs();this.apply();
     if(typeof DAY!=='undefined'){
       // html.day (the old Day) only for Day; the sun/moon flips day and night within the family you're in
@@ -12773,7 +12898,7 @@ var TT=(()=>{
     if(!bg.startsWith('pic:')){d.style.background=(BGS[bg]||BGS.silk)[1];d.dataset.bg=BGS[bg]?bg:'silk'}
     d.style.setProperty('--ttdim',String(Math.max(0,Math.min(.8,c.dim/100))));
   }
-  function pick(bg){st.tt=Object.assign(cfg(),{bg});keep();apply();render()}
+  function pick(bg){st.tt=Object.assign(cfg(),{bg});keep();apply();render();try{THEME.setRow()}catch{}}
   function dim(v){st.tt=Object.assign(cfg(),{dim:+v});keep();apply()}
   /* the chooser, under the looks in App look */
   async function render(){
@@ -12810,7 +12935,8 @@ var TT=(()=>{
       +'<linearGradient id="ttPole" x1="0" x2="1"><stop offset="0" stop-color="#5b5f67"/><stop offset=".35" stop-color="#ffffff"/><stop offset=".6" stop-color="#9da1a9"/><stop offset="1" stop-color="#3b3e45"/></linearGradient>'
       +'</defs></svg>';document.body.appendChild(d)}
   setTimeout(()=>{apply();if(typeof LOOK!=='undefined')document.querySelectorAll('.pan svg').forEach(glare)},0);
-  return {apply,pick,dim,addPic,BGS,get cfg(){return cfg()},render};
+  const bgName=()=>{const b=cfg().bg;if(b.startsWith('pic:')){const i=pics?Object.keys(pics).sort((a,c)=>pics[a].at-pics[c].at).indexOf(b.slice(4)):-1;return i>=0?'Picture '+(i+1):'Your picture'}return (BGS[b]||BGS.silk)[0]};
+  return {apply,pick,dim,addPic,BGS,bgName,get cfg(){return cfg()},render};
 })();
 
 /* ---------- the phone's back button ----------
