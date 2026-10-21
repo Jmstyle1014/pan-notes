@@ -59,3 +59,40 @@ const takeCap=id=>{const m=midiOf(PITCH[id]||'C4');return m<48?6:m<60?4:2.5};
   b.innerHTML='<span class="sxic" style="background:#ff8a5c" aria-hidden="true">🎛</span><span class="sxlab"><b>Tune my pans</b><small>Tune, level and edit each recorded note</small></span><span class="sxval"></span><span class="sxchev" aria-hidden="true">›</span>';
   sound.after(b)};
  document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('#setList [data-row=tunemy]');if(!r)return;e.stopPropagation();TW.open(true)},true)}
+
+/* ---------- every take of every note is kept: pick the best one later (Tune my pans → Takes) ----------
+   A new recording (or a file, or a sound-editor edit) is added as a take and becomes the one in use; earlier takes
+   stay. The one in use is always SAMPLES.wav[id], so playing, tuning and backups work as before. Up to TAKES_MAX per
+   note: past that the oldest take not in use goes. Kept in IndexedDB 'sampleTakes' (Google Drive backup copies it). */
+const TAKES_MAX=6;
+var TAKES=(()=>{
+  const all={};let ready=false;
+  const save=()=>idbPut('sampleTakes',all);
+  const ofId=id=>all[id]||null;
+  // loaded straight from storage, so recordings made before takes were kept become take 1
+  (async()=>{try{const t=await idbGet('sampleTakes');if(t&&typeof t==='object')for(const [k,v] of Object.entries(t))if(FIELDS.has(k)&&v&&Array.isArray(v.list)){
+      const list=v.list.filter(x=>x&&x.b instanceof Blob),prev=all[k];   // a take recorded while this was loading goes after the stored ones
+      if(list.length)all[k]=prev?{list:list.concat(prev.list),cur:list.length+prev.cur}:{list,cur:Math.max(0,Math.min(list.length-1,+v.cur||0))}}
+    const s=await idbGet('samples');let add=false;
+    if(s&&typeof s==='object')for(const [k,b] of Object.entries(s))if(FIELDS.has(k)&&b instanceof Blob&&!all[k]){all[k]={list:[{b,at:0,how:'rec'}],cur:0};add=true}
+    if(add)save()}catch{}ready=true})();
+  function add(id,b,how,from){
+    const t=all[id]||(all[id]={list:[],cur:0});t.list.push({b,at:Date.now(),how:how||'rec',...(from?{from}:{})});t.cur=t.list.length-1;
+    while(t.list.length>TAKES_MAX){const i=t.list.findIndex((_,j)=>j!==t.cur);if(i<0)break;t.list.splice(i,1);if(i<t.cur)t.cur--}
+    save();return t.cur+1;
+  }
+  // use another take: its own trim and pitch fix start fresh (they belonged to the old take); volume, ring and tone stay
+  function pick(id,i){
+    const t=all[id];if(!t||!t.list[i])return false;t.cur=i;save();
+    SAMPLES.wav[id]=t.list[i].b;delete SAMPLES.buf[id];saveSamples();
+    const T=SAMPLES.tune[id];if(T){delete T.start;delete T.end;delete T.cents;if(!Object.keys(T).length)delete SAMPLES.tune[id];saveTune()}
+    sampleBuf(id);return true;
+  }
+  function drop(id,i){
+    const t=all[id];if(!t||!t.list[i])return;const was=i===t.cur;t.list.splice(i,1);
+    if(!t.list.length){delete all[id];save();delete SAMPLES.wav[id];delete SAMPLES.buf[id];delete SAMPLES.tune[id];saveSamples();saveTune();return}
+    if(i<t.cur)t.cur--;if(was){t.cur=t.list.length-1;pick(id,t.cur)}else save();
+  }
+  return {add,pick,drop,list:id=>(ofId(id)||{list:[]}).list,cur:id=>(ofId(id)||{cur:-1}).cur,count:id=>(ofId(id)||{list:[]}).list.length,
+    curTake:id=>{const t=ofId(id);return t?t.list[t.cur]:null},get ready(){return ready}};
+})();

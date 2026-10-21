@@ -61,8 +61,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   backed up (`CLOUD.SKIP`).
 - **Recorded pan notes:** `SAMPLES.wav` (IndexedDB `samples`) holds each note's take, 24-bit WAV for new takes (old
   16-bit ones still play). `SAMPLES.tune[id]` holds the settings on top of it (start, end, db, fade, cents, ring, tone),
-  per sound profile. The sound editor (`panyard-wave.js`) rewrites the take itself and keeps the untouched one in
-  IndexedDB `samplesOrig` (this phone only) for "Back to the original". Test with `ttw`.
+  per sound profile. Every take of every note is kept in IndexedDB `sampleTakes` (`TAKES`, up to 6 per note; the
+  one in use is always `SAMPLES.wav[id]`). A sound-editor save (`panyard-wave.js`) is a new take, and "Back to the
+  original" picks the take it came from (`samplesOrig` is only for edits made before takes were kept). Google Drive
+  backup copies all of IndexedDB, takes included; the backup file has only the takes in use. Test with `ttw`.
 - **App looks** (`panyard-themes.js`, `make_themes.py`): Night and Day are the original looks (Day is a CSS
   invert); Chrome Day and Chrome Night recolour every style at build time. New canvas drawing code should use
   `THEME.c('#colour')` so it follows the look.

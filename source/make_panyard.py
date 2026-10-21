@@ -143,7 +143,8 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
 # your recorded notes: Ring and Tone per note, 24-bit takes, longer bass notes (before the workshop, which uses them)
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-voice.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('end=Math.min(x.length,end+Math.round(sr*0.05),start+Math.round(sr*2.5));', 'end=Math.min(x.length,end+Math.round(sr*0.05),start+Math.round(sr*takeCap(id)));')
-rep('SAMPLES.wav[id]=encodeWav(y,sr);delete SAMPLES.buf[id];saveSamples();', 'SAMPLES.wav[id]=encodeWav24(y,sr);delete SAMPLES.buf[id];saveSamples();if(typeof WAVE!=="undefined")WAVE.forget(id);')
+rep('SAMPLES.wav[id]=encodeWav(y,sr);delete SAMPLES.buf[id];saveSamples();', 'SAMPLES.wav[id]=encodeWav24(y,sr);delete SAMPLES.buf[id];saveSamples();if(typeof WAVE!=="undefined")WAVE.forget(id);const takeN=TAKES.add(id,SAMPLES.wav[id],"rec");')
+rep("recMsg('Saved '+want+'.'", "recMsg('Saved '+want+(takeN>1?' as take '+takeN+' (your earlier takes are kept: pick the best in Tune my pans)':'')+'.'")
 # the Tuning workshop goes in before Studio, whose ⋯ menu offers it
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-wave.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-tune.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')

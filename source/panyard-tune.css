@@ -114,3 +114,18 @@ body.tw-open #gdToast{display:none!important}
 .twhow h3{margin:0 0 6px}
 .twhow p{margin:0 0 8px;font-size:.88rem;color:var(--muted)}
 .twhow b{color:var(--text)}
+/* every take of the chosen note */
+.twtakes{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:10px}
+.twtkh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.twtkh small{flex:1 1 140px;font-size:.72rem;color:var(--muted)}
+.twtkh .btn{min-height:36px}
+.twtk{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:12px;border:1px solid transparent}
+.twtk.on{background:var(--raised);border-color:var(--line)}
+.twtkp,.twtkx{flex:none;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer}
+.twtkx{border-color:transparent;background:none;opacity:.7}
+.twtki{flex:1;min-width:0;display:flex;flex-direction:column}
+.twtki b{font-size:.88rem}
+.twtki small{font-size:.72rem;color:var(--muted)}
+.twtki em{font-style:normal;font-weight:700}.twtki em.ok{color:#5fe0a0}.twtki em.mid{color:var(--gold)}.twtki em.bad{color:var(--danger)}
+.twtkon{flex:none;font-size:.72rem;font-weight:700;color:var(--gold);padding:0 6px}
+.twtk .btn{min-height:36px;padding:0 12px}
