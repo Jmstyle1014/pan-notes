@@ -247,6 +247,7 @@ var TW=(()=>{
       if(s.kind!=='own')h+='<p class="twhint">You marked this recording rough, so '+nice(id)+' plays '+nice(s.src)+'\'s recording right now. Its settings below still belong to your own take.</p>';
       h+='<div class="twsls">'+SL.map(([k,l,sb,mn,mx,stp,ends])=>{const v=+(T[k]||0);return '<div class="twsl"><label for="twS-'+k+'">'+l+(sb?'<small>'+sb+'</small>':'')+'</label><input type="range" id="twS-'+k+'" data-k="'+k+'" min="'+mn+'" max="'+mx+'" step="'+stp+'" value="'+v+'"><output id="twO-'+k+'">'+slVal(k,v)+'</output><div class="twends"><span>'+ends[0]+'</span><span>'+ends[1]+'</span></div></div>'}).join('')+'</div>';
       h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button><button class="btn" data-a="raw">▶ As recorded</button><button class="btn twrec" data-a="rec">● Record</button><button class="btn" data-a="reset"'+(SAMPLES.tune[id]?'':' disabled')+'>↺ Reset</button></div>';
+      h+=takesHTML(id);
       h+='<button class="btn twedit" data-a="edit">〰 Edit the sound<small>trim, cut noise, fade, level'+(typeof WAVE!=='undefined'&&WAVE.edited(id)?' · edited':'')+'</small></button>';
       const fs=famOf(id).length-1;
       h+='<p class="twsrc">'+(fs>0?'Its family: '+fs+' more note'+(fs===1?'':'s')+' made from it, outlined on the pan. They follow these settings.':'No other notes are made from it'+(cfg(setOf(id)).on?'.':' (Fill the gaps is off, under ⋯ More).'))+'</p>';
@@ -258,6 +259,31 @@ var TW=(()=>{
       h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button><button class="btn twrec" data-a="rec">● Record this note</button></div>';
     }
     box.innerHTML=h;
+  }
+  /* every take of this note (TAKES): play, use, delete, or let it pick the cleanest */
+  const TKR=new WeakMap(),tkBusy=new Set();
+  const when=at=>!at?'from before takes were kept':new Date(at).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  async function tkRead(id,t){if(TKR.has(t.b))return TKR.get(t.b);let r;try{const {x,sr}=await decode(t.b);r=analyse(x,sr,id)}catch{r={ok:false}}TKR.set(t.b,r);return r}
+  function takesHTML(id){
+    if(typeof TAKES==='undefined')return '';const tk=TAKES.list(id),cur=TAKES.cur(id);if(!tk.length)return '';
+    const need=tk.filter(t=>!TKR.has(t.b));if(need.length&&!tkBusy.has(id)){tkBusy.add(id);(async()=>{for(const t of need)await tkRead(id,t);tkBusy.delete(id);if(open&&sel===id)ed()})()}
+    return '<div class="twtakes"><div class="twtkh"><b>Takes · '+tk.length+'</b><small>every recording of '+nice(id)+' is kept'+(tk.length>=TAKES_MAX?' (up to '+TAKES_MAX+')':'')+'</small>'
+      +(tk.length>1?'<button class="btn" data-a="tbest">★ Pick the best</button>':'')+'</div>'
+      +tk.map((t,i)=>{const r=TKR.get(t.b),on=i===cur,q=r&&r.ok?quality(r.score):null;
+        return '<div class="twtk'+(on?' on':'')+'"><button class="twtkp" data-a="tplay" data-v="'+i+'" aria-label="Play take '+(i+1)+'">▶</button>'
+          +'<span class="twtki"><b>Take '+(i+1)+(t.how==='edit'?' · edited':'')+'</b><small>'+when(t.at)+' · '+(!r?'listening…':!r.ok?'too quiet to read':'<em class="'+q[0]+'">'+q[1]+'</em>'+(r.pc!=null?' · '+fmt(r.pc)+' as recorded':''))+'</small></span>'
+          +(on?'<span class="twtkon">In use</span>':'<button class="btn" data-a="tuse" data-v="'+i+'">Use</button>')
+          +'<button class="twtkx" data-a="tdel" data-v="'+i+'" aria-label="Delete take '+(i+1)+'">🗑</button></div>'}).join('')+'</div>';
+  }
+  async function takeAct(a,id,i){
+    const tk=TAKES.list(id),t=tk[i];
+    if(a==='tplay'){if(!t)return;const ac=panCtx();if(!ac)return;try{const buf=await new Promise((res,rej)=>{t.b.arrayBuffer().then(ab=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)},rej)});const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.9;s.buffer=buf;s.connect(g);g.connect(pBus);s.start()}catch{msg('That take couldn\'t be played.')}return}
+    if(a==='tuse'){if(!TAKES.pick(id,i))return;mineOn();await sampleBuf(id);changed();msg('Take '+(i+1)+' of '+nice(id)+' is in use now. Its pitch is read fresh: tap Fix it if it needs tuning.');listen();setTimeout(()=>{try{strike(id,.95)}catch{}},60);return}
+    if(a==='tdel'){if(!t||!confirm('Delete take '+(i+1)+' of '+nice(id)+'? This can\'t be undone.'+(tk.length===1?' It\'s the only take, so '+nice(id)+' will be unrecorded.':'')))return;TAKES.drop(id,i);changed();msg('Take deleted.');return}
+    if(a==='tbest'){msg('Listening to every take…');let best=-1,bs=-1;for(let j=0;j<tk.length;j++){const r=await tkRead(id,tk[j]);if(r&&r.ok&&r.score>bs){bs=r.score;best=j}}
+      if(best<0){msg('Couldn\'t read any take clearly.');return}
+      if(best===TAKES.cur(id)){msg('Take '+(best+1)+' is already the cleanest, and it\'s in use.');ed();return}
+      await takeAct('tuse',id,best);msg('Take '+(best+1)+' sounds cleanest, so it\'s in use now. Tap Fix it if it needs tuning.')}
   }
   let slT=0;
   function onSlide(e){const k=e.target.dataset.k;if(!k||!sel)return;const v=+e.target.value;setT(sel,{[k]:v});$('twO-'+k).textContent=slVal(k,v);
@@ -274,6 +300,7 @@ var TW=(()=>{
     else if(a==='rec'){back=true;show(false);recSel=id;openRec(true);if(setOf(id)!==setKey())recMsg('Recording '+nice(id)+' for the '+SETS[setOf(id)].name+'. The pans shown are this song\'s; your take is kept with the '+SETS[setOf(id)].name+'.')}
     else if(a==='src')pick(b.dataset.v,true);
     else if(a==='edit'&&typeof WAVE!=='undefined')WAVE.open(id);
+    else if(a[0]==='t'&&['tplay','tuse','tdel','tbest'].includes(a))takeAct(a,id,+b.dataset.v);
   }
   function setT(id,patch){const t=Object.assign({},SAMPLES.tune[id]||{},patch);for(const k of['cents','db','ring','tone'])if(k in t&&!+t[k])delete t[k];
     if(Object.keys(t).length)SAMPLES.tune[id]=t;else delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}}
@@ -340,5 +367,5 @@ var TW=(()=>{
       r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
     return r.pc!=null?r.pc:null;
   }
-  return {centsNow,allowed:true,open:show,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
+  return {centsNow,allowed:true,open:show,decode,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();

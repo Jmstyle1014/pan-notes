@@ -1731,6 +1731,21 @@ body.tw-open #gdToast{display:none!important}
 .twhow h3{margin:0 0 6px}
 .twhow p{margin:0 0 8px;font-size:.88rem;color:var(--muted)}
 .twhow b{color:var(--text)}
+/* every take of the chosen note */
+.twtakes{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:10px}
+.twtkh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.twtkh small{flex:1 1 140px;font-size:.72rem;color:var(--muted)}
+.twtkh .btn{min-height:36px}
+.twtk{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:12px;border:1px solid transparent}
+.twtk.on{background:var(--raised);border-color:var(--line)}
+.twtkp,.twtkx{flex:none;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer}
+.twtkx{border-color:transparent;background:none;opacity:.7}
+.twtki{flex:1;min-width:0;display:flex;flex-direction:column}
+.twtki b{font-size:.88rem}
+.twtki small{font-size:.72rem;color:var(--muted)}
+.twtki em{font-style:normal;font-weight:700}.twtki em.ok{color:#5fe0a0}.twtki em.mid{color:var(--gold)}.twtki em.bad{color:var(--danger)}
+.twtkon{flex:none;font-size:.72rem;font-weight:700;color:var(--gold);padding:0 6px}
+.twtk .btn{min-height:36px;padding:0 12px}
 /* ---------- the sound editor (Tune my pans → Edit the sound) ---------- */
 .wv{z-index:25}
 .wv .wvbox{max-width:1100px;max-height:96dvh;overflow:auto;gap:10px}
@@ -2505,6 +2520,15 @@ html.th-cday .twmsg{color:var(--muted)}
 html.th-cday .twhow{background:var(--raised);border:1px solid var(--line);box-shadow:0 12px 40px rgb(31 26 41/0.27)}
 html.th-cday .twhow p{color:var(--muted)}
 html.th-cday .twhow b{color:var(--text)}
+html.th-cday .twtakes{border-top:1px solid var(--line)}
+html.th-cday .twtkh small{color:var(--muted)}
+html.th-cday .twtk.on{background:var(--raised);border-color:var(--line)}
+html.th-cday .twtkp, html.th-cday .twtkx{border:1px solid var(--line);background:var(--surface);color:var(--text)}
+html.th-cday .twtki small{color:var(--muted)}
+html.th-cday .twtki em.ok{color:#37ce83}
+html.th-cday .twtki em.mid{color:var(--gold)}
+html.th-cday .twtki em.bad{color:var(--danger)}
+html.th-cday .twtkon{color:var(--gold)}
 html.th-cday .wvtt p{color:var(--muted)}
 html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cday .wvview button{color:var(--muted)}
@@ -3300,6 +3324,15 @@ html.th-cnight .twmsg{color:var(--muted)}
 html.th-cnight .twhow{background:var(--raised);border:1px solid var(--line);box-shadow:0 12px 40px rgb(0 0 0/0.6)}
 html.th-cnight .twhow p{color:var(--muted)}
 html.th-cnight .twhow b{color:var(--text)}
+html.th-cnight .twtakes{border-top:1px solid var(--line)}
+html.th-cnight .twtkh small{color:var(--muted)}
+html.th-cnight .twtk.on{background:var(--raised);border-color:var(--line)}
+html.th-cnight .twtkp, html.th-cnight .twtkx{border:1px solid var(--line);background:var(--surface);color:var(--text)}
+html.th-cnight .twtki small{color:var(--muted)}
+html.th-cnight .twtki em.ok{color:#5fe0a0}
+html.th-cnight .twtki em.mid{color:var(--gold)}
+html.th-cnight .twtki em.bad{color:var(--danger)}
+html.th-cnight .twtkon{color:var(--gold)}
 html.th-cnight .wvtt p{color:var(--muted)}
 html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cnight .wvview button{color:var(--muted)}
@@ -6059,12 +6092,12 @@ function storeTake(id,x,sr){
   end=Math.min(x.length,end+Math.round(sr*0.05),start+Math.round(sr*takeCap(id)));
   const y=x.slice(start,end);declick(y,sr,on-start);const gain=0.9/peak,fade=Math.min(Math.round(sr*0.2),Math.round(y.length*0.2)),fin=Math.round(sr*0.001);
   for(let i=0;i<y.length;i++){let g=gain;if(i<fin)g*=i/fin;if(i>y.length-fade)g*=(y.length-i)/fade;y[i]*=g}
-  SAMPLES.wav[id]=encodeWav24(y,sr);delete SAMPLES.buf[id];saveSamples();if(typeof WAVE!=="undefined")WAVE.forget(id);
+  SAMPLES.wav[id]=encodeWav24(y,sr);delete SAMPLES.buf[id];saveSamples();if(typeof WAVE!=="undefined")WAVE.forget(id);const takeN=TAKES.add(id,SAMPLES.wav[id],"rec");
   if(SAMPLES.tune[id]){delete SAMPLES.tune[id];saveTune()}   // a new take starts from scratch
   const first=S.panVoice!=='mine';if(first){S.panVoice='mine';save()}
   const f=detectPitch(y.subarray(Math.min(y.length-1,Math.round(sr*0.06))),sr),want=FIELDS.get(id).label;
   const heard=f?PC_NAMES[pcOfHz(f)]:'',ok=f&&pcOfHz(f)===pcOfId(id);
-  recMsg('Saved '+want+'.'+(f?(ok?' It sounds like '+heard+' ✓':' It sounds closer to '+heard+'. If you hit '+want+', that\'s fine; if not, tap Record to redo it.'):'')+(first?' Your pans will now use your recordings.':''));
+  recMsg('Saved '+want+(takeN>1?' as take '+takeN+' (your earlier takes are kept: pick the best in Tune my pans)':'')+'.'+(f?(ok?' It sounds like '+heard+' ✓':' It sounds closer to '+heard+'. If you hit '+want+', that\'s fine; if not, tap Record to redo it.'):'')+(first?' Your pans will now use your recordings.':''));
   sampleBuf(id).then(()=>playSample(id,1,false));
   renderRec();renderVoice();return true;
 }
@@ -7815,6 +7848,43 @@ const takeCap=id=>{const m=midiOf(PITCH[id]||'C4');return m<48?6:m<60?4:2.5};
   sound.after(b)};
  document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('#setList [data-row=tunemy]');if(!r)return;e.stopPropagation();TW.open(true)},true)}
 
+/* ---------- every take of every note is kept: pick the best one later (Tune my pans → Takes) ----------
+   A new recording (or a file, or a sound-editor edit) is added as a take and becomes the one in use; earlier takes
+   stay. The one in use is always SAMPLES.wav[id], so playing, tuning and backups work as before. Up to TAKES_MAX per
+   note: past that the oldest take not in use goes. Kept in IndexedDB 'sampleTakes' (Google Drive backup copies it). */
+const TAKES_MAX=6;
+var TAKES=(()=>{
+  const all={};let ready=false;
+  const save=()=>idbPut('sampleTakes',all);
+  const ofId=id=>all[id]||null;
+  // loaded straight from storage, so recordings made before takes were kept become take 1
+  (async()=>{try{const t=await idbGet('sampleTakes');if(t&&typeof t==='object')for(const [k,v] of Object.entries(t))if(FIELDS.has(k)&&v&&Array.isArray(v.list)){
+      const list=v.list.filter(x=>x&&x.b instanceof Blob),prev=all[k];   // a take recorded while this was loading goes after the stored ones
+      if(list.length)all[k]=prev?{list:list.concat(prev.list),cur:list.length+prev.cur}:{list,cur:Math.max(0,Math.min(list.length-1,+v.cur||0))}}
+    const s=await idbGet('samples');let add=false;
+    if(s&&typeof s==='object')for(const [k,b] of Object.entries(s))if(FIELDS.has(k)&&b instanceof Blob&&!all[k]){all[k]={list:[{b,at:0,how:'rec'}],cur:0};add=true}
+    if(add)save()}catch{}ready=true})();
+  function add(id,b,how,from){
+    const t=all[id]||(all[id]={list:[],cur:0});t.list.push({b,at:Date.now(),how:how||'rec',...(from?{from}:{})});t.cur=t.list.length-1;
+    while(t.list.length>TAKES_MAX){const i=t.list.findIndex((_,j)=>j!==t.cur);if(i<0)break;t.list.splice(i,1);if(i<t.cur)t.cur--}
+    save();return t.cur+1;
+  }
+  // use another take: its own trim and pitch fix start fresh (they belonged to the old take); volume, ring and tone stay
+  function pick(id,i){
+    const t=all[id];if(!t||!t.list[i])return false;t.cur=i;save();
+    SAMPLES.wav[id]=t.list[i].b;delete SAMPLES.buf[id];saveSamples();
+    const T=SAMPLES.tune[id];if(T){delete T.start;delete T.end;delete T.cents;if(!Object.keys(T).length)delete SAMPLES.tune[id];saveTune()}
+    sampleBuf(id);return true;
+  }
+  function drop(id,i){
+    const t=all[id];if(!t||!t.list[i])return;const was=i===t.cur;t.list.splice(i,1);
+    if(!t.list.length){delete all[id];save();delete SAMPLES.wav[id];delete SAMPLES.buf[id];delete SAMPLES.tune[id];saveSamples();saveTune();return}
+    if(i<t.cur)t.cur--;if(was){t.cur=t.list.length-1;pick(id,t.cur)}else save();
+  }
+  return {add,pick,drop,list:id=>(ofId(id)||{list:[]}).list,cur:id=>(ofId(id)||{cur:-1}).cur,count:id=>(ofId(id)||{list:[]}).list.length,
+    curTake:id=>{const t=ofId(id);return t?t.list[t.cur]:null},get ready(){return ready}};
+})();
+
 
 /* ---------- the sound editor (Tune my pans → Edit the sound): edit one recorded note ----------
    Wave and Spectrum views of the take; drag to select, pinch or − + to zoom. Keep, delete, silence or fade a part,
@@ -7880,7 +7950,7 @@ var WAVE=(()=>{
     id=nid;sr=buf.sampleRate;x=new Float32Array(buf.length);for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<x.length;i++)x[i]+=d[i]/buf.numberOfChannels}
     hist=[];fut=[];a=b=null;v0=0;v1=1;open=true;$('wvSheet').hidden=false;
     $('wvSub').textContent=PITCH[id].replace('#','♯').replace(/([A-G])b/,'$1♭')+' · '+((FIELDS.get(id)||{}).pan||'')+' · your recording';
-    $('wvOrig').hidden=!orig[id];note('');requestAnimationFrame(draw);
+    $('wvOrig').hidden=!orig[id]&&srcTake(id)<0;note('');requestAnimationFrame(draw);
   }
   function close(){stopPlay();open=false;if($('wvSheet'))$('wvSheet').hidden=true}
   function push(){hist.push(x);fut=[];if(hist.length>40)hist.shift()}
@@ -7975,19 +8045,25 @@ var WAVE=(()=>{
   async function save(){
     if(!id||!x)return;stopPlay();
     if(!hist.length){close();return}
-    if(!orig[id]&&SAMPLES.wav[id]){orig[id]=SAMPLES.wav[id];saveOrig()}
+    if(typeof TAKES==='undefined'&&!orig[id]&&SAMPLES.wav[id]){orig[id]=SAMPLES.wav[id];saveOrig()}   // with takes kept, the take before the edit is the original
+    const was=typeof TAKES!=='undefined'?TAKES.curTake(id):null;
     SAMPLES.wav[id]=encodeWav24(x,sr);delete SAMPLES.buf[id];saveSamples();
+    if(typeof TAKES!=='undefined')TAKES.add(id,SAMPLES.wav[id],'edit',was&&was.at||1);   // the edit is a new take; the take it came from stays
     // the old trim points belong to the old take; pitch, volume, ring and tone stay
     const t=SAMPLES.tune[id];if(t){delete t.start;delete t.end;saveTune()}
     await sampleBuf(id);close();try{changedTW()}catch{}say('Saved your edit of '+PITCH[id].replace('#','♯')+'. Back to the original is in Edit the sound.');
     try{strike(id,.95)}catch{}
   }
+  // the take this edit was made from (older edits, from before takes were kept, use the saved original)
+  const srcTake=k=>{if(typeof TAKES==='undefined')return -1;const c=TAKES.curTake(k);return c&&c.how==='edit'?TAKES.list(k).findIndex(t=>t.at===c.from&&t!==c):-1};
   async function backToOrig(){
+    const si=srcTake(id);
+    if(si>=0){if(!confirm('Go back to the take this edit was made from? The edit stays in your takes, so you can pick it again.'))return;TAKES.pick(id,si);await sampleBuf(id);close();try{changedTW()}catch{}say('The take before your edit is back in use.');try{strike(id,.95)}catch{}return}
     if(!id||!orig[id])return;if(!confirm('Put back the recording as it was before any editing? Your edits are lost.'))return;
     SAMPLES.wav[id]=orig[id];delete orig[id];saveOrig();delete SAMPLES.buf[id];saveSamples();await sampleBuf(id);close();try{changedTW()}catch{}say('The original recording is back.');try{strike(id,.95)}catch{}
   }
   const changedTW=()=>{if(typeof TW!=='undefined'&&TW.isOpen&&TW.refresh)TW.refresh()};
-  return {open:openFor,get isOpen(){return open},edited:k=>!!orig[k],forget:k=>{if(orig[k]){delete orig[k];saveOrig()}},denoise:(y,r,s)=>{const o=x,os=sr;x=y;sr=s||sr;try{return denoise(y,r)}finally{x=o;sr=os}}};
+  return {open:openFor,get isOpen(){return open},edited:k=>!!orig[k]||srcTake(k)>=0,forget:k=>{if(orig[k]){delete orig[k];saveOrig()}},denoise:(y,r,s)=>{const o=x,os=sr;x=y;sr=s||sr;try{return denoise(y,r)}finally{x=o;sr=os}}};
 })();
 
 
@@ -8239,6 +8315,7 @@ var TW=(()=>{
       if(s.kind!=='own')h+='<p class="twhint">You marked this recording rough, so '+nice(id)+' plays '+nice(s.src)+'\'s recording right now. Its settings below still belong to your own take.</p>';
       h+='<div class="twsls">'+SL.map(([k,l,sb,mn,mx,stp,ends])=>{const v=+(T[k]||0);return '<div class="twsl"><label for="twS-'+k+'">'+l+(sb?'<small>'+sb+'</small>':'')+'</label><input type="range" id="twS-'+k+'" data-k="'+k+'" min="'+mn+'" max="'+mx+'" step="'+stp+'" value="'+v+'"><output id="twO-'+k+'">'+slVal(k,v)+'</output><div class="twends"><span>'+ends[0]+'</span><span>'+ends[1]+'</span></div></div>'}).join('')+'</div>';
       h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button><button class="btn" data-a="raw">▶ As recorded</button><button class="btn twrec" data-a="rec">● Record</button><button class="btn" data-a="reset"'+(SAMPLES.tune[id]?'':' disabled')+'>↺ Reset</button></div>';
+      h+=takesHTML(id);
       h+='<button class="btn twedit" data-a="edit">〰 Edit the sound<small>trim, cut noise, fade, level'+(typeof WAVE!=='undefined'&&WAVE.edited(id)?' · edited':'')+'</small></button>';
       const fs=famOf(id).length-1;
       h+='<p class="twsrc">'+(fs>0?'Its family: '+fs+' more note'+(fs===1?'':'s')+' made from it, outlined on the pan. They follow these settings.':'No other notes are made from it'+(cfg(setOf(id)).on?'.':' (Fill the gaps is off, under ⋯ More).'))+'</p>';
@@ -8250,6 +8327,31 @@ var TW=(()=>{
       h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button><button class="btn twrec" data-a="rec">● Record this note</button></div>';
     }
     box.innerHTML=h;
+  }
+  /* every take of this note (TAKES): play, use, delete, or let it pick the cleanest */
+  const TKR=new WeakMap(),tkBusy=new Set();
+  const when=at=>!at?'from before takes were kept':new Date(at).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  async function tkRead(id,t){if(TKR.has(t.b))return TKR.get(t.b);let r;try{const {x,sr}=await decode(t.b);r=analyse(x,sr,id)}catch{r={ok:false}}TKR.set(t.b,r);return r}
+  function takesHTML(id){
+    if(typeof TAKES==='undefined')return '';const tk=TAKES.list(id),cur=TAKES.cur(id);if(!tk.length)return '';
+    const need=tk.filter(t=>!TKR.has(t.b));if(need.length&&!tkBusy.has(id)){tkBusy.add(id);(async()=>{for(const t of need)await tkRead(id,t);tkBusy.delete(id);if(open&&sel===id)ed()})()}
+    return '<div class="twtakes"><div class="twtkh"><b>Takes · '+tk.length+'</b><small>every recording of '+nice(id)+' is kept'+(tk.length>=TAKES_MAX?' (up to '+TAKES_MAX+')':'')+'</small>'
+      +(tk.length>1?'<button class="btn" data-a="tbest">★ Pick the best</button>':'')+'</div>'
+      +tk.map((t,i)=>{const r=TKR.get(t.b),on=i===cur,q=r&&r.ok?quality(r.score):null;
+        return '<div class="twtk'+(on?' on':'')+'"><button class="twtkp" data-a="tplay" data-v="'+i+'" aria-label="Play take '+(i+1)+'">▶</button>'
+          +'<span class="twtki"><b>Take '+(i+1)+(t.how==='edit'?' · edited':'')+'</b><small>'+when(t.at)+' · '+(!r?'listening…':!r.ok?'too quiet to read':'<em class="'+q[0]+'">'+q[1]+'</em>'+(r.pc!=null?' · '+fmt(r.pc)+' as recorded':''))+'</small></span>'
+          +(on?'<span class="twtkon">In use</span>':'<button class="btn" data-a="tuse" data-v="'+i+'">Use</button>')
+          +'<button class="twtkx" data-a="tdel" data-v="'+i+'" aria-label="Delete take '+(i+1)+'">🗑</button></div>'}).join('')+'</div>';
+  }
+  async function takeAct(a,id,i){
+    const tk=TAKES.list(id),t=tk[i];
+    if(a==='tplay'){if(!t)return;const ac=panCtx();if(!ac)return;try{const buf=await new Promise((res,rej)=>{t.b.arrayBuffer().then(ab=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)},rej)});const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.9;s.buffer=buf;s.connect(g);g.connect(pBus);s.start()}catch{msg('That take couldn\'t be played.')}return}
+    if(a==='tuse'){if(!TAKES.pick(id,i))return;mineOn();await sampleBuf(id);changed();msg('Take '+(i+1)+' of '+nice(id)+' is in use now. Its pitch is read fresh: tap Fix it if it needs tuning.');listen();setTimeout(()=>{try{strike(id,.95)}catch{}},60);return}
+    if(a==='tdel'){if(!t||!confirm('Delete take '+(i+1)+' of '+nice(id)+'? This can\'t be undone.'+(tk.length===1?' It\'s the only take, so '+nice(id)+' will be unrecorded.':'')))return;TAKES.drop(id,i);changed();msg('Take deleted.');return}
+    if(a==='tbest'){msg('Listening to every take…');let best=-1,bs=-1;for(let j=0;j<tk.length;j++){const r=await tkRead(id,tk[j]);if(r&&r.ok&&r.score>bs){bs=r.score;best=j}}
+      if(best<0){msg('Couldn\'t read any take clearly.');return}
+      if(best===TAKES.cur(id)){msg('Take '+(best+1)+' is already the cleanest, and it\'s in use.');ed();return}
+      await takeAct('tuse',id,best);msg('Take '+(best+1)+' sounds cleanest, so it\'s in use now. Tap Fix it if it needs tuning.')}
   }
   let slT=0;
   function onSlide(e){const k=e.target.dataset.k;if(!k||!sel)return;const v=+e.target.value;setT(sel,{[k]:v});$('twO-'+k).textContent=slVal(k,v);
@@ -8266,6 +8368,7 @@ var TW=(()=>{
     else if(a==='rec'){back=true;show(false);recSel=id;openRec(true);if(setOf(id)!==setKey())recMsg('Recording '+nice(id)+' for the '+SETS[setOf(id)].name+'. The pans shown are this song\'s; your take is kept with the '+SETS[setOf(id)].name+'.')}
     else if(a==='src')pick(b.dataset.v,true);
     else if(a==='edit'&&typeof WAVE!=='undefined')WAVE.open(id);
+    else if(a[0]==='t'&&['tplay','tuse','tdel','tbest'].includes(a))takeAct(a,id,+b.dataset.v);
   }
   function setT(id,patch){const t=Object.assign({},SAMPLES.tune[id]||{},patch);for(const k of['cents','db','ring','tone'])if(k in t&&!+t[k])delete t[k];
     if(Object.keys(t).length)SAMPLES.tune[id]=t;else delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}}
@@ -8332,7 +8435,7 @@ var TW=(()=>{
       r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
     return r.pc!=null?r.pc:null;
   }
-  return {centsNow,allowed:true,open:show,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
+  return {centsNow,allowed:true,open:show,decode,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();
 
 /* ---------- 3D pans: the tenor hangs between two stand poles; the others stand as shiny drums ---------- */

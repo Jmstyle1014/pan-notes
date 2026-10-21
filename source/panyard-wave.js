@@ -63,7 +63,7 @@ var WAVE=(()=>{
     id=nid;sr=buf.sampleRate;x=new Float32Array(buf.length);for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<x.length;i++)x[i]+=d[i]/buf.numberOfChannels}
     hist=[];fut=[];a=b=null;v0=0;v1=1;open=true;$('wvSheet').hidden=false;
     $('wvSub').textContent=PITCH[id].replace('#','♯').replace(/([A-G])b/,'$1♭')+' · '+((FIELDS.get(id)||{}).pan||'')+' · your recording';
-    $('wvOrig').hidden=!orig[id];note('');requestAnimationFrame(draw);
+    $('wvOrig').hidden=!orig[id]&&srcTake(id)<0;note('');requestAnimationFrame(draw);
   }
   function close(){stopPlay();open=false;if($('wvSheet'))$('wvSheet').hidden=true}
   function push(){hist.push(x);fut=[];if(hist.length>40)hist.shift()}
@@ -158,17 +158,23 @@ var WAVE=(()=>{
   async function save(){
     if(!id||!x)return;stopPlay();
     if(!hist.length){close();return}
-    if(!orig[id]&&SAMPLES.wav[id]){orig[id]=SAMPLES.wav[id];saveOrig()}
+    if(typeof TAKES==='undefined'&&!orig[id]&&SAMPLES.wav[id]){orig[id]=SAMPLES.wav[id];saveOrig()}   // with takes kept, the take before the edit is the original
+    const was=typeof TAKES!=='undefined'?TAKES.curTake(id):null;
     SAMPLES.wav[id]=encodeWav24(x,sr);delete SAMPLES.buf[id];saveSamples();
+    if(typeof TAKES!=='undefined')TAKES.add(id,SAMPLES.wav[id],'edit',was&&was.at||1);   // the edit is a new take; the take it came from stays
     // the old trim points belong to the old take; pitch, volume, ring and tone stay
     const t=SAMPLES.tune[id];if(t){delete t.start;delete t.end;saveTune()}
     await sampleBuf(id);close();try{changedTW()}catch{}say('Saved your edit of '+PITCH[id].replace('#','♯')+'. Back to the original is in Edit the sound.');
     try{strike(id,.95)}catch{}
   }
+  // the take this edit was made from (older edits, from before takes were kept, use the saved original)
+  const srcTake=k=>{if(typeof TAKES==='undefined')return -1;const c=TAKES.curTake(k);return c&&c.how==='edit'?TAKES.list(k).findIndex(t=>t.at===c.from&&t!==c):-1};
   async function backToOrig(){
+    const si=srcTake(id);
+    if(si>=0){if(!confirm('Go back to the take this edit was made from? The edit stays in your takes, so you can pick it again.'))return;TAKES.pick(id,si);await sampleBuf(id);close();try{changedTW()}catch{}say('The take before your edit is back in use.');try{strike(id,.95)}catch{}return}
     if(!id||!orig[id])return;if(!confirm('Put back the recording as it was before any editing? Your edits are lost.'))return;
     SAMPLES.wav[id]=orig[id];delete orig[id];saveOrig();delete SAMPLES.buf[id];saveSamples();await sampleBuf(id);close();try{changedTW()}catch{}say('The original recording is back.');try{strike(id,.95)}catch{}
   }
   const changedTW=()=>{if(typeof TW!=='undefined'&&TW.isOpen&&TW.refresh)TW.refresh()};
-  return {open:openFor,get isOpen(){return open},edited:k=>!!orig[k],forget:k=>{if(orig[k]){delete orig[k];saveOrig()}},denoise:(y,r,s)=>{const o=x,os=sr;x=y;sr=s||sr;try{return denoise(y,r)}finally{x=o;sr=os}}};
+  return {open:openFor,get isOpen(){return open},edited:k=>!!orig[k]||srcTake(k)>=0,forget:k=>{if(orig[k]){delete orig[k];saveOrig()}},denoise:(y,r,s)=>{const o=x,os=sr;x=y;sr=s||sr;try{return denoise(y,r)}finally{x=o;sr=os}}};
 })();
