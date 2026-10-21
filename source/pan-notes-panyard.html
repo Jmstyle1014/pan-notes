@@ -12106,6 +12106,11 @@ const WB={
     const _show=showView;showView=function(x){_show(x);WB.enter(x==='cues')};
     let mq=0;new MutationObserver(()=>{if(mq)return;mq=requestAnimationFrame(()=>{mq=0;WB.sync()})}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['aria-pressed','disabled','hidden'],childList:false});
     addEventListener('resize',()=>{if(this.on){this.place();this.fit()}});
+    // turning the phone: Write's own media-query listener moves the timeline to its sideways or upright home (it holds
+    // the original placeTimeline, not the wrapper above), so put it back in the board afterwards; otherwise turning
+    // back upright left the timeline empty
+    try{const re=()=>{if(this.on){this.place();this.fit();requestAnimationFrame(()=>{try{drawTL()}catch{}})}};
+      stageMQ.addEventListener?stageMQ.addEventListener('change',re):stageMQ.addListener(re)}catch{}
     const loopF=()=>{if(this.on){this.drawRuler();this.clock()}requestAnimationFrame(loopF)};requestAnimationFrame(loopF);
   },
   enter(on){
