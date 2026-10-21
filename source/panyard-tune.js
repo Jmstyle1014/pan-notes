@@ -80,8 +80,13 @@ var TW=(()=>{
     const ring=t30*F/sr,want=1.1*Math.pow(261.6/f0,.35),ringS=Math.min(1,ring/want);
     const cl=v=>Math.max(0,Math.min(1,v)),score=Math.round(100*(.35*cl((snr-25)/35)+.45*cl((harm-.75)/.22)+.2*ringS));
     // the pitch to tune by: the note itself, or its octave when the note is too low for a phone microphone to catch
-    const p0=parts[0],p1=parts[1],pc=p0.heard?p0.cents:(p1&&p1.heard?p1.cents:null);
-    return {ok:true,parts,pc,pcFrom:p0.heard?'note':pc==null?null:'octave',score,harm,snr,ring,a,f0,on:on/sr};
+    // the pitch to tune by. Low notes (below E3) go by their octave: a phone microphone (or speaker) barely catches the
+    // note itself down there, and a faint reading of it can be far out, while the octave comes through clearly.
+    // Higher up the note itself is used, unless it's much quieter than its octave and the two disagree.
+    const p0=parts[0],p1=parts[1],low=midiOf(PITCH[id])<52,
+      useOct=p1&&p1.heard&&(low||!p0.heard||(Math.abs(p0.cents-p1.cents)>25&&p0.db<p1.db-6)),
+      pc=useOct?p1.cents:p0.heard?p0.cents:null;
+    return {ok:true,parts,pc,pcFrom:pc==null?null:useOct?'octave':'note',score,harm,snr,ring,a,f0,on:on/sr};
   }
   const CACHE=new WeakMap();
   async function reading(id){
@@ -262,7 +267,7 @@ var TW=(()=>{
         h+='<div class="twtuner"><div class="twtl"><span>Tuner</span><b id="twRead">'+(cn==null?'Can\'t hear a clear pitch':Math.abs(c)<=5?'In tune ✓':Math.abs(c).toFixed(0)+' cents '+(c>0?'sharp':'flat'))+'</b>'
           +'<button class="btn twfix" data-a="fix"'+(cn==null||Math.abs(c)<=0.5?' disabled':'')+'>Fix it</button></div>'
           +'<div class="twmeter" aria-hidden="true"><i class="twz"></i>'+[...Array(11)].map((_,i)=>'<span style="left:'+i*10+'%"'+(i===5?' class="c"':'')+'></span>').join('')+'<em>flat</em><em class="r">sharp</em><i class="twneedle'+(Math.abs(c)<=5?' good':'')+'" id="twNeedle" style="left:'+(50+Math.max(-50,Math.min(50,c)))+'%"></i></div>'
-          +'<div class="twq '+q[0]+'"><span>Recording</span><b>'+q[1]+'</b>'+(r.pcFrom==='octave'?'<small>pitch read from its octave (too low for a phone mic)</small>':'')+'</div></div>';
+          +'<div class="twq '+q[0]+'"><span>Recording</span><b>'+q[1]+'</b>'+(r.pcFrom==='octave'?'<small>'+(mid(id)<52?'low notes are tuned by their octave, which a phone hears clearly':'tuned by its octave: the note itself is faint in this take')+'</small>':'')+'</div></div>';
         const o=r.parts[1];if(o&&o.heard&&r.parts[0].heard&&Math.abs(o.cents-r.parts[0].cents)>12)
           h+='<p class="twhint">Its octave is '+Math.abs(o.cents-r.parts[0].cents).toFixed(0)+' cents '+(o.cents>r.parts[0].cents?'sharp':'flat')+' of the note itself. Tuning can\'t fix that part, so it may still sound a little sour: a fresh recording usually helps.</p>'}
       if(s.kind!=='own')h+='<p class="twhint">You marked this recording rough, so '+nice(id)+' plays '+nice(s.src)+'\'s recording right now. Its settings below still belong to your own take.</p>';
@@ -412,5 +417,7 @@ var TW=(()=>{
       r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
     return r.pc!=null?r.pc:null;
   }
-  return {centsNow,allowed:true,open:show,decode,cleanAll,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
+  // a new take (or a different take) of a note starts fresh: any "rough" mark was about the old one
+  const unrough=id=>{const k=setOf(id),c=cfg(k);if(c.skip.includes(id)){c.skip=c.skip.filter(x=>x!==id);setCfg(k,c)}};
+  return {centsNow,allowed:true,open:show,decode,cleanAll,unrough,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();
