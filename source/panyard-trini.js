@@ -8,7 +8,7 @@ var TT=(()=>{
   const K='panyard-bg',MAXPICS=8;
   let st={};try{st=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch{st={}}
   const keep=()=>{try{localStorage.setItem(K,JSON.stringify(st))}catch{}};
-  const cfg=()=>Object.assign({bg:'flag',dim:20},st.tt||{});
+  const cfg=()=>Object.assign({bg:'silk',dim:20},st.tt||{});
   const svgUrl=s=>'url("data:image/svg+xml,'+encodeURIComponent(s)+'")';
   // the islands, from their real outlines (simplified)
   const TRI='M108 207 L135 195 L165 189 L210 183 L255 177 L294 171 L324 168 L315 195 L300 240 L291 285 L291 330 L300 369 L303 381 L270 390 L225 396 L180 402 L135 402 L90 402 L51 405 L24 408 L36 393 L60 381 L90 372 L114 366 L135 357 L156 342 L159 321 L156 294 L159 264 L153 240 L144 225 L126 219 Z',
@@ -24,7 +24,11 @@ var TT=(()=>{
     +'<g fill="none"><path d="'+wave+'" stroke="#ce1126" stroke-width="150"/><path d="'+wave+'" stroke="#fff" stroke-width="60"/><path d="'+wave+'" stroke="#0b0b0b" stroke-width="42"/><path d="'+wave+'" stroke="url(#s)" stroke-width="150"/></g></svg>');
   const SASH='#ce1126 0 41%,#f4f0ee 41% 44.5%,#0a0a0a 44.5% 55.5%,#f4f0ee 55.5% 59%,#ce1126 59% 100%';
   // built in: name, and the CSS that draws it
+  const pic=f=>"url('backgrounds/"+f+"') center/cover no-repeat,#120406";
   const BGS={
+    silk:['Silk flag',pic('tt-silk.jpg')],
+    sunset:['Sunset',pic('tt-sunset.jpg')],
+    glow:['Island glow',pic('tt-glow.jpg')],
     flag:['Flag','repeating-linear-gradient(100deg,rgb(0 0 0/0) 0 6%,rgb(0 0 0/.22) 9%,rgb(255 255 255/.07) 12%,rgb(0 0 0/0) 15%),repeating-linear-gradient(75deg,rgb(0 0 0/0) 0 11%,rgb(0 0 0/.18) 15%,rgb(255 255 255/.06) 18%,rgb(0 0 0/0) 22%),linear-gradient(to top right,'+SASH+')'],
     islands:['Islands','radial-gradient(60% 30% at 40% 25%,rgb(206 17 38/.22),rgb(0 0 0/0) 70%),'+islands+' top center/100% auto no-repeat,radial-gradient(120% 80% at 50% 40%,#1a1214,#070506)'],
     ribbon:['Ribbon','radial-gradient(70% 35% at 50% 45%,rgb(206 17 38/.28),rgb(0 0 0/0) 70%),'+ribbon+' center/cover no-repeat,#0a0a0c'],
@@ -43,14 +47,14 @@ var TT=(()=>{
       const id='p'+Date.now().toString(36);pics[id]={b,at:Date.now()};await idbPut('bgPics',{...pics});pick('pic:'+id);say('Picture added. It\'s your background now.')}
     catch{say('That picture couldn\'t be opened. Try a JPEG or PNG.')}
   }
-  async function dropPic(id){await loadPics();if(!pics[id])return;if(urls[id]){URL.revokeObjectURL(urls[id]);delete urls[id]}delete pics[id];await idbPut('bgPics',{...pics});if(cfg().bg==='pic:'+id)pick('flag');else render()}
+  async function dropPic(id){await loadPics();if(!pics[id])return;if(urls[id]){URL.revokeObjectURL(urls[id]);delete urls[id]}delete pics[id];await idbPut('bgPics',{...pics});if(cfg().bg==='pic:'+id)pick('silk');else render()}
   /* showing it */
   function layer(){let d=$('ttBg');if(!d){d=document.createElement('div');d.id='ttBg';d.setAttribute('aria-hidden','true');document.body.prepend(d)}return d}
   async function apply(){
     const on=document.documentElement.classList.contains('th-tt'),d=layer();d.hidden=!on;if(!on)return;
     const c=cfg();let bg=c.bg;
-    if(bg.startsWith('pic:')){await loadPics();const u=urlOf(bg.slice(4));if(u){d.style.background='url("'+u+'") center/cover no-repeat,#070506';d.dataset.bg='pic'}else bg='flag'}
-    if(!bg.startsWith('pic:')){d.style.background=(BGS[bg]||BGS.flag)[1];d.dataset.bg=BGS[bg]?bg:'flag'}
+    if(bg.startsWith('pic:')){await loadPics();const u=urlOf(bg.slice(4));if(u){d.style.background='url("'+u+'") center/cover no-repeat,#070506';d.dataset.bg='pic'}else bg='silk'}
+    if(!bg.startsWith('pic:')){d.style.background=(BGS[bg]||BGS.silk)[1];d.dataset.bg=BGS[bg]?bg:'silk'}
     d.style.setProperty('--ttdim',String(Math.max(0,Math.min(.8,c.dim/100))));
   }
   function pick(bg){st.tt=Object.assign(cfg(),{bg});keep();apply();render()}

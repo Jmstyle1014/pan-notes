@@ -24,8 +24,8 @@ with sync_playwright() as p:
         check(E(pg,"$('ttBgBox').hidden"),name+': no background choice for the other looks')
         pg.click('#thList [data-th=tt]');pg.wait_for_timeout(400)
         cl=E(pg,"[...document.documentElement.classList].join(' ')");check('th-tt' in cl and 'th-cnight' in cl,name+': it is Chrome Night with the Trinidad touches ('+cl+')')
-        check(not E(pg,"$('ttBgBox').hidden")and E(pg,"document.querySelectorAll('#ttBgBox [data-bg]').length")==5,name+': 5 built-in backgrounds to choose from')
-        check(E(pg,"!$('ttBg').hidden&&$('ttBg').dataset.bg")=='flag',name+': the flag is the first background')
+        check(not E(pg,"$('ttBgBox').hidden")and E(pg,"document.querySelectorAll('#ttBgBox [data-bg]').length")==8,name+': 8 built-in backgrounds to choose from (3 pictures, 5 drawn)')
+        check(E(pg,"!$('ttBg').hidden&&$('ttBg').dataset.bg")=='silk',name+': the silk flag is the first background')
         pg.screenshot(path=D+name+'-1-sheet.png')
         pg.click('#ttBgBox [data-bg=islands]');pg.wait_for_timeout(300);check(E(pg,"$('ttBg').dataset.bg")=='islands',name+': picking Islands shows it')
         # your own picture
@@ -44,7 +44,7 @@ with sync_playwright() as p:
         E(pg,"showView('play')");pg.wait_for_timeout(600);pg.screenshot(path=D+name+'-3-play.png')
         # delete it: back to the flag
         E(pg,"THEME.sheet(true)");pg.wait_for_timeout(400);pg.click('#ttBgBox [data-del]');pg.wait_for_timeout(600)
-        check(E(pg,"$('ttBg').dataset.bg")=='flag' and E(pg,"document.querySelectorAll('#ttBgBox .tt-own').length")==0,name+': deleting the picture goes back to the flag')
+        check(E(pg,"$('ttBg').dataset.bg")=='silk' and E(pg,"document.querySelectorAll('#ttBgBox .tt-own').length")==0,name+': deleting the picture goes back to the silk flag')
         # the pans are chrome with letters you can read
         E(pg,"THEME.sheet(false);showView('play')");pg.wait_for_timeout(500)
         st=E(pg,"()=>{const f=document.querySelector('#playPans .field:not(:is(.active,.hit,.play-hit))');const z=f.querySelector('.zone'),t=f.querySelector('text');return [getComputedStyle(z).fill,getComputedStyle(t).fill,!!document.querySelector('#playPans .ttgl')]}")
