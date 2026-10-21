@@ -124,7 +124,7 @@ function buildMaster(ac){
   const vol=ac.createGain(),comp=ac.createDynamicsCompressor(),lim=ac.createDynamicsCompressor(),an=ac.createAnalyser();
   vol.gain.value=song?song.master:.85;comp.threshold.value=-12;comp.ratio.value=4;
   lim.threshold.value=-1;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.1;   // keeps loud moments from distorting
-  an.fftSize=512;vol.connect(comp);comp.connect(lim);lim.connect(an);an.connect(ac.destination);
+  an.fftSize=512;vol.connect(comp);comp.connect(lim);const sc=softClip(ac);lim.connect(sc);sc.connect(an);an.connect(ac.destination);   // a soft limit last: no crackle on loud moments
   return{vol,an};
 }
 function AC(){
@@ -372,7 +372,10 @@ function panVoice(dest,id,t,v,light){
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
-    if(src){const b=SAMPLES.buf[src];if(b){const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light);return}sampleBuf(src)}}
+    const go=b=>{const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light)};
+    if(src){const b=SAMPLES.buf[src];if(b){go(b);return}
+      // not ready yet: your recording as soon as it is, never the built-in tone (unless it can't be read)
+      if(!(SAMPLES.bad&&SAMPLES.bad[src])){if(typeof warmSamples==='function')warmSamples();sampleBuf(src).then(b=>{if(!b){if(SAMPLES.bad)SAMPLES.bad[src]=1;return}if(ctx.currentTime<t+.3){t=Math.max(t,ctx.currentTime+.003);go(b)}});return}}}
   panTone(dest,pitchHz(id),t,v,light);
 }
 const warmPans=()=>Promise.all(Object.keys(SAMPLES.wav).filter(mine).map(sampleBuf));

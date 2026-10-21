@@ -46,6 +46,11 @@ setTimeout(()=>{const bi=window.backupIn;window.backupIn=async p=>{const m=bi?aw
     for(const k of['ring','tone'])if(Number.isFinite(+v[k])&&+v[k])T[k]=Math.max(-10,Math.min(10,Math.round(+v[k])))}saveTune()}
   return m}},0);
 
+/* the very end of the sound: a soft limit that rounds off the rare peak that slips past the limiter, instead of the
+   phone cutting it off flat (that cut-off is the crackle you hear on fast tenor runs and chords) */
+function softClip(ac){const sc=ac.createWaveShaper(),n=2048,cv=new Float32Array(n);
+  for(let i=0;i<n;i++){const x=i/(n-1)*2-1,a=Math.abs(x);cv[i]=a<0.8?x:Math.sign(x)*(0.8+0.2*Math.tanh((a-0.8)/0.2))}sc.curve=cv;sc.oversample='2x';return sc}
+
 /* 24-bit recordings: a take keeps the quiet end of its ring (and any editing) cleaner than 16-bit. Older 16-bit takes play as before. */
 function encodeWav24(x,sr){
   const n=x.length,b=new ArrayBuffer(44+n*3),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
@@ -101,3 +106,25 @@ var TAKES=(()=>{
   return {add,pick,drop,replaceCur,list:id=>(ofId(id)||{list:[]}).list,cur:id=>(ofId(id)||{cur:-1}).cur,count:id=>(ofId(id)||{list:[]}).list.length,
     curTake:id=>{const t=ofId(id);return t?t.list[t.cur]:null},get ready(){return ready}};
 })();
+
+/* ---------- your recordings from the first tap: never the built-in tone for a note you've recorded ----------
+   The app gets every recording ready as soon as it opens (this song's pans first, one at a time), and a note tapped
+   before its recording is ready waits that moment for it instead of playing the built-in tone. Only a recording that
+   can't be read at all falls back to the built-in tone. */
+SAMPLES.bad={};
+function warmSamples(){
+  if(SAMPLES.warmed)return;SAMPLES.warmed=SAMPLES.warm=true;
+  const k=setKey(),of=id=>/^(\w+):/.test(id)?id.split(':')[0]:'guitar',ids=Object.keys(SAMPLES.wav).sort((a,b)=>(of(a)===k?0:1)-(of(b)===k?0:1));
+  (async()=>{for(const id of ids){if(SAMPLES.buf[id]||!SAMPLES.wav[id])continue;const b=await sampleBuf(id);if(!b)SAMPLES.bad[id]=1}})();
+}
+{let n=0;const go=()=>{if(Object.keys(SAMPLES.wav).length&&panCtx())warmSamples();else if(++n<40)setTimeout(go,500)};setTimeout(go,800)}
+strikeMine=function(id,vel,light){
+  if(S.panVoice!=='mine')return false;
+  let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=borrowOf(id);if(!bw)return false;src=bw.src;sh=bw.cents}
+  warmSamples();
+  if(SAMPLES.buf[src])return playSample(src,vel,light,sh,id);
+  if(SAMPLES.bad[src])return false;
+  // not ready yet: play it the moment it is (a hit that comes too late to sound right is left out)
+  const t0=performance.now();sampleBuf(src).then(b=>{if(!b){SAMPLES.bad[src]=1;return}if(performance.now()-t0<350)playSample(src,vel,light,sh,id)});
+  return true;
+};

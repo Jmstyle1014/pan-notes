@@ -204,6 +204,11 @@ const saveTune=()=>{const p=profNow();if(p)p.tune=SAMPLES.tune;syncPitch();saveP
 rep("  const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});\n  applyFx();renderProfiles();",
     "  const p=profNow();PROF.active=p.id;SAMPLES.tune=p.tune||(p.tune={});\n  syncPitch(true);saveProfiles();\n  applyFx();renderProfiles();")
 rep("  renderSaveInfo();\n  initStore();\n})();", "  renderSaveInfo();\n  initStore();\n  showView('home');\n})();")
+# the tap sound: a little more room before the limiter, a softer limiter, and a soft limit at the very end, so loud
+# chords and fast runs never clip (softClip is in panyard-voice.js)
+rep("pBus=pac.createGain();pBus.gain.value=0.8;", "pBus=pac.createGain();pBus.gain.value=0.6;")
+rep("const lim=pac.createDynamicsCompressor();lim.threshold.value=-3;lim.knee.value=0;", "const lim=pac.createDynamicsCompressor();lim.threshold.value=-4;lim.knee.value=3;")
+rep("comp.connect(lim);lim.connect(pac.destination);", "comp.connect(lim);const sc=softClip(pac);lim.connect(sc);sc.connect(pac.destination);")
 # messages leave a little sooner
 rep("sayTimer=setTimeout(()=>el.classList.remove('show'),Math.min(7000,2500+t.length*35))", "sayTimer=setTimeout(()=>el.classList.remove('show'),Math.min(5000,1800+t.length*28))")
 
