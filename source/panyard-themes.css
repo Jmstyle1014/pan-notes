@@ -761,6 +761,28 @@ html.th-cday .twsh p{color:var(--muted)}
 html.th-cday .twsound .profbox{background:var(--surface);border:1px solid var(--line)}
 html.th-cday .twborrow .profbox{border-top:1px solid var(--line)}
 html.th-cday .twhint3{color:var(--muted)}
+html.th-cday .bandbox{background:var(--surface);border:1px solid var(--line)}
+html.th-cday .bcard{border:1.5px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cday .bcard small{color:var(--muted)}
+html.th-cday .bcard .hz{color:var(--muted)}
+html.th-cday .bcard[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+html.th-cday .bandctl{border-top:1px solid var(--line)}
+html.th-cday .bandnow small{color:var(--muted)}
+html.th-cday .bandbox .grp{color:var(--muted)}
+html.th-cday .bandbox .sl label small{color:var(--muted)}
+html.th-cday .bandbox .sl input{accent-color:var(--gold)}
+html.th-cday .bandbox .sl output{color:var(--muted)}
+html.th-cday .bandbox .sl .ends{color:var(--muted)}
+html.th-cday .bandbox .seg{border:1px solid var(--line)}
+html.th-cday .bandbox .seg button{color:var(--text)}
+html.th-cday .bandbox .seg button[aria-pressed="true"]{background:var(--gold);color:#181205}
+html.th-cday .bandbox .tog small{color:var(--muted)}
+html.th-cday .bandbox .sw{border:1px solid var(--line);background:var(--raised)}
+html.th-cday .bandbox .sw::after{background:var(--muted)}
+html.th-cday .bandbox .sw[aria-checked="true"]{background:var(--gold);border-color:var(--gold)}
+html.th-cday .bandbox .sw[aria-checked="true"]::after{background:#1c1a23}
+html.th-cday .bandrec{background:var(--raised);border:1px solid var(--line)}
+html.th-cday .bandnote{color:var(--muted)}
 html.th-cday .wvtt p{color:var(--muted)}
 html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cday .wvview button{color:var(--muted)}
@@ -1576,6 +1598,28 @@ html.th-cnight .twsh p{color:var(--muted)}
 html.th-cnight .twsound .profbox{background:var(--surface);border:1px solid var(--line)}
 html.th-cnight .twborrow .profbox{border-top:1px solid var(--line)}
 html.th-cnight .twhint3{color:var(--muted)}
+html.th-cnight .bandbox{background:var(--surface);border:1px solid var(--line)}
+html.th-cnight .bcard{border:1.5px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cnight .bcard small{color:var(--muted)}
+html.th-cnight .bcard .hz{color:var(--muted)}
+html.th-cnight .bcard[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+html.th-cnight .bandctl{border-top:1px solid var(--line)}
+html.th-cnight .bandnow small{color:var(--muted)}
+html.th-cnight .bandbox .grp{color:var(--muted)}
+html.th-cnight .bandbox .sl label small{color:var(--muted)}
+html.th-cnight .bandbox .sl input{accent-color:var(--gold)}
+html.th-cnight .bandbox .sl output{color:var(--muted)}
+html.th-cnight .bandbox .sl .ends{color:var(--muted)}
+html.th-cnight .bandbox .seg{border:1px solid var(--line)}
+html.th-cnight .bandbox .seg button{color:var(--text)}
+html.th-cnight .bandbox .seg button[aria-pressed="true"]{background:var(--gold);color:#1e1302}
+html.th-cnight .bandbox .tog small{color:var(--muted)}
+html.th-cnight .bandbox .sw{border:1px solid var(--line);background:var(--raised)}
+html.th-cnight .bandbox .sw::after{background:var(--muted)}
+html.th-cnight .bandbox .sw[aria-checked="true"]{background:var(--gold);border-color:var(--gold)}
+html.th-cnight .bandbox .sw[aria-checked="true"]::after{background:#f8f7f7}
+html.th-cnight .bandrec{background:var(--raised);border:1px solid var(--line)}
+html.th-cnight .bandnote{color:var(--muted)}
 html.th-cnight .wvtt p{color:var(--muted)}
 html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cnight .wvview button{color:var(--muted)}

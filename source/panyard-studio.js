@@ -341,19 +341,20 @@ function playDrum(m,dest,t,v,real=true){
 let PV=new Map();
 function playBuf(dest,id,b,T,t,v,light){
   const end=Math.min(b.duration,T.end??b.duration),start=Math.max(0,Math.min(T.start,end-.05)),len=(end-start)/(T.rate||1),a=v*Math.pow(10,T.db/20)*(light?.7:1);
-  const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=(T.cents||0)+refCents();gn.connect(dest);
-  // the note's Tone (a shelf) and Ring (its fade bent shorter or longer) from Tune my pans
-  const tn=typeof toneNode==='function'?toneNode(ctx,T,id):null;if(tn){src.connect(tn);tn.connect(gn)}else src.connect(gn);
-  let stopAt;
-  if(light){gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(a,t+.004);const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,t+.12);gn.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+.01}
-  else{noteEnvelope(gn.gain,a,t,len,T.fade,T);stopAt=t+len+.01}   // a 4 ms fade-in keeps it free of clicks
-  src.start(t,start);src.stop(stopAt);lineUp(src,t);
+  // the note's Tone (a shelf) and Ring (its fade bent shorter or longer) from Tune my pans, with this song's band sound on top
+  T=BAND.tune(T);const det=(T.cents||0)+refCents()+BAND.cents(id),ch=BAND.chain(ctx,T,id,Math.min(1,v),t,light);if(ch)ch.out.connect(dest);
+  const one=(d,a,at)=>{const src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;if(src.detune)src.detune.value=d;gn.connect(ch?ch.in:dest);src.connect(gn);
+    let stopAt;
+    if(light){gn.gain.setValueAtTime(0,at);gn.gain.linearRampToValueAtTime(a,at+.004);const e=Math.max(.13,Math.min(len,.45));gn.gain.setValueAtTime(a,at+.12);gn.gain.linearRampToValueAtTime(0,at+e);stopAt=at+e+.01}
+    else{noteEnvelope(gn.gain,a,at,len,T.fade,T);stopAt=at+len+.01}   // a 4 ms fade-in keeps it free of clicks
+    src.start(at,start);src.stop(stopAt);lineUp(src,at);return {src,g:gn,end:stopAt}};
+  const main=one(det,a,t),vs=[main];if(BAND.shimmerOn(light))vs.push(one(det+9,a*.5,t+.012));const src=main.src,gn=main.g,stopAt=Math.max(...vs.map(x=>x.end));
   // the same note struck again on the same pan damps the older ring, like a real pan. Only that pan's own
   // ring, and only one that has already started: another track (a take of the same pan, say) never cuts it off
   let pv=PV.get(dest);if(!pv){pv=new Map();PV.set(dest,pv)}
   const prev=pv.get(id);
-  if(prev&&prev.start<t-.001&&prev.end>t){try{hold(prev.g.gain,t);prev.g.gain.linearRampToValueAtTime(0,t+.03);prev.src.stop(t+.04)}catch{}}
-  if(!prev||prev.start<=t)pv.set(id,{src,g:gn,start:t,end:stopAt});
+  if(prev&&prev.start<t-.001&&prev.end>t){for(const p of prev.vs||[prev])try{hold(p.g.gain,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
+  if(!prev||prev.start<=t)pv.set(id,{src,g:gn,start:t,end:stopAt,vs});
 }
 function panTone(dest,f,t,v,light){
   const ring=(light?.7:1.7)*Math.pow(261.6/f,.35),out=ctx.createGain();out.connect(dest);
@@ -365,8 +366,9 @@ function panTone(dest,f,t,v,light){
   const bp=filt('bandpass',Math.min(6000,f*4),1.2),ng=ctx.createGain();ng.gain.value=.05*v;bp.connect(ng);ng.connect(out);noiseSrc(t,.03,bp);
 }
 const mine=id=>S.panVoice==='mine'&&SAMPLES.wav[id];
-function panVoice(dest,id,t,v){
-  if(!PITCH[id])return;const light=v<.78;
+// light: a roll's quick strike. Notes recorded before dynamics don't say, so a soft one counts as a roll's
+function panVoice(dest,id,t,v,light){
+  if(!PITCH[id])return;if(light===undefined)light=v<.78;
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
@@ -471,13 +473,13 @@ function scheduleRange1(a,b,off){
       if(st>=a&&st<b)startSrc(tr,u2t(st+off),0,endT);
       else if(wrapped&&st<a&&st+buf.duration/sp>a)startSrc(tr,u2t(a+off),(a-st)*sp,endT);   // the loop came round partway into this recording
       continue}
-    if(tr.type==='part'){for(const n of partNotes())if(n.t>=a&&n.t<b)panVoice(c.play,n.p,u2t(n.t+off),n.v);continue}
+    if(tr.type==='part'){for(const n of partNotes())if(n.t>=a&&n.t<b)panVoice(c.play,n.p,u2t(n.t+off),n.v,n.r===undefined?undefined:!!n.r);continue}
     if(tr.type!=='pan')continue;
     // Replace mode: just before the playhead gets there, older notes on the track being recorded are wiped
     // Replace / New take: while you record, the old notes from where you started are silent (they're only
     // removed when you stop, and only in the bars you recorded over)
     const hush=T.rec&&(song.recMode==='replace'||song.recMode==='take')&&tr.id===T.recTid;
-    for(const n of pnotes(tr))if(n.t>=a&&n.t<b&&n.tk!==T.take&&!(hush&&n.t>=T.recFrom-1e-6))panVoice(c.play,n.p,u2t(n.t+off),n.v);
+    for(const n of pnotes(tr))if(n.t>=a&&n.t<b&&n.tk!==T.take&&!(hush&&n.t>=T.recFrom-1e-6))panVoice(c.play,n.p,u2t(n.t+off),n.v,n.r===undefined?undefined:!!n.r);
   }
   if(song.metro&&ck().sound!=='none'&&(!ck().recOnly||T.rec))for(let k=Math.ceil(a-1e-9);k<b;k++)click(u2t(k+off),k%BPB()===0);
 }
@@ -557,15 +559,16 @@ const held=new Map();   // finger → the note it's holding (hold for a roll)
 function panDown(e,el){
   e.preventDefault();if(!AC())return;const tr=selTr();
   // My part: the pans play so you can try a line, but notes are written in Write
-  if(tr.type==='part'){const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);el.classList.add('hit');
+  if(tr.type==='part'){const id=el.dataset.field,c=channel(tr),hv=FEEL.now(id);panVoice(c.out,id,ctx.currentTime+.003,.95*hv,false);el.classList.add('hit');
     const r={el,n:null,timer:0,rolls:[],write:writeTap(tr,id,tapT(e)),t0:ctx.currentTime};
-    const go=()=>{panVoice(c.out,id,ctx.currentTime+.003,.5+Math.random()*.25);r.rolls.push(1);r.timer=setTimeout(go,60+Math.random()*18)};
+    const go=()=>{panVoice(c.out,id,ctx.currentTime+.003,(.5+Math.random()*.25)*hv,true);r.rolls.push(1);r.timer=setTimeout(go,60+Math.random()*18)};
     r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);return}
   if(tr.type!=='pan')return;
-  const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.95);const n=recNote(tr,id,.95,tapT(e));
+  // how hard you hit (Pan sounds → Sound → Dynamics) is played and recorded; a roll keeps it
+  const id=el.dataset.field,c=channel(tr),hv=FEEL.now(id),v0=+(.95*hv).toFixed(3);panVoice(c.out,id,ctx.currentTime+.003,v0,false);const n=recNote(tr,id,v0,tapT(e));if(n)n.r=0;
   el.classList.add('hit');
   const r={el,n,timer:0,rolls:[]};
-  const go=()=>{const v=.5+Math.random()*.25;panVoice(c.out,id,ctx.currentTime+.003,v);const rn=recNote(tr,id,v);if(rn){rn.d=.25;r.rolls.push(rn)}r.timer=setTimeout(go,60+Math.random()*18)};
+  const go=()=>{const v=+((.5+Math.random()*.25)*hv).toFixed(3);panVoice(c.out,id,ctx.currentTime+.003,v,true);const rn=recNote(tr,id,v);if(rn){rn.d=.25;rn.r=1;r.rolls.push(rn)}r.timer=setTimeout(go,60+Math.random()*18)};
   r.timer=setTimeout(go,HOLD_MS);held.set(e.pointerId,r);
 }
 {let wasTall=null;addEventListener('resize',()=>{const t=tallStage();if(t===wasTall)return;wasTall=t;if(song&&VIEW==='inst'&&selTr().type==='drums')renderInst()})}
@@ -1573,7 +1576,7 @@ async function renderSong(only,onProgress,RG){
       const c=channel(tr).play;c.gain.value=1;
       if(tr.type==='beats'){const rk=realKit(tr);for(const [bt,mm,v] of beatHits(tr,RA,Lb)){if(bt<RA)continue;const t=T0+bt*sp;ev.push({t,fn:()=>playDrum(mm,c,t,v,rk)})}}
       else if(tr.type==='drums'){const rk=realKit(tr);for(const n of tr.notes)if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>playDrum(+n.p,c,t,n.v,rk)})}}
-      else if(isPanish(tr)){for(const n of pnotes(tr))if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v)})}}
+      else if(isPanish(tr)){for(const n of pnotes(tr))if(n.t<Lb&&n.t>=RA){const t=T0+n.t*sp;ev.push({t,fn:()=>panVoice(c,n.p,t,n.v,n.r===undefined?undefined:!!n.r)})}}
       else{const b=audioOf(tr);if(b){let t=T0+startOf(tr)*sp,o=0;if(t<0){o=-t;t=0}ev.push({t,fn:()=>{const s=off.createBufferSource();s.buffer=b;s.connect(c);s.start(t,o);s.stop(Math.max(t,T0+Lb*sp))}})}}
     }
     ev.sort((x,y)=>x.t-y.t);

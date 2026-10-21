@@ -11,7 +11,8 @@ Every version is one self-contained HTML file built from `source/`:
    change both together).
 2. `python3 source/make_next.py` builds `source/pan-notes-next.html` (the new look, `next-look.css`).
 3. `python3 source/make_panyard.py` builds `source/pan-notes-panyard.html` from the Next file. It adds the
-   Panyard modules in this order: game, lab, voice (Ring/Tone per note, 24-bit takes), wave (the sound editor) and tune (the Pan sounds screen: record, tune, sound; once called Tune my pans), then hang, studio, home, tabs, stage, gb, wb, looks, role,
+   Panyard modules in this order: game, lab, voice (Ring/Tone per note, 24-bit takes), wave (the sound editor) and tune (the Pan sounds screen: record, tune, sound; once called Tune my pans), feel (How you play: dynamics, roll
+   delay `HOLD_MS`, keep-awake hum) and band (Band sounds per song), then hang, studio, home, tabs, stage, gb, wb, looks, role,
    parts, guide, polish, cloud, themes and back (the phone's back button) (most go just before the `/* ---------- start ---------- */` marker). It also makes small text replacements with
    `rep()`, which asserts that each target is found exactly once. Last, it builds the Chrome Day / Chrome Night
    colours (`make_themes.py`, needs `pip install tinycss2`; without it, the saved `panyard-themes.css` is used)
@@ -59,6 +60,13 @@ upright count is low because a checklist pushes the pans below the play bar ther
   ID in `CLOUD.CID` is public and safe to keep in the code. The Google Cloud project is in testing mode, so only
   test users listed there can sign in. Settings that belong to one phone (`panyard-studio` timing etc.) are not
   backed up (`CLOUD.SKIP`).
+- **Band sounds** (`panyard-band.js`, `BAND`): per song in localStorage `panyard-band` (`songs[songId]`, plus `own`
+  presets). Pitch centre sets the song's `S.refA` (unless it has a recording); Sweet ↔ Sharp, Tone, Ring, Stick and
+  Shimmer work per note in `playSample` (voice) and Studio's `playBuf` via `BAND.tune/cents/chain/shimmerOn`; Room, Lo-fi
+  and Punch only on the tap sound's chain (`applyFx` wrapper re-routes `pBus`). Off while tuning (Record & tune tab).
+  How you play (`panyard-feel.js`, `FEEL`, localStorage `panyard-feel`, not backed up): a hit's strength comes from
+  where on the note it lands; Studio records it (`n.r` marks roll strikes, so a soft hit isn't mistaken for one).
+  Test with `tband`.
 - **Recorded pan notes:** `SAMPLES.wav` (IndexedDB `samples`) holds each note's take, 24-bit WAV for new takes (old
   16-bit ones still play). `SAMPLES.tune[id]` holds the settings on top of it (start, end, db, fade, cents, ring, tone),
   per sound profile. Every take of every note is kept in IndexedDB `sampleTakes` (`TAKES`, up to 6 per note; the

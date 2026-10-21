@@ -13,26 +13,31 @@ function toneNode(ac,T,id){
 // a whole note's volume over time: the 4 ms fade-in, the ring bent shorter or longer, then the fade at the end
 function noteEnvelope(gp,a,t,len,fade,T){
   const t1=t+Math.max(0.01,len-fade),r=ringRate(T);
-  gp.setValueAtTime(0,t);gp.linearRampToValueAtTime(a,t+0.004);
+  gp.setValueAtTime(0,t);gp.linearRampToValueAtTime(a,t+(T.att||0.004));   // a soft stick (Band sounds) comes in a little slower
   if(r!==1)gp.exponentialRampToValueAtTime(Math.max(1e-4,a*Math.min(RING_MAX,Math.pow(r,t1-t-0.004))),t1);else gp.setValueAtTime(a,t1);
   gp.linearRampToValueAtTime(0,t+len);
 }
-// the same player as before, with Tone in the path and Ring in the volume
+// the same player as before, with Tone in the path and Ring in the volume, plus this song's band sound (BAND) and how hard you hit (FEEL)
+const holdAt=(p,t)=>{if(p.cancelAndHoldAtTime)p.cancelAndHoldAtTime(t);else{p.cancelScheduledValues(t);p.setValueAtTime(p.value,t)}};
 playSample=function(id,vel,light,shift,key){
   const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
-  const src=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+0.003,T=tuneOf(id);
+  const t=ac.currentTime+0.003,T=BAND.tune(tuneOf(id)),vin=Math.min(1,vel||1);
   // a borrowed note plays faster or slower, so it also lasts shorter or longer
   const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=(end-start)/Math.pow(2,shift/1200),v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
-  src.buffer=b;if(src.detune)src.detune.value=T.cents+refCents()+shift;else src.playbackRate.value=Math.pow(2,(T.cents+refCents()+shift)/1200);
-  const tn=toneNode(ac,T,id);if(tn){src.connect(tn);tn.connect(g)}else src.connect(g);g.connect(pBus);
-  let stopAt;
-  if(light){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.004);const e=Math.min(len,0.45);g.gain.setValueAtTime(v,t+0.12);g.gain.linearRampToValueAtTime(0,t+e);stopAt=t+e+0.01}
-  else{noteEnvelope(g.gain,v,t,len,T.fade,T);stopAt=t+len+0.01}
-  src.start(t,start);src.stop(stopAt);
+  const det=T.cents+refCents()+shift+BAND.cents(id),ch=BAND.chain(ac,T,id,vin,t,light);
+  const one=(d,a,at)=>{const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;if(src.detune)src.detune.value=d;else src.playbackRate.value=Math.pow(2,d/1200);
+    src.connect(g);g.connect(ch?ch.in:pBus);
+    let stopAt;
+    if(light){g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(a,at+0.004);const e=Math.min(len,0.45);g.gain.setValueAtTime(a,at+0.12);g.gain.linearRampToValueAtTime(0,at+e);stopAt=at+e+0.01}
+    else{noteEnvelope(g.gain,a,at,len,T.fade,T);stopAt=at+len+0.01}
+    src.start(at,start);src.stop(stopAt);return {src,g,end:stopAt}};
+  if(ch)ch.out.connect(pBus);
+  const main=one(det,v,t),vs=[main];
+  if(BAND.shimmerOn(light))vs.push(one(det+9,v*0.5,t+0.012));   // Shimmer: a second player a few cents away
   // the same note hit again: the older ring is damped quickly (like a real pan), never cut off
   const prev=VOICES.get(key);
-  if(prev&&prev.end>t){try{prev.g.gain.cancelScheduledValues(t);prev.g.gain.setValueAtTime(prev.g.gain.value,t);prev.g.gain.linearRampToValueAtTime(0,t+0.03);prev.src.stop(t+0.04)}catch{}}
-  VOICES.set(key,{src,g,end:stopAt});
+  if(prev&&prev.end>t){for(const p of prev.vs||[prev])try{holdAt(p.g.gain,t);p.g.gain.linearRampToValueAtTime(0,t+0.03);p.src.stop(t+0.04)}catch{}}
+  VOICES.set(key,{src:main.src,g:main.g,end:Math.max(...vs.map(x=>x.end)),vs});
   return true;
 };
 // backups: the base restore keeps trim, volume, fade and pitch; Ring and Tone come back here
