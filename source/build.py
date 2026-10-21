@@ -90,9 +90,17 @@ def icon(size, maskable):
         a = -math.pi / 2 + math.pi / 3 + i * 2 * math.pi / 3; x, y = c + math.cos(a) * r * 0.22, c + math.sin(a) * r * 0.22; s2 = r * 0.15
         d.ellipse([x - s2, y - s2, x + s2, y + s2], fill=light)
     return im.resize((size, size), Image.LANCZOS)
+# Panyard has its own drawn icon (a chrome pan, Chrome Night colours): source/icons/panyard-*.png, made with
+# source/icons/panyard-icon.js. The other versions keep the gold pan drawn above.
+ICONS = os.path.join(HERE, 'icons')
+own = NAME == 'Panyard' and os.path.isfile(os.path.join(ICONS, 'panyard-icon.png'))
 for size in (192, 512):
-    icon(size, False).save(os.path.join(OUT, 'icons', f'icon-{size}.png'))
-    icon(size, True).save(os.path.join(OUT, 'icons', f'maskable-{size}.png'))
+    if own:
+        for f, out in (('panyard-icon.png', f'icon-{size}.png'), ('panyard-maskable.png', f'maskable-{size}.png')):
+            Image.open(os.path.join(ICONS, f)).convert('RGBA').resize((size, size), Image.LANCZOS).save(os.path.join(OUT, 'icons', out))
+    else:
+        icon(size, False).save(os.path.join(OUT, 'icons', f'icon-{size}.png'))
+        icon(size, True).save(os.path.join(OUT, 'icons', f'maskable-{size}.png'))
 
 manifest = {
     "name": NAME, "short_name": NAME,
