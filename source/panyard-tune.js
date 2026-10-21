@@ -133,8 +133,10 @@ var TW=(()=>{
     if($('twSheet'))return;
     const sh=document.createElement('div');sh.id='twSheet';sh.className='sheetov tw';sh.hidden=true;sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');sh.setAttribute('aria-labelledby','twTitle');
     sh.innerHTML='<div class="sheetbox twbox">'
-      +'<div class="twtop"><button class="twback" id="twBack" aria-label="Close">‹</button><div class="twtt"><span class="eyebrow">Settings · pan sounds</span><h2 id="twTitle">Tune my pans</h2></div><button class="btn" id="twClose">Done</button></div>'
+      +'<div class="twtop"><button class="twback" id="twBack" aria-label="Close">‹</button><div class="twtt"><span class="eyebrow">Settings</span><h2 id="twTitle">Pan sounds</h2></div>'
+        +'<div class="twtabs" role="tablist" aria-label="Pan sounds"><button role="tab" data-tab="tune" aria-selected="true">Record &amp; tune</button><button role="tab" data-tab="sound" aria-selected="false">Sound</button></div><button class="btn" id="twClose">Done</button></div>'
       +'<div class="twswitch" id="twSwitch" role="group" aria-label="Which pan"></div>'
+      +'<div class="twrecbar"><div class="twrc"><b id="twRecN"></b><small id="twRecS"></small></div><div class="twvoice" id="twVoice"><span>When you tap:</span></div><button class="btn twrecgo" id="twRecGo">🎙 Record</button></div>'
       +'<div class="twmain">'
         +'<div class="twlist" id="twList" aria-label="Notes, grouped by how they sound"></div>'
         +'<div class="twpanarea" id="twPanArea"><div class="twpname"><button id="twPrev" aria-label="Previous pan">‹</button><div><b id="twPName"></b><small id="twSub"></small></div><button id="twNext" aria-label="Next pan">›</button></div>'
@@ -144,9 +146,11 @@ var TW=(()=>{
         +'<div class="twstrip" id="twStrip" role="listbox" aria-label="Notes, low to high"></div>'
         +'<div class="twed" id="twEd"></div>'
       +'</div>'
+      +'<div class="twsound" id="twSound" hidden><div class="twsh"><h3>The sound of your pans</h3><p>The room your pans play in, saved as a sound profile. It changes every pan and every song that uses your recordings.</p></div></div>'
       +'<div class="twfoot"><button class="btn twgo" id="twAll">▶ Play the whole pan</button><button class="btn" id="twTuneAll">✨ Tune all for me</button><span class="twgrow"></span>'
         +'<div class="twmore"><button class="btn" id="twMoreBtn" aria-expanded="false">⋯ More</button><div class="twmenu" id="twMenu" hidden>'
           +'<label class="twmi"><input type="checkbox" id="twFill"><span><b>Fill the gaps</b><small id="twFillInfo">Notes you haven\'t recorded are made from your nearest recording</small></span></label>'
+          +'<div class="twborrow" id="twBorrow"></div>'
           +'<button class="twmi" id="twPick"><span><b>Pick the cleanest for me</b><small>Rough recordings are made from a cleaner neighbour instead</small></span></button>'
           +'<button class="twmi" id="twRough"><span><b id="twRoughT">Rough: fill this note instead</b><small>Leave this recording out; a nearby clean one plays it</small></span></button>'
           +'<button class="twmi" id="twResetPan"><span><b>Reset this pan</b><small>Take every tuning, volume, ring and tone change off this pan</small></span></button>'
@@ -161,6 +165,13 @@ var TW=(()=>{
         +'<button class="btn" id="twHowClose">Close</button></div>'
       +'</div>';
     document.body.appendChild(sh);
+    // the old Pan sounds page's own controls move in here (their buttons keep working as before)
+    {const vs=$('voiceSeg');if(vs)$('twVoice').appendChild(vs);
+     const bb=$('borrowBox');if(bb)$('twBorrow').appendChild(bb);
+     const pb=$('profSel')&&$('profSel').closest('.profbox');if(pb){$('twSound').appendChild(pb);const h=pb.querySelector('h3');if(h)h.textContent='Sound profile'}
+     const mb=$('profBest');if(mb)mb.hidden=true;}   // ✨ Tune all for me does this now, and keeps Ring, Tone and the longer bass notes
+    sh.querySelector('.twtabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)tabTo(b.dataset.tab)});
+    $('twRecGo').onclick=()=>{const ids=order(),id=ids.find(x=>!SAMPLES.wav[x])||sel||ids[0];recordNote(id)};
     sh.addEventListener('click',e=>{if(e.target===sh)show(false)});
     $('twClose').onclick=$('twBack').onclick=()=>show(false);
     $('twSwitch').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b)go(b.dataset.k)});
@@ -186,6 +197,11 @@ var TW=(()=>{
     document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!open||(typeof WAVE!=='undefined'&&WAVE.isOpen))return;if(!$('twHowBox').hidden){$('twHowBox').hidden=true;return}if(moreOn){more(false);return}show(false)});
     window.addEventListener('resize',()=>{if(open){clearTimeout(build.rt);build.rt=setTimeout(()=>drawPan(true),120)}});
   }
+  let tab='tune';
+  function tabTo(t){tab=t==='sound'?'sound':'tune';const box=$('twSheet').querySelector('.twbox');box.dataset.tab=tab;$('twSound').hidden=tab!=='sound';
+    $('twSheet').querySelectorAll('.twtabs [data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===tab)));if(tab==='tune')requestAnimationFrame(()=>drawPan(true))}
+  function recordNote(id){back=true;show(false);recSel=id;openRec(true);
+    if(setOf(id)!==setKey())recMsg('Recording '+nice(id)+' for the '+SETS[setOf(id)].name+'. The pans shown are this song\'s; your take is kept with the '+SETS[setOf(id)].name+'.')}
   function more(on){moreOn=!!on;$('twMenu').hidden=!moreOn;$('twMoreBtn').setAttribute('aria-expanded',String(moreOn))}
   const KEYS=()=>Object.keys(SETS);
   function go(k){if(!SETS[k]||k===keyNow())return;vk=k;sel=null;++allRun;render(true);listen()}
@@ -212,8 +228,13 @@ var TW=(()=>{
     if(!sel||!ids.includes(sel))sel=ids.find(id=>stateOf(id)==='off')||ids.find(id=>SAMPLES.wav[id])||ids[0];
     const own=ids.filter(id=>SAMPLES.wav[id]).length;
     $('twSwitch').innerHTML=KEYS().map(x=>'<button data-k="'+x+'" aria-pressed="'+(x===k)+'">'+esc(SETS[x].name)+'</button>').join('');
-    $('twPName').textContent=SETS[k].name;$('twSub').textContent=(SETS[k].range?SETS[k].range.replace('–',' – ')+' · ':'')+own+' of '+ids.length+' notes recorded';
+    $('twPName').textContent=SETS[k].name;$('twSub').textContent=(SETS[k].range?SETS[k].range.replace('–',' – ')+' · ':'')+ids.length+' notes';
     $('twFill').checked=c.on;
+    $('twRecN').textContent=own+' of '+ids.length+' recorded';$('twRecS').textContent=own===ids.length?'Every note is your real pan':own?'The rest '+(c.on?'are made from your recordings':'use the built-in sound'):'Record a few notes to start';
+    $('twRecGo').textContent=own<ids.length?'🎙 Record':'🎙 Record again';
+    {const bb=$('borrowBox'),hint=$('twBorrowHint')||(()=>{const p=document.createElement('p');p.id='twBorrowHint';p.className='twmi twhint3';$('twBorrow').appendChild(p);return p})();
+     const mine=k===setKey();if(bb)bb.classList.toggle('twoff',!mine);try{renderBorrow()}catch{}
+     hint.textContent=mine?'':'Borrowing from another pan is set for this song\'s pan ('+curSet().name+'). Open a song with the '+SETS[k].name+' to set it there.';hint.hidden=mine}
     const filled=ids.filter(id=>sourceOf(id).kind==='fill').length,built=ids.filter(id=>sourceOf(id).kind==='built').length;
     $('twFillInfo').textContent=!own?'Record a few notes on this pan first.':c.on?filled+' note'+(filled===1?'':'s')+' made from your recordings'+(built?', '+built+' too far from any (built-in sound)':'')+'.':'Off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.';
     const st=new Map(ids.map(id=>[id,stateOf(id)])),sub=id=>{const s=st.get(id),so=sourceOf(id),cn=nowCents(id);
@@ -297,7 +318,7 @@ var TW=(()=>{
     else if(a==='raw'){const ac=panCtx(),buf=await sampleBuf(id);if(ac&&buf){const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.9;s.buffer=buf;s.connect(g);g.connect(pBus);s.start()}}
     else if(a==='fix'){const r=Rget(id);if(!r||r.pc==null)return;setTune(id,-r.pc);mineOn();changed();const n=fills(id);msg(nice(id)+' tuned'+(n?', and the '+n+' note'+(n===1?'':'s')+' made from it':'')+'.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
     else if(a==='reset'){delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}changed();msg(nice(id)+' is back to how it was recorded.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
-    else if(a==='rec'){back=true;show(false);recSel=id;openRec(true);if(setOf(id)!==setKey())recMsg('Recording '+nice(id)+' for the '+SETS[setOf(id)].name+'. The pans shown are this song\'s; your take is kept with the '+SETS[setOf(id)].name+'.')}
+    else if(a==='rec')recordNote(id);
     else if(a==='src')pick(b.dataset.v,true);
     else if(a==='edit'&&typeof WAVE!=='undefined')WAVE.open(id);
     else if(a[0]==='t'&&['tplay','tuse','tdel','tbest'].includes(a))takeAct(a,id,+b.dataset.v);
@@ -319,12 +340,36 @@ var TW=(()=>{
   }
   const fills=id=>order().filter(x=>{const s=sourceOf(x);return s.kind==='fill'&&s.src===id}).length;
   function setTune(id,c){setT(id,{cents:Math.round(c*10)/10})}
-  async function tuneAll(){
-    mineOn();msg('Listening…');await listenAll();let n=0,odd=[];
-    for(const id of order()){const r=Rget(id);if(!SAMPLES.wav[id]||!r||r.pc==null)continue;
-      if(Math.abs(r.pc)>55){odd.push(nice(id));continue}setTune(id,-r.pc);n++}
-    changed();msg(n?'Tuned '+n+' recording'+(n===1?'':'s')+' to pitch'+(cfg(keyNow()).on?', and every note made from them':'')+'.'+(odd.length?' Left alone (they sound like a different note, so check them): '+odd.join(', ')+'.':''):'Nothing to tune yet.');
+  /* ✨ Tune all for me: the whole clean-up for every recording on this pan, in one go. Each take is trimmed to start
+     on the hit and end when the ring has died away (basses keep their longer ring), clicks are smoothed out (saved back
+     at 24-bit), it's tuned to pitch, and the volumes are evened out. Ring and Tone stay as you set them, and the room is
+     left alone. (This replaces "Make my pans sound their best", which did the same but reset Ring and Tone.) */
+  async function cleanAll(ids,quiet){
+    ids=ids||order().filter(id=>SAMPLES.wav[id]);if(!ids.length){if(!quiet)msg('Nothing recorded on this pan yet.');return {n:0}}
+    mineOn();if(!quiet)msg('Tidying '+ids.length+' recording'+(ids.length===1?'':'s')+'…');
+    let tuned=0,clicks=0;const odd=[],loud={};
+    for(const id of ids){
+      const b=await sampleBuf(id);if(!b)continue;const sr=b.sampleRate,d=new Float32Array(b.getChannelData(0));
+      let pk=0;for(const v of d)pk=Math.max(pk,Math.abs(v));if(pk<1e-4)continue;
+      let on=0;while(on<d.length&&Math.abs(d[on])<pk*.2)on++;
+      const n=declick(d,sr,on);
+      if(n){clicks+=n;const w=encodeWav24(d,sr);SAMPLES.wav[id]=w;if(typeof TAKES!=='undefined'&&TAKES.replaceCur)TAKES.replaceCur(id,w);
+        delete SAMPLES.buf[id];await sampleBuf(id)}
+      const start=Math.max(0,on/sr-.004),win=Math.round(sr*.02);let end=d.length;
+      for(let i=d.length-win;i>on;i-=win){let m=0;for(let j=i;j<i+win;j++)m=Math.max(m,Math.abs(d[j]));if(m>pk*.006){end=i+win;break}}
+      const endS=Math.min(d.length/sr,end/sr+.05,start+takeCap(id)),len=endS-start;
+      const patch={start:+start.toFixed(3),end:+endS.toFixed(3),fade:+Math.min(.35,Math.max(.08,len*.25)).toFixed(2)};
+      const r=await reading(id);if(r&&r.pc!=null){if(Math.abs(r.pc)<=55){patch.cents=Math.round(-r.pc*10)/10;tuned++}else odd.push(nice(id))}
+      setT(id,patch);
+      const a=Math.round((start+.02)*sr),z=Math.min(d.length,a+Math.round(.3*sr));let q=0;for(let i=a;i<z;i++)q+=d[i]*d[i];loud[id]=Math.sqrt(q/Math.max(1,z-a));
+    }
+    const vals=Object.values(loud).filter(v=>v>0).sort((x,y)=>x-y),target=vals[vals.length>>1];
+    if(vals.length>1)for(const [id,v] of Object.entries(loud))if(v>0){const lift=mid(id)<55?1:0;setT(id,{db:Math.max(-12,Math.min(12,Math.round((20*Math.log10(target/v)+lift)*2)/2))})}
+    saveTune();changed();
+    if(!quiet)msg('Done: '+ids.length+' recording'+(ids.length===1?'':'s')+' trimmed'+(vals.length>1?', evened out':'')+(tuned?', '+tuned+' tuned to pitch':'')+(clicks?', '+clicks+' click'+(clicks===1?'':'s')+' smoothed out':'')+'. Ring and Tone are as you left them.'+(odd.length?' Left alone (they sound like a different note, so check them): '+odd.join(', ')+'.':''));
+    return {n:ids.length,tuned,clicks,odd};
   }
+  const tuneAll=()=>cleanAll();
   async function listenAll(){for(const id of order())if(SAMPLES.wav[id]&&!Rget(id))await reading(id)}
   async function pickClean(){
     msg('Listening…');await listenAll();const k=keyNow(),c=cfg(k),ids=order().filter(id=>SAMPLES.wav[id]&&Rget(id)&&Rget(id).ok);
@@ -346,7 +391,7 @@ var TW=(()=>{
   let back=false;
   function show(on){
     build();open=!!on;$('twSheet').hidden=!on;document.body.classList.toggle('tw-open',open);
-    if(on){++allRun;if(!vk||!SETS[vk])vk=setKey();more(false);$('twHowBox').hidden=true;requestAnimationFrame(()=>{render(true);listen()})}
+    if(on){++allRun;if(!vk||!SETS[vk])vk=setKey();more(false);if(!back)tabTo('tune');$('twHowBox').hidden=true;requestAnimationFrame(()=>{render(true);listen()})}
     else{++run;++allRun;if(!back)vk=null}
   }
   const _openRec=openRec;openRec=function(on){_openRec(on);if(!on&&back){back=false;show(true)}};
@@ -367,5 +412,5 @@ var TW=(()=>{
       r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
     return r.pc!=null?r.pc:null;
   }
-  return {centsNow,allowed:true,open:show,decode,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
+  return {centsNow,allowed:true,open:show,decode,cleanAll,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();
