@@ -36,3 +36,7 @@
 .bandbtns{display:flex;flex-wrap:wrap;gap:8px}
 @media (max-width:480px){.bandbox .sl{grid-template-columns:minmax(0,1fr) 58px}.bandbox .sl label{grid-column:1/-1}.bandbox .sl input{grid-column:1}.bandbox .sl .ends{grid-column:1}
   .bandcards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Share your pan sounds */
+.sharebtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sharebtns .btn{flex:1 1 140px;min-height:44px}
+.sharenote{color:var(--muted);font-size:13px;margin:8px 0 0}

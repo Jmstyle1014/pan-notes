@@ -13,7 +13,7 @@ Every version is one self-contained HTML file built from `source/`:
 3. `python3 source/make_panyard.py` builds `source/pan-notes-panyard.html` from the Next file. It adds the
    Panyard modules in this order: game, lab, voice (Ring/Tone per note, 24-bit takes), wave (the sound editor) and tune (the Pan sounds screen: record, tune, sound; once called Tune my pans), feel (How you play: dynamics, roll
    delay `HOLD_MS`, keep-awake hum) and band (Band sounds per song), then hang, studio, home, tabs, stage, gb, wb, looks, role,
-   parts, guide, polish, cloud, themes, back (the phone's back button), notesui and arrange (Arrange pans) (most go just before the `/* ---------- start ---------- */` marker). It also makes small text replacements with
+   parts, guide, polish, cloud, themes, back (the phone's back button), notesui, arrange (Arrange pans) and share (sounds files) (most go just before the `/* ---------- start ---------- */` marker). It also makes small text replacements with
    `rep()`, which asserts that each target is found exactly once. Last, it builds the Chrome Day / Chrome Night
    colours (`make_themes.py`, needs `pip install tinycss2`; without it, the saved `panyard-themes.css` is used)
    and routes the canvas colours through `THEME.c()`.
@@ -90,4 +90,7 @@ upright count is low because a checklist pushes the pans below the play bar ther
   `land`/`up`: `all` size and `p[drum]=[dx,dy,size]`, offsets as parts of the box). Skirt length per set is `STAGE.SK`
   (tenor shortest, six bass a full drum); far drums draw first so near ones cover their skirts. Arrange pans opens from
   Settings → Pan layout. Test with `tarrange` (and `tstage` for taps).
+- **Sounds files** (`panyard-share.js`, `SHARE`): Pan sounds → Sound → Save my sounds file writes `format:'panyard-sounds'`
+  JSON (recorded notes trimmed to their kept part, their tuning, the profile's room; no songs). Opening one (that card,
+  or Open backup file) adds each note as a new take plus a new sound profile, so the phone's own stay. Test with `tshare`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

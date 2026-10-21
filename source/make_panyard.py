@@ -187,6 +187,7 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-back.j
 # My notes on screen (after Write, so its Coming up panel is there): full screen, Chart → Notes, and the Play / Write panels
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-notesui.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-arrange.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-share.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # Setup: "Pan look" for every pan (it was "Pan photos & order", for the Double Guitar only)
 rep("this.vis('photos')&&isGuitar()?row('photos','Pan photos & order',this.val('photos')):''", "this.vis('photos')?row('photos','Pan look',this.val('photos')):''")
 rep("photos:'Pan photos & order'", "photos:'Pan look'")
