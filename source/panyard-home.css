@@ -349,6 +349,11 @@ body.wb-next-sm .wbn{height:52px;min-width:56px;padding:4px 10px}body.wb-next-sm
 #nsName{display:block;width:100%;margin-top:6px;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:18px;box-sizing:border-box}
 #nsName.role-need{border-color:#ff7a7a}
 .role-go{min-height:50px;font-size:17px;margin-top:4px}
+.role-sw{display:inline-flex;margin-top:8px;padding:3px;gap:2px;border-radius:99px;border:1px solid var(--line);background:rgb(255 255 255 / .04)}
+.role-sw button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:4px 12px;border:0;border-radius:99px;background:none;color:var(--muted);font:700 13px var(--body,system-ui);cursor:pointer;white-space:nowrap}
+.role-sw button[aria-pressed="true"]{background:var(--raised);color:var(--text);box-shadow:inset 0 0 0 1px var(--gold)}
+.role-card.role-cur{border-color:var(--gold)!important}
+.role-now{font-style:normal;font-size:12px;color:var(--gold);margin-left:6px}
 .role-chip{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 12px 5px 6px;border-radius:99px;border:1px solid var(--line);background:rgb(255 255 255 / .04);color:var(--text);font:700 13px var(--body,system-ui);cursor:pointer}
 /* a band member sees only their pan: no Studio */
 body.band .tabs button[data-tab=studio],body.band #wbmStudio,body.band #gbWrite{display:none!important}

@@ -81,7 +81,7 @@ var BAND=(()=>{
   {const _so=songOpen;songOpen=async function(){const r=await _so.apply(this,arguments);apply();if(open)render();return r}}
 
   /* choosing and shaping */
-  const hasRec=()=>typeof hasAudio!=='undefined'&&!!hasAudio;
+  const hasRec=()=>typeof hasAudio!=='undefined'&&!!hasAudio&&curName!=='Your part';
   function setA(a){if(hasRec())return;S.refA=a;save_();try{TUNE_A.render()}catch{}}
   function save_(){try{window.save()}catch{}}
   function use(card){
@@ -158,3 +158,19 @@ var BAND=(()=>{
     const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
   return {PRESETS,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
 })();
+
+/* ---------- Settings: Band sound (this song) and How you play, one tap from the list ----------
+   Each opens Pan sounds on its Sound tab, at its own card. */
+{
+  const row=(k,ic,col,label,val,sub)=>'<button class="sxrow" data-row="'+k+'"><span class="sxic" style="background:'+col+'" aria-hidden="true">'+ic+'</span><span class="sxlab"><b>'+label+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span><span class="sxval">'+val+'</span><span class="sxchev" aria-hidden="true">›</span></button>';
+  const esc2=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function add(){
+    const list=$('setList');if(!list||typeof TW==='undefined')return;const g=list.querySelectorAll('.sxgroup .sxbox');if(g.length<2)return;
+    const b=BAND.forSong(),f=FEEL.s,sens=['Off','A little','A little','A little','Some','Some','Some','A lot','A lot','Very','Very'][f.sens];
+    if(!list.querySelector('[data-row=band]'))g[0].insertAdjacentHTML('beforeend',row('band','🥁','#ff8fa3','Band sound',b?esc2(b.name||'Shaped'):'As recorded','How your pans sound in this song'));
+    if(!list.querySelector('[data-row=feel]')){const after=g[1].querySelector('[data-row=play]');const h=row('feel','👆','#7be0c3','How you play','Dynamics: '+sens,'Hit strength, roll, sound awake');if(after)after.insertAdjacentHTML('afterend',h);else g[1].insertAdjacentHTML('afterbegin',h)}
+  }
+  const _sr=SETUP.render.bind(SETUP);SETUP.render=function(){_sr();try{add()}catch(e){console.warn(e)}};
+  function openAt(id){TW.open(true);TW.tabTo('sound');setTimeout(()=>{const x=$(id);if(x)x.scrollIntoView({block:'start',behavior:'smooth'})},120)}
+  document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('#setList [data-row=band],#setList [data-row=feel]');if(!r)return;e.stopPropagation();e.preventDefault();openAt(r.dataset.row==='band'?'bandBox':'feelBox')},true);
+}

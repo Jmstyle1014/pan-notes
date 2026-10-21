@@ -4,7 +4,8 @@
 // photo until your real notes sit under the outlines. The Double Guitar's photos are the ones it already had.
 var LOOK={   // var: Setup can ask about it before this part has run
   KEYS:['guitar','tenor','dsec','fcello','six'],
-  STYLES:[['night','Night'],['steel','Steel'],['painted','Painted'],['photo','My photos']],
+  STYLES:[['night','App look'],   // the usual style: it takes the app look's colours (Night, Chrome Night, Trinidad & Tobago...)
+  ['steel','Steel'],['painted','Painted'],['photo','My photos']],
   NAMES:[['oct','Letters + octaves'],['plain','Letters'],['none','Hidden']],
   HITS:['','#ffd166','#7be07b','#ff8fc7','#8fc7ff','#ffffff'],
   GUITAR_COL:{ec:'#e0824f',bf:'#3c9fa6'},

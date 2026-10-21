@@ -20,7 +20,8 @@ with sync_playwright() as p:
     E(pg,"SETUP.show(null)");pg.wait_for_timeout(300)
     print('setup rows',E(pg,"[...document.querySelectorAll('#setList [data-row]')].map(x=>x.dataset.row).join(',')"))
     E(pg,"showView('home')");pg.wait_for_timeout(300)
-    pg.click('#roleChip');pg.wait_for_timeout(200);pg.click('[data-r=producer]');pg.wait_for_timeout(400)
+    pg.click('#roleChip [data-rs=p]');pg.wait_for_timeout(400)   # the switch on Home: straight to Producer
+    print('switch back to the band pan',E(pg,"ROLE.lastPan()"))
     print('producer',E(pg,"[ROLE.band(),getComputedStyle(document.querySelector('.tabs button[data-tab=studio]')).display]"))
     pg.click('#hmNew');pg.wait_for_timeout(300);pg.click('[data-r=npan][data-v=dsec]');pg.fill('#nsName','Kitchen Session');pg.screenshot(path=D+'role-new-prod.png');pg.click('[data-r=create]');pg.wait_for_timeout(1200)
     print('new song 2',E(pg,"[S.title,S.panSet,SONGS.list.map(s=>s.title)]"))

@@ -7,7 +7,12 @@ var ROLE={   // var: Home can ask about it before this part has run
   SECTIONS:{front:{name:'Frontline',sub:'The melody: Tenor or Double Seconds',pans:['tenor','dsec']},
             back:{name:'Backline',sub:'The harmony and bass: Double Guitar, Four Cello or Six Bass',pans:['guitar','fcello','six']}},
   get(){try{const x=JSON.parse(localStorage.getItem('panyard-role')||'null');if(x&&(x.role==='producer'||(x.role==='band'&&SETS[x.pan])))return x}catch{}return null},
-  put(x){try{localStorage.setItem('panyard-role',JSON.stringify(x))}catch{}},
+  // the last band pan is kept while you're a Producer, so the switch on Home can go straight back to it
+  put(x){const o=this.get(),last=x.role==='band'?x.pan:(o&&(o.pan||o.lastPan));if(last&&SETS[last])x.lastPan=last;try{localStorage.setItem('panyard-role',JSON.stringify(x))}catch{}},
+  lastPan(){const r=this.get();const k=r&&(r.pan||r.lastPan);return k&&SETS[k]?k:null},
+  // the quick switch on Home
+  toProducer(){if(!this.band())return;this.put({role:'producer'});this.apply();say('Producer: everything is open. Studio, every pan, tuning and mixing.')},
+  toBand(){const k=this.lastPan();if(!k){this.open('section');return}if(this.band())return;this.put({role:'band',pan:k});this.apply(true);say('Band member: just your '+SETS[k].name+'. Studio is hidden.')},
   band(){const r=this.get();return !!(r&&r.role==='band')},
   pan(){const r=this.get();return r&&r.role==='band'?r.pan:null},
   sectionOf(k){return Object.keys(this.SECTIONS).find(s=>this.SECTIONS[s].pans.includes(k))},
@@ -32,13 +37,13 @@ var ROLE={   // var: Home can ask about it before this part has run
   },
   open(step){const ov=this.sheet();ov.hidden=false;this.step(step||'who')},
   close(){const ov=$('roleSheet');if(ov){ov.hidden=true;ov.innerHTML=''}},
-  card(r,v,ic,title,sub){return '<button class="role-card" data-r="'+r+'"'+(v?' data-v="'+v+'"':'')+'>'+ic+'<span><b>'+title+'</b><small>'+sub+'</small></span><i aria-hidden="true">›</i></button>'},
+  card(r,v,ic,title,sub,now){return '<button class="role-card'+(now?' role-cur':'')+'" data-r="'+r+'"'+(v?' data-v="'+v+'"':'')+(now?' aria-current="true"':'')+'>'+ic+'<span><b>'+title+(now?' <em class="role-now">✓ Now</em>':'')+'</b><small>'+sub+'</small></span><i aria-hidden="true">›</i></button>'},
   step(s){
     const ov=this.sheet(),r=this.get();let h='';
     const top=(t,p,back)=>'<div class="role-top">'+(back?'<button class="iconbtn" data-r="back" data-to="'+back+'" aria-label="Back">‹</button>':'')+'<div><h2 id="roleT">'+t+'</h2>'+(p?'<p>'+p+'</p>':'')+'</div>'+(r&&s!=='new'?'<button class="mini" data-r="close">Close</button>':'')+'</div>';
     if(s==='who')h=top('Who’s playing today?','You can change this any time from Home.')
-      +this.card('producer','','<span class="role-ic" style="background:#ffd166">🎛</span>','Producer','Make music. Studio, every pan, tuning and mixing.')
-      +this.card('band','','<span class="role-ic" style="background:#8fc7ff">🥁</span>','Band member','Just your pan. Learn your part and play along.');
+      +this.card('producer','','<span class="role-ic" style="background:#ffd166">🎛</span>','Producer','Make music. Studio, every pan, tuning and mixing. Everything is open.',r&&r.role==='producer')
+      +this.card('band','','<span class="role-ic" style="background:#8fc7ff">🥁</span>','Band member',(r&&r.role==='band'?'Your '+esc(SETS[r.pan].name)+'. Tap to change pan. ':'Just your pan. ')+'Learn your part and play along. Studio and the other pans are hidden.',r&&r.role==='band');
     else if(s==='section')h=top('Which section do you play in?','',  'who')
       +Object.entries(this.SECTIONS).map(([k,x])=>this.card('section',k,'<span class="role-ics">'+x.pans.map(p=>HOME.mini(p,30)).join('')+'</span>',x.name,x.sub)).join('');
     else if(s==='pan'){const x=this.SECTIONS[this.sec||'front'];
@@ -82,8 +87,10 @@ var ROLE={   // var: Home can ask about it before this part has run
       if(band){keep=SONGS.list;SONGS.list=SONGS.list.filter(s=>s.id===SONGS.active||!s.pan||s.pan===r.pan)}
       try{_r()}finally{if(keep)SONGS.list=keep}
       const top=document.querySelector('#view-home .hm-top>div');if(!top||!r)return;
-      const b=document.createElement('button');b.className='role-chip';b.id='roleChip';b.setAttribute('aria-label','Change who’s playing');
-      b.innerHTML=band?HOME.mini(r.pan,20)+esc(SETS[r.pan].name)+' · Band':'🎛 Producer';top.appendChild(b);b.onclick=()=>ROLE.open('who');
+      // a two-way switch: Producer or your pan (tap your pan again to choose another)
+      const lp=ROLE.lastPan(),b=document.createElement('div');b.className='role-sw';b.id='roleChip';b.setAttribute('role','group');b.setAttribute('aria-label','Who’s playing');
+      b.innerHTML='<button data-rs="p" aria-pressed="'+!band+'">🎛 Producer</button><button data-rs="b" aria-pressed="'+band+'">'+(lp?HOME.mini(lp,18)+esc(SETS[lp].name):'🥁 Band member')+'</button>';
+      top.appendChild(b);b.onclick=e=>{const x=e.target.closest('[data-rs]');if(!x)return;if(x.dataset.rs==='p')ROLE.toProducer();else if(band)ROLE.open('section');else ROLE.toBand()};
       if(band){const j=$('hmJust');if(j)j.lastChild.textContent='Practise'}
       // the example song is for the Double Guitar: a band member on another pan gets their first song instead
       const card=document.querySelector('#view-home .hm-card');

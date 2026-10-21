@@ -864,7 +864,8 @@ async function load(){
   return loading;
 }
 async function practiceLoad(){
-  if(!hasAudio||!curBlob||curName==='Example tones'){pBuf=null;pKey='';pPeaks=null;return}
+  if(!hasAudio||!curBlob||curName==='Example tones'||curName==='Your part'){pBuf=null;   // your part (no recording) isn't a recording
+    pKey='';pPeaks=null;return}
   const k=curName+'|'+curBlob.size;if(k===pKey&&pBuf)return;
   pKey=k;try{pBuf=await decode(curBlob);pPeaks=peaksOf(pBuf)}catch{pBuf=null;pPeaks=null}
 }

@@ -117,6 +117,12 @@ html.th-cday .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.act
 html.th-cday .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) text{fill:#1d1930!important;stroke:none}
 html.th-cnight .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) .zone,html.th-cnight .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) :is(.pan-ec,.pan-bf) .field:is(.active,.hit,.play-hit) .zone{fill:url(#thNightHit)!important;stroke:#fffaf0!important;stroke-width:4px!important;animation:panStrike .38s var(--ease),thGlowNight .7s ease-out!important;filter:drop-shadow(0 0 8px rgb(255 240 215/.75))}
 html.th-cnight .pan:is([data-lk=night],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) text{fill:#16161a!important;stroke:none}
+/* the skirt and the stand follow the look too (Trinidad & Tobago paints its own red ones) */
+html.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg path[fill="url(#hgSkirt)"]{fill:url(#thNightSkirt)}
+html.th-cday .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg path[fill="url(#hgSkirt)"]{fill:url(#thDaySkirt)}
+html:is(.th-cday,.th-cnight) .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg :is(rect,circle)[fill="url(#hgPole)"]{fill:url(#thPole)}
+html.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg ellipse[fill="#2a2546"]{fill:#111}
+html.th-cday .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg ellipse[fill="#2a2546"]{fill:#8b879b}
 @keyframes thGlowDay{0%{filter:drop-shadow(0 0 2px rgb(255 255 255/1)) brightness(1.15)}100%{filter:drop-shadow(0 0 7px rgb(150 185 235/.85))}}
 @keyframes thGlowNight{0%{filter:drop-shadow(0 0 3px rgb(255 255 255/1)) brightness(1.25)}100%{filter:drop-shadow(0 0 8px rgb(255 240 215/.75))}}
 @media (prefers-reduced-motion:reduce){html:is(.th-cday,.th-cnight) .pan .field:is(.active,.hit,.play-hit) .zone{animation:none!important}}
