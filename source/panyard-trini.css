@@ -1,0 +1,42 @@
+
+/* ---------- App look: Trinidad & Tobago (panyard-trini.js). Chrome Night underneath; these win over it ---------- */
+html.th-tt{--gold:#ff3a4f;--gold-ink:#ffffff;--surface:rgb(16 10 12/.78);--raised:rgb(30 20 23/.86);--line:rgb(255 255 255/.13);--bg:#070506;background:#070506!important}
+html.th-tt body{background:transparent!important}
+#ttBg{position:fixed;inset:0;z-index:-1;pointer-events:none}
+#ttBg[hidden]{display:none}
+#ttBg::after{content:'';position:absolute;inset:0;background:radial-gradient(130% 75% at 50% 45%,rgb(0 0 0/calc(var(--ttdim,.2)*.6)) 0,rgb(0 0 0/calc(var(--ttdim,.2) + .35)) 100%)}
+/* panels and sheets: dark glass, so the background shows around them but text stays easy to read */
+html.th-tt :is(.sheetbox,.twbox,dialog){background:#120c0e!important}
+/* the pans: mirror chrome bowls on red enamel */
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .rim{fill:url(#ttRim)!important;stroke:#fff!important;stroke-opacity:.9;stroke-width:3px}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .bed{fill:url(#ttBed)!important}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg path[fill="url(#hgSkirt)"]{fill:url(#ttSkirt)!important}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .field:not(:is(.active,.hit,.play-hit)) .zone{fill:url(#ttZone)!important;stroke:rgb(18 18 22/.85)!important;stroke-width:4px!important;filter:drop-shadow(0 2px 0 rgb(255 255 255/.55))}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .field:not(:is(.active,.hit,.play-hit)) text{fill:#141418!important;paint-order:stroke;stroke:rgb(255 255 255/.85)!important;stroke-width:5px;font-weight:800}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) .zone{fill:url(#ttHit)!important;stroke:#fff!important;stroke-width:4px!important;animation:panStrike .38s var(--ease),ttGlow .7s ease-out!important}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .dcap{fill:#fff!important}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg :is(rect,circle)[fill="url(#hgPole)"]{fill:url(#ttPole)!important}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg ellipse[fill="#2a2546"]{fill:#111!important}
+.ttgl{display:none;pointer-events:none}
+html.th-tt.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .ttgl{display:inline;fill:#fff;opacity:.26}
+@keyframes ttGlow{0%{filter:drop-shadow(0 0 3px #fff) brightness(1.25)}100%{filter:drop-shadow(0 0 10px rgb(255 40 60/.8))}}
+@media (prefers-reduced-motion:reduce){html.th-tt .pan .field:is(.active,.hit,.play-hit) .zone{animation:none!important}}
+/* the play bar: glass with a red glow, a chrome play button */
+html.th-tt.th-cnight #dock .transport{background:rgb(22 8 11/.62)!important;border:1px solid rgb(255 70 90/.45)!important;box-shadow:0 0 22px rgb(255 30 55/.3),inset 0 1px 0 rgb(255 255 255/.12)!important;backdrop-filter:blur(6px)}
+html.th-tt.th-cnight #dock #playBtn{background:radial-gradient(circle at 35% 28%,#fff,#d8dbe0 35%,#7c818a 70%,#c9ccd2)!important;color:#1a0a0d!important;box-shadow:0 0 0 2px rgb(255 60 80/.75),0 0 16px rgb(255 30 55/.5)!important}
+html.th-tt #seek{accent-color:#ff3a4f}
+/* choosing the background (App look) */
+.tt-bgs{margin:2px 0 12px}.tt-bgs[hidden]{display:none}
+.tt-bgs h3{margin:6px 0 8px}
+.tt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.tt-own{position:relative;display:flex}
+.tt-tile{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;padding:6px 6px 7px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:inherit;font:inherit;cursor:pointer}
+.tt-tile b{font-size:12px;font-weight:700}
+.tt-tile[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.tt-sw{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:9/14;border-radius:10px;background-size:cover!important;font-size:26px;color:var(--muted);border:1px dashed transparent}
+.tt-add .tt-sw{border-color:var(--line)}
+.tt-add input{position:absolute;width:1px;height:1px;opacity:0}
+.tt-del{position:absolute;top:2px;right:2px;width:30px;height:30px;border-radius:50%;border:0;background:rgb(0 0 0/.7);color:#fff;font-size:14px;cursor:pointer}
+.tt-dim{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:center;gap:10px;margin:12px 0 4px;font-size:14px}
+.tt-dim input{width:100%;accent-color:var(--gold);min-height:32px}
+.tt-dim output{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
