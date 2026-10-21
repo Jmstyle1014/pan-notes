@@ -11,7 +11,7 @@ Every version is one self-contained HTML file built from `source/`:
    change both together).
 2. `python3 source/make_next.py` builds `source/pan-notes-next.html` (the new look, `next-look.css`).
 3. `python3 source/make_panyard.py` builds `source/pan-notes-panyard.html` from the Next file. It adds the
-   Panyard modules in this order: game, lab and tune, then hang, studio, home, tabs, stage, gb, wb, looks, role,
+   Panyard modules in this order: game, lab, voice (Ring/Tone per note, 24-bit takes), wave (the sound editor) and tune (Tune my pans), then hang, studio, home, tabs, stage, gb, wb, looks, role,
    parts, guide, polish, cloud, themes and back (the phone's back button) (most go just before the `/* ---------- start ---------- */` marker). It also makes small text replacements with
    `rep()`, which asserts that each target is found exactly once. Last, it builds the Chrome Day / Chrome Night
    colours (`make_themes.py`, needs `pip install tinycss2`; without it, the saved `panyard-themes.css` is used)
@@ -59,6 +59,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   ID in `CLOUD.CID` is public and safe to keep in the code. The Google Cloud project is in testing mode, so only
   test users listed there can sign in. Settings that belong to one phone (`panyard-studio` timing etc.) are not
   backed up (`CLOUD.SKIP`).
+- **Recorded pan notes:** `SAMPLES.wav` (IndexedDB `samples`) holds each note's take, 24-bit WAV for new takes (old
+  16-bit ones still play). `SAMPLES.tune[id]` holds the settings on top of it (start, end, db, fade, cents, ring, tone),
+  per sound profile. The sound editor (`panyard-wave.js`) rewrites the take itself and keeps the untouched one in
+  IndexedDB `samplesOrig` (this phone only) for "Back to the original". Test with `ttw`.
 - **App looks** (`panyard-themes.js`, `make_themes.py`): Night and Day are the original looks (Day is a CSS
   invert); Chrome Day and Chrome Night recolour every style at build time. New canvas drawing code should use
   `THEME.c('#colour')` so it follows the look.

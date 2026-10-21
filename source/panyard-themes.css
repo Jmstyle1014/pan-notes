@@ -678,71 +678,83 @@ html.th-cday .arrpn small{color:var(--muted)}
 html.th-cday .arrbar1{border-left:2px solid #bebacd}
 html.th-cday .arrrow .arrbar1:last-child{border-right:2px solid #bebacd}
 html.th-cday .arrdash{color:var(--muted)}
-html.th-cday .twsub{color:var(--muted)}
-html.th-cday .twfill{background:var(--raised);border:1px solid var(--line)}
-html.th-cday .twfill small{color:var(--muted)}
-html.th-cday .twsw{background:var(--line)}
-html.th-cday .twsw::after{background:var(--steel)}
-html.th-cday .twfill input:checked+.twsw{background:var(--teal)}
-html.th-cday .twfill input:checked+.twsw::after{background:var(--text)}
-html.th-cday .twfill input:focus-visible+.twsw{outline:2px solid var(--gold)}
-html.th-cday .twfam{--fc:var(--muted);background:var(--surface);border:1px solid var(--line)}
-html.th-cday .twfam:has(.twc.on){border-color:var(--fc)}
-html.th-cday .twfh small{color:var(--muted)}
-html.th-cday .twdot{background:var(--fc)}
-html.th-cday .twfam.loose .twdot{border:1.5px dashed var(--muted)}
-html.th-cday .twfs{color:var(--muted)}
-html.th-cday .twfs.good{color:#3dbf6d}
-html.th-cday .twfs.near{color:var(--gold)}
-html.th-cday .twfs.off{color:var(--danger)}
-html.th-cday .twfp{border:1px solid var(--line);background:var(--raised);color:var(--text)}
-html.th-cday .twfp:focus-visible{outline:2px solid var(--gold)}
-html.th-cday .twc{border:1.5px solid var(--line);color:var(--text)}
-html.th-cday .twc small{color:var(--muted)}
-html.th-cday .twc small.good{color:#3dbf6d}
-html.th-cday .twc small.near{color:var(--gold)}
-html.th-cday .twc small.off{color:var(--danger)}
-html.th-cday .twc.anc{background:var(--fc,var(--gold));border-color:var(--fc,var(--gold));color:#e4e2ea}
-html.th-cday .twc.anc small, html.th-cday .twc.anc small.good, html.th-cday .twc.anc small.near, html.th-cday .twc.anc small.off{color:#e4e2ea}
-html.th-cday .twc.fil{border-color:var(--fc,var(--teal))}
-html.th-cday .twc.on{outline:2px solid var(--text)}
-html.th-cday .twc:focus-visible{outline:2px solid var(--gold)}
-html.th-cday .twdetail{border:1.5px solid var(--fc,var(--line))}
-html.th-cday .twkey{color:var(--muted)}
-html.th-cday .twkey .k{border:1.5px solid var(--line)}
-html.th-cday .twkey .k.anc{border-color:var(--gold);background:var(--gold)}
-html.th-cday .twkey .k.fil{border:1.5px dashed var(--teal)}
-html.th-cday .twdetail{background:var(--raised);border:1px solid var(--line)}
+html.th-cday .twtop{border-bottom:1px solid var(--line);background:var(--surface)}
+html.th-cday .twback{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cday .twswitch{border-bottom:1px solid var(--line)}
+html.th-cday .twswitch button{border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+html.th-cday .twswitch button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+html.th-cday .twlist{background:var(--surface);border:1px solid var(--line)}
+html.th-cday .twlist h3{color:var(--muted)}
+html.th-cday .twnl button{color:var(--text)}
+html.th-cday .twnl button[aria-current="true"]{background:var(--raised);border-color:var(--teal)}
+html.th-cday .twnl span{color:var(--muted)}
+html.th-cday .twstrip button{border:1px solid var(--line);background:var(--surface);color:var(--text)}
+html.th-cday .twstrip button[aria-selected="true"]{border-color:var(--teal);background:var(--raised)}
+html.th-cday .twdot.s-ok{background:#37ce83}
+html.th-cday .twdot.s-off{background:var(--gold)}
+html.th-cday .twdot.s-own{background:var(--steel)}
+html.th-cday .twdot.s-fill{background:#3882f5}
+html.th-cday .twdot.s-built{border:1.5px dashed var(--muted)}
+html.th-cday .twpname small{color:var(--muted)}
+html.th-cday .twpname button{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cday .twpanbox .field.tws-ok .zone{fill:#236651!important}
+html.th-cday .twpanbox .field.tws-off .zone{fill:#694f15!important}
+html.th-cday .twpanbox .field.tws-fill .zone{fill:#c2bed0!important}
+html.th-cday .twpanbox .field.twfam .zone{stroke:#3882f5!important}
+html.th-cday .twpanbox .field.twsel .zone{fill:var(--teal)!important;stroke:#f883ba!important}
+html.th-cday .twpanbox .field.twsel text{fill:var(--teal-ink,#30031a)!important}
+html.th-cday .twlegend{color:var(--muted)}
+html.th-cday .twhint2{color:var(--muted)}
+html.th-cday .twed{background:var(--surface);border:1px solid var(--line)}
 html.th-cday .twname{color:var(--gold)}
 html.th-cday .twpos{color:var(--muted)}
-html.th-cday .twtag{border:1.5px solid var(--line)}
-html.th-cday .twtag.anc{border-color:var(--gold);color:var(--gold)}
-html.th-cday .twtag.fil{border:1.5px dashed var(--fc,var(--teal));color:var(--fc,var(--teal))}
-html.th-cday .twtag.anc{border-color:var(--fc,var(--gold));color:var(--fc,var(--gold))}
-html.th-cday .twtag.bin{color:var(--muted)}
-html.th-cday .twnote{color:var(--muted)}
-html.th-cday .twq{color:var(--muted)}
-html.th-cday .twq b{color:var(--text)}
-html.th-cday .twbar{background:var(--surface)}
-html.th-cday .twbar i{background:var(--danger)}
-html.th-cday .twq.mid .twbar i{background:var(--gold)}
-html.th-cday .twq.ok .twbar i{background:#3dbf6d}
-html.th-cday .twrn small{color:var(--muted)}
-html.th-cday .twv{background:var(--surface)}
-html.th-cday .twv.ok{color:#3dbf6d}
-html.th-cday .twv.mid{color:var(--gold)}
-html.th-cday .twv.bad{color:var(--danger)}
-html.th-cday .twv.none{color:var(--muted)}
-html.th-cday .twrow canvas{background:var(--bg)}
-html.th-cday .twcmp{color:var(--muted)}
-html.th-cday .twcmp b{color:var(--text)}
-html.th-cday .twspec{background:var(--bg)}
-html.th-cday .tw .btn.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
-html.th-cday .twok{color:#3dbf6d}
+html.th-cday .twchip{border:1px solid var(--line);color:var(--muted)}
+html.th-cday .twchip.ok{color:#37ce83;border-color:#33795e}
+html.th-cday .twchip.off{color:var(--gold);border-color:#7d5f1a}
 html.th-cday .twhint{color:var(--muted)}
-html.th-cday .twmsg{color:var(--teal)}
-html.th-cday .twhow summary{color:var(--muted)}
+html.th-cday .twfix{background:var(--gold)!important;color:var(--gold-ink)!important;border-color:var(--gold)!important}
+html.th-cday .twmeter{background:var(--bg);border:1px solid var(--line)}
+html.th-cday .twmeter .twz{background:rgb(55 206 131/0.1)}
+html.th-cday .twmeter span{background:var(--line)}
+html.th-cday .twmeter span.c{background:#37ce83}
+html.th-cday .twmeter em{color:var(--muted)}
+html.th-cday .twneedle{background:var(--gold);box-shadow:0 0 12px var(--gold)}
+html.th-cday .twneedle.good{background:#37ce83;box-shadow:0 0 12px #37ce83}
+html.th-cday .twq{color:var(--muted)}
+html.th-cday .twq.ok b{color:#37ce83}
+html.th-cday .twq.mid b{color:var(--gold)}
+html.th-cday .twq.bad b{color:var(--danger)}
+html.th-cday .twsl label small{color:var(--muted)}
+html.th-cday .twsl input{accent-color:var(--teal)}
+html.th-cday .twsl output{color:var(--muted)}
+html.th-cday .twends{color:var(--muted)}
+html.th-cday .twrec{color:#f64d4d}
+html.th-cday .twedit small{color:var(--muted)}
+html.th-cday .twsrc{border-top:1px solid var(--line);color:var(--muted)}
+html.th-cday .twgo{background:linear-gradient(135deg,var(--ec,#f46229),var(--teal))!important;color:#e4e2ea!important}
+html.th-cday .twmenu{background:var(--raised);border:1px solid var(--line);box-shadow:0 12px 32px rgb(31 26 41/0.225)}
+html.th-cday .twmi{color:var(--text)}
+html.th-cday .twmi:hover{background:var(--surface)}
+html.th-cday .twmi small{color:var(--muted)}
+html.th-cday .twmi input{accent-color:var(--teal)}
+html.th-cday .twmsg{color:var(--muted)}
+html.th-cday .twhow{background:var(--raised);border:1px solid var(--line);box-shadow:0 12px 40px rgb(31 26 41/0.27)}
 html.th-cday .twhow p{color:var(--muted)}
+html.th-cday .twhow b{color:var(--text)}
+html.th-cday .wvtt p{color:var(--muted)}
+html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
+html.th-cday .wvview button{color:var(--muted)}
+html.th-cday .wvview button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+html.th-cday .wvmini{background:var(--bg);border:1px solid var(--line)}
+html.th-cday .wvmain{background:var(--bg);border:1px solid var(--line)}
+html.th-cday .wvtime{color:var(--muted)}
+html.th-cday .wvtime b{color:var(--text)}
+html.th-cday .wvtip{color:var(--muted)}
+html.th-cday .wvlab{color:var(--muted)}
+html.th-cday .wvb{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cday .wvgain input{accent-color:var(--teal)}
+html.th-cday .wvgain output{color:var(--muted)}
+html.th-cday .wvmsg{color:var(--gold)}
 html.th-cday .setback{color:var(--gold)}
 html.th-cday .sxgt{color:var(--muted)}
 html.th-cday .sxbox{background:var(--surface);border:1px solid var(--line)}
@@ -1461,71 +1473,83 @@ html.th-cnight .arrpn small{color:var(--muted)}
 html.th-cnight .arrbar1{border-left:2px solid #43454a}
 html.th-cnight .arrrow .arrbar1:last-child{border-right:2px solid #43454a}
 html.th-cnight .arrdash{color:var(--muted)}
-html.th-cnight .twsub{color:var(--muted)}
-html.th-cnight .twfill{background:var(--raised);border:1px solid var(--line)}
-html.th-cnight .twfill small{color:var(--muted)}
-html.th-cnight .twsw{background:var(--line)}
-html.th-cnight .twsw::after{background:var(--steel)}
-html.th-cnight .twfill input:checked+.twsw{background:var(--teal)}
-html.th-cnight .twfill input:checked+.twsw::after{background:var(--text)}
-html.th-cnight .twfill input:focus-visible+.twsw{outline:2px solid var(--gold)}
-html.th-cnight .twfam{--fc:var(--muted);background:var(--surface);border:1px solid var(--line)}
-html.th-cnight .twfam:has(.twc.on){border-color:var(--fc)}
-html.th-cnight .twfh small{color:var(--muted)}
-html.th-cnight .twdot{background:var(--fc)}
-html.th-cnight .twfam.loose .twdot{border:1.5px dashed var(--muted)}
-html.th-cnight .twfs{color:var(--muted)}
-html.th-cnight .twfs.good{color:#5fd48a}
-html.th-cnight .twfs.near{color:var(--gold)}
-html.th-cnight .twfs.off{color:var(--danger)}
-html.th-cnight .twfp{border:1px solid var(--line);background:var(--raised);color:var(--text)}
-html.th-cnight .twfp:focus-visible{outline:2px solid var(--gold)}
-html.th-cnight .twc{border:1.5px solid var(--line);color:var(--text)}
-html.th-cnight .twc small{color:var(--muted)}
-html.th-cnight .twc small.good{color:#5fd48a}
-html.th-cnight .twc small.near{color:var(--gold)}
-html.th-cnight .twc small.off{color:var(--danger)}
-html.th-cnight .twc.anc{background:var(--fc,var(--gold));border-color:var(--fc,var(--gold));color:#1c1d1f}
-html.th-cnight .twc.anc small, html.th-cnight .twc.anc small.good, html.th-cnight .twc.anc small.near, html.th-cnight .twc.anc small.off{color:#1c1d1f}
-html.th-cnight .twc.fil{border-color:var(--fc,var(--teal))}
-html.th-cnight .twc.on{outline:2px solid var(--text)}
-html.th-cnight .twc:focus-visible{outline:2px solid var(--gold)}
-html.th-cnight .twdetail{border:1.5px solid var(--fc,var(--line))}
-html.th-cnight .twkey{color:var(--muted)}
-html.th-cnight .twkey .k{border:1.5px solid var(--line)}
-html.th-cnight .twkey .k.anc{border-color:var(--gold);background:var(--gold)}
-html.th-cnight .twkey .k.fil{border:1.5px dashed var(--teal)}
-html.th-cnight .twdetail{background:var(--raised);border:1px solid var(--line)}
+html.th-cnight .twtop{border-bottom:1px solid var(--line);background:var(--surface)}
+html.th-cnight .twback{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cnight .twswitch{border-bottom:1px solid var(--line)}
+html.th-cnight .twswitch button{border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+html.th-cnight .twswitch button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+html.th-cnight .twlist{background:var(--surface);border:1px solid var(--line)}
+html.th-cnight .twlist h3{color:var(--muted)}
+html.th-cnight .twnl button{color:var(--text)}
+html.th-cnight .twnl button[aria-current="true"]{background:var(--raised);border-color:var(--teal)}
+html.th-cnight .twnl span{color:var(--muted)}
+html.th-cnight .twstrip button{border:1px solid var(--line);background:var(--surface);color:var(--text)}
+html.th-cnight .twstrip button[aria-selected="true"]{border-color:var(--teal);background:var(--raised)}
+html.th-cnight .twdot.s-ok{background:#5fe0a0}
+html.th-cnight .twdot.s-off{background:var(--gold)}
+html.th-cnight .twdot.s-own{background:var(--steel)}
+html.th-cnight .twdot.s-fill{background:#6fa8ff}
+html.th-cnight .twdot.s-built{border:1.5px dashed var(--muted)}
+html.th-cnight .twpname small{color:var(--muted)}
+html.th-cnight .twpname button{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cnight .twpanbox .field.tws-ok .zone{fill:#1f6a52!important}
+html.th-cnight .twpanbox .field.tws-off .zone{fill:#825507!important}
+html.th-cnight .twpanbox .field.tws-fill .zone{fill:#3e4045!important}
+html.th-cnight .twpanbox .field.twfam .zone{stroke:#6fa8ff!important}
+html.th-cnight .twpanbox .field.twsel .zone{fill:var(--teal)!important;stroke:#ffd0e6!important}
+html.th-cnight .twpanbox .field.twsel text{fill:var(--teal-ink,#33001a)!important}
+html.th-cnight .twlegend{color:var(--muted)}
+html.th-cnight .twhint2{color:var(--muted)}
+html.th-cnight .twed{background:var(--surface);border:1px solid var(--line)}
 html.th-cnight .twname{color:var(--gold)}
 html.th-cnight .twpos{color:var(--muted)}
-html.th-cnight .twtag{border:1.5px solid var(--line)}
-html.th-cnight .twtag.anc{border-color:var(--gold);color:var(--gold)}
-html.th-cnight .twtag.fil{border:1.5px dashed var(--fc,var(--teal));color:var(--fc,var(--teal))}
-html.th-cnight .twtag.anc{border-color:var(--fc,var(--gold));color:var(--fc,var(--gold))}
-html.th-cnight .twtag.bin{color:var(--muted)}
-html.th-cnight .twnote{color:var(--muted)}
-html.th-cnight .twq{color:var(--muted)}
-html.th-cnight .twq b{color:var(--text)}
-html.th-cnight .twbar{background:var(--surface)}
-html.th-cnight .twbar i{background:var(--danger)}
-html.th-cnight .twq.mid .twbar i{background:var(--gold)}
-html.th-cnight .twq.ok .twbar i{background:#5fd48a}
-html.th-cnight .twrn small{color:var(--muted)}
-html.th-cnight .twv{background:var(--surface)}
-html.th-cnight .twv.ok{color:#5fd48a}
-html.th-cnight .twv.mid{color:var(--gold)}
-html.th-cnight .twv.bad{color:var(--danger)}
-html.th-cnight .twv.none{color:var(--muted)}
-html.th-cnight .twrow canvas{background:var(--bg)}
-html.th-cnight .twcmp{color:var(--muted)}
-html.th-cnight .twcmp b{color:var(--text)}
-html.th-cnight .twspec{background:var(--bg)}
-html.th-cnight .tw .btn.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
-html.th-cnight .twok{color:#5fd48a}
+html.th-cnight .twchip{border:1px solid var(--line);color:var(--muted)}
+html.th-cnight .twchip.ok{color:#5fe0a0;border-color:#2f7d5f}
+html.th-cnight .twchip.off{color:var(--gold);border-color:#9c6608}
 html.th-cnight .twhint{color:var(--muted)}
-html.th-cnight .twmsg{color:var(--teal)}
-html.th-cnight .twhow summary{color:var(--muted)}
+html.th-cnight .twfix{background:var(--gold)!important;color:var(--gold-ink)!important;border-color:var(--gold)!important}
+html.th-cnight .twmeter{background:var(--bg);border:1px solid var(--line)}
+html.th-cnight .twmeter .twz{background:rgb(95 224 160/0.1)}
+html.th-cnight .twmeter span{background:var(--line)}
+html.th-cnight .twmeter span.c{background:#5fe0a0}
+html.th-cnight .twmeter em{color:var(--muted)}
+html.th-cnight .twneedle{background:var(--gold);box-shadow:0 0 12px var(--gold)}
+html.th-cnight .twneedle.good{background:#5fe0a0;box-shadow:0 0 12px #5fe0a0}
+html.th-cnight .twq{color:var(--muted)}
+html.th-cnight .twq.ok b{color:#5fe0a0}
+html.th-cnight .twq.mid b{color:var(--gold)}
+html.th-cnight .twq.bad b{color:var(--danger)}
+html.th-cnight .twsl label small{color:var(--muted)}
+html.th-cnight .twsl input{accent-color:var(--teal)}
+html.th-cnight .twsl output{color:var(--muted)}
+html.th-cnight .twends{color:var(--muted)}
+html.th-cnight .twrec{color:#ff8a8a}
+html.th-cnight .twedit small{color:var(--muted)}
+html.th-cnight .twsrc{border-top:1px solid var(--line);color:var(--muted)}
+html.th-cnight .twgo{background:linear-gradient(135deg,var(--ec,#ff8a5c),var(--teal))!important;color:#1c1d1f!important}
+html.th-cnight .twmenu{background:var(--raised);border:1px solid var(--line);box-shadow:0 12px 32px rgb(0 0 0/0.5)}
+html.th-cnight .twmi{color:var(--text)}
+html.th-cnight .twmi:hover{background:var(--surface)}
+html.th-cnight .twmi small{color:var(--muted)}
+html.th-cnight .twmi input{accent-color:var(--teal)}
+html.th-cnight .twmsg{color:var(--muted)}
+html.th-cnight .twhow{background:var(--raised);border:1px solid var(--line);box-shadow:0 12px 40px rgb(0 0 0/0.6)}
 html.th-cnight .twhow p{color:var(--muted)}
+html.th-cnight .twhow b{color:var(--text)}
+html.th-cnight .wvtt p{color:var(--muted)}
+html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
+html.th-cnight .wvview button{color:var(--muted)}
+html.th-cnight .wvview button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+html.th-cnight .wvmini{background:var(--bg);border:1px solid var(--line)}
+html.th-cnight .wvmain{background:var(--bg);border:1px solid var(--line)}
+html.th-cnight .wvtime{color:var(--muted)}
+html.th-cnight .wvtime b{color:var(--text)}
+html.th-cnight .wvtip{color:var(--muted)}
+html.th-cnight .wvlab{color:var(--muted)}
+html.th-cnight .wvb{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cnight .wvgain input{accent-color:var(--teal)}
+html.th-cnight .wvgain output{color:var(--muted)}
+html.th-cnight .wvmsg{color:var(--gold)}
 html.th-cnight .setback{color:var(--gold)}
 html.th-cnight .sxgt{color:var(--muted)}
 html.th-cnight .sxbox{background:var(--surface);border:1px solid var(--line)}

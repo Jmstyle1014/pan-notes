@@ -140,7 +140,12 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
   </section>
 
   <!-- CUES -->''')
+# your recorded notes: Ring and Tone per note, 24-bit takes, longer bass notes (before the workshop, which uses them)
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-voice.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('end=Math.min(x.length,end+Math.round(sr*0.05),start+Math.round(sr*2.5));', 'end=Math.min(x.length,end+Math.round(sr*0.05),start+Math.round(sr*takeCap(id)));')
+rep('SAMPLES.wav[id]=encodeWav(y,sr);delete SAMPLES.buf[id];saveSamples();', 'SAMPLES.wav[id]=encodeWav24(y,sr);delete SAMPLES.buf[id];saveSamples();if(typeof WAVE!=="undefined")WAVE.forget(id);')
 # the Tuning workshop goes in before Studio, whose ⋯ menu offers it
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-wave.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-tune.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-hang.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-studio.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
@@ -172,7 +177,7 @@ rep("photos:'Pan photos & order'", "photos:'Pan look'")
 rep("case 'photos':return S.look==='photo'?'Photos':'Diagram';", "case 'photos':return typeof LOOK!=='undefined'?(LOOK.STYLES.find(s=>s[0]===LOOK.of(setKey()).style)||['','Night'])[1]:(S.look==='photo'?'Photos':'Diagram');")
 rep("'Pan photos':'photos',", "'Pan photos':'photos','Pan look':'photos',")
 # Tuning workshop (Studio ⋯): read each recorded note like a strobe tuner, tune it, and fill the gaps from the cleanest notes
-rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + open(os.path.join(HERE, 'panyard-tune.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
+rep('</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded', '\n' + open(os.path.join(HERE, 'panyard-tune.css'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-wave.css'), encoding='utf-8').read() + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded')
 # a recording you've marked rough is played from a cleaner neighbour instead
 rep('let src=id,sh=0;if(!SAMPLES.wav[id]){const bw=borrowOf(id);', "let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=borrowOf(id);")
 # one pitch per recording: "Make my pans sound their best" tunes exactly like the workshop (fine steps, and leaves a note

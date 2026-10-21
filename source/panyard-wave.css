@@ -1,0 +1,30 @@
+/* ---------- the sound editor (Tune my pans → Edit the sound) ---------- */
+.wv{z-index:25}
+.wv .wvbox{max-width:1100px;max-height:96dvh;overflow:auto;gap:10px}
+.wv .wvbox>*{flex:none}
+@media (min-width:700px){.wv{align-items:center;padding:16px}.wv .wvbox{border-radius:22px}}
+.wvhead{display:flex;align-items:flex-start;gap:10px}
+.wvtt{flex:1;min-width:0}
+.wvtt h2{margin:0;font-size:1.15rem}
+.wvtt p{margin:2px 0 0;font-size:.8rem;color:var(--muted)}
+.wvview{display:flex;gap:3px;padding:3px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}
+.wvview button{min-height:36px;padding:0 12px;border:0;border-radius:99px;background:none;color:var(--muted);font:700 13px var(--body,system-ui);cursor:pointer}
+.wvview button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+.wvmini{display:block;width:100%;height:34px;border-radius:10px;background:var(--bg);border:1px solid var(--line);cursor:pointer}
+.wvmain{border-radius:14px;overflow:hidden;background:var(--bg);border:1px solid var(--line);touch-action:none;cursor:crosshair}
+.wvmain canvas{display:block;width:100%;height:clamp(150px,30dvh,260px)}
+.wvtime{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.wvtime b{color:var(--text)}
+.wvtip{margin:0;font-size:.78rem;color:var(--muted)}
+.wvlab{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:2px 2px 4px}
+.wvrow{display:flex;flex-wrap:wrap;gap:6px}
+.wvb{flex:1 1 76px;min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 6px;border-radius:12px;border:1px solid var(--line);background:var(--raised);color:var(--text);font:700 12px var(--body,system-ui);cursor:pointer}
+.wvb i{font-style:normal;font-size:17px;line-height:1.1}
+.wvb:disabled{opacity:.35;cursor:default}
+.wvgain{display:grid;grid-template-columns:auto minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:.85rem;font-weight:700}
+.wvgain input{width:100%;accent-color:var(--teal);min-height:32px}
+.wvgain output{text-align:right;font-weight:400;color:var(--muted)}
+.wvmsg{margin:0;min-height:1.2em;font-size:.85rem;color:var(--gold)}
+.wvfoot{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.wvfoot .btn{min-height:46px}
+.wvgrow{flex:1}

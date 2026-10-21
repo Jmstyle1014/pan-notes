@@ -1,5 +1,5 @@
 
-/* ---------- Tuning workshop (Studio ⋯): read each recorded pan note like a tuner, then fill in the rest ---------- */
+/* ---------- Tune my pans (Settings, and Studio ⋯): read each recorded pan note like a tuner, then fill in the rest ---------- */
 // Each recording is read the way a strobe tuner reads a real pan note: the note itself, its octave, and on the
 // higher pans the twelfth (an octave and a fifth up). "Tune" keeps a pitch correction next to the recording, the same
 // setting the record sheet's fine-tuning uses, so nothing is re-recorded and it can always be undone.
@@ -92,39 +92,14 @@ var TW=(()=>{
   const quality=s=>s>=75?['ok','Clean']:s>=55?['mid','OK']:['bad','Rough'];
   const tuneC=id=>{try{return tuneOf(id).cents||0}catch{return 0}};
 
-  /* ---- the sheet ---- */
-  let sel=null,open=false,raf=0,run=0,busy=false;const strobes=[];
-  function build(){
-    if($('twSheet'))return;
-    const sh=document.createElement('div');sh.id='twSheet';sh.className='sheetov tw';sh.hidden=true;sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');sh.setAttribute('aria-labelledby','twTitle');
-    sh.innerHTML='<div class="sheetbox twbox">'
-      +'<div class="twhead"><div><span class="eyebrow">Studio · pan sounds</span><h2 id="twTitle">Tuning workshop</h2><p class="twsub" id="twSub"></p></div><button class="btn" id="twClose">Done</button></div>'
-      +'<label class="twfill"><input type="checkbox" id="twFill"><span class="twsw" aria-hidden="true"></span><span><b>Fill the gaps from my best notes</b><small id="twFillInfo"></small></span></label>'
-      +'<p class="twkey"><span><i class="k anc"></i>The recording</span><span><i class="k fil"></i>Made from it (↑↓ notes moved)</span><span><s>G4</s> rough take, left out</span></p>'
-      +'<div class="twfams" id="twStrip" aria-label="Your note families, low to high"></div>'
-      +'<div class="twdetail" id="twDetail"></div>'
-      +'<div class="twacts"><button class="btn" id="twAll">▶ Play the whole pan</button><button class="btn gold" id="twTuneAll">✨ Tune all my recordings</button><button class="btn" id="twPick">Pick the cleanest for me</button></div>'
-      +'<p class="twmsg" id="twMsg" aria-live="polite"></p>'
-      +'<details class="twhow"><summary>How the workshop works</summary>'
-      +'<p>When you hit a pan note it rings several tones at once: the note, its octave (twice as high) and, on the higher pans, the twelfth (an octave and a fifth up). A tuner hammers the note until those tones line up on a strobe tuner. Here every recording gets the same check: when a strobe band stands still the tone is on pitch, drifting right is sharp, drifting left is flat.</p>'
-      +'<p><b>Tune</b> moves the whole recording to the right pitch. It cannot move the octave on its own the way a hammer can, so if the octave is still far off after tuning, that note on your real pan is out, or the take was. Recording it again usually helps.</p>'
-      +'<p><b>Fill the gaps</b> makes every note you haven\'t recorded from the closest of your recordings on this pan, up to 7 notes away, retuned to the right pitch. A recording you mark <b>rough</b> is filled from a cleaner neighbour instead. Record a handful of clean notes spread across the pan (one every 3 or 4 notes, on the outer, middle and inner rings) and the rest will sound like your pan.</p>'
-      +'</details></div>';
-    document.body.appendChild(sh);
-    sh.addEventListener('click',e=>{if(e.target===sh)show(false)});
-    $('twClose').onclick=()=>show(false);
-    $('twFill').onchange=e=>{const k=setKey(),c=cfg(k);c.on=e.target.checked;setCfg(k,c);mineOn();changed();
-      msg(c.on?'Gaps filled. Tap ▶ Play the whole pan to hear it.':'Gaps off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.')};
-    $('twAll').onclick=playAll;$('twTuneAll').onclick=tuneAll;$('twPick').onclick=pickClean;
-    $('twStrip').addEventListener('click',e=>{const f=e.target.closest('[data-fam]');if(f){playFam(f.dataset.fam);return}
-      const b=e.target.closest('[data-id]');if(!b)return;sel=b.dataset.id;render();try{strike(sel,.9)}catch{}});
-    $('twStrip').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const ids=order(),i=ids.indexOf(sel),n=ids[Math.max(0,Math.min(ids.length-1,i+(e.key==='ArrowRight'?1:-1)))];
-      if(n){sel=n;render();const b=$('twStrip').querySelector('[data-id="'+CSS.escape(n)+'"]');if(b)b.focus();try{strike(n,.9)}catch{}}});
-    $('twDetail').addEventListener('click',onDetail);
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&open)show(false)});
-  }
-  const msg=t=>{const m=$('twMsg');if(m)m.textContent=t||''};
-  const order=()=>REC_ORDER.filter(id=>PITCH[id]).slice().sort((a,b)=>mid(a)-mid(b)||REC_ORDER.indexOf(a)-REC_ORDER.indexOf(b));
+  /* ---- Tune my pans: the pan in the middle, the chosen note's tools beside it ----
+     Tap a note on the pan (or in the list). Its panel has a tuner with Fix it, then Pitch, Volume, Ring and Tone,
+     and the sound editor. Every change is a setting next to the recording (Reset takes it back), except the sound
+     editor, which keeps the untouched take so it can always go back to it. */
+  let sel=null,open=false,run=0,vk=null,moreOn=false;
+  const keyNow=()=>vk&&SETS[vk]?vk:setKey();
+  const msg=t=>{const m=$('twMsg');if(m){m.textContent=t||'';m.classList.toggle('on',!!t);clearTimeout(msg.t);if(t)msg.t=setTimeout(()=>m.classList.remove('on'),5200)}};
+  const order=()=>{const v=SETS[keyNow()].views;return [...new Set(v.flatMap(p=>p.fields.map(f=>f[0])))].filter(id=>PITCH[id]).sort((a,b)=>mid(a)-mid(b))};
   function mineOn(){if(S.panVoice!=='mine'){S.panVoice='mine';try{save()}catch{}}}
   function changed(){try{renderVoice()}catch{}try{renderBorrow()}catch{}try{warmAll()}catch{}render()}
   function warmAll(){SAMPLES.warm=true;Object.keys(SAMPLES.wav).forEach(id=>sampleBuf(id))}
@@ -138,169 +113,215 @@ var TW=(()=>{
   }
   const Rget=id=>{const b=SAMPLES.wav[id];return b?CACHE.get(b):undefined};   // the reading of each note's current recording
   // families: each recording that plays, with every note made from it; notes nothing reaches go last
-  const FAM_COL=['#ff8a5c','#ffd166','#5fd4a0','#6fb7ff','#c792ff','#ff7ab8','#4fd6d6','#f2a65a','#9fe07a','#b8a4ff'];
   function families(){
     const ids=order(),map=new Map(),loose=[];
     for(const id of ids){let a=null;
       if(SAMPLES.wav[id]&&!(cfg(setOf(id)).skip.includes(id)&&fillOf(id,true)))a=id;
       else{const f=fillOf(id,true);if(f)a=f.src}
       if(a){if(!map.has(a))map.set(a,[]);map.get(a).push(id)}else loose.push(id)}
-    const fams=[...map.entries()].sort((x,y)=>mid(x[0])-mid(y[0])).map(([a,notes],i)=>({a,notes,col:FAM_COL[i%FAM_COL.length]}));
-    return {fams,loose};
+    return {fams:[...map.entries()].sort((x,y)=>mid(x[0])-mid(y[0])).map(([a,notes])=>({a,notes})),loose};
   }
-  function famChip(id,a,col,on){
-    const own=id===a,has=!!SAMPLES.wav[id],rough=has&&!own,r=Rget(id),tc=tuneC(id),d=mid(id)-mid(a);let sub='',tone='';
-    if(own){if(r&&r.pc!=null){const c=r.pc+tc;sub=Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢';tone=Math.abs(c)<=3?'good':Math.abs(c)<=10?'near':'off'}else sub=r?'unclear':'…'}
-    else if(rough)sub='rough';else sub=(d>0?'↑':'↓')+Math.abs(d);
-    return '<button class="twc '+(own?'anc':'fil')+(rough?' rough':'')+(!own&&!on?' dim':'')+(id===sel?' on':'')+'" aria-pressed="'+(id===sel)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small class="'+tone+'">'+sub+'</small></button>';
+  const famOf=id=>{if(!id||!cfg(setOf(id)).on)return id?[id]:[];const s=sourceOf(id),a=s.kind==='own'?id:s.kind==='fill'?s.src:null;return a?(families().fams.find(f=>f.a===a)||{notes:[]}).notes:[]};
+  const nowCents=id=>{const r=Rget(id);return r&&r.pc!=null?r.pc+tuneC(id):null};
+  // ok = in tune, off = needs a touch, own = recorded (still listening), fill = made from a nearby recording, built = built-in sound
+  function stateOf(id){const s=sourceOf(id);if(s.kind==='built')return 'built';if(s.kind!=='own')return 'fill';const c=nowCents(id);return c==null?'own':Math.abs(c)<=5?'ok':'off'}
+  const STATES=[['off','Needs a touch'],['ok','In tune'],['own','Recorded'],['fill','Made from a nearby note'],['built','Built-in sound']];
+  const fmt=c=>{const r=Math.round(c*10)/10;return r?(r>0?'+':'−')+Math.abs(r).toFixed(Math.abs(r)<10&&r%1?1:0)+'¢':'0¢'};
+  const where=id=>{const f=FIELDS.get(id)||{};return [f.pos,f.pan].filter(Boolean).join(' · ')};
+
+  function build(){
+    if($('twSheet'))return;
+    const sh=document.createElement('div');sh.id='twSheet';sh.className='sheetov tw';sh.hidden=true;sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');sh.setAttribute('aria-labelledby','twTitle');
+    sh.innerHTML='<div class="sheetbox twbox">'
+      +'<div class="twtop"><button class="twback" id="twBack" aria-label="Close">‹</button><div class="twtt"><span class="eyebrow">Settings · pan sounds</span><h2 id="twTitle">Tune my pans</h2></div><button class="btn" id="twClose">Done</button></div>'
+      +'<div class="twswitch" id="twSwitch" role="group" aria-label="Which pan"></div>'
+      +'<div class="twmain">'
+        +'<div class="twlist" id="twList" aria-label="Notes, grouped by how they sound"></div>'
+        +'<div class="twpanarea" id="twPanArea"><div class="twpname"><button id="twPrev" aria-label="Previous pan">‹</button><div><b id="twPName"></b><small id="twSub"></small></div><button id="twNext" aria-label="Next pan">›</button></div>'
+          +'<div class="twpanbox" id="twPanBox"></div>'
+          +'<div class="twlegend">'+STATES.map(([k,t])=>'<span><i class="twdot s-'+k+'"></i>'+t+'</span>').join('')+'</div>'
+          +'<p class="twhint2">Tap a note. Swipe the pan, or use ‹ ›, for another pan.</p></div>'
+        +'<div class="twstrip" id="twStrip" role="listbox" aria-label="Notes, low to high"></div>'
+        +'<div class="twed" id="twEd"></div>'
+      +'</div>'
+      +'<div class="twfoot"><button class="btn twgo" id="twAll">▶ Play the whole pan</button><button class="btn" id="twTuneAll">✨ Tune all for me</button><span class="twgrow"></span>'
+        +'<div class="twmore"><button class="btn" id="twMoreBtn" aria-expanded="false">⋯ More</button><div class="twmenu" id="twMenu" hidden>'
+          +'<label class="twmi"><input type="checkbox" id="twFill"><span><b>Fill the gaps</b><small id="twFillInfo">Notes you haven\'t recorded are made from your nearest recording</small></span></label>'
+          +'<button class="twmi" id="twPick"><span><b>Pick the cleanest for me</b><small>Rough recordings are made from a cleaner neighbour instead</small></span></button>'
+          +'<button class="twmi" id="twRough"><span><b id="twRoughT">Rough: fill this note instead</b><small>Leave this recording out; a nearby clean one plays it</small></span></button>'
+          +'<button class="twmi" id="twResetPan"><span><b>Reset this pan</b><small>Take every tuning, volume, ring and tone change off this pan</small></span></button>'
+          +'<button class="twmi" id="twHow"><span><b>How tuning works</b><small>Families, Fix it and Tune all, in plain words</small></span></button>'
+        +'</div></div></div>'
+      +'<p class="twmsg" id="twMsg" aria-live="polite"></p>'
+      +'<div class="twhow" id="twHowBox" hidden><h3>How tuning works</h3>'
+        +'<p><b>Families.</b> You only record some notes. Every other note borrows the closest of your recordings on this pan (up to 7 notes away), shifted to the right pitch. A recording and the notes made from it are a family: when you pick a recorded note, its family is outlined on the pan. Tuning, Volume, Ring and Tone on a recording change its whole family.</p>'
+        +'<p><b>Fix it</b> listens to the recording and moves it to the right pitch. <b>Tune all for me</b> does that for every recording on this pan. A recording more than half a note off is left alone and named, because it probably sounds like a different note.</p>'
+        +'<p><b>Pitch</b> makes it the right note. <b>Volume</b> evens it out with its neighbours. <b>Ring</b> makes it sing shorter or a little longer. <b>Tone</b> makes it darker or brighter. <b>Reset</b> takes all four off.</p>'
+        +'<p>A hit pan note rings its note, its octave and (on the higher pans) the twelfth. Fix it can move the whole note but not the octave on its own, so if a note still sounds sour, record it again.</p>'
+        +'<button class="btn" id="twHowClose">Close</button></div>'
+      +'</div>';
+    document.body.appendChild(sh);
+    sh.addEventListener('click',e=>{if(e.target===sh)show(false)});
+    $('twClose').onclick=$('twBack').onclick=()=>show(false);
+    $('twSwitch').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b)go(b.dataset.k)});
+    $('twPrev').onclick=()=>step(-1);$('twNext').onclick=()=>step(1);
+    // a tap on a note picks it; a long sideways swipe across the pan moves to the next pan
+    {let x0=null,y0=0;const pa=$('twPanArea');
+      pa.addEventListener('pointerdown',e=>{x0=e.clientX;y0=e.clientY;const f=e.target.closest('.field');if(f&&FIELDS.has(f.dataset.field)){pick(f.dataset.field,true)}});
+      pa.addEventListener('pointerup',e=>{if(x0===null)return;const dx=e.clientX-x0,dy=e.clientY-y0;x0=null;if(Math.abs(dx)>80&&Math.abs(dx)>Math.abs(dy)*1.6)step(dx<0?1:-1)})}
+    const listPick=e=>{const b=e.target.closest('[data-id]');if(b)pick(b.dataset.id,true)};
+    $('twList').addEventListener('click',listPick);$('twStrip').addEventListener('click',listPick);
+    $('twStrip').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const ids=order(),i=ids.indexOf(sel),n=ids[Math.max(0,Math.min(ids.length-1,i+(e.key==='ArrowRight'?1:-1)))];
+      if(n){pick(n,true);const b=$('twStrip').querySelector('[data-id="'+CSS.escape(n)+'"]');if(b)b.focus()}});
+    $('twEd').addEventListener('click',onEd);$('twEd').addEventListener('input',onSlide);$('twEd').addEventListener('change',onSlideEnd);
+    $('twAll').onclick=playAll;$('twTuneAll').onclick=tuneAll;
+    $('twMoreBtn').onclick=()=>more(!moreOn);
+    document.addEventListener('pointerdown',e=>{if(moreOn&&!e.target.closest('.twmore'))more(false)},true);
+    $('twFill').onchange=e=>{const k=keyNow(),c=cfg(k);c.on=e.target.checked;setCfg(k,c);mineOn();changed();
+      msg(c.on?'Gaps filled. Tap ▶ Play the whole pan to hear it.':'Gaps off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.')};
+    $('twPick').onclick=()=>{more(false);pickClean()};
+    $('twRough').onclick=()=>{more(false);rough()};
+    $('twResetPan').onclick=()=>{more(false);resetPan()};
+    $('twHow').onclick=()=>{more(false);$('twHowBox').hidden=false};$('twHowClose').onclick=()=>{$('twHowBox').hidden=true};
+    document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!open||(typeof WAVE!=='undefined'&&WAVE.isOpen))return;if(!$('twHowBox').hidden){$('twHowBox').hidden=true;return}if(moreOn){more(false);return}show(false)});
+    window.addEventListener('resize',()=>{if(open){clearTimeout(build.rt);build.rt=setTimeout(()=>drawPan(true),120)}});
   }
-  function famStatus(a){const r=Rget(a),tc=tuneC(a);if(!r)return ['','listening…'];if(r.pc==null)return ['off','unclear take'];
-    const c=r.pc+tc;return Math.abs(c)<=3?['good','in tune']:[Math.abs(c)<=10?'near':'off',(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢ · tune it']}
-  function chip(id){
-    const s=sourceOf(id),r=Rget(id),rough=SAMPLES.wav[id]&&skip(id),tc=tuneC(id);let line='';
-    if(s.kind==='own'){if(r&&r.pc!=null){const c=r.pc+tc;line=(Math.abs(c)<=3?'in tune':(c>0?'+':'−')+Math.abs(c).toFixed(0)+'¢')}else line=r?'unclear':'…'}
-    else if(s.kind==='fill'||s.kind==='borrow')line='from '+nice(s.src);else line='built-in';
-    const c0=r&&r.pc!=null?r.pc+tc:null,cls=s.kind==='own'?'anc':s.kind==='built'?'bin':'fil';
-    const tone=c0==null?'':Math.abs(c0)<=3?' good':Math.abs(c0)<=10?' near':' off';
-    return '<button class="twc '+cls+(rough?' rough':'')+(id===sel?' on':'')+'" role="option" aria-selected="'+(id===sel)+'" tabindex="'+(id===sel?0:-1)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small class="'+tone.trim()+'">'+line+'</small></button>';
+  function more(on){moreOn=!!on;$('twMenu').hidden=!moreOn;$('twMoreBtn').setAttribute('aria-expanded',String(moreOn))}
+  const KEYS=()=>Object.keys(SETS);
+  function go(k){if(!SETS[k]||k===keyNow())return;vk=k;sel=null;++allRun;render(true);listen()}
+  function step(d){const ks=KEYS(),i=ks.indexOf(keyNow());go(ks[(i+d+ks.length)%ks.length])}
+  function pick(id,play){sel=id;render();if(play){mineOn();try{warmAll();strike(id,.95)}catch{}}}
+
+  /* the pan itself, drawn like Play's (STAGE), each note coloured by how it sounds */
+  function drawPan(force){
+    const box=$('twPanBox'),k=keyNow();if(!box)return;
+    if(force||box.dataset.k!==k){
+      let views=SETS[k].views;if(k==='guitar'&&S.swapped)views=[views[1],views[0]];
+      box.dataset.k=k;box.dataset.pf='';box.innerHTML=views.map(p=>panSVG(p,false)).join('');
+      const W=box.clientWidth,H=Math.max(160,Math.min(box.clientWidth*.68,innerHeight*.52));
+      try{if(typeof STAGE!=='undefined'&&W>=120)STAGE.stageify(box,W,H,true)}catch{}
+      box.querySelectorAll('.pan:not(.pfsvg)').forEach(p=>{if(box.querySelector('.pfsvg'))p.remove()});
+    }
+    const fam=new Set(famOf(sel));
+    box.querySelectorAll('.field').forEach(f=>{const id=f.dataset.field;if(!FIELDS.has(id))return;
+      for(const [s] of STATES)f.classList.toggle('tws-'+s,stateOf(id)===s);
+      f.classList.toggle('twsel',id===sel);f.classList.toggle('twfam',fam.size>1&&fam.has(id)&&id!==sel)});
   }
-  function render(){
-    if(!open)return;const k=setKey(),c=cfg(k),ids=order();
-    if(!sel||!ids.includes(sel))sel=ids.find(id=>SAMPLES.wav[id])||ids[0];
+  function render(force){
+    if(!open)return;const k=keyNow(),c=cfg(k),ids=order();
+    if(!sel||!ids.includes(sel))sel=ids.find(id=>stateOf(id)==='off')||ids.find(id=>SAMPLES.wav[id])||ids[0];
     const own=ids.filter(id=>SAMPLES.wav[id]).length;
-    $('twSub').textContent=curSet().name+' · '+own+' of '+ids.length+' notes recorded';
+    $('twSwitch').innerHTML=KEYS().map(x=>'<button data-k="'+x+'" aria-pressed="'+(x===k)+'">'+esc(SETS[x].name)+'</button>').join('');
+    $('twPName').textContent=SETS[k].name;$('twSub').textContent=(SETS[k].range?SETS[k].range.replace('–',' – ')+' · ':'')+own+' of '+ids.length+' notes recorded';
     $('twFill').checked=c.on;
     const filled=ids.filter(id=>sourceOf(id).kind==='fill').length,built=ids.filter(id=>sourceOf(id).kind==='built').length;
-    $('twFillInfo').textContent=!own?'Record a few notes on this pan first.':c.on?filled+' note'+(filled===1?'':'s')+' made from your recordings'+(built?', '+built+' too far from any recording (built-in sound)':'')+'.':'Off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.';
-    const {fams,loose}=families(),dBox=$('twDetail');
-    $('twStrip').innerHTML=fams.map(f=>{const [tc,tt]=famStatus(f.a);
-      return '<div class="twfam" style="--fc:'+f.col+'" data-of="'+f.a+'"><div class="twfh"><span class="twdot" aria-hidden="true"></span><b>'+nice(f.a)+' family</b><small>'+f.notes.length+' note'+(f.notes.length===1?'':'s')+'</small>'
-        +'<span class="twfs '+tc+'">'+tt+'</span><button class="twfp" data-fam="'+f.a+'" aria-label="Hear the '+nice(f.a)+' family, low to high">▶</button></div>'
-        +'<div class="twchips">'+f.notes.map(id=>famChip(id,f.a,f.col,c.on)).join('')+'</div></div>'}).join('')
-      +(loose.length?'<div class="twfam loose"><div class="twfh"><span class="twdot" aria-hidden="true"></span><b>Not covered yet</b><small>'+loose.length+' note'+(loose.length===1?'':'s')+'</small></div>'
-        +'<p class="twhint">'+(own?'More than 7 notes from any of your recordings, so these play the built-in sound. Record one of them to start a new family.':'Record a few notes spread across the pan and they\'ll each start a family.')+'</p>'
-        +'<div class="twchips">'+loose.map(id=>'<button class="twc bin'+(id===sel?' on':'')+'" aria-pressed="'+(id===sel)+'" data-id="'+id+'"><b>'+nice(id)+'</b><small>built-in</small></button>').join('')+'</div></div>':'');
-    // the chosen note's readings open right under its own family
-    const home=[...$('twStrip').querySelectorAll('.twfam')].find(r=>r.querySelector('[data-id="'+CSS.escape(sel)+'"]'));
-    if(home){home.after(dBox);dBox.style.setProperty('--fc',getComputedStyle(home).getPropertyValue('--fc'))}
-    detail();
+    $('twFillInfo').textContent=!own?'Record a few notes on this pan first.':c.on?filled+' note'+(filled===1?'':'s')+' made from your recordings'+(built?', '+built+' too far from any (built-in sound)':'')+'.':'Off: notes you haven\'t recorded use '+(BORROW[k]?'Advanced tuning':'the built-in sound')+'.';
+    const st=new Map(ids.map(id=>[id,stateOf(id)])),sub=id=>{const s=st.get(id),so=sourceOf(id),cn=nowCents(id);
+      return s==='ok'||s==='off'?fmt(cn):s==='own'?'listening…':s==='fill'?(SAMPLES.wav[id]&&skip(id)?'rough · ':'')+'from '+nice(so.src):'not recorded'};
+    $('twList').innerHTML=STATES.map(([s,t])=>{const xs=ids.filter(id=>st.get(id)===s);if(!xs.length)return '';
+      return '<h3>'+t+' · '+xs.length+'</h3><div class="twnl">'+xs.map(id=>'<button data-id="'+id+'" aria-current="'+(id===sel)+'"><i class="twdot s-'+s+'"></i><b>'+nice(id)+'</b><span>'+sub(id)+'</span></button>').join('')+'</div>'}).join('');
+    $('twStrip').innerHTML=ids.map(id=>'<button role="option" data-id="'+id+'" aria-selected="'+(id===sel)+'" tabindex="'+(id===sel?0:-1)+'"><i class="twdot s-'+st.get(id)+'"></i><b>'+nice(id)+'</b></button>').join('');
+    drawPan(force);ed();
+    {const a=$('twStrip').querySelector('[aria-selected=true]');if(a)a.scrollIntoView({block:'nearest',inline:'center'});const l=$('twList').querySelector('[aria-current=true]');if(l)l.scrollIntoView({block:'nearest'})}
     $('twTuneAll').disabled=!own;$('twPick').disabled=own<2;
+    const has=!!SAMPLES.wav[sel],rg=has&&cfg(setOf(sel)).skip.includes(sel);$('twRough').disabled=!has;$('twRoughT').textContent=rg?'Use my recording of '+nice(sel)+' again':'Rough: fill '+(sel?nice(sel):'this note')+' instead';
   }
-  function detail(){
-    const id=sel,box=$('twDetail');strobes.length=0;if(!id){box.innerHTML='';return}
-    const f=FIELDS.get(id),s=sourceOf(id),r=Rget(id),has=!!SAMPLES.wav[id],rough=has&&cfg(setOf(id)).skip.includes(id),tc=tuneC(id);
-    let h='<div class="twtop"><div><div class="twname">'+nice(id)+'</div><div class="twpos">'+[f.pos,f.pan].filter(Boolean).join(' · ')+'</div></div><div class="twstate">';
-    if(s.kind==='own')h+='<span class="twtag anc">Your recording</span>';
-    else if(s.kind==='fill')h+='<span class="twtag fil">Made from '+nice(s.src)+'</span><span class="twnote">'+Math.abs(s.st)+' note'+(Math.abs(s.st)===1?'':'s')+' '+(s.st>0?'up':'down')+(rough?', because you marked this recording rough':'')+'</span>';
-    else if(s.kind==='borrow')h+='<span class="twtag fil">Borrowed from '+nice(s.src)+'</span><span class="twnote">Advanced tuning, from another pan</span>';
-    else h+='<span class="twtag bin">Built-in sound</span><span class="twnote">'+(cfg(setOf(id)).on?'No recording within 7 notes. Recording this one, or one nearby, would help.':'Turn on Fill the gaps, or record this note.')+'</span>';
-    h+='</div></div>';
-    if(has){
+  /* the chosen note's panel */
+  const SL=[['cents','Pitch','fine tune',-50,50,1,['lower','higher']],['db','Volume','this note only',-12,12,0.5,['softer','louder']],['ring','Ring','how long it sings',-10,10,1,['shorter','longer']],['tone','Tone','',-10,10,1,['darker','brighter']]];
+  const slVal=(k,v)=>k==='cents'?fmt(+v):k==='db'?(v>0?'+':'')+(+v)+' dB':(v>0?'+':'')+(+v);
+  function ed(){
+    const id=sel,box=$('twEd');if(!id){box.innerHTML='';return}
+    const s=sourceOf(id),r=Rget(id),has=!!SAMPLES.wav[id],T=tuneOf(id),stt=stateOf(id),cn=nowCents(id);
+    let chip=stt==='ok'?'<span class="twchip ok">In tune</span>':stt==='off'?'<span class="twchip off">'+Math.abs(cn).toFixed(0)+' cents '+(cn>0?'sharp':'flat')+'</span>':stt==='fill'?'<span class="twchip">Made from '+nice(s.src)+'</span>':stt==='built'?'<span class="twchip">Built-in sound</span>':'<span class="twchip">Your recording</span>';
+    let h='<div class="twehead"><div><div class="twname">'+nice(id)+'</div><div class="twpos">'+esc(where(id))+'</div></div>'+chip+'</div>';
+    if(s.kind==='own'||has){
       if(!r)h+='<p class="twhint">Listening…</p>';
-      else if(!r.ok)h+='<p class="twhint">This recording was too short or quiet to read. Record it again, letting the note ring.</p>';
-      else{const [q,ql]=quality(r.score);
-        if(s.kind!=='own')h+='<p class="twhint">Below are the readings of your own recording of '+nice(id)+', which isn\'t playing right now.</p>';
-        if(r.pcFrom==='octave')h+='<p class="twhint">This note is too low for a phone microphone to catch clearly, so its pitch is read from its octave.</p>';
-        h+='<div class="twq '+q+'"><span>Sound quality</span><div class="twbar"><i style="width:'+r.score+'%"></i></div><b>'+ql+'</b></div>';
-        h+='<div class="twstrobes">'+r.parts.map((p,i)=>{const now=p.cents+tc;return '<div class="twrow"><div class="twrn">'+p.name+'<small>'+p.sub+'</small></div><div class="twrc" id="twC'+i+'"></div><canvas id="twS'+i+'"></canvas>'
-          +'<div class="twcmp">'+(p.heard?'as recorded '+fmt(p.cents)+(tc?' · with tuning <b>'+fmt(now)+'</b>':''):'too quiet to read in this take')+'</div></div>'}).join('')+'</div>';
-        h+='<canvas class="twspec" id="twSpec" aria-label="The tones inside this recording, with dashed lines where they should be"></canvas>';
-      }
+      else if(!r.ok)h+='<p class="twhint">This recording is too short or quiet to read. Record it again and let the note ring.</p>';
+      else{const c=cn??0,q=quality(r.score);
+        h+='<div class="twtuner"><div class="twtl"><span>Tuner</span><b id="twRead">'+(cn==null?'Can\'t hear a clear pitch':Math.abs(c)<=5?'In tune ✓':Math.abs(c).toFixed(0)+' cents '+(c>0?'sharp':'flat'))+'</b>'
+          +'<button class="btn twfix" data-a="fix"'+(cn==null||Math.abs(c)<=0.5?' disabled':'')+'>Fix it</button></div>'
+          +'<div class="twmeter" aria-hidden="true"><i class="twz"></i>'+[...Array(11)].map((_,i)=>'<span style="left:'+i*10+'%"'+(i===5?' class="c"':'')+'></span>').join('')+'<em>flat</em><em class="r">sharp</em><i class="twneedle'+(Math.abs(c)<=5?' good':'')+'" id="twNeedle" style="left:'+(50+Math.max(-50,Math.min(50,c)))+'%"></i></div>'
+          +'<div class="twq '+q[0]+'"><span>Recording</span><b>'+q[1]+'</b>'+(r.pcFrom==='octave'?'<small>pitch read from its octave (too low for a phone mic)</small>':'')+'</div></div>';
+        const o=r.parts[1];if(o&&o.heard&&r.parts[0].heard&&Math.abs(o.cents-r.parts[0].cents)>12)
+          h+='<p class="twhint">Its octave is '+Math.abs(o.cents-r.parts[0].cents).toFixed(0)+' cents '+(o.cents>r.parts[0].cents?'sharp':'flat')+' of the note itself. Tuning can\'t fix that part, so it may still sound a little sour: a fresh recording usually helps.</p>'}
+      if(s.kind!=='own')h+='<p class="twhint">You marked this recording rough, so '+nice(id)+' plays '+nice(s.src)+'\'s recording right now. Its settings below still belong to your own take.</p>';
+      h+='<div class="twsls">'+SL.map(([k,l,sb,mn,mx,stp,ends])=>{const v=+(T[k]||0);return '<div class="twsl"><label for="twS-'+k+'">'+l+(sb?'<small>'+sb+'</small>':'')+'</label><input type="range" id="twS-'+k+'" data-k="'+k+'" min="'+mn+'" max="'+mx+'" step="'+stp+'" value="'+v+'"><output id="twO-'+k+'">'+slVal(k,v)+'</output><div class="twends"><span>'+ends[0]+'</span><span>'+ends[1]+'</span></div></div>'}).join('')+'</div>';
+      h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button><button class="btn" data-a="raw">▶ As recorded</button><button class="btn twrec" data-a="rec">● Record</button><button class="btn" data-a="reset"'+(SAMPLES.tune[id]?'':' disabled')+'>↺ Reset</button></div>';
+      h+='<button class="btn twedit" data-a="edit">〰 Edit the sound<small>trim, cut noise, fade, level'+(typeof WAVE!=='undefined'&&WAVE.edited(id)?' · edited':'')+'</small></button>';
+      const fs=famOf(id).length-1;
+      h+='<p class="twsrc">'+(fs>0?'Its family: '+fs+' more note'+(fs===1?'':'s')+' made from it, outlined on the pan. They follow these settings.':'No other notes are made from it'+(cfg(setOf(id)).on?'.':' (Fill the gaps is off, under ⋯ More).'))+'</p>';
+    } else if(s.kind==='fill'||s.kind==='borrow'){
+      h+='<p class="twhint">'+nice(id)+' isn\'t recorded, so it plays '+nice(s.src)+'\'s recording, '+Math.abs(s.st)+' note'+(Math.abs(s.st)===1?'':'s')+' '+(s.st>0?'up':'down')+(s.kind==='borrow'?' (from another pan, Advanced tuning)':'')+'. To change how it sounds, adjust '+nice(s.src)+', or record this note.</p>';
+      h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button><button class="btn" data-a="src" data-v="'+s.src+'">Go to '+nice(s.src)+'</button><button class="btn twrec" data-a="rec">● Record this note</button></div>';
+    } else {
+      h+='<p class="twhint">'+(cfg(setOf(id)).on?'No recording within 7 notes, so this plays the built-in sound. Recording this one, or one nearby, would help.':'Not recorded yet: it plays the built-in sound. Record it, or turn on Fill the gaps under ⋯ More.')+'</p>';
+      h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button><button class="btn twrec" data-a="rec">● Record this note</button></div>';
     }
-    h+='<div class="twbtns"><button class="btn" data-a="hear">▶ Hear it</button>';
-    if(has)h+='<button class="btn" data-a="raw">▶ As recorded</button>';
-    if(has&&r&&r.pc!=null)h+=Math.abs(r.pc+tc)>0.5?'<button class="btn gold" data-a="tune">Tune to pitch ('+fmt(-(r.pc))+')</button>':'<span class="twok">✓ Tuned</span>';
-    if(has&&tc)h+='<button class="btn" data-a="untune">Undo tuning</button>';
-    if(has)h+=rough?'<button class="btn" data-a="keep">Use my recording again</button>':'<button class="btn" data-a="rough">Rough: fill this note instead</button>';
-    h+='<button class="btn" data-a="rec">● '+(has?'Record again':'Record this note')+'</button></div>';
-    if(has&&r&&r.ok){const o=r.parts[1];if(o&&o.heard&&r.parts[0].heard&&Math.abs(o.cents-r.parts[0].cents)>12)
-      h+='<p class="twhint">The octave is '+Math.abs(o.cents-r.parts[0].cents).toFixed(0)+' cents '+(o.cents>r.parts[0].cents?'sharp':'flat')+' of the note itself. Tuning can\'t fix that part, so this note may sound a little sour. That\'s on the pan (or the take): a fresh recording, or a neighbour marked as the anchor, may sound sweeter.</p>'}
     box.innerHTML=h;
-    if(has&&r&&r.ok){r.parts.forEach((p,i)=>{strobes.push({cv:$('twS'+i),c:p.cents+tc,heard:p.heard,off:0});const el=$('twC'+i),[cl,t]=verdict(p.cents+tc,p.heard);el.innerHTML='<span>'+(p.heard?fmt(p.cents+tc):'–')+'</span><span class="twv '+cl+'">'+t+'</span>'});drawSpec(r,tc)}
   }
-  const fmt=c=>(c>=0?'+':'−')+Math.abs(c).toFixed(1)+'¢';
-  const verdict=(c,h)=>!h?['none','Not heard']:Math.abs(c)<=3?['ok','In tune']:Math.abs(c)<=10?['mid',c>0?'A bit sharp':'A bit flat']:['bad',c>0?'Sharp':'Flat'];
-  function drawSpec(r,tc){
-    const cv=$('twSpec');if(!cv)return;const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;if(!w)return;
-    cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
-    const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim()||'#ccc';
-    const f0=r.f0,ks=r.parts.map(p=>p.k),fl=f0*.6,fh=f0*(ks[ks.length-1]+1.2),X=f=>6+Math.log(f/fl)/Math.log(fh/fl)*(w-12),Y=db=>8+(-db/60)*(h-28);
-    g.beginPath();g.moveTo(X(fl),Y(-60));const a=r.a,shift=Math.pow(2,tc/1200);
-    for(let px=0;px<=w-12;px++){const f=fl*Math.pow(fh/fl,px/(w-12)),f2=fl*Math.pow(fh/fl,(px+1)/(w-12));let m=0;
-      for(let b=Math.floor(f/shift/a.bin);b<=Math.ceil(f2/shift/a.bin)&&b<a.mag.length;b++)m=Math.max(m,a.mag[b]);
-      g.lineTo(6+px,Y(Math.max(-60,20*Math.log10(m/a.max+1e-9))))}
-    g.lineTo(X(fh),Y(-60));g.closePath();const gold=col('--gold');
-    g.globalAlpha=.35;g.fillStyle=gold;g.fill();g.globalAlpha=1;g.strokeStyle=gold;g.lineWidth=1.2;g.stroke();
-    g.font='11px system-ui,sans-serif';g.fillStyle=col('--muted');g.strokeStyle=col('--steel');g.globalAlpha=.8;
-    ks.forEach((k,i)=>{const x=X(k*f0);g.setLineDash([3,4]);g.beginPath();g.moveTo(x,6);g.lineTo(x,h-18);g.stroke();g.setLineDash([]);g.textAlign='center';g.fillText(k===1?nice(sel):k+'×',Math.max(14,Math.min(w-14,x)),h-4)});
-    g.globalAlpha=1;
+  let slT=0;
+  function onSlide(e){const k=e.target.dataset.k;if(!k||!sel)return;const v=+e.target.value;setT(sel,{[k]:v});$('twO-'+k).textContent=slVal(k,v);
+    if(k==='cents'){const r=Rget(sel);if(r&&r.pc!=null){const c=r.pc+v,n=$('twNeedle');if(n){n.style.left=(50+Math.max(-50,Math.min(50,c)))+'%';n.classList.toggle('good',Math.abs(c)<=5)}
+      const rd=$('twRead');if(rd)rd.textContent=Math.abs(c)<=5?'In tune ✓':Math.abs(c).toFixed(0)+' cents '+(c>0?'sharp':'flat')}}
+    clearTimeout(slT);slT=setTimeout(()=>{try{strike(sel,.95)}catch{}},260)}
+  function onSlideEnd(e){if(!e.target.dataset.k)return;mineOn();changed()}
+  async function onEd(e){
+    const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const id=sel,a=b.dataset.a;
+    if(a==='hear'){mineOn();try{warmAll();strike(id,.95)}catch{}}
+    else if(a==='raw'){const ac=panCtx(),buf=await sampleBuf(id);if(ac&&buf){const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.9;s.buffer=buf;s.connect(g);g.connect(pBus);s.start()}}
+    else if(a==='fix'){const r=Rget(id);if(!r||r.pc==null)return;setTune(id,-r.pc);mineOn();changed();const n=fills(id);msg(nice(id)+' tuned'+(n?', and the '+n+' note'+(n===1?'':'s')+' made from it':'')+'.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
+    else if(a==='reset'){delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}changed();msg(nice(id)+' is back to how it was recorded.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
+    else if(a==='rec'){back=true;show(false);recSel=id;openRec(true);if(setOf(id)!==setKey())recMsg('Recording '+nice(id)+' for the '+SETS[setOf(id)].name+'. The pans shown are this song\'s; your take is kept with the '+SETS[setOf(id)].name+'.')}
+    else if(a==='src')pick(b.dataset.v,true);
+    else if(a==='edit'&&typeof WAVE!=='undefined')WAVE.open(id);
   }
-  function tick(t){
-    if(!open){raf=0;return}raf=requestAnimationFrame(tick);
-    const dt=Math.min(.05,(t-(tick.l||t))/1000);tick.l=t;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim();
-    for(const s of strobes){const cv=s.cv;if(!cv||!cv.isConnected)continue;const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;if(!w)continue;
-      if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
-      const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
-      if(!reduce)s.off+=Math.max(-160,Math.min(160,s.c*5))*dt;
-      const a=Math.abs(s.c);g.fillStyle=!s.heard?col('--line'):a<=3?'#5fd48a':a<=10?col('--gold'):col('--danger');
-      for(const [p,y,bh] of [[16,0,h/2-1],[8,h/2+1,h/2-1]]){const per=p*2,o=((s.off*(16/p)%per)+per)%per;for(let x=-per+o;x<w;x+=per)g.fillRect(x,y,p,bh)}
-      g.fillStyle=col('--text');g.globalAlpha=.55;g.fillRect(w/2-1,0,2,h);g.globalAlpha=1}
-  }
+  function setT(id,patch){const t=Object.assign({},SAMPLES.tune[id]||{},patch);for(const k of['cents','db','ring','tone'])if(k in t&&!+t[k])delete t[k];
+    if(Object.keys(t).length)SAMPLES.tune[id]=t;else delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}}
+  function rough(){const id=sel;if(!SAMPLES.wav[id])return;const k=setOf(id),c=cfg(k);
+    if(c.skip.includes(id)){c.skip=c.skip.filter(x=>x!==id);setCfg(k,c);changed();msg(nice(id)+' uses your recording again.');return}
+    c.skip.push(id);c.on=true;setCfg(k,c);mineOn();changed();const s=sourceOf(id);
+    msg(s.kind==='fill'?nice(id)+' will now be made from '+nice(s.src)+'.':'No other recording within 7 notes, so '+nice(id)+' keeps your recording for now.')}
+  function resetPan(){const ids=order().filter(id=>SAMPLES.tune[id]);if(!ids.length){msg('Nothing to reset on this pan.');return}
+    if(!confirm('Take every tuning, volume, ring and tone change off the '+SETS[keyNow()].name+'? ('+ids.length+' note'+(ids.length===1?'':'s')+')'))return;
+    ids.forEach(id=>{delete SAMPLES.tune[id]});saveTune();changed();msg('The '+SETS[keyNow()].name+' is back to how it was recorded.')}
   async function listen(){
     const me=++run,ids=order().filter(id=>SAMPLES.wav[id]&&!Rget(id));let n=0;
     for(const id of ids){if(me!==run||!open)return;msg('Listening to your notes… '+(++n)+' of '+ids.length);
       await reading(id);await new Promise(r=>setTimeout(r,0));if(me===run&&open)render()}
-    if(me===run)msg(ids.length?'':$('twMsg').textContent);
-  }
-  async function onDetail(e){
-    const b=e.target.closest('[data-a]');if(!b)return;const id=sel,a=b.dataset.a,k=setOf(id);
-    if(a==='hear'){mineOn();try{warmAll();strike(id,.95)}catch{}}
-    else if(a==='raw'){const ac=panCtx(),buf=await sampleBuf(id);if(ac&&buf){const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.9;s.buffer=buf;s.connect(g);g.connect(pBus);s.start()}}
-    else if(a==='tune'){const r=Rget(id);if(!r||!r.ok)return;setTune(id,-r.pc);mineOn();changed();msg(nice(id)+' tuned'+(fills(id)?', and the '+fills(id)+' note'+(fills(id)===1?'':'s')+' made from it':'')+'.');setTimeout(()=>{try{strike(id,.95)}catch{}},60)}
-    else if(a==='untune'){setTune(id,0);changed();msg('Tuning undone for '+nice(id)+'.')}
-    else if(a==='rough'){const c=cfg(k);c.skip.push(id);c.on=true;setCfg(k,c);mineOn();changed();
-      const s=sourceOf(id);msg(s.kind==='fill'?nice(id)+' will now be made from '+nice(s.src)+'.':'No other recording within 7 notes, so '+nice(id)+' keeps your recording for now.')}
-    else if(a==='keep'){const c=cfg(k);c.skip=c.skip.filter(x=>x!==id);setCfg(k,c);changed();msg(nice(id)+' uses your recording again.')}
-    else if(a==='rec'){show(false);back=true;recSel=id;openRec(true)}
+    if(me===run&&ids.length)msg('');
   }
   const fills=id=>order().filter(x=>{const s=sourceOf(x);return s.kind==='fill'&&s.src===id}).length;
-  function setTune(id,c){const t=Object.assign({},SAMPLES.tune[id]||{});t.cents=Math.round(c*10)/10;if(!t.cents)delete t.cents;
-    if(Object.keys(t).length)SAMPLES.tune[id]=t;else delete SAMPLES.tune[id];saveTune();try{if(typeof renderTune==='function')renderTune()}catch{}}
+  function setTune(id,c){setT(id,{cents:Math.round(c*10)/10})}
   async function tuneAll(){
     mineOn();msg('Listening…');await listenAll();let n=0,odd=[];
     for(const id of order()){const r=Rget(id);if(!SAMPLES.wav[id]||!r||r.pc==null)continue;
       if(Math.abs(r.pc)>55){odd.push(nice(id));continue}setTune(id,-r.pc);n++}
-    changed();msg(n?'Tuned '+n+' recording'+(n===1?'':'s')+' to pitch'+(cfg(setKey()).on?', and every note made from them':'')+'.'+(odd.length?' Left alone (they sound like a different note, so check them): '+odd.join(', ')+'.':''):'Nothing to tune yet.');
+    changed();msg(n?'Tuned '+n+' recording'+(n===1?'':'s')+' to pitch'+(cfg(keyNow()).on?', and every note made from them':'')+'.'+(odd.length?' Left alone (they sound like a different note, so check them): '+odd.join(', ')+'.':''):'Nothing to tune yet.');
   }
   async function listenAll(){for(const id of order())if(SAMPLES.wav[id]&&!Rget(id))await reading(id)}
   async function pickClean(){
-    msg('Listening…');await listenAll();const k=setKey(),c=cfg(k),ids=order().filter(id=>SAMPLES.wav[id]&&Rget(id)&&Rget(id).ok);
-    // rough = below "Good", or clearly worse than the rest of your recordings on this pan
+    msg('Listening…');await listenAll();const k=keyNow(),c=cfg(k),ids=order().filter(id=>SAMPLES.wav[id]&&Rget(id)&&Rget(id).ok);
+    // rough = below "OK", or clearly worse than the rest of your recordings on this pan
     const sc=ids.map(id=>Rget(id).score).sort((p,q)=>p-q),med=sc[sc.length>>1]||0;
-    const bar=Math.min(55,med-15),clean=id=>Rget(id).score>=bar,marked=[];   // bass pans recorded on a phone all score lower, so each pan is judged against itselfc.skip=c.skip.filter(id=>!ids.includes(id)||!clean(id));
+    const bar=Math.min(55,med-15),clean=id=>Rget(id).score>=bar,marked=[];   // bass pans recorded on a phone all score lower, so each pan is judged against itself
+    c.skip=c.skip.filter(id=>!ids.includes(id)||!clean(id));
     for(const id of ids){if(clean(id)||c.skip.includes(id))continue;
       if(ids.some(o=>o!==id&&clean(o)&&Math.abs(mid(o)-mid(id))<=4)){c.skip.push(id);marked.push(nice(id))}}
     c.on=true;setCfg(k,c);mineOn();changed();
     msg(marked.length?'Marked '+marked.length+' rough recording'+(marked.length===1?'':'s')+' ('+marked.join(', ')+'). '+(marked.length===1?'It\'s':'They\'re')+' now made from a cleaner neighbour, and the gaps are filled.':'All your recordings sound clean enough to keep. Gaps are filled from them.');
   }
   let allRun=0;
-  function playFam(a){const f=families().fams.find(x=>x.a===a);if(!f)return;const me=++allRun;mineOn();warmAll();
-    f.notes.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}
-      const b=$('twStrip').querySelector('[data-id="'+CSS.escape(id)+'"]');if(b){b.classList.add('ping');setTimeout(()=>b.classList.remove('ping'),260)}},200+i*280))}
+  const ping=id=>{const f=$('twPanBox').querySelector('.field[data-field="'+CSS.escape(id)+'"]');if(f){f.classList.remove('twping');void f.getBoundingClientRect();f.classList.add('twping')}};
   function playAll(){
     const me=++allRun,ids=order();mineOn();warmAll();msg('Playing '+nice(ids[0])+' to '+nice(ids[ids.length-1])+'…');
-    ids.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}
-      const b=$('twStrip').querySelector('[data-id="'+CSS.escape(id)+'"]');if(b){b.classList.add('ping');setTimeout(()=>b.classList.remove('ping'),260)}
-      if(i===ids.length-1)setTimeout(()=>msg(''),400)},300+i*260));
+    ids.forEach((id,i)=>setTimeout(()=>{if(me!==allRun||!open)return;try{strike(id,.9)}catch{}ping(id);if(i===ids.length-1)setTimeout(()=>msg(''),400)},300+i*260));
   }
   let back=false;
   function show(on){
     build();open=!!on;$('twSheet').hidden=!on;document.body.classList.toggle('tw-open',open);
-    if(on){++allRun;render();listen();if(!raf)raf=requestAnimationFrame(tick);setTimeout(()=>{const b=$('twStrip').querySelector('.on');if(b)b.scrollIntoView({block:'nearest',inline:'center'})},50)}
-    else{++run;++allRun}
+    if(on){++allRun;if(!vk||!SETS[vk])vk=setKey();more(false);$('twHowBox').hidden=true;requestAnimationFrame(()=>{render(true);listen()})}
+    else{++run;++allRun;if(!back)vk=null}
   }
-  // coming back from the record sheet reopens the workshop on the same note
   const _openRec=openRec;openRec=function(on){_openRec(on);if(!on&&back){back=false;show(true)}};
   // one pitch check for the whole app: the record sheet and "Make my pans sound their best" read notes the way the workshop does
   const _centsOff=centsOff;centsOff=function(id){const c=centsNow(id);return c===undefined?_centsOff(id):c};
@@ -319,5 +340,5 @@ var TW=(()=>{
       r=analyse(x,buf.sampleRate,id);CACHE.set(b,r)}
     return r.pc!=null?r.pc:null;
   }
-  return {centsNow,allowed:true,open:show,skip,fillOf,reading,analyse,get isOpen(){return open}};
+  return {centsNow,allowed:true,open:show,refresh:()=>{if(open)changed()},skip,fillOf,reading,analyse,get isOpen(){return open}};
 })();
