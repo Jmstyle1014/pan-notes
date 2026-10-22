@@ -9063,16 +9063,21 @@ var BAND=(()=>{
     {id:'lofi',name:'Lo-fi',em:'📼',sub:'Warm, soft, a little worn',a:432,stretch:0,tone:-6,ring:1,stick:-6,shimmer:0,lofi:1,punch:0,room:'dry'},
     {id:'tempo',name:'High tempo',em:'⚡',sub:'Short, punchy, in your face',a:440,stretch:3,tone:5,ring:-6,stick:5,shimmer:0,lofi:0,punch:1,room:'room'},
     {id:'rock',name:'Rock',em:'🎸',sub:'Hard stick, bright, pushed',a:440,stretch:2,tone:6,ring:-2,stick:8,shimmer:1,lofi:0,punch:1,room:'room'},
+    // measured from the band's own practice recordings (tenor and seconds, the full band, the background pans):
+    // tuned a hair sharp (A 441), long-singing notes, a warm top, the yard's long ring, and the hum of the other pans
+    {id:'ouryard',name:'Our yard',em:'🇹🇹',sub:'The hum and air of your own panyard',a:441,stretch:1,tone:-2,ring:4,stick:-1,shimmer:1,lofi:0,punch:0,hum:1,air:1,room:'ouryard'},
   ];
-  const KEYS=['a','stretch','tone','ring','stick','shimmer','lofi','punch','room'];
-  const ROOMS={dry:'Dry',room:'Room',yard:'Panyard',hall:'Hall'};
+  const KEYS=['a','stretch','tone','ring','stick','shimmer','lofi','punch','hum','air','room'];
+  const ROOMS={dry:'Dry',room:'Room',yard:'Panyard',ouryard:'Our yard',hall:'Hall'};
+  // the yard in those recordings rings on for about three seconds after the band stops
+  SPACES.ouryard=SPACES.ouryard||{name:'Our yard',mix:0.3,decay:2.8,lowcut:100,bright:0};
   const K='panyard-band';let st={songs:{},own:[]};
   try{const x=JSON.parse(localStorage.getItem(K)||'null');if(x&&typeof x==='object'){if(x.songs&&typeof x.songs==='object')st.songs=x.songs;if(Array.isArray(x.own))st.own=x.own}}catch{}
   const keep=()=>{try{localStorage.setItem(K,JSON.stringify(st))}catch{}};
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   function clean(b){if(!b||typeof b!=='object')return null;const o={};
     o.a=clamp(Math.round((+b.a||440)*10)/10,432,446);for(const k of['stretch'])o[k]=clamp(Math.round(+b[k]||0),-6,8);
-    for(const k of['tone','ring','stick'])o[k]=clamp(Math.round(+b[k]||0),-10,10);for(const k of['shimmer','lofi','punch'])o[k]=b[k]?1:0;
+    for(const k of['tone','ring','stick'])o[k]=clamp(Math.round(+b[k]||0),-10,10);for(const k of['shimmer','lofi','punch','hum','air'])o[k]=b[k]?1:0;
     o.room=ROOMS[b.room]?b.room:'room';o.from=String(b.from||'');o.name=String(b.name||'').slice(0,40);if(Number.isFinite(+b.prevA))o.prevA=+b.prevA;return o}
   const sid=()=>{try{return isDemo?'demo':songNow().id}catch{return 'demo'}};
   const forSong=()=>{const b=st.songs[sid()];return b?clean(b):null};
@@ -9108,15 +9113,46 @@ var BAND=(()=>{
       G.dl=ac.createDelay(0.05);G.dl.delayTime.value=0.004;G.lfo=ac.createOscillator();G.lfo.frequency.value=0.7;G.lfoG=ac.createGain();G.lfoG.gain.value=0.0009;G.lfo.connect(G.lfoG);G.lfoG.connect(G.dl.delayTime);G.lfo.start();
       G.cp=ac.createDynamicsCompressor();G.cp.threshold.value=-24;G.cp.ratio.value=5;G.cp.attack.value=0.003;G.cp.release.value=0.12;G.cp.knee.value=6;G.mk=ac.createGain();G.mk.gain.value=1.6;G.cp.connect(G.mk);
       G.lp.connect(G.dl);G.sig=''}
-    const lofi=!!(b&&b.lofi),punch=!!(b&&b.punch),sig=lofi+','+punch;
+    if(!G.a0){   // Yard air: the warm, soft top of the recordings (a little low-mid body, a little presence, the top rolled off)
+      const mk=(ty,fr,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fr;x.gain.value=gn;if(q)x.Q.value=q;return x};
+      G.a0=mk('lowshelf',220,2);G.a1=mk('peaking',1100,2,1);G.a2=mk('highshelf',3000,-6);G.a0.connect(G.a1);G.a1.connect(G.a2);
+      G.hc=ac.createConvolver();G.hc.normalize=false;G.hg=ac.createGain();G.hg.gain.value=0;G.hc.connect(G.hg);G.key=''}
+    const lofi=!!(b&&b.lofi),punch=!!(b&&b.punch),air=!!(b&&b.air),hum=!!(b&&b.hum),sig=lofi+','+punch+','+air+','+hum;
     if(sig!==G.sig){G.sig=sig;
-      try{pBus.disconnect()}catch{}try{G.dl.disconnect()}catch{}try{G.mk.disconnect()}catch{}
-      let head=pBus;if(lofi){head.connect(G.lp);head=G.dl}if(punch){head.connect(G.cp);head=G.mk}head.connect(FX.hp)}
+      try{pBus.disconnect()}catch{}try{G.dl.disconnect()}catch{}try{G.mk.disconnect()}catch{}try{G.a2.disconnect()}catch{}try{G.hg.disconnect()}catch{}
+      let head=pBus;if(air){head.connect(G.a0);head=G.a2}
+      if(hum){head.connect(G.hc);G.hg.connect(FX.hp)}
+      if(lofi){head.connect(G.lp);head=G.dl}if(punch){head.connect(G.cp);head=G.mk}head.connect(FX.hp)}
+    // Yard hum: the pans around you ring along, in the song's key
+    if(hum){const k=keyOf(),ks=k.map(v=>v.toFixed(2)).join(',');if(ks!==G.key){G.key=ks;G.hc.buffer=humIR(ac,k)}}
+    G.hg.gain.setTargetAtTime(hum?0.9:0,t,0.08);
     // tape hiss, only while Lo-fi is on
     if(lofi&&!G.hiss){const n=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),d=n.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
       const s=ac.createBufferSource(),hp=ac.createBiquadFilter(),g=ac.createGain();s.buffer=n;s.loop=true;hp.type='highpass';hp.frequency.value=3000;g.gain.value=0;g.gain.setTargetAtTime(0.004,t,0.1);
       s.connect(hp);hp.connect(g);g.connect(FX.dry);s.start();G.hiss={s,g}}
     else if(!lofi&&G.hiss){const h=G.hiss;G.hiss=null;h.g.gain.setTargetAtTime(0,t,0.05);try{h.s.stop(t+0.3)}catch{}}
+  }
+  /* Yard hum. In the recordings the yard never goes quiet: between hits it's only 6 to 9 dB below the loud
+     moments, and what keeps ringing are the song's key notes (the other pans answering what's played). Here every
+     note you play passes through a set of quiet, slowly fading tones on the song's key notes, so a note in the key
+     sets them humming and a note outside it barely does, like the pans around you. */
+  // the song's key notes, weighted by how much they're played; a song with few notes uses the recordings' own
+  const YARD=[1,.85,.1,.7,.1,.55,.1,.2,.85,.1,.75,.5];
+  function keyOf(){
+    const w=new Array(12).fill(0);let n=0;
+    try{for(const c of S.cues||[])for(const id of c.steps||[]){const p=PITCH[id];if(!p)continue;const m=midiOf(p);if(!Number.isFinite(m))continue;w[((m%12)+12)%12]+=Math.min(2,c.duration||0.5)+0.3;n++}}catch(e){}
+    if(n<8)return YARD.slice();const mx=Math.max(...w)||1;return w.map(v=>Math.round(v/mx*20)/20);
+  }
+  function humIR(ac,w){
+    const sr=ac.sampleRate,L=Math.round(sr*4.5),ir=ac.createBuffer(2,L,sr);let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+    const ps=[];for(let pc=0;pc<12;pc++){if(w[pc]<0.3)continue;for(let m=36+pc;m<=84;m+=12){const ow=Math.exp(-Math.pow((m-60)/12,2));if(ow<0.05)continue;ps.push({m,a:w[pc]*ow})}}
+    for(let c=0;c<2;c++){const d=ir.getChannelData(c);
+      for(const p of ps){const f=440*Math.pow(2,(p.m-69)/12+(rnd()-0.5)*8/1200),tau=1+rnd()*1.3,ph=rnd()*6.283,att=0.03+rnd()*0.05,step=6.283*f/sr;
+        for(let i=0;i<L;i++){const t=i/sr;d[i]+=p.a*Math.min(1,t/att)*Math.exp(-t/tau)*Math.sin(ph+step*i)}}}
+    // about as loud overall as the note that sets it off
+    let e=0;const d0=ir.getChannelData(0);for(let i=0;i<L;i++)e+=d0[i]*d0[i];const g=e>0?0.03/Math.sqrt(e):0;
+    for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<L;i++)d[i]*=g}
+    return ir;
   }
   // the band's room takes the place of the sound profile's room for this song
   const _ap=applyFx;applyFx=function(){_ap.apply(this,arguments);if(!FX.ac)return;route();const b=forSong();if(!b)return;
@@ -9174,8 +9210,8 @@ var BAND=(()=>{
         +(rec?'<div class="bandrec">🎧 <span><b>Pitch follows your band recording</b> (A = '+(+REF_A().toFixed(1))+'), so you stay in tune with it. Change it in Setup → Tuning.</span></div>':sl(CTL[0],b))
         +sl(CTL[1],b)+'<div class="grp">Sound</div>'+CTL.slice(2).map(c=>sl(c,b)).join('')
         +'<div class="grp">Room</div><div class="seg" id="bandRoom">'+Object.entries(ROOMS).map(([k,n])=>'<button data-room="'+k+'" aria-pressed="'+(b.room===k)+'">'+n+'</button>').join('')+'</div>'
-        +'<div class="grp">Effects</div>'+[['shimmer','Shimmer','a second player, slightly detuned'],['lofi','Lo-fi','tape warmth, wobble and hiss'],['punch','Punch','evens out loud and soft notes']].map(([k,l,s])=>'<div class="tog"><span><b>'+l+'</b><small>'+s+'</small></span><button class="sw" role="switch" data-tog="'+k+'" aria-checked="'+!!b[k]+'" aria-label="'+l+'"></button></div>').join('')
-        +'<p class="bandnote">Room, Lo-fi and Punch shape the tap sound. Studio tracks keep their own room and effects.</p>'
+        +'<div class="grp">Effects</div>'+[['hum','Yard hum','the pans around you ring along, in the song\'s key'],['air','Yard air','the warm, soft top of a real yard'],['shimmer','Shimmer','a second player, slightly detuned'],['lofi','Lo-fi','tape warmth, wobble and hiss'],['punch','Punch','evens out loud and soft notes']].map(([k,l,s])=>'<div class="tog"><span><b>'+l+'</b><small>'+s+'</small></span><button class="sw" role="switch" data-tog="'+k+'" aria-checked="'+!!b[k]+'" aria-label="'+l+'"></button></div>').join('')
+        +'<p class="bandnote">Room, Yard hum, Yard air, Lo-fi and Punch shape the tap sound. Studio tracks keep their own room and effects.</p>'
         +'<div class="bandbtns"><button class="btn" id="bandReset"'+(src?'':' disabled')+'>↺ Reset</button><button class="btn" id="bandOwn">＋ Save as my own</button>'+(src&&src.own?'<button class="btn" id="bandDrop">Delete “'+esc(src.name)+'”</button>':'')+'</div></div>'}
     return h+'<p class="twmsg" id="bandMsg" aria-live="polite"></p>';
   }
@@ -9203,7 +9239,7 @@ var BAND=(()=>{
   // backup files carry this song's band sound (Google Drive backup has all of them)
   setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const b=forSong();if(b)o.band=b;return o};
     const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
-  return {PRESETS,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
+  return {PRESETS,keyOf,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
 })();
 
 /* ---------- Settings: Band sound (this song) and How you play, one tap from the list ----------

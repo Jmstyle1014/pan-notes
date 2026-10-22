@@ -28,7 +28,7 @@ with sync_playwright() as p:
         # open Pan sounds → Sound
         E(pg,"TW.open(true)");pg.wait_for_timeout(1500);pg.click('.twtabs [data-tab=sound]');pg.wait_for_timeout(300)
         check(E(pg,"!!$('bandBox')&&!!$('feelBox')&&$('bandBox').compareDocumentPosition(document.querySelector('#twSound .profbox'))&4"),name+': Band sound and How you play come first, the sound profile after')
-        n=E(pg,"document.querySelectorAll('#bandBox .bcard').length");check(n==7,name+f': As recorded and 6 band sounds ({n})')
+        n=E(pg,"document.querySelectorAll('#bandBox .bcard').length");check(n==8,name+f': As recorded and 7 band sounds (Our yard too) ({n})')
         check(E(pg,"BAND.forSong()===null&&document.querySelector('#bandBox [data-b=\"\"]').getAttribute('aria-pressed')==='true'"),name+': a song starts As recorded')
         pg.screenshot(path=D+name+'-1-off.png',full_page=False)
         # pick Panorama: A 442 for the song, bright, shimmer, punch, the panyard room
@@ -53,7 +53,7 @@ with sync_playwright() as p:
         # slider: Ring
         E(pg,"()=>{const s=$('band-ring');s.value=6;s.dispatchEvent(new Event('input',{bubbles:true}))}");check(E(pg,"BAND.forSong().ring")==6 and E(pg,"$('bando-ring').textContent")=='+6',name+': the Ring slider shapes this song')
         # save as my own, then back to As recorded: A goes back
-        pg.click('#bandOwn');pg.wait_for_timeout(300);check(E(pg,"document.querySelectorAll('#bandBox .bcard').length")==8,name+': Save as my own adds a card')
+        pg.click('#bandOwn');pg.wait_for_timeout(300);check(E(pg,"document.querySelectorAll('#bandBox .bcard').length")==9,name+': Save as my own adds a card')
         pg.click('#bandBox [data-b=""]');pg.wait_for_timeout(300)
         check(E(pg,"BAND.forSong()===null")and E(pg,"REF_A()")==a0,name+f': As recorded takes it off and puts A back ({E(pg,"REF_A()")})')
         # it's per song: another song has none, coming back brings it
