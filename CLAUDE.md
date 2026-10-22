@@ -69,7 +69,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   and Punch only on the tap sound's chain (`applyFx` wrapper re-routes `pBus`). Off while tuning (Record & tune tab).
   How you play (`panyard-feel.js`, `FEEL`, localStorage `panyard-feel`, not backed up): a hit's strength comes from
   where on the note it lands; Studio records it (`n.r` marks roll strikes, so a soft hit isn't mistaken for one).
-  Test with `tband`.
+  Test with `tband`. The Our yard preset was measured from the band's practice recordings (A 441, warm top, long ring):
+  Yard hum is a ConvolverNode of quiet fading tones on the song's key notes (`BAND.keyOf()`, from the song's cues, or
+  the recordings' own key for a song with few notes), Yard air three filters, room `ouryard` (added to `SPACES`). Test with `tyard`.
 - **My notes** (`panyard-notes.js` engine `NOTES`, `panyard-notesui.js` screens, `panyard-notes.css`): the notebook in Play
   (under the pans), Write (beside Coming up), Chart → Notes and full screen. Pages are `S.notePages` (global); which song
   owns a page is in localStorage `panyard-notebook` (pages with no owner are from before and show in every song).
