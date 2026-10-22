@@ -177,9 +177,9 @@ function channel(tr){
   {const on=fx.echo>.001;if(c.echoOn!==on){if(on)c.last.connect(c.esend);else try{c.last.disconnect(c.esend)}catch{}c.echoOn=on}}c.lo.gain.value=fx.bass;c.hi.gain.value=fx.treble;
   c.comp.threshold.value=-fx.comp*32;c.comp.ratio.value=1+fx.comp*7;c.mk.gain.value=1+fx.comp*.9;
   const E=ECHOES[fx.echoT]||ECHOES.q;c.dl.delayTime.value=Math.min(4.9,E.b*spb());c.fb.gain.value=E.fb;c.dk.frequency.value=E.dark?2200:4500;c.esend.gain.value=fx.echo;
-  const mx=mixOf(tr);c.out.gain.value=tr.vol;c.play.gain.value=audible(tr)?1:0;if(c.pan)c.pan.pan.value=tr.pan||0;
+  const sm=stageMix(tr),mx=Math.min(1,mixOf(tr)+(sm?sm.wet:0));c.out.gain.value=tr.vol*(sm?sm.gain:1);c.play.gain.value=audible(tr)?1:0;if(c.pan)c.pan.pan.value=sm?sm.pan:(tr.pan||0);
   c.dry.gain.value=1-mx*.5;c.send.gain.value=mx*1.6;
-  const rv=mx>.001?reverbFor(fx.room||DECAY[tr.type]):null;if(c.rev!==rv){if(c.rev)try{c.send.disconnect(c.rev)}catch{}if(rv)c.send.connect(rv);c.rev=rv}
+  const rv=mx>.001?reverbFor(fx.room||(sm?1.9:DECAY[tr.type])):null;if(c.rev!==rv){if(c.rev)try{c.send.disconnect(c.rev)}catch{}if(rv)c.send.connect(rv);c.rev=rv}
   return c;
 }
 function refreshGains(){if(!ctx)return;song.tracks.forEach(channel);if(master)master.gain.value=song.master;
@@ -807,6 +807,7 @@ window.backupIn=async p=>{
     if(t.type==='drums'){o.kit=KITS[t.kit]?t.kit:'rusty';o.notes=(Array.isArray(t.notes)?t.notes:[]).filter(n=>n&&Number.isInteger(+n.p)&&+n.p>=27&&+n.p<=94&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.25),p:+n.p,v:num(n.v,0,1,.9)}))}
     if(t.type==='beats'){if(t.kit==='synth'||KITS[t.kit])o.kit=t.kit;o.len=Number.isInteger(t.len)&&t.len>=1&&t.len<=64?t.len:16;o.unit=Number.isInteger(t.unit)&&t.unit>=1&&t.unit<=32?t.unit:8;o.swing=num(t.swing,0,.75,0);o.off=(Array.isArray(t.off)?t.off:[]).filter(Number.isInteger);if(typeof t.style==='string')o.style=t.style.slice(0,30);
       o.rows=(Array.isArray(t.rows)?t.rows:[]).filter(r=>r&&Number.isFinite(+r.m)&&Array.isArray(r.steps)).slice(0,16).map(r=>({m:+r.m,steps:r.steps.slice(0,o.len).map(v=>num(v,0,2,0))}))}
+    if(t.st&&typeof t.st==='object')o.st={x:num(t.st.x,0,1,.5),y:num(t.st.y,0,1,.5),n:Math.round(num(t.st.n,1,12,1))};
     return o});
   if(!tracks.some(t=>t.type==='practice'))tracks.unshift(trk('practice'));
   const C=st.click&&typeof st.click==='object'?st.click:{};
@@ -814,6 +815,7 @@ window.backupIn=async p=>{
   if(Array.isArray(st.secs)){const ok=st.secs.filter(x=>x&&typeof x.name==='string'&&Number.isInteger(+x.a)&&Number.isInteger(+x.b)&&+x.a>=0&&+x.b>+x.a).slice(0,64);
     if(ok.length){sg.secs=ok.map(x=>({name:x.name.slice(0,30),a:+x.a,b:+x.b,en:num(x.en,1,5,3)}));if(typeof st.tpl==='string')sg.tpl=st.tpl.slice(0,12)}}
   if(st.band)sg.band=true;
+  if(st.stage&&['judges','middle','off'].includes(st.stage.hear))sg.stage={hear:st.stage.hear};
   if(st.cycle&&Number.isFinite(+st.cycle.s)&&Number.isFinite(+st.cycle.e))sg.cycle={on:!!st.cycle.on,s:+st.cycle.s,e:+st.cycle.e};
   if(T.playing)stop(false);await idbPut('studio:'+keyNow(),sg);song=null;songKey=null;
   return ' '+(tracks.length-1)+' Studio tracks added.';
@@ -1339,15 +1341,116 @@ const INST_LABEL={practice:'♪ Recording',audio:'🎙 Mic',pan:'◉ Pans',part:
 function setView(v){
   if(v==='song'&&song&&zoneOn()&&!inSong(selTr())){const t=song.tracks.find(x=>inSong(x)&&(x.type==='pan'||x.type==='drums'));if(t){song.sel=t.id;SEL=null}}
   if(v==='tracks'&&song&&zoneOn()&&inSong(selTr())){const t=song.tracks.find(x=>!inSong(x)&&x.type!=='practice')||song.tracks[0];if(t){song.sel=t.id;SEL=null}}
-  VIEW=v;document.body.classList.toggle('st-inst',v==='inst');document.body.classList.toggle('st-song',v==='song');refreshGains();renderViews();window.scrollTo({top:0});if(v==='inst')renderInst();else renderTimeline()}
+  VIEW=v;document.body.classList.toggle('st-inst',v==='inst');document.body.classList.toggle('st-song',v==='song');document.body.classList.toggle('st-stage',v==='stage');if(v==='stage'){song.tracks.filter(STG_ON).forEach(stPlace);stageWire()}refreshGains();renderViews();window.scrollTo({top:0});if(v==='inst')renderInst();else renderTimeline();renderStage()}
 function renderViews(){
   const t=q('#stViews');if(!t||!song)return;const tr=selTr();
   t.querySelector('[data-sv="inst"]').textContent=INST_LABEL[tr.type];
   t.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.sv===VIEW)));
-  q('.st-tlp').hidden=VIEW==='inst';q('#stInst').hidden=VIEW!=='inst';q('#stSel').hidden=VIEW==='inst'||!SEL;
+  q('.st-tlp').hidden=VIEW==='inst'||VIEW==='stage';q('#stInst').hidden=VIEW!=='inst';q('#stSel').hidden=VIEW==='inst'||VIEW==='stage'||!SEL;{const sg=q('#stStage');if(sg)sg.hidden=VIEW!=='stage'}
   const tt=t.querySelector('[data-sv="tracks"]');if(tt)tt.textContent=zoneOn()?'☰ Takes':'☰ Tracks';
 }
-function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs();renderTimeline();renderInst();renderUndo();renderViews()}
+function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs();renderTimeline();renderInst();renderUndo();renderViews();if(VIEW==='stage')renderStage()}
+
+/* ---- Stage side: the band set up on a stage, like Panorama ----
+   Each track is a section of the band (lead tenors at the front by the judges, seconds and double tenors behind
+   them, guitars and cellos in the middle, the basses at the back and the sides, the engine room at the back in the
+   middle). Drag a section to move it: where it stands is how you hear it from the judges' seat (left or right, near
+   or far, more of the yard's ring further back). Sections light up as they play. Tap one to mute, solo, change its
+   volume or number of players, or copy it. Kept per track in tr.st={x,y,n} (x left→right, y back→front, 0…1) and the
+   listening seat in song.stage.hear ('judges', 'middle' or 'off': the mix as it is). */
+const STG_ON=tr=>['pan','part','drums','beats','audio'].includes(tr.type);
+const STG_SET=tr=>tr.type==='drums'||tr.type==='beats'?'engine':tr.type==='audio'?'mic':tr.type==='part'?'me':trSet(tr);
+const STG_HOME={tenor:[.5,.86,4],dsec:[.72,.66,3],guitar:[.32,.47,3],fcello:[.68,.47,2],six:[.12,.18,2],engine:[.5,.12,1],mic:[.9,.62,1],me:[.16,.8,1]};
+const STG_R={tenor:.82,dsec:.86,guitar:.92,fcello:.98,six:1.08,engine:.9,mic:.7,me:.85};
+const STG_NAME={tenor:'Tenors',dsec:'Double seconds',guitar:'Guitars',fcello:'Cellos',six:'Basses',engine:'Engine room',mic:'Mic'};
+// a section with no place yet stands where its kind stands on a Panorama stage (the second of a kind beside the first)
+function stPlace(tr){
+  if(tr.st&&Number.isFinite(tr.st.x))return tr.st;
+  const k=STG_SET(tr),h=STG_HOME[k]||[.5,.5,2],same=song.tracks.filter(t=>STG_ON(t)&&STG_SET(t)===k&&t.st&&Number.isFinite(t.st.x)).length;
+  const side=same?(same%2?1:-1)*Math.ceil(same/2):0;let x=h[0]+side*.2;if(k==='six'&&same%2)x=1-h[0];
+  tr.st={x:Math.max(.06,Math.min(.94,x)),y:h[1],n:tr.type==='part'?1:h[2]};return tr.st;
+}
+const stHear=()=>(song.stage&&song.stage.hear)||'judges';
+// how a section sounds from the seat: left or right by where it stands, softer and roomier further away, a little
+// louder with more players
+function stageMix(tr){
+  if(!song||!STG_ON(tr)||stHear()==='off')return null;const p=stPlace(tr),L=stHear()==='middle'?[.5,.5]:[.5,1.12];
+  const dx=p.x-L[0],dy=p.y-L[1],d=Math.hypot(dx*1.1,dy);
+  return{pan:Math.max(-.85,Math.min(.85,dx*1.7)),gain:Math.max(.4,Math.min(1.25,1/(.55+d*.9)))*(1+.1*Math.min(8,(p.n||1)-1)),wet:Math.min(.4,d*.3)};
+}
+let STGSEL=null;
+function renderStage(){
+  const box=q('#stStage');if(!box||!song)return;if(VIEW!=='stage'){box.hidden=true;return}box.hidden=false;
+  const W=Math.round(box.clientWidth||innerWidth-16),land=innerWidth>innerHeight,H=Math.round(land?Math.max(240,innerHeight-230):Math.min(W*1.25,innerHeight-330));
+  const u=Math.min(W/22,H/15),secs=song.tracks.filter(STG_ON);
+  let s='<svg class="stg-svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="The band on stage"><defs>'
+    +'<radialGradient id="stgCh" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#c9c9cf"/><stop offset=".8" stop-color="#7d7d86"/><stop offset="1" stop-color="#3a3a40"/></radialGradient>'
+    +'<linearGradient id="stgSk" x1="0" x2="1"><stop offset="0" stop-color="#7a0b17"/><stop offset=".3" stop-color="#e3263a"/><stop offset=".6" stop-color="#9a1020"/><stop offset="1" stop-color="#5a0711"/></linearGradient>'
+    +'<radialGradient id="stgFloor" cx=".5" cy="1.05" r="1.1"><stop offset="0" stop-color="#3a0d14"/><stop offset=".55" stop-color="#170a0e"/><stop offset="1" stop-color="#0d0a0c"/></radialGradient></defs>'
+    +'<rect width="'+W+'" height="'+H+'" fill="url(#stgFloor)"/>'
+    +'<rect x="0" y="'+(H-u*1.1)+'" width="'+W+'" height="'+u*1.1+'" fill="#000" opacity=".55"/><text class="stg-tag" x="'+W/2+'" y="'+(H-u*.38)+'" text-anchor="middle">⭐ JUDGES · AUDIENCE ⭐</text>';
+  const hear=stHear();if(hear!=='off'){const ly=hear==='middle'?H*.5:H-u*1.6;s+='<text x="'+W/2+'" y="'+ly+'" text-anchor="middle" font-size="'+u*1.1+'">🎧</text>'}
+  // back to front, so the front sections cover the skirts of the ones behind
+  const order=secs.map(t=>[t,stPlace(t)]).sort((a,b)=>a[1].y-b[1].y);
+  for(const [tr,p] of order){
+    const k=STG_SET(tr),pk=k==='me'?trSet(tr):k,n=Math.max(1,Math.min(12,p.n||1)),r=u*(STG_R[k]||.9)*(n>6?.85:1),per=Math.min(n,k==='six'?2:4),rows=Math.ceil(n/per),sk=k==='engine'||k==='mic'?.25:(typeof STAGE!=='undefined'?STAGE.SK[pk]||.25:.25);
+    const cx=p.x*W,cy=u*1.6+p.y*(H-u*4.2),w=per*2.1*r,top=cy-rows*r*.62;
+    const on=audible(tr),sel=tr.id===song.sel,name=trName(tr)+(n>1?' ×'+n:'');
+    s+='<g class="stg-sec'+(on?'':' off')+(sel?' sel':'')+'" data-tid="'+tr.id+'" data-k="'+k+'">';
+    const ly=top-r*.75-4,ry=ly-u*.95;s+='<rect class="stg-hit" x="'+(cx-w/2-8)+'" y="'+ry+'" width="'+(w+16)+'" height="'+(top+rows*r*1.25+r*sk+r*.5-ry)+'" rx="12"/>';
+    for(let j=0;j<rows;j++)for(let i=0;i<per&&j*per+i<n;i++){
+      const x=cx-w/2+r*1.05+i*2.1*r+(j%2?r*.5:0),y=top+j*r*1.25;
+      if(k==='engine'){s+='<g class="stg-p"><ellipse cx="'+x+'" cy="'+(y+r*.55)+'" rx="'+r*.95+'" ry="'+r*.4+'" fill="#2a2a30" stroke="#888"/><circle cx="'+(x-r*.45)+'" cy="'+(y-r*.1)+'" r="'+r*.35+'" fill="#c9a24a"/><circle cx="'+(x+r*.45)+'" cy="'+(y-r*.1)+'" r="'+r*.35+'" fill="#c9a24a"/><rect x="'+(x-r*.25)+'" y="'+(y-r*.05)+'" width="'+r*.5+'" height="'+r*.55+'" fill="#7a0b17"/></g>';continue}
+      if(k==='mic'){s+='<g class="stg-p"><circle cx="'+x+'" cy="'+y+'" r="'+r*.5+'" fill="#ddd"/><rect x="'+(x-r*.08)+'" y="'+(y+r*.4)+'" width="'+r*.16+'" height="'+r*1.1+'" fill="#999"/></g>';continue}
+      s+='<g class="stg-p"><ellipse cx="'+x+'" cy="'+(y+r*sk+r*.62)+'" rx="'+r*.9+'" ry="'+r*.13+'" fill="#000" opacity=".5"/>'
+        +'<path d="M'+(x-r)+' '+y+' V'+(y+r*sk)+' A'+r+' '+r*.55+' 0 0 0 '+(x+r)+' '+(y+r*sk)+' V'+y+' Z" fill="url(#stgSk)"/>'
+        +'<ellipse class="stg-face" cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+r*.55+'" fill="url(#stgCh)"/></g>';
+    }
+    s+='<text class="stg-tag" x="'+cx+'" y="'+ly+'" text-anchor="middle">'+esc(name.toUpperCase())+'</text></g>';
+  }
+  s+='</svg>';
+  const cur=selTr(),cp=STG_ON(cur)?stPlace(cur):null;
+  const card=cp?'<div class="stg-card" data-tid="'+cur.id+'"><div class="stg-cn"><b>'+esc(trName(cur))+'</b><small>'+(cp.n||1)+' player'+((cp.n||1)>1?'s':'')+' · '+stWhere(cp)+'</small></div>'
+    +'<div class="stg-cb"><button class="btn sm" data-stg="less" aria-label="One player less">−</button><button class="btn sm" data-stg="more" aria-label="One player more">＋</button>'
+    +'<button class="btn sm'+(cur.mute?' on':'')+'" data-st="mute" aria-pressed="'+!!cur.mute+'">M</button><button class="btn sm'+(cur.solo?' on':'')+'" data-st="solo" aria-pressed="'+!!cur.solo+'">S</button>'
+    +'<button class="btn sm" data-stg="dup">⧉ Copy</button><button class="btn sm" data-st="tset" aria-label="Track settings">⚙</button></div>'
+    +'<label class="stg-vol">Volume<input type="range" data-stg="vol" min="0" max="1.2" step=".01" value="'+cur.vol+'"></label></div>'
+    :'<div class="stg-card"><span class="help">Tap a section to change it. Drag it to move it.</span></div>';
+  box.innerHTML='<div class="stg-top"><div class="seg stg-hear" role="group" aria-label="Hear it from">'+[['judges','🎧 Judges'],['middle','In the band'],['off','As mixed']].map(([v,l])=>'<button data-stg="hear" data-v="'+v+'" aria-pressed="'+(hear===v)+'">'+l+'</button>').join('')+'</div>'
+    +'<button class="btn" data-stg="add">＋ Section</button><button class="btn" data-stg="reset">↺ Set up</button></div>'
+    +'<div class="stg-floor">'+s+'</div>'+card;
+}
+const stWhere=p=>(p.y>.75?'front line':p.y>.55?'second row':p.y>.32?'middle':'back')+(p.x<.38?', left':p.x>.62?', right':', centre');
+// which sections are sounding right now
+function stageLights(){
+  const box=q('#stStage');if(!box||VIEW!=='stage'||box.hidden)return;const b=T.playing?beatNow():-1;
+  box.querySelectorAll('.stg-sec').forEach(g=>{const tr=trById(g.dataset.tid);if(!tr)return;let lit=false;
+    if(b>=0&&audible(tr)){if(tr.type==='beats'||tr.type==='audio')lit=true;else for(const n of pnotes(tr)){if(n.t>b+.05)break;if(n.t<=b+.02&&b<n.t+Math.max(.2,Math.min(n.d||.3,.6))){lit=true;break}}}
+    if(g.classList.contains('lit')!==lit)g.classList.toggle('lit',lit)});
+}
+{const lp=()=>{try{stageLights()}catch(e){}requestAnimationFrame(lp)};requestAnimationFrame(lp)}
+function stageWire(){
+  const box=q('#stStage');if(!box||box.dataset.w)return;box.dataset.w='1';let dr=null;
+  box.addEventListener('pointerdown',e=>{const g=e.target.closest('.stg-sec');if(!g)return;const tr=trById(g.dataset.tid);if(!tr)return;e.preventDefault();
+    const svg=box.querySelector('svg').getBoundingClientRect();dr={tr,sx:e.clientX,sy:e.clientY,p0:{...stPlace(tr)},W:svg.width,H:svg.height,moved:false,pushed:false};try{box.setPointerCapture(e.pointerId)}catch(_){}});
+  box.addEventListener('pointermove',e=>{if(!dr)return;const dx=e.clientX-dr.sx,dy=e.clientY-dr.sy;if(!dr.moved&&Math.hypot(dx,dy)<6)return;
+    if(!dr.pushed){pushHistory();dr.pushed=true}dr.moved=true;const u=Math.min(dr.W/22,dr.H/15);
+    dr.tr.st={...dr.tr.st,x:Math.max(.04,Math.min(.96,dr.p0.x+dx/dr.W)),y:Math.max(0,Math.min(1,dr.p0.y+dy/Math.max(60,dr.H-u*4.2)))};
+    song.sel=dr.tr.id;refreshGains();renderStage()});
+  const up=()=>{if(!dr)return;const d=dr;dr=null;if(!d.moved){song.sel=d.tr.id;renderStage();renderViews();return}dirty();renderStage()};
+  box.addEventListener('pointerup',up);box.addEventListener('pointercancel',up);
+  box.addEventListener('input',e=>{if(e.target.dataset.stg==='vol'){const tr=selTr();tr.vol=+e.target.value;refreshGains();dirty()}});
+  box.addEventListener('change',e=>{if(e.target.dataset.stg==='vol')pushHistory()});
+  box.addEventListener('click',e=>{const b=e.target.closest('[data-stg]');if(!b||b.tagName==='INPUT')return;const a=b.dataset.stg,tr=selTr();
+    if(a==='hear'){song.stage={...(song.stage||{}),hear:b.dataset.v};refreshGains();dirty();renderStage();say(b.dataset.v==='off'?'Hearing the mix as it is.':b.dataset.v==='middle'?'Hearing it from the middle of the band.':'Hearing it from the judges\' seat.');return}
+    if(a==='add'){openSheet('add');return}
+    if(a==='reset'){if(!confirm('Put every section back where it stands on a Panorama stage?'))return;pushHistory();song.tracks.forEach(t=>{delete t.st});song.tracks.filter(STG_ON).forEach(stPlace);refreshGains();dirty();renderStage();return}
+    if(!STG_ON(tr))return;
+    if(a==='more'||a==='less'){pushHistory();const p=stPlace(tr);p.n=Math.max(1,Math.min(12,(p.n||1)+(a==='more'?1:-1)));refreshGains();dirty();renderStage();return}
+    if(a==='dup'){pushHistory();const c=JSON.parse(JSON.stringify(tr));c.id=uid();c.name=(trName(tr)+' 2').slice(0,28);c.solo=false;const p=stPlace(tr);const off=Math.min(.45,Math.min(p.n||1,4)*.1+.06);c.st={...p,x:Math.max(.06,Math.min(.94,p.x+(p.x>.5?-off:off)))};
+      song.tracks.splice(song.tracks.indexOf(tr)+1,0,c);song.sel=c.id;refreshGains();dirty();renderStage();say('Copied '+trName(tr)+': same notes, its own place on the stage.');return}
+  });
+}
 
 /* ---- sheets: add a track, mixer, export, timing fix, note editor ---- */
 const SH={kind:null,arg:null};
@@ -1684,7 +1787,7 @@ function onClick(e){
     case 'pick':if(song.sel===tr.id){setView('inst');break}song.sel=tr.id;SEL=null;dirty();renderAll();break;
     case 'ipick':song.sel=b.dataset.tid;dirty();renderInst();renderViews();break;
     case 'lane':break;
-    case 'mute':case 'solo':pushHistory();tr[act]=!tr[act];refreshGains();dirty();if(SH.kind==='mixer'||SH.kind==='track')renderSheet();renderTimeline();break;
+    case 'mute':case 'solo':pushHistory();tr[act]=!tr[act];refreshGains();dirty();if(SH.kind==='mixer'||SH.kind==='track')renderSheet();renderTimeline();if(VIEW==='stage')renderStage();break;
     case 'tset':openSheet('track',tr?tr.id:selTr().id);break;
     case 'tomix':openSheet('mixer');break;
     case 'tsetpick':SH.arg=b.dataset.v;song.sel=b.dataset.v;renderSheet();break;
@@ -1841,7 +1944,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{arrangementData,zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{arrangementData,stageMix:tr=>stageMix(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';

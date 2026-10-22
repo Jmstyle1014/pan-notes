@@ -58,7 +58,7 @@ with sync_playwright() as p:
     pg.evaluate("document.querySelector('#stSheetBox').scrollTop=99999");pg.wait_for_timeout(200);pg.screenshot(path=f'{tag}-track3.png')
     pg.click('#stSheetBox [data-st=close]')
     # 4. tracks view with the settings buttons, and export with the effects
-    pg.click('#gbView');pg.wait_for_timeout(400);pg.screenshot(path=f'{tag}-tracks.png')
+    pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(400);pg.screenshot(path=f'{tag}-tracks.png')
     E(pg,"window._f=[]");pg.click('#gbMore');pg.click('#stExp');pg.wait_for_timeout(300);pg.click('#expStudio');pg.wait_for_timeout(400);pg.click('#stExFmt button[data-v=wav]');pg.click('[data-st=expgo]')
     for i in range(60):
         pg.wait_for_timeout(1000)

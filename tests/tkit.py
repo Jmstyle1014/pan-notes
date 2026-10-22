@@ -21,7 +21,7 @@ with sync_playwright() as p:
     pg.goto('https://pan.test/');pg.wait_for_timeout(1000);E(pg,"(async()=>{ROLE.close();await ROLE.songNew0()})()");pg.wait_for_timeout(500)
     E(pg,"window._f=[];downloads={save:async o=>{const r=new FileReader();r.onload=()=>window._f.push([o.filename,r.result]);r.readAsDataURL(o.data instanceof Blob?o.data:new Blob([o.data]))}};renderShare()")
     E(pg,"showView('studio')");pg.wait_for_timeout(1300)
-    if E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView');pg.wait_for_timeout(400)
+    if E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(400)
     pg.click('[data-st=addsheet]');pg.wait_for_timeout(300);pg.click('[data-st=addk][data-v=beats]');pg.wait_for_timeout(2500)
     print('kit loaded',E(pg,"STUDIO.kit()"))
     def setstyle(k):E(pg,"k=>{const s=document.querySelector('#stStyle');s.value=k;s.dispatchEvent(new Event('change',{bubbles:true}))}",k);pg.wait_for_timeout(300)

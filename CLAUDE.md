@@ -92,6 +92,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   `land`/`up`: `all` size and `p[drum]=[dx,dy,size]`, offsets as parts of the box). Skirt length per set is `STAGE.SK`
   (tenor shortest, six bass a full drum); far drums draw first so near ones cover their skirts. Arrange pans opens from
   Settings → Pan layout. Test with `tarrange` (and `tstage` for taps).
+- **Stage side** (Studio → 🎭 Stage, in `panyard-studio.js`): every pan, drum, beat and mic track is a section on a
+  Panorama-style stage. Its place is `tr.st={x,y,n}` (x left→right, y back→front, n players); `song.stage.hear` is the
+  seat ('judges', 'middle', 'off'). `stageMix(tr)` turns the place into left/right, loudness and extra room in
+  `channel()`. Sections light up as their notes play; drag to move, tap for players, M/S, volume, ⧉ Copy. Test with `tstageside`.
 - **Sounds files** (`panyard-share.js`, `SHARE`): Pan sounds → Sound → Save my sounds file writes `format:'panyard-sounds'`
   JSON (recorded notes trimmed to their kept part, their tuning, the profile's room; no songs). Opening one (that card,
   or Open backup file) adds each note as a new take plus a new sound profile, so the phone's own stay. Test with `tshare`.

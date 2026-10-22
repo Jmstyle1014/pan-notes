@@ -395,3 +395,22 @@ body.st-song #stSecs{display:none!important}
 /* pan tracks: a drawing of the pans in place of the dot */
 .st-ic.st-icpan{width:30px;height:30px;background:transparent;border-radius:0}
 .st-ic.st-icpan svg{width:30px;height:30px;display:block}
+/* Stage side */
+.st-stage{padding:8px}
+.stg-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.stg-hear{flex:1 1 260px;display:flex}.stg-hear button{flex:1;min-height:40px;font-size:13px}
+.stg-hear button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink)}
+.stg-floor{border-radius:16px;overflow:hidden;border:1px solid var(--line);touch-action:none}
+.stg-svg{display:block;width:100%;height:auto}
+.stg-tag{font:700 11px system-ui,sans-serif;letter-spacing:.06em;fill:#ffd84a}
+.stg-hit{fill:transparent}
+.stg-sec{cursor:grab}
+.stg-sec.sel .stg-hit{fill:rgba(255,216,74,.08);stroke:#ffd84a;stroke-dasharray:5 4}
+.stg-sec.off{opacity:.38}
+.stg-sec.lit .stg-face{stroke:#ffd84a;stroke-width:3}
+.stg-sec.lit .stg-p{filter:drop-shadow(0 0 6px rgba(255,216,74,.85))}
+.stg-card{margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.stg-cn{flex:1 1 140px;min-width:0}.stg-cn small{display:block;color:var(--muted)}
+.stg-cb{display:flex;gap:6px;flex-wrap:wrap}.stg-cb .btn{min-width:40px;min-height:40px}
+.stg-cb .btn.on{background:var(--gold);color:var(--gold-ink)}
+.stg-vol{flex:1 1 100%;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}.stg-vol input{flex:1;min-height:36px}

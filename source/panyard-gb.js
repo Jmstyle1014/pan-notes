@@ -9,6 +9,7 @@ const GB={
     tracks:'<path d="M4 6h16M4 12h16M4 18h16"/><rect x="6" y="4" width="6" height="4" rx="1" fill="currentColor"/><rect x="10" y="10" width="7" height="4" rx="1" fill="currentColor"/><rect x="5" y="16" width="5" height="4" rx="1" fill="currentColor"/>',
     pans:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v5.5M12 15v5.5M3.5 12H9M15 12h5.5"/>',
     song:'<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/>',
+    stage:'<ellipse cx="12" cy="18" rx="9" ry="3"/><ellipse cx="7" cy="9" rx="3" ry="1.6"/><ellipse cx="17" cy="9" rx="3" ry="1.6"/><ellipse cx="12" cy="13" rx="3" ry="1.6"/>',
     arr:'<rect x="3" y="5" width="5" height="4" rx="1" fill="currentColor"/><rect x="9.5" y="5" width="5" height="4" rx="1"/><rect x="16" y="5" width="5" height="4" rx="1" fill="currentColor"/><rect x="3" y="10.5" width="5" height="4" rx="1"/><rect x="9.5" y="10.5" width="5" height="4" rx="1" fill="currentColor"/><rect x="16" y="10.5" width="5" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="3" rx="1" fill="currentColor" opacity=".5"/>',
     mixer:'<path d="M6 4v16M12 4v16M18 4v16"/><rect x="4" y="13" width="4" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="4" height="3" rx="1" fill="currentColor"/><rect x="16" y="11" width="4" height="3" rx="1" fill="currentColor"/>',
     metro:'<path d="M9 3h6l3.5 17h-13z"/><path d="M12 16l5-9"/><circle cx="17.2" cy="6.6" r="1.3" fill="currentColor"/>',
@@ -26,7 +27,8 @@ const GB={
       // which view you're on is always shown: the pans or the track lanes, one of the two lit
       +'<div class="gbseg" id="gbView" role="group" aria-label="View"><button class="gbi gbt" data-v="inst" aria-pressed="true" aria-label="Pans">'+this.svg('pans')+'<span>Pans</span></button>'
       +'<button class="gbi gbt" data-v="tracks" aria-pressed="false" aria-label="Tracks">'+this.svg('tracks')+'<span>Tracks</span></button>'
-      +'<button class="gbi gbt" data-v="song" aria-pressed="false" aria-label="Song: only what\'s in the sections">'+this.svg('song')+'<span>Song</span></button></div>'
+      +'<button class="gbi gbt" data-v="song" aria-pressed="false" aria-label="Song: only what\'s in the sections">'+this.svg('song')+'<span>Song</span></button>'
+      +'<button class="gbi gbt" data-v="stage" aria-pressed="false" aria-label="Stage: the band set up on a stage">'+this.svg('stage')+'<span>Stage</span></button></div>'
       +'<button class="gbi gbt" id="gbMix" aria-label="Mixer: levels, tone and echo for every track">'+this.svg('mixer')+'<span>Mixer</span></button>'
 +'</div>'
       +'<div class="gbc"></div>'
