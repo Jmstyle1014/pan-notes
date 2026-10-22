@@ -799,6 +799,7 @@ html.th-cday .bandbox .sw[aria-checked="true"]::after{background:#1c1a23}
 html.th-cday .bandrec{background:var(--raised);border:1px solid var(--line)}
 html.th-cday .bandnote{color:var(--muted)}
 html.th-cday .sharenote{color:var(--muted)}
+html.th-cday .sharestale{background:rgb(220 179 86/0.1);border:1px solid rgb(220 179 86/0.4)}
 html.th-cday .nb-text.edit{background:rgb(70 169 165/0.1);box-shadow:0 0 0 2px #46a9a5}
 html.th-cday .nb-text.sel, html.th-cday .nb-tag.sel{box-shadow:0 0 0 2px #4fcda9}
 html.th-cday .nb-tag{background:#d7d5e1;border:1.5px solid #bab6ca;color:#1c1a23}
@@ -1713,6 +1714,7 @@ html.th-cnight .bandbox .sw[aria-checked="true"]::after{background:#f8f7f7}
 html.th-cnight .bandrec{background:var(--raised);border:1px solid var(--line)}
 html.th-cnight .bandnote{color:var(--muted)}
 html.th-cnight .sharenote{color:var(--muted)}
+html.th-cnight .sharestale{background:rgb(246 183 77/0.1);border:1px solid rgb(246 183 77/0.4)}
 html.th-cnight .nb-text.edit{background:rgb(95 196 192/0.1);box-shadow:0 0 0 2px #5fc4c0}
 html.th-cnight .nb-text.sel, html.th-cnight .nb-tag.sel{box-shadow:0 0 0 2px #7be0c3}
 html.th-cnight .nb-tag{background:#292a2d;border:1.5px solid #47494d;color:#f8f7f7}
