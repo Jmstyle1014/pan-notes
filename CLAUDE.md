@@ -99,4 +99,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
 - **Sounds files** (`panyard-share.js`, `SHARE`): Pan sounds → Sound → Save my sounds file writes `format:'panyard-sounds'`
   JSON (recorded notes trimmed to their kept part, their tuning, the profile's room; no songs). Opening one (that card,
   or Open backup file) adds each note as a new take plus a new sound profile, so the phone's own stay. Test with `tshare`.
+- **Open backup file is safe** (`panyard-share.js`, `SHARE.guard/busySong`): a song backup opens as its own song
+  (unless the open song is a blank new one), and never replaces the phone's recorded notes, their tuning, sound
+  profiles or borrowing; only notes the phone never recorded take the backup's sound. It used to pour the backup into
+  the open song and put older sounds back. `SHARE.stale()`/`newest()` (Pan sounds → Sound) put notes left on an
+  older recording back on their newest take. Test with `tsafeopen`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
