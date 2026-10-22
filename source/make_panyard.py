@@ -125,7 +125,7 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
         <button class="btn" id="stExp">Export</button>
         <button class="btn" id="stTime">Timing fix</button>
       </div>
-      <div class="seg st-views" id="stViews" role="tablist" aria-label="Studio view"><button data-sv="tracks" role="tab" aria-selected="true">☰ Tracks</button><button data-sv="inst" role="tab" aria-selected="false">◉ Pans</button><button data-sv="song" role="tab" aria-selected="false">♫ Song</button></div>
+      <div class="seg st-views" id="stViews" role="tablist" aria-label="Studio view"><button data-sv="tracks" role="tab" aria-selected="true">☰ Tracks</button><button data-sv="inst" role="tab" aria-selected="false">◉ Pans</button><button data-sv="song" role="tab" aria-selected="false">♫ Song</button><button data-sv="stage" role="tab" aria-selected="false">🎭 Stage</button></div>
     </div>
     <div class="st-secs" id="stSecs" hidden></div>
     <div class="panel st-tlp">
@@ -136,6 +136,7 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
     </div>
     <div id="stSel" class="st-selbar" hidden></div>
     <div class="panel" id="stInst"></div>
+    <div class="panel st-stage" id="stStage" hidden></div>
     <input type="file" id="stFile" accept="audio/*,video/*" hidden>
   </section>
 
