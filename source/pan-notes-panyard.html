@@ -11286,6 +11286,7 @@ function renderInst(){
       +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'
       +head.replace('st-ihead','st-ihead st-iend')+'</div>';
   }else h+=seqHTML(tr);
+  {const ps=document.getElementById('gbPills'),home=q('#gbBar .gbl');if(ps&&home&&el.contains(ps))home.appendChild(ps)}   // the track picker (in the Coming up row) isn't redrawn away with the pans
   el.innerHTML=h;
   requestAnimationFrame(fitPans);
   el.querySelectorAll('#stPans .field').forEach(f=>f.addEventListener('pointerdown',e=>panDown(e,f)));
