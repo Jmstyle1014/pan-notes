@@ -22,7 +22,7 @@ with sync_playwright() as p:
     pg.click('#hmNew');pg.wait_for_timeout(300);pg.click('[data-r=npan][data-v=guitar]');pg.fill('#nsName','Part test');pg.click('[data-r=create]');pg.wait_for_timeout(1200)
     E(pg,"showView('studio')");pg.wait_for_timeout(1500)
     E(pg,"S.cues=[];save();STUDIO.setTempo(90);STUDIO.song.countIn=false;STUDIO.song.metro=false;STUDIO.song.recMode='add';STUDIO.song.sel=STUDIO.song.tracks.find(t=>t.type==='part').id;STUDIO.seek(0)")
-    if not E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=inst]');pg.wait_for_timeout(600)
+    if not E(pg,"document.body.classList.contains('st-inst')"):pg.evaluate("document.querySelector('#gbView [data-v=inst]').click()");pg.wait_for_timeout(600)
     # two notes the double guitar and the tenor both have
     ids=E(pg,"(()=>{const f=[...document.querySelectorAll('#stPans .field')].map(e=>e.dataset.field);const tn=new Set(SETS.tenor.views.flatMap(v=>v.fields.map(x=>midiOf(PITCH[x[0]]))));return f.filter(i=>tn.has(midiOf(PITCH[i]))).slice(0,2)})()")
     X,Y=ids
@@ -51,7 +51,7 @@ with sync_playwright() as p:
     E(pg,"STUDIO.redo()");pg.wait_for_timeout(200)
     check(len([c for c in cues() if c[1]==Y])==1,'↷ Redo replaces it again')
     E(pg,"STUDIO.song.recMode='add'")
-    pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(500)
+    pg.evaluate("document.querySelector('#gbView [data-v=tracks]').click()");pg.wait_for_timeout(500)
     # ＋ Add to… a new section, from My part's bar 1
     tid=E(pg,"STUDIO.song.tracks.find(t=>t.type==='part').id")
     E(pg,"()=>{document.querySelector('#stTl').scrollLeft=0}")
@@ -70,7 +70,7 @@ with sync_playwright() as p:
         check(E(pg,"!(STUDIO.song.secs||[]).some(z=>z.name==='Chorus')"),'↶ Undo takes the section back')
     # the Pan picker on My part
     E(pg,"STUDIO.song.sel=STUDIO.song.tracks.find(t=>t.type==='part').id")
-    if not E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=inst]');pg.wait_for_timeout(600)
+    if not E(pg,"document.body.classList.contains('st-inst')"):pg.evaluate("document.querySelector('#gbView [data-v=inst]').click()");pg.wait_for_timeout(600)
     pm=E(pg,"S.cues.flatMap(c=>c.steps).map(i=>midiOf(PITCH[i]))")
     E(pg,"()=>{const s=document.querySelector('#stPopts [data-st-set]');s.value='tenor';s.dispatchEvent(new Event('change',{bubbles:true}))}");pg.wait_for_timeout(500)
     st=E(pg,"[S.panSet,S.cues.flatMap(c=>c.steps),[...document.querySelectorAll('#stPans .field')].length]")

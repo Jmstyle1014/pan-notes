@@ -27,7 +27,7 @@ with sync_playwright() as p:
     note('Studio opens with: '+json.dumps(E(pg,"STUDIO.song.tracks.map(t=>t.name)")))
     E(pg,"STUDIO.setTempo(104)");E(pg,"STUDIO.song.minBars=8;STUDIO.song.countIn=true;STUDIO.song.metro=true;STUDIO.song.recMode='add'")
     def tracksview():
-        if E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(500)
+        if E(pg,"document.body.classList.contains('st-inst')"):pg.evaluate("document.querySelector('#gbView [data-v=tracks]').click()");pg.wait_for_timeout(500)
     def add(kind):
         tracksview();pg.click('[data-st=addsheet]');pg.wait_for_timeout(300);pg.click(f'[data-st=addk][data-v={kind}]');pg.wait_for_timeout(600)
     def setpan(k):
@@ -39,7 +39,7 @@ with sync_playwright() as p:
     def record(k,events,label):
         # events: (beat, [note names]) on that pan; the pans on screen, ● Rec, count-in, then tap along
         E(pg,"STUDIO.seek(0)");
-        if not E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(600)
+        if not E(pg,"document.body.classList.contains('st-inst')"):pg.evaluate("document.querySelector('#gbView [data-v=tracks]').click()");pg.wait_for_timeout(600)
         ids={}
         for _,ns in events:
             for n in ns:
@@ -89,7 +89,7 @@ with sync_playwright() as p:
     note('Tracks: '+', '.join(tidy['names']))
     E(pg,"STUDIO.seek(0)");tracksview();pg.wait_for_timeout(400);pg.screenshot(path=D+'05-tracks.png')
     pg.click('#stPlay');pg.wait_for_timeout(3500);pg.screenshot(path=D+'06-playing-tracks.png');pg.click('#stPlay')
-    E(pg,"STUDIO.seek(16)");pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(500);pg.click('#stPlay');pg.wait_for_timeout(1800);pg.screenshot(path=D+'07-playing-pans.png');pg.click('#stPlay')
+    E(pg,"STUDIO.seek(16)");pg.evaluate("document.querySelector('#gbView [data-v=tracks]').click()");pg.wait_for_timeout(500);pg.click('#stPlay');pg.wait_for_timeout(1800);pg.screenshot(path=D+'07-playing-pans.png');pg.click('#stPlay')
     # 8. export the mix, and a backup with every track
     pg.click('#gbMore');pg.wait_for_timeout(200);pg.click('#stExp');pg.wait_for_timeout(300);pg.click('#expStudio');pg.wait_for_timeout(500);pg.click('#stExFmt button[data-v=wav]');pg.click('[data-st=expgo]')
     for i in range(90):

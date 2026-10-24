@@ -75,6 +75,16 @@ with sync_playwright() as p:
         pg.click('#gbShare');pg.wait_for_timeout(300)
         check(E(pg,"!document.getElementById('shareSheet').hidden"),tag+': Share with your band opens')
         E(pg,"openShare(false)")
+        # upright: the four views fold into one button with a drawer, so play and record don't overlap anything
+        if W<=560:
+            E(pg,"STUDIO.closeSheet&&STUDIO.closeSheet()");pg.wait_for_timeout(200)
+            g=E(pg,"[...document.querySelectorAll('#gbBar .gbl,#gbBar .gbc,#gbBar .gbr')].map(e=>{const r=e.getBoundingClientRect();return[r.left,r.right]})")
+            shown=E(pg,"[...document.querySelectorAll('#gbView .gbi')].filter(b=>b.getBoundingClientRect().width>0).length")
+            check(shown==1 and g[0][1]<=g[1][0] and g[1][1]<=g[2][0],tag+': upright, one view button and nothing overlaps play and record '+json.dumps([shown,g]))
+            pg.click('#gbView .gbi[aria-pressed=true]');pg.wait_for_timeout(250);pg.screenshot(path=D+tag+'-drawer.png')
+            check(E(pg,"[...document.querySelectorAll('#gbView .gbi')].filter(b=>b.getBoundingClientRect().width>0).length")==4,tag+': tapping it opens the drawer with all four views')
+            pg.click('#gbView .gbi[data-v=tracks]');pg.wait_for_timeout(400)
+            check(E(pg,"STUDIO.view()")=='tracks' and not E(pg,"document.getElementById('gbView').classList.contains('open')"),tag+': picking Tracks switches and closes the drawer')
         # a band member still has the Write screen
         E(pg,"localStorage.setItem('panyard-role',JSON.stringify({role:'band',pan:'tenor'}));ROLE.apply()");pg.wait_for_timeout(300)
         pg.click('.tabs [data-tab=write]');pg.wait_for_timeout(800)

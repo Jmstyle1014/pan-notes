@@ -17,9 +17,9 @@ with sync_playwright() as p:
         pg.add_init_script("localStorage.setItem('panyard-guide',JSON.stringify({tips:0}))");pg.goto('https://pan.test/');pg.wait_for_timeout(1200);pg.add_style_tag(content='#status{visibility:hidden!important}')
         pg.click('[data-r=producer]');pg.wait_for_timeout(300);pg.click('#hmNew');pg.wait_for_timeout(300);pg.click('[data-r=npan][data-v=tenor]');pg.fill('#nsName','Float test');pg.click('[data-r=create]');pg.wait_for_timeout(1000)
         E(pg,"showView('studio')");pg.wait_for_timeout(1200)
-        if E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(500)
+        if E(pg,"document.body.classList.contains('st-inst')"):pg.evaluate("document.querySelector('#gbView [data-v=tracks]').click()");pg.wait_for_timeout(500)
         pg.click('[data-st=addsheet]');pg.wait_for_timeout(300);pg.click('[data-st=addk][data-v=pan]');pg.wait_for_timeout(600)
-        if E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(500)
+        if E(pg,"document.body.classList.contains('st-inst')"):pg.evaluate("document.querySelector('#gbView [data-v=tracks]').click()");pg.wait_for_timeout(500)
         # 8 notes in bar 1 (one each half beat) and 4 in bar 2
         tid=E(pg,"""()=>{const s=STUDIO.song,tr=s.tracks.find(t=>t.type==='pan');const p=tr.notes.length?tr.notes[0].p:Object.keys(PITCH).find(i=>i.includes(':'))||'tenor:60';
           tr.notes=[];for(let i=0;i<8;i++)tr.notes.push({t:i*.5,d:.25,p:typeof p==='string'&&p.includes(':')?+p.split(':')[1]:60,v:.9});for(let i=0;i<4;i++)tr.notes.push({t:4+i,d:.5,p:62,v:.9});s.sel=tr.id;return tr.id}""")

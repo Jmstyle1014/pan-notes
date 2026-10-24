@@ -81,7 +81,13 @@ const GB={
     const ru=document.createElement('div');ru.id='gbRuler';ru.innerHTML='<canvas aria-label="Bars: tap to move the playhead"></canvas>';bar.after(ru);
     // wiring: the new icons press the old buttons, so Studio's own logic does the work
     $('gbBack').onclick=()=>{showView('home')};
-    $('gbView').onclick=e=>{const t=e.target.closest('[data-v]');if(!t)return;const b=document.querySelector('#stViews [data-sv="'+t.dataset.v+'"]');if(b)b.click();this.sync()};
+    // an upright phone has no room for all four views beside play and record: only the one you're on shows, and tapping
+    // it opens a little drawer with the others
+    const vw=$('gbView'),narrow=()=>innerWidth<=560,shut=()=>{vw.classList.remove('open');vw.setAttribute('aria-expanded','false')};
+    vw.onclick=e=>{const t=e.target.closest('[data-v]');if(!t)return;
+      if(narrow()&&!vw.classList.contains('open')&&t.getAttribute('aria-pressed')==='true'){e.stopPropagation();vw.classList.add('open');vw.setAttribute('aria-expanded','true');return}
+      shut();const b=document.querySelector('#stViews [data-sv="'+t.dataset.v+'"]');if(b)b.click();this.sync()};
+    document.addEventListener('click',e=>{if(vw.classList.contains('open')&&!e.target.closest('#gbView'))shut()});
     $('gbMix').onclick=()=>$('stMix').click();
     // names for the icons: a hover tip on a computer, and press and hold on a phone shows the name
     bar.querySelectorAll('.gbl .gbi').forEach(b=>{const n=b.getAttribute('aria-label')||'';if(!b.title)b.title=n.split(':')[0]});

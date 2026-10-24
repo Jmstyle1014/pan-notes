@@ -18,7 +18,7 @@ with sync_playwright() as p:
     pg.add_style_tag(content='#status{visibility:hidden!important}')
     pg.click('[data-r=producer]');pg.wait_for_timeout(300)
     E(pg,"showView('studio')");pg.wait_for_timeout(1500)
-    if E(pg,"document.body.classList.contains('st-inst')"):pg.click('#gbView [data-v=tracks]');pg.wait_for_timeout(500)
+    if E(pg,"document.body.classList.contains('st-inst')"):pg.evaluate("document.querySelector('#gbView [data-v=tracks]').click()");pg.wait_for_timeout(500)
     # only the metronome sounds: every other track muted
     E(pg,"STUDIO.setTempo(120);STUDIO.song.metro=true;STUDIO.song.countIn=false;STUDIO.song.click={sound:'wood',level:.8};STUDIO.song.tracks.forEach(t=>t.mute=true);STUDIO.seek(0)")
     E(pg,"window._cl=[];const s0=OscillatorNode.prototype.start;OscillatorNode.prototype.start=function(t){const f=this.frequency.value;if(f===950||f===1250)window._cl.push([t,f===1250]);return s0.apply(this,arguments)};0")
