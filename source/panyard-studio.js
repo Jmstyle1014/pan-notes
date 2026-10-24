@@ -1672,7 +1672,7 @@ function renderSheet(){
       +'<div class="tsec"><h3>Playback speed</h3><div class="seg st-speed">'+[[1,'Full'],[.75,'¾'],[.5,'½']].map(([r,l])=>'<button data-st="speed" data-v="'+r+'" aria-pressed="'+(SPD.rate===r)+'">'+l+'</button>').join('')+'</div>'
       +'<p class="help">Slow everything down to learn a hard passage. The pitch stays the same, and the bars and your notes stay where they are.</p></div>'
       // Write's ♩ Timing, here: find the tempo in your recording and line the bars up with it
-      +(rec?'<div class="tsec"><h3>Line the bars up with your recording</h3><div id="stGridHome"></div></div>':'')
+      +'<div class="tsec"><h3>'+(rec?'Line the bars up with your recording':'Find the tempo')+'</h3><div id="stGridHome"></div></div>'
       +'<div class="tsec"><h3>Metronome</h3><div class="tlist">'+tog('metro','Click',song.metro,'Plays on every beat')+tog('recOnly','Only while recording',k.recOnly)+'</div>'
       +'<div class="tlist">'+CLICKS.map(([id,n])=>'<button class="trow" data-st="csound" data-v="'+id+'" aria-pressed="'+(k.sound===id)+'"><span class="tl"><b>'+n+'</b></span><span class="tcheck" aria-hidden="true">✓</span></button>').join('')+'</div>'
       +'<label class="lab">Metronome level<input type="range" id="stClickLv" min="0" max="1" step=".02" value="'+k.level+'"></label></div>'

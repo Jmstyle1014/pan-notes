@@ -129,7 +129,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   recording still use `beatNow()`. Test with `tgrid`.
 - **Write is part of Studio** (for a Producer): the Write tab and the pencil call `STUDIO.writePart()` (My part on the
   pans; the tab is lit while it's showing). A band member (no Studio) still gets the old Write screen (`cues` view),
-  which stays reachable from Studio's ⋯ ("The old Write screen") and is what the guides still walk through.
+  which stays reachable from Studio's ⋯ ("The old Write screen"). The Write and tempo guides follow Studio for a
+  Producer and the old screen for a band member (`GUIDE.pw()`, `GUIDE.write()`). Upright, Studio's four view buttons
+  fold into one with a drawer (`#gbView.open`), so play and record have room.
   - My part's notes are `S.cues`. Studio's undo steps (`snapNow`) hold `{s:song,c:S.cues,ps:panSet}`, so ↶ Undo covers
     your part and its pan. Recording My part follows Merge/Replace: Merge never writes a note twice (same note within
     90 ms), Replace hides the old cues from where you start and puts back the ones after where you stop (`WR.hid`).

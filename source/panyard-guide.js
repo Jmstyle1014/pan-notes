@@ -13,6 +13,10 @@ var GUIDE={   // var: other parts can ask about it early
     try{GB.menu(false)}catch{}try{WB.pop(null)}catch{}try{if(!$('songsSheet').hidden)openSongs(false)}catch{}},
   studio(view){if(document.body.dataset.view!=='studio')showView('studio');
     setTimeout(()=>{const cur=STUDIO.view?STUDIO.view():(document.body.classList.contains('st-inst')?'inst':'tracks');if(view&&view!==cur){const b=document.querySelector('#gbView [data-v="'+view+'"]');if(b)b.click()}},120)},
+  // a Producer writes in Studio (My part on the pans); a band member, who has no Studio, still has the Write screen
+  pw(){return !document.body.classList.contains('band')&&typeof STUDIO!=='undefined'&&!!STUDIO.writePart},
+  write(){if(!this.pw()){showView('cues');return}
+    let on=false;try{on=document.body.dataset.view==='studio'&&STUDIO.view()==='inst'&&STUDIO.selType()==='part'}catch{}if(!on)STUDIO.writePart()},
   closeStudioSheet(){const s=$('stSheet');if(s&&!s.hidden){const d=s.querySelector('[data-st=close]');if(d)d.click()}},
 
   /* the walk-throughs. Each step: where to go (go), what to ring (el), what to say, and what moves it on (tap / change) */
@@ -22,7 +26,7 @@ var GUIDE={   // var: other parts can ask about it early
       {go:()=>showView('home'),el:'#hmRec',t:'Record your pans',x:'Record each note of your real pan, so the app plays with your pan’s sound.'},
       {go:()=>showView('home'),el:'#hmJust',t:'Just play',x:'Jump straight to the pans and play, no song needed.'},
       {go:()=>showView('home'),el:'[data-tab=play]',t:'Play',x:'Practise along with the song: your notes fall down to the line as they’re played.'},
-      {go:()=>showView('home'),el:'[data-tab=write]',t:'Write',x:'Put your notes in: tap the pans along with the recording, then tidy them up.'},
+      {go:()=>showView('home'),el:'[data-tab=write]',t:'Write',x:'Put your notes in: play the pans along with the recording, and every hit becomes a note in your part.'},
       {go:()=>showView('home'),el:'[data-tab=studio]',t:'Studio',x:'Record in layers over the song: mic takes, pan taps, beats.'},
       {go:()=>showView('home'),el:'[data-tab=chart]',t:'Chart',x:'Your part written out like a notebook, ready to share as a PDF.'},
       {go:()=>showView('home'),el:'#hmSetup',t:'Setup',x:'Your pan, its look and sounds, the recording, and backups.'},
@@ -34,21 +38,24 @@ var GUIDE={   // var: other parts can ask about it early
       {go:()=>{showView('setup');SETUP.show('rec')},el:'#playBtn',t:'Have a listen',x:'Your recording is in. Tap ▶ to hear it.',tap:1},
       {go:()=>showView('home'),el:'[data-tab=write]',t:'Next: your notes',x:'Open Write to find the tempo and tap in your part. The “Find the tempo” guide shows you how.',end:'tempo'}]},
     {id:'tempo',title:'Find the tempo',blurb:'Get the bars lined up with the music.',kw:'tempo bpm bars beat timing metronome snap',steps:[
-      {go:()=>{GUIDE.closeAll();showView('cues');setTimeout(()=>WB.sheet('timing'),150)},el:'#autoTempo',t:'Find the tempo for me',x:'Tap this. The app listens to the drums in your recording and puts the bar lines on the beat.',tap:1,after:1500},
-      {go:()=>{showView('cues');setTimeout(()=>WB.sheet('timing'),150)},el:'#wbSheet',t:'Check it',x:'Play the song: the click should sit on the beat. If it’s a little off, nudge the bar line with ◀ ▶.'},
-      {go:()=>{WB.sheet(null)},el:'#wbLcd,#wbMore',t:'Your tempo',x:'Come back to Timing any time: tap the tempo in the top bar, or ⋯ → Tempo & timing.'}]},
+      {go:()=>{GUIDE.closeAll();GUIDE.write();setTimeout(()=>GUIDE.pw()?STUDIO.tempoSheet():WB.sheet('timing'),250)},el:'#autoTempo',t:'Find the tempo for me',x:'Tap this. The app listens to the drums in your recording and puts the bar lines on the beat.',tap:1,after:1500},
+      {go:()=>{GUIDE.write();setTimeout(()=>{if(GUIDE.pw()){if(!$('stSheet')||$('stSheet').hidden)STUDIO.tempoSheet()}else WB.sheet('timing')},250)},el:'#stSheet #gridBox,#wbSheet',t:'Check it',x:'Play the song: the click should sit on the beat. If it’s a little off, nudge the bar line with ◀ ▶.'},
+      {go:()=>{if(GUIDE.pw())GUIDE.closeStudioSheet();else WB.sheet(null)},el:'.gblcd,#wbLcd,#gbMore,#wbMore',t:'Your tempo',x:'Come back to it any time: tap the tempo in the top bar (Tempo & metronome), or ⋯.'}]},
     {id:'write',title:'Write your part',blurb:'Tap along on the pans and every hit becomes a note.',kw:'write cues notes tap along part record notes timeline undo clear',steps:[
-      {go:()=>{GUIDE.closeAll();showView('cues')},el:'#wbRec',t:'Tap along',x:'Tap this: the song starts. Play the pans on screen as you hear each note. Hold a note for a roll, two fingers for a chord.',tap:1},
-      {go:()=>showView('cues'),el:'#wbPlay',t:'Stop',x:'Tap to stop. The notes you played are now on the timeline.',tap:1},
-      {go:()=>showView('cues'),el:'#wbUndo',t:'Undo',x:'Made a mistake? Undo takes it back, one step at a time.'},
-      {go:()=>showView('cues'),skipIf:()=>!GUIDE.find('#wbView'),el:'#wbView',t:'See the timeline',x:'Switch between the pans and the timeline to drag notes, or change how long they last.'},
-      {go:()=>showView('cues'),el:'#wbMore',t:'More',x:'Speed, snapping, Edit in bars, Clear all cues, and sharing are all in here.'}]},
+      {go:()=>{GUIDE.closeAll();GUIDE.closeStudioSheet();GUIDE.write()},el:'#stRec,#wbRec',t:'Tap along',x:'Tap this: the song starts. Play the pans on screen as you hear each note. Hold a note for a roll, two fingers for a chord.',tap:1},
+      {go:()=>GUIDE.write(),el:'#stPlay,#wbPlay',t:'Stop',x:'Tap to stop. The notes you played are now in your part, on your chart and in the game.',tap:1},
+      {go:()=>GUIDE.write(),el:()=>GUIDE.find(GUIDE.pw()?'#gbMore':'#wbUndo'),t:'Undo',x:'Made a mistake? ↶ Undo (in ⋯ in Studio) takes it back, one step at a time.'},
+      {go:()=>GUIDE.write(),skipIf:()=>!GUIDE.pw(),el:'#stNext',t:'Coming up',x:'Your next notes, as the song plays. Tap one to go there. ✚ Step puts notes in one at a time at the playhead: tap the pans, then → to move on.'},
+      {go:()=>GUIDE.write(),skipIf:()=>!GUIDE.pw(),el:'#gbOpts,#gbPill',t:'Options',x:'Merge adds to your part; Replace swaps out what you play over. You can change the pan here too.'},
+      {go:()=>GUIDE.write(),skipIf:()=>GUIDE.pw()?false:!GUIDE.find('#wbView'),el:'#gbView,#wbView',t:'See the timeline',x:'Switch to the timeline to see your part: pick notes or bars to move, copy, repeat or delete them.'},
+      {go:()=>GUIDE.write(),skipIf:()=>!GUIDE.pw(),el:'#gbMore',t:'More',x:'Undo, playback speed, Share with your band and the old Write screen are all in here.'},
+      {go:()=>GUIDE.write(),skipIf:()=>GUIDE.pw(),el:'#wbMore',t:'More',x:'Speed, snapping, Edit in bars, Clear all cues, and sharing are all in here.'}]},
     {id:'studio',title:'How Studio works',blurb:'Tracks, playing, the click, loops and the mixer.',kw:'studio tracks layers how it works mixer metronome click loop overview daw',steps:[
       {go:()=>{GUIDE.closeAll();GUIDE.studio('tracks')},el:'.st-row[data-tid]',t:'Tracks',x:'Each row is a track. Track 1 is your recording; add more on top (a mic take, pans, a beat), and they all play together.'},
       {go:()=>GUIDE.studio('tracks'),el:'#stPlay',t:'Play',x:'Plays every track from the playhead. Tap the ruler to move it.'},
       {go:()=>GUIDE.studio('tracks'),el:'#stRec',t:'Record',x:'Records onto the selected track. A bar of clicks counts you in first.'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbMetro',t:'The click',x:'Tap for the metronome on or off. Hold it for the tempo.'},
-      {go:()=>GUIDE.studio('tracks'),el:'#gbLoop',t:'Loop',x:'Loops the bars you select, so you can go over one bit again and again.'},
+      {go:()=>GUIDE.studio('tracks'),el:'#gbLoop,#gbMore',t:'Loop',x:'Loops the bars you select, so you can go over one bit again and again (in ⋯ on a narrow screen).'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbView',t:'Pans or Tracks',x:'Switch between the instrument you play (the pans, or the mic) and the list of tracks. The one you\'re on is lit.'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbMix,#gbMore',t:'Mixer',x:'Each track’s volume, left/right, and reverb (in ⋯ on a narrow screen).'},
       {go:()=>GUIDE.studio('tracks'),el:'#gbMore',t:'More',x:'Count-in, undo, Export / share, and ⏱ Timing fix. Run Timing fix once so your taps land on the beat.'},
