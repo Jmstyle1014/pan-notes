@@ -12,7 +12,7 @@ with sync_playwright() as p:
         pg.evaluate("(async()=>{localStorage.setItem('panyard-role',JSON.stringify({role:'producer'}));if(window.ROLE){ROLE.apply();ROLE.close();await ROLE.songNew0()}else{document.getElementById('hmNew').click()}})()");pg.wait_for_timeout(400);E(pg,"SETUP.show('save')");pg.set_input_files('#impJson','Panyard Sunrise - backup.json');pg.wait_for_timeout(1000)
         if wav:pg.evaluate("w=>{const raw=atob(w),u=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);loadAudio(new Blob([u],{type:'audio/wav'}),'Panyard Sunrise mix')}",wav);pg.wait_for_timeout(1500)
         pg.add_style_tag(content='#status{visibility:hidden!important}')
-        pg.click('.tabs [data-tab=write]');pg.wait_for_timeout(1000)
+        E(pg,"showView('cues')");pg.wait_for_timeout(1000)   # the old Write screen (a Producer's Write tab opens Studio now)
         info=E(pg,"[document.body.classList.contains('wbmode'),getComputedStyle($('dock')).display,!!$('wbBar').offsetParent,(()=>{const s=[...document.querySelectorAll('#editPans svg')].filter(x=>x.getBoundingClientRect().width>100).map(x=>{const q=x.getBoundingClientRect();return[Math.round(q.left),Math.round(q.top),Math.round(q.width),Math.round(q.height)]});return s})()]")
         pg.screenshot(path=f'wb-{t}-1.png')
         # tap a note: it should become a cue like before

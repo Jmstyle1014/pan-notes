@@ -29,7 +29,7 @@ body[data-view="studio"] #cueTop,body[data-view="studio"] .hwwrap{display:none!i
 .st-tl{overflow:auto;max-height:52vh;border-radius:12px;background:var(--bg);border:1px solid var(--line);position:relative;-webkit-overflow-scrolling:touch}
 .st-inner{position:relative;min-height:100%}
 .st-row{display:flex;height:76px;border-bottom:1px solid var(--line)}
-.st-row.st-ruler{height:34px;position:sticky;top:0;z-index:3;background:var(--surface)}
+.st-row.st-ruler{height:42px;position:sticky;top:0;z-index:3;background:var(--surface)}
 .st-hd{position:sticky;left:0;z-index:2;flex:none;width:var(--hdw);background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;gap:4px;padding:4px 6px}
 .st-ruler .st-hd{z-index:4}
 .st-name{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--text);font-weight:700;font-size:13px;text-align:left;padding:2px;min-height:30px;overflow:hidden}
@@ -41,7 +41,7 @@ body[data-view="studio"] #cueTop,body[data-view="studio"] .hwwrap{display:none!i
 .st-ms .m[aria-pressed="true"]{background:#3a2f6b;color:var(--text)}
 .st-ms .s[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
 .st-lane{position:relative;flex:none;background-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--bar,92px) - 1px),var(--line) 0 var(--bar,92px));touch-action:pan-x pan-y}
-.st-barn{position:absolute;top:8px;font-size:11px;color:var(--muted);padding-left:4px;border-left:1px solid var(--line);height:26px}
+.st-barn{position:absolute;top:2px;font-size:11px;color:var(--muted);padding-left:4px;border-left:1px solid var(--line);height:38px}
 .st-secl{position:absolute;bottom:0;transform:translateY(0);font:700 10px var(--display);color:var(--gold);background:var(--surface);padding:1px 4px;border-left:2px solid var(--gold);white-space:nowrap;pointer-events:none}
 .st-cyc{position:absolute;top:2px;height:8px;border-radius:4px;background:var(--gold);opacity:.85}
 .st-cyc.off{opacity:.25}
@@ -216,11 +216,12 @@ body.st-inst #stSecs{display:none}
 /* Tracks view: the corner holds + Track and zoom */
 .st-corner{display:flex;align-items:center;gap:6px;padding:4px 6px!important}
 .st-addt{flex:1;min-width:0;height:34px;border-radius:99px;border:1px solid var(--gold);background:none;color:var(--gold);font:700 13px var(--body,system-ui);cursor:pointer;white-space:nowrap;padding:0 8px}
-.st-zm{display:flex;gap:3px}.st-zm button{width:28px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--raised);color:var(--text);font-size:16px;cursor:pointer}
+.st-zm{display:flex;gap:3px;flex:none}.st-zm button{width:28px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--raised);color:var(--text);font-size:16px;cursor:pointer}
 @media (max-width:560px){.st-zm{display:none}}
 .st-ruler .st-corner{flex-direction:row;flex-wrap:nowrap;padding:3px 6px!important}
 .st-ruler .st-corner .st-addt{height:28px;font-size:12px}
 .st-ruler .st-zm button{width:26px;height:28px;font-size:15px;line-height:1}
+.st-ruler .st-zm{width:auto;height:auto;border:0;border-radius:0;background:none}   /* not the zone's mute button, which shares the name */
 
 /* an empty track row is slim until it has something in it */
 .st-row.empty{height:44px}
@@ -367,6 +368,15 @@ body.st-song #stSecs{display:none!important}
 .st-tk1{height:11px;--tkc:#a79de0}
 .st-tk2{height:7px;--tkc:#7d73b5}
 .st-tk4{height:4px;--tkc:#5f5694}
+/* count lines down through the tracks: a clear line on each bar, a fainter one on each beat, and fainter still on
+   ½ and ¼ beats once you've zoomed in far enough to use them */
+.st-inner .st-lane{background-image:repeating-linear-gradient(90deg,rgb(167 157 224 / .34) 0 1px,transparent 1px var(--bar,92px))}
+.st-inner.gb .st-lane{background-image:repeating-linear-gradient(90deg,rgb(167 157 224 / .34) 0 1px,transparent 1px var(--bar,92px)),repeating-linear-gradient(90deg,rgb(167 157 224 / .15) 0 1px,transparent 1px var(--bt))}
+.st-inner.gb.g2 .st-lane{background-image:repeating-linear-gradient(90deg,rgb(167 157 224 / .34) 0 1px,transparent 1px var(--bar,92px)),repeating-linear-gradient(90deg,rgb(167 157 224 / .15) 0 1px,transparent 1px var(--bt)),repeating-linear-gradient(90deg,rgb(167 157 224 / .07) 0 1px,transparent 1px calc(var(--bt) / 2))}
+.st-inner.gb.g2.g4 .st-lane{background-image:repeating-linear-gradient(90deg,rgb(167 157 224 / .34) 0 1px,transparent 1px var(--bar,92px)),repeating-linear-gradient(90deg,rgb(167 157 224 / .15) 0 1px,transparent 1px var(--bt)),repeating-linear-gradient(90deg,rgb(167 157 224 / .07) 0 1px,transparent 1px calc(var(--bt) / 2)),repeating-linear-gradient(90deg,rgb(167 157 224 / .045) 0 1px,transparent 1px calc(var(--bt) / 4))}
+.st-inner .st-ruler .st-lane{background-image:none}
+.st-btn{position:absolute;top:4px;font-size:10px;color:var(--muted);opacity:.8;padding-left:3px;border-left:1px solid rgb(167 157 224 / .25);height:14px;line-height:12px;pointer-events:none;white-space:nowrap}
+.st-btq{font-size:9px;opacity:.5;top:5px;height:10px;line-height:10px}
 .st-bsel{border:2.5px solid var(--teal);box-shadow:0 0 14px rgb(255 111 174 / .3)}
 /* a handle at each end: drag to stretch or shrink the pick (a bigger invisible area makes it easy to grab) */
 .st-hdl{position:absolute;top:50%;width:12px;height:30px;margin-top:-15px;border-radius:7px;background:var(--teal);pointer-events:auto;touch-action:none;cursor:ew-resize;z-index:2}
@@ -414,3 +424,23 @@ body.st-song #stSecs{display:none!important}
 .stg-cb{display:flex;gap:6px;flex-wrap:wrap}.stg-cb .btn{min-width:40px;min-height:40px}
 .stg-cb .btn.on{background:var(--gold);color:var(--gold-ink)}
 .stg-vol{flex:1 1 100%;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}.stg-vol input{flex:1;min-height:36px}
+
+/* Coming up: the next notes of the track on the pans, above them; ✚ Step to put notes in one at a time */
+.st-next{display:flex;align-items:center;gap:8px;flex:none;height:40px;padding:2px 2px;overflow:hidden}
+.st-next button{align-self:center;height:32px;min-height:0;flex-direction:row}
+/* upright, the track name floats above the pans: the strip sits below it, and the pans below the strip */
+@media (max-aspect-ratio:1/1){body.gbmode.st-inst #stInst>.st-next{margin-top:46px}body.gbmode.st-inst #stInst>.st-next:not(:empty)+#stPans{margin-top:0}}
+.st-next:empty{display:none}
+.st-nxh{font:700 10px var(--display,system-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);flex:none}
+.st-nxl{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.st-nxl::-webkit-scrollbar{display:none}
+.st-nx{flex:none;display:flex;align-items:baseline;gap:6px;padding:5px 10px;border-radius:99px;border:1px solid var(--line);background:var(--raised);color:var(--text);font-size:13px;cursor:pointer}
+.st-nx i{font-style:normal;font-size:10px;color:var(--muted)}
+.st-nx.now{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.st-nx.now i{color:var(--gold-ink);opacity:.75}
+.st-nxe{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-nxs{display:flex;align-items:center;gap:4px;flex:none}
+.st-nxs>b{font-size:12px;min-width:34px;text-align:center;color:var(--gold)}
+.st-nxs button{height:30px;min-width:30px;border-radius:8px;border:1px solid var(--line);background:var(--raised);color:var(--text);font-size:14px;cursor:pointer}
+.st-nxs .st-stepb{padding:0 10px;font-size:12px;font-weight:700;border-radius:99px}
+.st-nxs .st-stepb[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}

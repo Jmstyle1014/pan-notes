@@ -123,4 +123,22 @@ upright count is low because a checklist pushes the pans below the play bar ther
   shape shrinks about 96.4% per semitone above the lowest on its ring or drum (93% area, the patent's rule), min 68%,
   via a wrapping `<g transform>` (the press animation's CSS transform on `.zone` would fight one on the path).
   Not the Double Guitar. Test with `treal`.
+- **Studio count lines** (`renderTimeline`/`rulerHTML` in `panyard-studio.js`): bar, beat, ½ and ¼ beat lines down
+  every lane (`.st-inner.gb/.g2/.g4`, `--bt`) and ruler numbers 1 → 1.2 → 1.2.2 as you zoom. The playhead, bar
+  counter, beat flash and pan lights use `heardNow()` (the beat minus the speaker delay `spkLag()`); scheduling and
+  recording still use `beatNow()`. Test with `tgrid`.
+- **Write is part of Studio** (for a Producer): the Write tab and the pencil call `STUDIO.writePart()` (My part on the
+  pans; the tab is lit while it's showing). A band member (no Studio) still gets the old Write screen (`cues` view),
+  which stays reachable from Studio's ⋯ ("The old Write screen") and is what the guides still walk through.
+  - My part's notes are `S.cues`. Studio's undo steps (`snapNow`) hold `{s:song,c:S.cues,ps:panSet}`, so ↶ Undo covers
+    your part and its pan. Recording My part follows Merge/Replace: Merge never writes a note twice (same note within
+    90 ms), Replace hides the old cues from where you start and puts back the ones after where you stop (`WR.hid`).
+  - My part's Pan picker (`partSet`) switches the song's pan and carries notes across by pitch. ＋ Add to… copies My
+    part's bars onto a song track for the song's pan (`songTwin`, `asPan`).
+  - Coming up + ✚ Step (`nextTick`, `stepAdd`): the next notes above the pans; Step puts notes in at the playhead.
+  - ⏩ Playback speed (`SPD`, `setSpeed`, `cspb()`): ¾ or ½. `spb()` stays the song's seconds per beat (cue times use
+    it); `cspb()` is the clock's (scheduling, the playhead, taps). Recordings play a WSOLA-stretched copy
+    (`stretched()`, same pitch); mic takes need full speed.
+  - The Tempo sheet holds Write's timing panel (`#gridBox`, moved in and back out like WB's sheet).
+  Test with `tpart` (My part) and `tmerge` (the rest).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

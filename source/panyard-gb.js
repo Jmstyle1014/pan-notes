@@ -49,7 +49,10 @@ const GB={
     v.appendChild(menu);
     menu.querySelector('#gbMUndo').append($('stUndo'),$('stRedo'));
     const list=menu.querySelector('.gbmlist');['stCount','stExp','stTime'].forEach(id=>list.appendChild($(id)));
-    const wm=document.createElement('button');wm.className='btn gbwritem';wm.textContent='✎ Write your part';wm.onclick=()=>{this.menu(false);showView('cues')};list.prepend(wm);
+    // Write lives here now: My part on the pans, the speed, sharing; the old Write screen is still at the bottom
+    const wm=document.createElement('button');wm.className='btn gbwritem';wm.textContent='✎ Write your part';wm.onclick=()=>{this.menu(false);STUDIO.writePart()};list.prepend(wm);
+    const sp=document.createElement('button');sp.className='btn';sp.id='gbSpeed';sp.onclick=()=>{this.menu(false);const r=STUDIO.speed();STUDIO.setSpeed(r===1?.75:r===.75?.5:1)};list.prepend(sp);
+    const shr=document.createElement('button');shr.className='btn';shr.id='gbShare';shr.textContent='⤴ Share with your band';shr.onclick=()=>{this.menu(false);$('shareBtnTop').click()};list.appendChild(shr);
     const lp=document.createElement('button');lp.className='btn gbloopm';lp.textContent='⟲ Loop on / off';lp.onclick=()=>{this.menu(false);$('stLoop').click();this.sync()};list.prepend(lp);
     const tun=document.createElement('button');tun.className='btn';tun.textContent='♮ Tuning (match a recording)';tun.onclick=()=>{this.menu(false);showView('setup');try{SETUP.show('tune')}catch{}};list.prepend(tun);
     {const ab=document.createElement('button');ab.className='btn gbarrm';ab.textContent='▦ Arrangement';ab.onclick=()=>{this.menu(false);STUDIO.arrangement()};list.prepend(ab)}
@@ -57,7 +60,7 @@ const GB={
     if(typeof TW!=='undefined'&&TW.allowed){const tw=document.createElement('button');tw.className='btn';tw.id='gbWorkshop';tw.textContent='🎛 Pan sounds (record, tune, sound)';tw.onclick=()=>{this.menu(false);TW.open(true)};list.prepend(tw)}
     const tmp=document.createElement('button');tmp.className='btn';tmp.id='gbTempo';tmp.textContent='♩ Tempo & metronome';tmp.onclick=()=>{this.menu(false);STUDIO.tempoSheet()};list.prepend(tmp);
     const mx=document.createElement('button');mx.className='btn gbmix';mx.textContent='🎚 Mixer & sound';mx.onclick=()=>{this.menu(false);$('stMix').click()};list.prepend(mx);
-    const toWrite=document.createElement('button');toWrite.className='btn';toWrite.textContent='✎ Go to Write';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);
+    const toWrite=document.createElement('button');toWrite.className='btn';toWrite.id='gbClassic';toWrite.textContent='✎ The old Write screen';toWrite.onclick=()=>{this.menu(false);showView('cues')};list.appendChild(toWrite);
     $('stExp').textContent='⤓ Export / share';$('stTime').textContent='⏱ Timing fix';
     // the floating track pill (Pans view) and the ruler
     const pill=document.createElement('button');pill.id='gbPill';pill.setAttribute('aria-haspopup','true');pill.setAttribute('aria-expanded','false');
@@ -65,9 +68,12 @@ const GB={
     const opts=document.createElement('button');opts.id='gbOpts';opts.textContent='⚙ Options';opts.hidden=true;opts.setAttribute('aria-haspopup','dialog');opts.setAttribute('aria-expanded','false');
     const pills=document.createElement('div');pills.id='gbPills';pills.append(pill,opts);v.appendChild(pills);
     // on a sideways phone or a tablet the track name sits in the top bar, off the pans; upright it floats above them
+    // sideways, with the pans showing a pan track, it goes at the start of the Coming up row, where its name fits
     const place=()=>{const inBar=innerWidth>560;document.body.classList.toggle('gb-inbar',inBar);
-      const home=inBar?bar.querySelector('.gbl'):v;if(pills.parentNode!==home)home.appendChild(pills);
-      const r=pill.getBoundingClientRect();document.documentElement.style.setProperty('--gbPillL',Math.max(10,Math.round(r.left))+'px')};
+      const slot=inBar&&document.querySelector('#stNext .st-nxp');
+      const home=inBar?(slot&&slot.isConnected?slot:bar.querySelector('.gbl')):v;if(pills.parentNode!==home)home.appendChild(pills);
+      document.body.classList.toggle('gb-pillrow',!!(slot&&pills.parentNode===slot));
+      const r=pill.getBoundingClientRect(),ds=document.documentElement.style;ds.setProperty('--gbPillL',Math.max(10,Math.round(r.left))+'px');if(r.bottom)ds.setProperty('--gbPillB',Math.round(r.bottom+6)+'px')};
     this.place=place;place();addEventListener('resize',place);
     // the track list under the name also holds the pan & recording options and the track's settings
     document.addEventListener('click',e=>{const it=e.target.closest('#gbOptItem,#gbSetItem');if(!it)return;e.stopPropagation();this.pick(false);
@@ -86,7 +92,7 @@ const GB={
          tip.style.left=Math.max(6,Math.min(innerWidth-tip.offsetWidth-6,r.left+r.width/2-tip.offsetWidth/2))+'px';tip.style.top=(r.bottom+6)+'px'},450)});
      ['pointerup','pointercancel','pointerleave'].forEach(ev=>bar.querySelector('.gbl').addEventListener(ev,()=>{clearTimeout(tt);setTimeout(hide,ev==='pointerup'?900:0)}));
      bar.querySelector('.gbl').addEventListener('click',e=>{if(held){held=false;e.preventDefault();e.stopPropagation()}},true)}
-    $('gbWrite').onclick=()=>showView('cues');
+    $('gbWrite').onclick=()=>STUDIO.writePart();
     // tap the metronome to switch it on or off; hold it for its settings
     {const m=$('gbMetro');let lt=0,long=false;m.title='Tap: click on/off · Hold: tempo & metronome';
      m.addEventListener('pointerdown',()=>{long=false;clearTimeout(lt);lt=setTimeout(()=>{long=true;STUDIO.tempoSheet()},550)});
@@ -98,7 +104,7 @@ const GB={
     document.addEventListener('click',e=>{if(!$('gbMenu').hidden&&!e.target.closest('#gbMenu,#gbMore'))this.menu(false);
       if(document.body.classList.contains('gb-picking')&&!e.target.closest('#gbPill,.st-tchips'))this.pick(false)});
     pill.onclick=e=>{e.stopPropagation();this.opts(false);this.place();this.pick(!document.body.classList.contains('gb-picking'))};
-    opts.onclick=e=>{e.stopPropagation();this.pick(false);this.opts(!document.body.classList.contains('gb-opts'))};
+    opts.onclick=e=>{e.stopPropagation();this.pick(false);this.place();this.opts(!document.body.classList.contains('gb-opts'))};
     document.addEventListener('click',e=>{if(document.body.classList.contains('gb-opts')&&!e.target.closest('#gbOpts,#stPopts,.st-sheet')&&e.target.isConnected)this.opts(false)});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('gb-opts')){this.opts(false);$('gbOpts').focus()}});
     document.addEventListener('click',e=>{if(e.target.closest('.st-tchips [data-st="ipick"],.st-tchips [data-st="addsheet"]'))setTimeout(()=>this.pick(false),0)},true);
@@ -111,13 +117,16 @@ const GB={
     const loop=()=>{if(document.body.dataset.view==='studio')this.drawRuler();requestAnimationFrame(loop)};requestAnimationFrame(loop);
     const _show=showView;showView=function(x){_show(x);document.body.classList.toggle('gbmode',x==='studio');GB.menu(false);GB.pick(false);GB.opts(false);try{setDockH()}catch{}if(x==='studio')requestAnimationFrame(()=>{GB.sync();STAGE.fitStudio()})};
   },
-  menu(on){const m=$('gbMenu');if(!m)return;m.hidden=!on;$('gbMore').setAttribute('aria-expanded',String(!!on))},
+  menu(on){const m=$('gbMenu');if(!m)return;m.hidden=!on;$('gbMore').setAttribute('aria-expanded',String(!!on));
+    const sp=$('gbSpeed');if(sp&&on){const r=STUDIO.speed();sp.textContent='⏩ Playback speed: '+(r===1?'full':r===.5?'½':'¾')+' (tap to change)'}},
   opts(on){document.body.classList.toggle('gb-opts',!!on);const b=$('gbOpts');if(b)b.setAttribute('aria-expanded',String(!!on))},
   pick(on){document.body.classList.toggle('gb-picking',!!on);const p=$('gbPill');if(p)p.setAttribute('aria-expanded',String(!!on))},
   nBars(){try{return STUDIO.bars()}catch{return 0}},
   secs(){return[...document.querySelectorAll('#stSecs [data-sec]')].map(c=>{const [a,b]=c.dataset.sec.split(',').map(Number);return{a,b,name:c.textContent.replace(/^⟲\s*/,''),on:c.classList.contains('on')}})},
   sync(){
     if(!$('gbBar'))return;const inst=document.body.classList.contains('st-inst');
+    if(this.place&&innerWidth>560){const slot=document.querySelector('#stNext .st-nxp'),ps=$('gbPills');if(ps&&(slot?ps.parentNode!==slot:!ps.closest('#gbBar')))this.place()}
+    try{TABS.render()}catch{}   // the Write tab is lit while My part is on the pans
     const cur=(document.querySelector('#stViews [aria-selected="true"]')||{dataset:{sv:inst?'inst':'tracks'}}).dataset.sv;
     {const tb=$('gbView').querySelector('[data-v="tracks"]'),lab=STUDIO.zones&&STUDIO.zones()?'Takes':'Tracks';if(tb&&tb.dataset.l!==lab){tb.dataset.l=lab;tb.querySelector('span').textContent=lab;tb.setAttribute('aria-label',lab==='Takes'?'Takes: your recordings':'Tracks')}}
     $('gbView').querySelectorAll('[data-v]').forEach(b=>{const on=b.dataset.v===cur;if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});
@@ -147,7 +156,7 @@ const GB={
     const step=Math.max(1,Math.ceil(26/bw));g.fillStyle='#9d93c9';g.strokeStyle='#30275a';g.lineWidth=1;g.font='600 10px '+FF;g.textAlign='left';g.textBaseline='alphabetic';
     for(let b=0;b<n;b++){const x=Math.round(b*bw)+.5;g.beginPath();g.moveTo(x,b%step?H-6:17);g.lineTo(x,H);g.stroke();if(b%step===0)g.fillText(String(b+1),x+3,H-5)}
     // playhead
-    let beat=0;try{beat=STUDIO.beatNow()}catch{}const x=beat/STUDIO.BPB()*bw;
+    let beat=0;try{beat=(STUDIO.heardNow||STUDIO.beatNow)()}catch{}const x=beat/STUDIO.BPB()*bw;
     g.fillStyle='#ffd166';g.fillRect(x-1,16,2,H-16);g.beginPath();g.moveTo(x-5,16);g.lineTo(x+5,16);g.lineTo(x,22);g.fill();
   }
 };

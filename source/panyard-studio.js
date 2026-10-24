@@ -41,7 +41,7 @@ function trk(type,extra){
   if(type==='part')t.name='My part';
   return Object.assign(t,extra||{});
 }
-const blank=()=>{const part=trk('part');part.name='My part (Write)';return{v:1,bpm:100,metro:false,countIn:true,recMode:'add',snap:'off',snapRec:false,cycle:null,master:.85,sel:part.id,minBars:8,tracks:[trk('practice'),part]}};
+const blank=()=>{const part=trk('part');part.name='My part';return{v:1,bpm:100,metro:false,countIn:true,recMode:'add',snap:'off',snapRec:false,cycle:null,master:.85,sel:part.id,minBars:8,tracks:[trk('practice'),part]}};
 const MIXDEF={practice:.04,audio:.08,pan:.22,part:.22,beats:.05,drums:.06},DECAY={practice:1.2,audio:1.4,pan:1.9,part:1.9,beats:.9,drums:.9};
 const mixOf=tr=>tr.mix==null?MIXDEF[tr.type]:tr.mix;
 // each track's own settings (Track settings): tone, echo and room; for pan tracks also quantize and transpose
@@ -176,7 +176,7 @@ function channel(tr){
   {const on=fx.comp>.001;if(c.compOn!==on){try{c.hi.disconnect()}catch{}c.hi.connect(on?c.comp:c.mk);c.compOn=on}}
   {const on=fx.echo>.001;if(c.echoOn!==on){if(on)c.last.connect(c.esend);else try{c.last.disconnect(c.esend)}catch{}c.echoOn=on}}c.lo.gain.value=fx.bass;c.hi.gain.value=fx.treble;
   c.comp.threshold.value=-fx.comp*32;c.comp.ratio.value=1+fx.comp*7;c.mk.gain.value=1+fx.comp*.9;
-  const E=ECHOES[fx.echoT]||ECHOES.q;c.dl.delayTime.value=Math.min(4.9,E.b*spb());c.fb.gain.value=E.fb;c.dk.frequency.value=E.dark?2200:4500;c.esend.gain.value=fx.echo;
+  const E=ECHOES[fx.echoT]||ECHOES.q;c.dl.delayTime.value=Math.min(4.9,E.b*cspb());c.fb.gain.value=E.fb;c.dk.frequency.value=E.dark?2200:4500;c.esend.gain.value=fx.echo;
   const sm=stageMix(tr),mx=Math.min(1,mixOf(tr)+(sm?sm.wet:0));c.out.gain.value=tr.vol*(sm?sm.gain:1);c.play.gain.value=audible(tr)?1:0;if(c.pan)c.pan.pan.value=sm?sm.pan:(tr.pan||0);
   c.dry.gain.value=1-mx*.5;c.send.gain.value=mx*1.6;
   const rv=mx>.001?reverbFor(fx.room||(sm?1.9:DECAY[tr.type])):null;if(c.rev!==rv){if(c.rev)try{c.send.disconnect(c.rev)}catch{}if(rv)c.send.connect(rv);c.rev=rv}
@@ -411,23 +411,67 @@ function beatHits(tr,a,b){
 }
 
 /* ---- the transport ---- */
+/* ---- playback speed: ¾ or ½ speed to learn a hard passage. The beats stay where they are in the song; only the
+   clock runs slower, and the recordings are stretched to match without dropping in pitch (WSOLA: overlapping slices of
+   the sound, each one lined up with the last so they join smoothly). ---- */
+const SPD={rate:1,cache:new WeakMap(),busy:null};
+const cspb=()=>spb()/SPD.rate;   // seconds per beat on the clock (spb() is in the song's own seconds)
+async function stretched(buf,rate){
+  if(rate===1||!buf)return buf;let m=SPD.cache.get(buf);if(!m){m={};SPD.cache.set(buf,m)}if(m[rate])return m[rate];
+  const N=2048,Hs=1024,Ha=Hs*rate,D=8,TOL=512,ch=buf.numberOfChannels,len=buf.length,out=Math.ceil(len/rate)+N;
+  const ins=[...Array(ch)].map((_,c)=>buf.getChannelData(c)),outs=[...Array(ch)].map(()=>new Float32Array(out)),norm=new Float32Array(out);
+  const w=new Float32Array(N);for(let i=0;i<N;i++)w[i]=.5-.5*Math.cos(2*Math.PI*i/N);
+  // a quiet copy for lining the slices up, every 8th sample of the mix
+  const mono=new Float32Array(Math.ceil(len/D));for(let i=0;i<mono.length;i++){let v=0;for(let c=0;c<ch;c++)v+=ins[c][i*D]||0;mono[i]=v}
+  let prev=0,k=0;
+  for(let o=0;o+N<out;o+=Hs,k++){
+    const want=Math.round(k*Ha);let best=want;
+    if(k>0){const nat=prev+Hs;let bc=-Infinity;const n=N/D;
+      for(let d=-TOL;d<=TOL;d+=D*2){const c0=want+d;if(c0<0||c0+N>=len)continue;let sum=0;const a=c0/D|0,b=nat/D|0;
+        for(let i=0;i<n;i++)sum+=(mono[a+i]||0)*(mono[b+i]||0);if(sum>bc){bc=sum;best=c0}}}
+    if(best+N>=len)break;prev=best;
+    for(let c=0;c<ch;c++){const I=ins[c],O=outs[c];for(let i=0;i<N;i++)O[o+i]+=I[best+i]*w[i]}
+    for(let i=0;i<N;i++)norm[o+i]+=w[i];
+    if(k%400===399)await new Promise(r=>setTimeout(r,0));   // let the screen keep up
+  }
+  const res=ctx.createBuffer(ch,Math.ceil(len/rate),buf.sampleRate);
+  for(let c=0;c<ch;c++){const O=outs[c],R=res.getChannelData(c);for(let i=0;i<R.length;i++)R[i]=norm[i]>.1?O[i]/norm[i]:O[i]}
+  m[rate]=res;return res;
+}
+// ⏩ 1× → ¾ → ½ → 1×: the recordings are made ready first (a second or two for a whole song), then it plays on
+async function setSpeed(r){
+  if(T.rec||T.mic){say('Change the speed when you\'ve stopped recording.');return}
+  r=[1,.75,.5].includes(r)?r:1;if(r===SPD.rate)return;const was=T.playing;if(was)stop(false);
+  if(r!==1){const bufs=song.tracks.map(audioOf).filter(Boolean);if(bufs.some(b=>!(SPD.cache.get(b)||{})[r]))say('Getting the '+(r===.5?'half':'¾')+' speed version ready…');
+    SPD.busy=r;for(const b of bufs)await stretched(b,r);if(SPD.busy!==r)return;SPD.busy=null}
+  SPD.rate=r;chans.clear();refreshGains();renderTransport();try{renderSheet()}catch{}
+  say(r===1?'Back to full speed.':'Playing at '+(r===.5?'half':'¾')+' speed. The pitch stays the same.');
+  if(was)play(false);
+}
+const speedLab=()=>SPD.rate===1?'1×':SPD.rate===.5?'½×':'¾×';
 const T={playing:false,rec:false,t0:0,b0:0,pos:0,schedU:0,timer:0,scheduled:[],sources:[],take:0,recTid:null,mic:null,noCyc:false,raf:0};
 const cycOn=()=>!!(song.cycle&&song.cycle.on&&song.cycle.e>song.cycle.s);
 const looping=()=>cycOn()&&!T.noCyc;
 const loopS=()=>looping()?song.cycle.s*BPB():0;
 const loopE=()=>looping()?song.cycle.e*BPB():L();
-const uNow=()=>T.b0+(ctx.currentTime-T.t0)/spb();
+const uNow=()=>T.b0+(ctx.currentTime-T.t0)/cspb();
 const wrap=u=>{if(!looping())return u;const s=loopS(),n=loopE()-s;return s+(((u-s)%n)+n)%n};
 const beatNow=()=>T.playing?wrap(Math.max(T.b0,uNow())):T.pos;
-const u2t=u=>T.t0+(u-T.b0)*spb();
+// what you're hearing right now: the speaker plays a moment after the sound is made, so the playhead, the count and
+// the lights wait for it (with Bluetooth that's up to a third of a second, half a beat at 120 bpm)
+const heardNow=()=>T.playing?wrap(Math.max(T.b0,uNow()-spkLag()/cspb())):T.pos;
+const u2t=u=>T.t0+(u-T.b0)*cspb();
 function play(countIn){
-  if(T.playing||!AC())return;refreshGains();
+  if(T.playing||!AC())return;
+  // slowed down, and a recording isn't stretched yet (a new take, a new song recording): get it ready, then play
+  if(SPD.rate!==1){const miss=song.tracks.map(audioOf).filter(b=>b&&!(SPD.cache.get(b)||{})[SPD.rate]);
+    if(miss.length){if(SPD.busy)return;const r=SPD.rate;SPD.busy=r;say('Getting the slower version ready…');Promise.all(miss.map(b=>stretched(b,r))).then(()=>{SPD.busy=null;if(SPD.rate===r)play(countIn)});return}}refreshGains();
   if(looping()&&(T.pos<loopS()||T.pos>=loopE()))T.pos=loopS();
   if(!looping()&&!T.rec&&T.pos>=L()-.01)T.pos=0;
   audio.pause();
-  const cin=countIn?(ck().bars===2?2:1)*BPB():0,pre=cin*spb();
+  const cin=countIn?(ck().bars===2?2:1)*BPB():0,pre=cin*cspb();
   T.playing=true;T.t0=ctx.currentTime+.12+pre;T.b0=T.pos;T.schedU=T.pos;
-  SCHED=true;try{for(let i=0;i<cin;i++)click(T.t0-(cin-i)*spb(),i%BPB()===0)}finally{SCHED=false}   // a bar (or two) of clicks before the take
+  SCHED=true;try{for(let i=0;i<cin;i++)click(T.t0-(cin-i)*cspb(),i%BPB()===0)}finally{SCHED=false}   // a bar (or two) of clicks before the take
   T.cin=cin;
   for(const tr of song.tracks){const a=audioOf(tr);if(!a||(T.mic&&T.mic.tr===tr))continue;const off=(T.pos-startOf(tr))*spb();if(off>0&&off<a.duration)startSrc(tr,T.t0,off,looping()?u2t(loopE()):0)}
   T.timer=setInterval(tick,25);tick();renderTransport();frame();
@@ -435,7 +479,8 @@ function play(countIn){
 function stop(rewind){
   if(T.mic){micStop();return}
   if(!T.playing){T.pos=rewind===false?T.pos:0;renderTransport();updatePlayhead();return}
-  T.pos=Math.min(beatNow(),L());T.playing=false;clearInterval(T.timer);cancelAnimationFrame(T.raf);
+  // it stops where you heard it stop
+  T.pos=Math.min(heardNow(),L());T.playing=false;clearInterval(T.timer);cancelAnimationFrame(T.raf);
   // sounds lined up for the next moment are called off; notes already ringing ring on
   const now=ctx.currentTime;T.scheduled.forEach(([x,t])=>{if(t>now)try{x.stop(now)}catch{}});T.scheduled=[];
   T.sources.forEach(s=>{try{s.stop()}catch{}});T.sources=[];
@@ -450,7 +495,7 @@ setInterval(()=>{if(!ctx||!(ctx instanceof AudioContext)||!T.playing){GL.last=nu
   GL.last=[now,a];GL.log=GL.log.filter(t=>Date.now()-t<60000)},250);
 function restartIfPlaying(){if(T.playing&&!T.rec){stop(false);play(false)}}
 function tick(){
-  const to=uNow()+.35/spb();   // sounds are lined up 0.35 s ahead, so a busy moment on the phone can't make them late
+  const to=uNow()+.35/cspb();   // sounds are lined up 0.35 s ahead, so a busy moment on the phone can't make them late
   if(looping()){const s=loopS(),n=loopE()-s;let from=T.schedU;
     while(from<to-1e-9){const k=Math.floor((from-s)/n+1e-9),end=Math.min(to,s+(k+1)*n);scheduleRange(from-k*n,end-k*n,k*n);from=end}}
   else scheduleRange(T.schedU,to,0);
@@ -487,8 +532,10 @@ function scheduleRange1(a,b,off){
   if(song.metro&&ck().sound!=='none'&&(!ck().recOnly||T.rec))for(let k=Math.ceil(a-1e-9);k<b;k++)click(u2t(k+off),k%BPB()===0);
 }
 function startSrc(tr,t,offset,endT){
-  const s=ctx.createBufferSource();s.buffer=audioOf(tr);s.connect(channel(tr).play);
-  s.start(Math.max(t,ctx.currentTime),offset+Math.max(0,ctx.currentTime-t));
+  // offset is in the recording's own seconds; at ¾ or ½ speed the stretched copy plays, and it's that much longer
+  const r=SPD.rate,b=r===1?audioOf(tr):(SPD.cache.get(audioOf(tr))||{})[r];if(!b)return;
+  const s=ctx.createBufferSource();s.buffer=b;s.connect(channel(tr).play);
+  s.start(Math.max(t,ctx.currentTime),offset/r+Math.max(0,ctx.currentTime-t));
   if(endT&&endT>t)s.stop(endT);   // a loop: this pass ends at the loop's end
   T.sources.push(s);s.onended=()=>{T.sources=T.sources.filter(x=>x!==s)};
 }
@@ -497,8 +544,8 @@ function seek(b){const was=T.playing&&!T.rec;if(T.playing)stop(false);T.pos=Math
 /* ---- recording pan taps ---- */
 // one tap delay for the whole app: Write's 'Tap delay fix' and Studio's pan-tap timing are the same number
 const tapMs=()=>Math.round((Number.isFinite(S.tapLag)?S.tapLag:0)*1000);
-const latBeats=()=>tapMs()/1000/spb();
-const recBeatAt=t=>wrap(Math.max(T.b0,T.b0+(t-T.t0)/spb()-latBeats()));
+const latBeats=()=>tapMs()/1000/cspb();
+const recBeatAt=t=>wrap(Math.max(T.b0,T.b0+(t-T.t0)/cspb()-latBeats()));
 // How far behind the app's audio clock the speaker is. A computer is about 0.01-0.045 s; an Android phone can be
 // 0.1-0.3 s. The tap delay fix was set up on the computer-sized delay, so only the extra beyond that is taken off.
 let spkC={t:-1,v:0};
@@ -517,7 +564,7 @@ function tapT(e){
 }
 function recNote(tr,id,v,at){
   const when=at!=null?at:tapT(null);
-  if(!(T.rec&&T.playing&&tr.id===T.recTid)||when<T.t0-Math.min(.25,spb()*.4))return null;   // nothing records during the count-in, but a hair early on beat 1 counts as beat 1
+  if(!(T.rec&&T.playing&&tr.id===T.recTid)||when<T.t0-Math.min(.25,cspb()*.4))return null;   // nothing records during the count-in, but a hair early on beat 1 counts as beat 1
   const n={t:+recBeatAt(when).toFixed(3),d:.25,p:id,v:+v.toFixed(2),tk:T.take};tr.notes.push(n);return n;
 }
 function recOff(n,at){if(!n)return;let d=recBeatAt(at!=null?at:tapT(null))-n.t;if(d<-.5&&looping())d+=loopE()-loopS();n.d=+Math.max(.25,Math.min(4,d)).toFixed(3)}   // a quick tap shows as a quarter beat
@@ -528,7 +575,7 @@ function endNoteRec(){
   const tr=trById(T.recTid),take=T.take;T.recTid=null;T.noCyc=false;if(!tr)return;
   // Replace / New take: the old notes go only where you recorded (all of the loop if it came round)
   if(song.recMode==='replace'||song.recMode==='take'){
-    const to=T.playing?beatNow():T.pos,from=T.recFrom||0,went=(ctx.currentTime-(T.recT||0))/spb();
+    const to=T.playing?beatNow():T.pos,from=T.recFrom||0,went=(ctx.currentTime-(T.recT||0))/cspb();
     const lp=looping(),all=lp&&went>=loopE()-loopS()-1e-3;
     const over=t=>all?(t>=loopS()-1e-6&&t<loopE()-1e-6):lp&&to<from?(t>=from-1e-6&&t<loopE()-1e-6)||(t>=loopS()-1e-6&&t<to-1e-6):(t>=from-1e-6&&t<to-1e-6);
     tr.notes=tr.notes.filter(n=>n.tk===take||!over(n.t));
@@ -562,6 +609,8 @@ const held=new Map();   // finger → the note it's holding (hold for a roll)
 function panDown(e,el){
   e.preventDefault();if(!AC())return;const tr=selTr();
   // My part: the pans play so you can try a line, but notes are written in Write
+  if(STEP.on&&!T.playing&&(tr.type==='part'||tr.type==='pan')){const id=el.dataset.field,c=channel(tr);panVoice(c.out,id,ctx.currentTime+.003,.9,false);el.classList.add('hit');stepAdd(tr,id);
+    held.set(e.pointerId,{el,n:null,timer:0,rolls:[]});return}
   if(tr.type==='part'){const id=el.dataset.field,c=channel(tr),hv=FEEL.now(id);panVoice(c.out,id,ctx.currentTime+.003,.95*hv,false);el.classList.add('hit');
     const r={el,n:null,timer:0,rolls:[],write:writeTap(tr,id,tapT(e)),t0:ctx.currentTime};
     const go=()=>{panVoice(c.out,id,ctx.currentTime+.003,(.5+Math.random()*.25)*hv,true);r.rolls.push(1);r.timer=setTimeout(go,60+Math.random()*18)};
@@ -593,28 +642,42 @@ window.addEventListener('pointerup',panUp);window.addEventListener('pointercance
 /* ---- recording straight into Write: My part's taps become your cues ---- */
 // The notes land in Write at their place in the song (tap delay fixed), so they're in your chart, the lanes and the
 // game too. Notes hit together make a chord; hold a note to roll it. Undo in Write takes the whole take back.
-const WR={on:false,last:null,n:0};
+// Merge adds to your part, but a note already there (the same note, at the same moment) isn't written twice.
+// Replace and New take clear your old notes from where you start; when you stop, the ones after that come back,
+// so only what you played over is replaced. My part keeps one take: New take works like Replace, and ↶ Undo
+// brings the old notes back.
+const WR={on:false,last:null,n:0,mine:new Set(),hid:[],from:0};
 function writeRecStart(tr){
-  if(T.mic)return;pushUndo();if(isDemo){S.cues=[];isDemo=false;try{renderDemo()}catch{}}
-  WR.on=true;WR.last=null;WR.n=0;T.take++;T.recTid=tr.id;T.rec=true;T.mb0=song.minBars;
-  if(!T.playing)play(song.countIn);else renderTransport();setView('inst');
+  if(T.mic)return;pushUndo();pushHistory();if(isDemo){S.cues=[];isDemo=false;try{renderDemo()}catch{}}
+  WR.on=true;WR.last=null;WR.n=0;WR.mine=new Set();WR.hid=[];T.take++;T.recTid=tr.id;T.rec=true;T.mb0=song.minBars;
+  T.recFrom=T.playing?beatNow():T.pos;
+  if(song.recMode==='replace'||song.recMode==='take'){const lp=looping(),a=origin()+(lp?Math.min(T.recFrom,loopS()):T.recFrom)*spb()-.02,b=lp?origin()+loopE()*spb()-.02:Infinity;
+    WR.hid=S.cues.filter(c=>c.start>=a&&c.start<b);if(WR.hid.length){S.cues=S.cues.filter(c=>!WR.hid.includes(c));partCache=null}}
+  if(!T.playing)play(song.countIn);else renderTransport();
+  T.recT=Math.max(ctx.currentTime,T.t0);setView('inst');
 }
 function writeTap(tr,id,at){
   const when=at!=null?at:tapT(null);
-  if(!(WR.on&&T.rec&&T.playing&&tr.id===T.recTid)||when<T.t0-Math.min(.25,spb()*.4))return null;
+  if(!(WR.on&&T.rec&&T.playing&&tr.id===T.recTid)||when<T.t0-Math.min(.25,cspb()*.4))return null;
   let b=recBeatAt(when);if(song.snapRec&&song.snap!=='off')b=snapBeat(b,+song.snap);
   const t=+(origin()+b*spb()).toFixed(3);if(t<0)return null;
   const last=WR.last;
   if(last&&Math.abs(t-last.start)<.06){if(!last.steps.includes(id)){last.steps.push(id);last.mode='together'}return last}   // hit together: a chord
+  if(song.recMode!=='replace'&&song.recMode!=='take'){const tw=S.cues.find(c=>!WR.mine.has(c.id)&&Math.abs(c.start-t)<.09&&c.steps.includes(id));if(tw){WR.last=tw;return null}}   // already there: not twice
   if(last&&t>last.start&&t<last.start+last.duration)last.duration=Math.max(.05,+(t-last.start).toFixed(3));
   const c={id:uid(),start:t,duration:+(spb()*.5).toFixed(3),steps:[id],mode:'together',note:''};
-  S.cues.push(c);S.cues.sort((x,y)=>x.start-y.start);WR.last=c;WR.n++;partCache=null;return c;
+  S.cues.push(c);S.cues.sort((x,y)=>x.start-y.start);WR.last=c;WR.mine.add(c.id);WR.n++;partCache=null;return c;
 }
 function writeRecEnd(){
   fitBars();
-  const n=WR.n;WR.on=false;WR.last=null;T.recTid=null;
+  const n=WR.n,rep=WR.hid.length&&(song.recMode==='replace'||song.recMode==='take');WR.on=false;WR.last=null;T.recTid=null;
+  // Replace: the old notes past where you stopped come back (all of the loop stays new if it came round)
+  if(WR.hid.length){const to=T.pos,went=(ctx.currentTime-(T.recT||0))/cspb(),lp=looping(),all=lp&&went>=loopE()-loopS()-1e-3;
+    const toT=origin()+to*spb()-.02,back=WR.hid.filter(c=>all?false:lp&&to<T.recFrom?(c.start>=toT&&c.start<origin()+T.recFrom*spb()-.02):c.start>=toT);
+    if(!n){S.cues=S.cues.concat(WR.hid)}else S.cues=S.cues.concat(back);S.cues.sort((x,y)=>x.start-y.start);WR.hid=[];partCache=null}
+  if(!n&&H.u.length){H.u.pop();renderUndo()}
   try{normalizeChords()}catch{}save();try{renderCues()}catch{}partCache=null;renderAll();
-  say(n?n+' note'+(n===1?'':'s')+' went straight into Write. They\'re on your chart and in the game too. (Undo in Write takes them back.)':'Nothing was played.');
+  say(n?n+' note'+(n===1?'':'s')+(rep?' replaced what was there':' went into your part')+'. They\'re on your chart and in the game too. (↶ Undo takes them back.)':'Nothing was played.');
 }
 
 /* ---- takes: a track keeps every pass you record, you choose which one plays ---- */
@@ -701,6 +764,7 @@ const micLag=()=>PR.micLag!=null?PR.micLag/1000:(ctx.outputLatency||0)+(ctx.base
 function joinChunks(chunks){const n=chunks.reduce((a,c)=>a+c.d.length,0),out=new Float32Array(n);let p=0;for(const c of chunks){out.set(c.d,p);p+=c.d.length}return{data:out,f0:chunks.length?chunks[0].f:0}}
 let micBusy=false;
 async function micStart(tr){
+  if(SPD.rate!==1){say('Mic takes record at full speed: set ⏩ Speed back to 1× first.');return}
   if(micBusy)return;
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){say("The microphone isn't available here. Open Panyard from your home screen or in Chrome.");return}
   if(!AC())return;micBusy=true;
@@ -775,11 +839,15 @@ const calMsg=t=>{const el=q('#stCalMsg');if(el)el.textContent=t;else say(t)};
 
 /* ---- undo / redo: a snapshot of the studio song before each change ---- */
 const H={u:[],r:[]};
-function pushHistory(){H.u.push(JSON.stringify(song));if(H.u.length>60)H.u.shift();H.r=[];renderUndo()}
+// each step keeps the tracks, your part (My part's notes are your cues) and the song's pan, so ↶ Undo takes back any of them
+const snapNow=()=>JSON.stringify({s:song,c:S.cues,ps:setKey()});
+function pushHistory(){H.u.push(snapNow());if(H.u.length>60)H.u.shift();H.r=[];renderUndo()}
 function clearTk(sg){if(sg&&Array.isArray(sg.tracks))for(const t of sg.tracks)if(Array.isArray(t.notes))for(const n of t.notes)if('tk' in n)delete n.tk}
-function restore(json){const keep=song.sel;song=JSON.parse(json);if(trById(keep))song.sel=keep;chans.clear();SEL=null;refreshGains();dirty();renderAll()}
-function undo(){if(!H.u.length||T.playing&&T.rec)return;H.r.push(JSON.stringify(song));restore(H.u.pop());renderUndo()}
-function redo(){if(!H.r.length||T.playing&&T.rec)return;H.u.push(JSON.stringify(song));restore(H.r.pop());renderUndo()}
+function restore(json){const keep=song.sel,o=JSON.parse(json);song=o&&o.s&&o.s.tracks?o.s:o;
+  if(o&&o.ps&&SETS[o.ps]&&o.ps!==setKey()){S.panSet=o.ps;applyPanSet();try{save();renderVoice()}catch{}}
+  if(o&&Array.isArray(o.c)&&JSON.stringify(o.c)!==JSON.stringify(S.cues)){S.cues=o.c;partCache=null;try{save();renderCues()}catch{}}if(trById(keep))song.sel=keep;chans.clear();SEL=null;refreshGains();dirty();renderAll()}
+function undo(){if(!H.u.length||T.playing&&T.rec)return;H.r.push(snapNow());restore(H.u.pop());renderUndo()}
+function redo(){if(!H.r.length||T.playing&&T.rec)return;H.u.push(snapNow());restore(H.r.pop());renderUndo()}
 function renderUndo(){const u=q('#stUndo'),r=q('#stRedo');if(u)u.disabled=!H.u.length;if(r)r.disabled=!H.r.length}
 
 /* ---- saving: the studio song with each Panyard song, takes as audio files on this phone ---- */
@@ -857,7 +925,7 @@ async function load(){
     song=saved&&Array.isArray(saved.tracks)?saved:blank();
     clearTk(song);
     if(!song.tracks.some(t=>t.type==='practice'))song.tracks.unshift(trk('practice'));
-    song.tracks.forEach(t=>{if(t.type==='beats'&&!Array.isArray(t.off))t.off=[]});
+    song.tracks.forEach(t=>{if(t.type==='beats'&&!Array.isArray(t.off))t.off=[];if(t.type==='part'&&t.name==='My part (Write)')t.name='My part'});   // Write is part of Studio now
     chans.clear();H.u=[];H.r=[];SEL=null;T.pos=0;
     AC();
     for(const tr of song.tracks)if(tr.type==='audio'&&tr.take&&!buffers[tr.take]){
@@ -889,7 +957,7 @@ function renderTransport(){
   p.textContent=T.playing?'■':'▶';p.setAttribute('aria-label',T.playing?'Stop':'Play');
   r.setAttribute('aria-pressed',String(T.rec));r.classList.toggle('live',T.rec);
   q('#stMetro').setAttribute('aria-pressed',String(!!song.metro));q('#stCount').setAttribute('aria-pressed',String(song.countIn!==false));q('#stLoop').setAttribute('aria-pressed',String(cycOn()));
-  q('#stTempo').textContent=(+bpm().toFixed(1))+' bpm';
+  q('#stTempo').textContent=(+bpm().toFixed(1))+' bpm'+(SPD.rate===1?'':' · '+speedLab());
   document.body.classList.toggle('st-recording',T.rec);
   updatePlayhead();
 }
@@ -937,7 +1005,7 @@ function shiftFrom(atBar,dBars){
 }
 function secOp(op,i){
   const x=song.secs&&song.secs[i];if(!x)return;const n=x.b-x.a,A=x.a*BPB(),B=x.b*BPB(),bpb=BPB();
-  const fixed=zoneOn()?' Your takes stay where they are.':pBuf||song.tracks.some(t=>t.type==='part'&&notesOf(t).length)?' Your recording and My part (Write) stay where they are.':'';
+  const fixed=zoneOn()?' Your takes stay where they are.':pBuf||song.tracks.some(t=>t.type==='part'&&notesOf(t).length)?' Your recording and My part stay where they are.':'';
   if(op==='ren'){const v=prompt('Name this section',x.name);if(v==null||!v.trim())return;pushHistory();x.name=v.trim().slice(0,30);dirty();renderAll();return}
   pushHistory();
   if(op==='dup'){
@@ -970,9 +1038,12 @@ function secOp(op,i){
 /* ---- Add to…: send the bars you picked into a section of your arrangement ----
    The notes are copied (your take stays where it is), and replace what that track had in the section. */
 const ownSecs=()=>song.secs&&song.secs.length?song.secs:sections().map(s=>({name:s.name,a:Math.max(0,Math.round(s.a/BPB())),b:Math.max(1,Math.round(s.b/BPB())),en:3})).filter(x=>x.b>x.a);
-const addSrc=(a,b)=>{const A=a*BPB(),B=b*BPB();return song.tracks.filter(t=>(t.type==='pan'||t.type==='drums')&&(t.notes||[]).some(n=>n.t>=A&&n.t<B))};
+const addSrc=(a,b)=>{const A=a*BPB(),B=b*BPB();return song.tracks.filter(t=>(t.type==='pan'||t.type==='drums'||t.type==='part')&&notesOf(t).some(n=>n.t>=A&&n.t<B))};
+// My part's notes as a pan track's: a roll's quick strikes are marked the way a recorded roll is
+const asPan=n=>{const o={t:n.t,d:n.d,p:n.p,v:n.v};if(n.roll)o.r=1;return o};
 const LAYER_OF={tenor:'Front line',dten:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',six:'Bass',seven:'Bass'};
 function songTwin(tr){
+  if(tr.type==='part')tr={type:'pan',panSet:setKey(),vol:tr.vol,pan:tr.pan,fx:tr.fx};   // My part goes onto the song's track for its pan
   if(inSong(tr))return tr;
   let t=song.tracks.find(x=>inSong(x)&&x.type===tr.type&&(tr.type!=='pan'||x.panSet===tr.panSet));
   if(!t){const role=tr.type==='drums'?'Drums':LAYER_OF[tr.panSet]||(SETS[tr.panSet]?SETS[tr.panSet].name:'Pans');
@@ -991,7 +1062,7 @@ function addTo(target){
   const XA=x.a*bpb,XB=x.b*bpb,SA=ad.a*bpb,SB=ad.b*bpb;let put=0;
   const into=[];
   for(const st of trs){
-    const src=st.notes.filter(n=>n.t>=SA&&n.t<SB).map(n=>({...n})),tr=songTwin(st);if(!into.includes(tr))into.push(tr);
+    const src=st.type==='part'?notesOf(st).filter(n=>n.t>=SA&&n.t<SB).map(asPan):st.notes.filter(n=>n.t>=SA&&n.t<SB).map(n=>({...n})),tr=songTwin(st);if(!into.includes(tr))into.push(tr);
     tr.notes=tr.notes||[];tr.notes=tr.notes.filter(n=>!(n.t>=XA&&n.t<XB));
     for(let k=0;x.a+k*L<x.b;k++){const off=XA-SA+k*L*bpb;for(const n of src){const t=+(n.t+off).toFixed(3);if(t<XB){tr.notes.push({...n,t});put++}}if(ad.fill==='once')break}
     tr.notes.sort((p,q2)=>p.t-q2.t)}
@@ -1108,11 +1179,13 @@ function renderTimeline(){
   const tl=q('#stTl');if(!tl||!song)return;
   const bar=zoomPx(),n=bars(),W=bar*n,hd=HDW(),keep=[tl.scrollLeft,tl.scrollTop];
   if(SEL&&!trById(SEL.tid))SEL=null;
-  let h='<div class="st-inner" style="--hdw:'+hd+'px;--bar:'+bar+'px;width:'+(hd+W)+'px">';
+  // count lines through every track, finer as you zoom in (like GarageBand): bars, then beats, then ½ and ¼ beats
+  const bt=bar/BPB(),gl=(bt>=9?' gb':'')+(bt/2>=TICK_PX?' g2':'')+(bt/4>=TICK_PX?' g4':'');
+  let h='<div class="st-inner'+gl+'" style="--hdw:'+hd+'px;--bar:'+bar+'px;--bt:'+bt+'px;width:'+(hd+W)+'px">';
   // the corner of the timeline holds + Track and zoom, so the tracks get the whole screen
   h+='<div class="st-row st-ruler"><div class="st-hd st-corner"><button class="st-addt" data-st="addsheet" aria-label="Add a track">+ Track</button><span class="st-zm"><button data-st="zout" aria-label="Zoom out">−</button><button data-st="zin" aria-label="Zoom in">+</button></span></div><div class="st-lane" id="stRuler" style="width:'+W+'px">';
   if(song.cycle&&song.cycle.e>song.cycle.s)h+='<span class="st-cyc'+(cycOn()?'':' off')+'" style="left:'+song.cycle.s*bar+'px;width:'+(song.cycle.e-song.cycle.s)*bar+'px"></span>';
-  for(let b=0;b<n;b++)h+='<span class="st-barn" style="left:'+b*bar+'px">'+(b+1)+'</span>';
+  h+=rulerHTML(bar,n);
   {const zs=zoomStep(),bt=bar/BPB();if(zs<1){h+='<span class="st-tk st-tk1" style="--tk:'+bt+'px"></span>';if(zs<=1/(2*BPB()))h+='<span class="st-tk st-tk2" style="--tk:'+bt/2+'px"></span>';if(zs<=1/(4*BPB()))h+='<span class="st-tk st-tk4" style="--tk:'+bt/4+'px"></span>'}}
   for(const s of sections())if(s.a<n*BPB()){const A=Math.max(0,Math.floor(s.a/BPB()+.02)),B=Math.max(A+1,Math.ceil(s.b/BPB()-.02)),on=cycOn()&&song.cycle.s===A&&song.cycle.e===B;h+='<button class="st-secl'+(on?' on':'')+'" data-sec="'+A+','+B+'" aria-pressed="'+on+'" aria-label="Loop '+esc(s.name)+'" style="left:'+Math.max(0,s.a/BPB()*bar)+'px;max-width:'+Math.max(24,(s.b-s.a)/BPB()*bar-4)+'px">'+esc(s.name)+'</button>'}
   h+='</div></div>';
@@ -1138,9 +1211,20 @@ function renderTimeline(){
   const sb=q('#stSel');sb.innerHTML=SEL?selBarHTML():'';sb.hidden=!SEL||VIEW==='inst';if(!SEL)SELMORE=false;placeSel();renderSongBar();
   updatePlayhead();
 }
+// the ruler's numbers follow the zoom: every bar (every 2nd or 4th when zoomed far out), then each beat (1.2, 1.3…),
+// then each ¼ beat (1.2.2…) when there's room for them
+function rulerHTML(bar,n){
+  const B=BPB(),bt=bar/B,every=bar>=28?1:bar>=14?2:4;let h='';
+  for(let b=0;b<n;b++){
+    if(b%every===0)h+='<span class="st-barn" style="left:'+b*bar+'px">'+(b+1)+'</span>';
+    if(bt>=30)for(let k=0;k<B;k++){
+      if(k)h+='<span class="st-btn" style="left:'+(b*bar+k*bt)+'px">'+(b+1)+'.'+(k+1)+'</span>';
+      if(bt/4>=34)for(let j=1;j<4;j++)h+='<span class="st-btn st-btq" style="left:'+(b*bar+(k+j/4)*bt)+'px">'+(b+1)+'.'+(k+1)+'.'+(j+1)+'</span>'}}
+  return h;
+}
 const PH={w:0,sl:0,t:0};
 function updatePlayhead(){
-  if(!song)return;const b=beatNow(),pos=q('#stPos');if(pos){const s=(Math.floor(b/BPB())+1)+'.'+(Math.floor(b%BPB())+1);if(pos.textContent!==s)pos.textContent=s}
+  if(!song)return;const b=heardNow(),pos=q('#stPos');if(pos){const s=(Math.floor(b/BPB())+1)+'.'+(Math.floor(b%BPB())+1);if(pos.textContent!==s)pos.textContent=s}
   const ph=q('#stPh'),tl=q('#stTl');if(!ph)return;const hd=HDW(),x=b*zoomPx()/BPB();
   if(ph.style.left!==hd+'px')ph.style.left=hd+'px';ph.style.transform='translateX('+x.toFixed(1)+'px)';
   if(T.playing){const now=performance.now();if(!PH.w||now-PH.t>1000){PH.w=tl.clientWidth;PH.sl=tl.scrollLeft;PH.t=now}
@@ -1151,14 +1235,14 @@ function updatePlayhead(){
 let litKey='';
 function lightPans(){
   const box=q('#stPans');let ids=[];
-  if(box&&T.playing&&VIEW==='inst'){const tr=selTr();if(isPanish(tr)){const b=beatNow();for(const n of pnotes(tr))if(n.t<=b+.02&&b<n.t+Math.max(.22,Math.min(n.d,1)))ids.push(n.p)}}
+  if(box&&T.playing&&VIEW==='inst'){const tr=selTr();if(isPanish(tr)){const b=heardNow();for(const n of pnotes(tr))if(n.t<=b+.02&&b<n.t+Math.max(.22,Math.min(n.d,1)))ids.push(n.p)}}
   const k=ids.join();if(k===litKey)return;litKey=k;if(!box)return;const on=new Set(ids);
   box.querySelectorAll('.field').forEach(f=>f.classList.toggle('play-hit',on.has(f.dataset.field)));
 }
 let litDrums='';
 function lightDrums(){
   const box=q('#stKit');if(!box)return;let ms=[];
-  if(T.playing&&VIEW==='inst'){const tr=selTr();if(tr.type==='drums'){const b=beatNow();for(const n of tr.notes)if(n.t<=b+.02&&b<n.t+.18)ms.push(+n.p)}}
+  if(T.playing&&VIEW==='inst'){const tr=selTr();if(tr.type==='drums'){const b=heardNow();for(const n of tr.notes)if(n.t<=b+.02&&b<n.t+.18)ms.push(+n.p)}}
   const k=ms.join();if(k===litDrums)return;litDrums=k;const on=new Set(ms);
   box.querySelectorAll('.st-dp').forEach(d=>d.classList.toggle('play-hit',on.has(+d.dataset.m)));
 }
@@ -1167,15 +1251,57 @@ let visB=null;
 function beatVis(){
   let el=q('#stCountVis');if(!el){el=document.createElement('div');el.id='stCountVis';el.setAttribute('aria-hidden','true');document.body.appendChild(el)}
   let show='',acc=false;
-  if(T.playing&&ctx&&T.cin&&ck().visual&&ctx.currentTime<T.t0){const left=(T.t0-ctx.currentTime)/spb(),k=T.cin-Math.ceil(left-1e-6);if(k>=0){show=String(k%BPB()+1);acc=k%BPB()===0}}
+  const hT=ctx?ctx.currentTime-spkLag():0;
+  if(T.playing&&ctx&&T.cin&&ck().visual&&hT<T.t0){const left=(T.t0-hT)/cspb(),k=T.cin-Math.ceil(left-1e-6);if(k>=0){show=String(k%BPB()+1);acc=k%BPB()===0}}
   if(show&&!el.dataset.n){const pans=q('#stPans');const r=pans&&pans.offsetParent?pans.getBoundingClientRect():null;
     el.style.left=r?(r.left+r.width/2)+'px':'50%';el.style.top=r?(r.top+Math.min(r.height,innerHeight-r.top)/2)+'px':'52%'}
   if(el.dataset.n!==show){el.dataset.n=show;el.textContent=show;el.classList.toggle('on',!!show);el.classList.toggle('acc',acc);if(show){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}}
   const lcd=document.querySelector('.st-lcd');
-  if(lcd){const b=T.playing&&ctx&&ctx.currentTime>=T.t0?Math.floor(beatNow()+1e-6):null;
+  if(lcd){const b=T.playing&&ctx&&hT>=T.t0?Math.floor(heardNow()+1e-6):null;
     if(b!==visB){visB=b;if(b!==null&&song.metro){lcd.classList.remove('tick','tick1');void lcd.offsetWidth;lcd.classList.add(b%BPB()===0?'tick1':'tick')}}}
 }
-{const lp=()=>{if(document.body.dataset.view==='studio'||litKey)lightPans();if(document.body.dataset.view==='studio')lightDrums();if(document.body.dataset.view==='studio')beatVis();requestAnimationFrame(lp)};requestAnimationFrame(lp)}
+// Write: Studio with My part on the pans (made if the song doesn't have it yet)
+async function writePart(){
+  if(document.body.dataset.view!=='studio')showView('studio');await load();if(!song)return;
+  let tr=song.tracks.find(t=>t.type==='part');if(!tr){tr=trk('part');song.tracks.push(tr);dirty()}
+  song.sel=tr.id;setView('inst');renderAll();try{GB.sync()}catch{}
+}
+/* ---- Coming up: the next notes of the track on the pans, as it plays (from Write). Tap one to go there.
+   ✚ Step (Write's Build a cue): stopped, each pan you tap goes in at the playhead (tap several for a chord), and
+   → moves on by the snap amount (¼ beat with Snap off). ---- */
+const STEP={on:false};
+const stepLen=()=>song.snap&&song.snap!=='off'?+song.snap:.5;
+// where a note is, the way the ruler counts: 3.2 is bar 3, beat 2; 3.2½ is half a beat after it
+const bbLab=b=>{const x=b+1e-6,f=x%1,fr=f<.002?'':Math.abs(f-.5)<.01?'½':Math.abs(f-.25)<.01?'¼':Math.abs(f-.75)<.01?'¾':'+';return (Math.floor(x/BPB())+1)+'.'+(Math.floor(x%BPB())+1)+fr};
+let nextKey='';
+function nextTick(){
+  const box=q('#stNext'),inst=q('#stInst');if(!box||!inst||!inst.offsetParent)return;const tr=selTr();if(!tr||!isPanish(tr))return;
+  if(!box.querySelector('.st-nxl'))nextKey='';   // the pans were just redrawn
+  const ns=pnotes(tr).filter(n=>!n.roll),b=heardNow(),G=[];
+  for(const n of ns){const g=G[G.length-1];if(g&&Math.abs(g.t-n.t)<.06){if(!g.ids.includes(n.p))g.ids.push(n.p);g.d=Math.max(g.d,n.d)}else G.push({t:n.t,d:n.d,ids:[n.p]})}
+  let i=G.findIndex(g=>g.t+Math.min(g.d,1)>b-.02);if(i<0)i=G.length;
+  const now=G[i]&&G[i].t<=b+.02,show=G.slice(i,i+6);
+  const key=[i,now,ns.length,STEP.on,T.playing,stepLen(),STEP.on?T.pos:0].join();if(key===nextKey)return;nextKey=key;
+  const chips=show.map((g,k)=>'<button class="st-nx'+(k===0&&now?' now':'')+'" data-st="nextat" data-v="'+g.t+'"><b>'+g.ids.map(id=>pname(id).replace(/\d$/,'')).join(' + ')+'</b><i>'+bbLab(g.t)+'</i></button>').join('');
+  // the first slot holds the track picker on a sideways phone (Studio's top bar has no room for its name); it stays put
+  if(!box.querySelector('.st-nxl'))box.innerHTML='<span class="st-nxp"></span><span class="st-nxh">Coming up</span><div class="st-nxl"></div><span class="st-nxs"></span>';
+  box.querySelector('.st-nxl').innerHTML=chips||'<span class="st-nxe">'+(ns.length?'That\'s the last note.':'No notes yet: ● Rec and play, or ✚ Step to put them in one by one.')+'</span>';
+  box.querySelector('.st-nxs').innerHTML=(STEP.on?'<button data-st="stepgo" data-v="-1" aria-label="Back">←</button><b>'+bbLab(T.pos)+'</b><button data-st="stepgo" data-v="1" aria-label="Next">→</button>':'')
+    +'<button class="st-stepb" data-st="step" aria-pressed="'+STEP.on+'" title="Put notes in one at a time at the playhead">✚ Step</button>';
+  try{GB.place()}catch{}
+}
+// a note put in by hand at the playhead: into your part as a cue (a chord if one is already there), or onto the pan track
+function stepAdd(tr,id){
+  if(T.playing||!STEP.on)return false;pushHistory();const b=T.pos,len=stepLen();
+  if(tr.type==='part'){const t=+(origin()+b*spb()).toFixed(3);if(t<0){H.u.pop();return true}if(isDemo){S.cues=[];isDemo=false;try{renderDemo()}catch{}}
+    const c=S.cues.find(x=>Math.abs(x.start-t)<.03);
+    if(c){if(c.steps.includes(id)){H.u.pop();return true}c.steps.push(id);c.mode='together'}
+    else S.cues.push({id:uid(),start:t,duration:+(len*spb()).toFixed(3),steps:[id],mode:'together',note:''});
+    S.cues.sort((x,y)=>x.start-y.start);partCache=null;try{normalizeChords();save();renderCues()}catch{}}
+  else{if(tr.notes.some(n=>Math.abs(n.t-b)<.01&&n.p===id)){H.u.pop();return true}tr.notes.push({t:+b.toFixed(3),d:len,p:id,v:.9});tr.notes.sort((x,y)=>x.t-y.t);dirty()}
+  nextKey='';return true;
+}
+{const lp=()=>{if(document.body.dataset.view==='studio'){try{nextTick()}catch(e){}}if(document.body.dataset.view==='studio'||litKey)lightPans();if(document.body.dataset.view==='studio')lightDrums();if(document.body.dataset.view==='studio')beatVis();requestAnimationFrame(lp)};requestAnimationFrame(lp)}
 function frame(){if(!T.playing)return;updatePlayhead();if(seqGridOpen())renderSeqNow();if(q('#stSheet')&&!q('#stSheet').hidden&&SH.kind==='mixer')meters();T.raf=requestAnimationFrame(frame)}
 /* the edit bar for picked bars floats just above them, pointing at them (like GarageBand). The tools you use most sit in one
    row; the rest are under More. Every tool is the same data-st="r-…" button as before, so regionOp does the work. */
@@ -1189,7 +1315,7 @@ function selBarHTML(){
   if(tr.type==='drums'){main+=b('left','◀','Move')+b('right','▶','Move')+b('copy','⧉','Copy after')+b('delete','🗑','Delete','danger');more=m('repeat','Repeat to end')+m('snap','Snap')}
   if(isPanish(tr)){main+=b('left','◀','Move')+b('right','▶','Move')+b('copy','⧉','Copy after')+b('notes','✎','Notes')+b('delete','🗑','Delete','danger');more=m('repeat','Repeat to end')+m('snap','Snap')}
   if(tr.type==='audio'&&tr.take)main+=b('left','◀','Bar')+b('right','▶','Bar')+b('delete','🗑','Remove','danger');
-  if(tr.type==='pan'||tr.type==='drums')more='<button class="btn sm st-addto" data-st="r-addto">＋ Add to…</button>'+more;
+  if(tr.type==='pan'||tr.type==='drums'||tr.type==='part')more='<button class="btn sm st-addto" data-st="r-addto">＋ Add to…</button>'+more;
   if(tr.type==='beats')main=b('silence',(tr.off||[]).includes(SEL.a)?'▶':'🔇',(tr.off||[]).includes(SEL.a)?'Play':'Silence')+main;
   if(more)main+='<button class="st-fb" data-selmore aria-expanded="'+SELMORE+'"><i aria-hidden="true">⋯</i>More</button>';
   return '<div class="st-selin" role="toolbar" aria-label="Edit '+esc(range)+' of '+esc(tr.name)+'">'
@@ -1202,7 +1328,7 @@ function placeSel(){
   const sb=q('#stSel'),bx=q('#stBsel'),tl=q('#stTl');if(!sb)return;
   if(!SEL||sb.hidden||!bx||!tl||!tl.offsetParent){sb.classList.remove('st-float');return}
   sb.classList.add('st-float');
-  const R=bx.getBoundingClientRect(),T=tl.getBoundingClientRect(),hd=HDW(),L=T.left+hd,Rt=T.right,ruler=34;
+  const R=bx.getBoundingClientRect(),T=tl.getBoundingClientRect(),hd=HDW(),L=T.left+hd,Rt=T.right,ruler=42;
   const x0=Math.max(R.left,L),x1=Math.min(R.right,Rt),vis=x1>x0+4&&R.bottom>T.top+ruler&&R.top<T.bottom;
   sb.classList.toggle('st-off',!vis);if(!vis)return;
   const w=sb.offsetWidth,h=sb.offsetHeight,mid=(x0+x1)/2,left=Math.max(6,Math.min(innerWidth-w-6,mid-w/2));
@@ -1240,12 +1366,13 @@ function regionOp(op){
     dirty();renderAll();return;
   }
   if(tr.type==='part'){
-    const sa=origin()+A*spb(),sb=origin()+B*spb(),bs=bpb*spb();let msg='';
+    const sa=origin()+A*spb(),sb=origin()+B*spb(),bs=bpb*spb();let msg='';pushHistory();const c0=JSON.stringify(S.cues);
     if(op==='left'||op==='right'){const d=(op==='left'?-1:1)*ST;if(SEL.a+d<-1e-6){say("That's the start of the song.");return}if(BARS.shift(sa,sb,d*bs)){SEL.a=r6(SEL.a+d);SEL.b=r6(SEL.b+d);SEL.anchor=r6(SEL.anchor+d);msg='Moved. Your cues in Write moved too.'}else msg='There are no notes in those bars.'}
     else if(op==='copy'){if(!BARS.copyTo(sa,sb,sb)){say('There are no notes in those bars to copy.');return}SEL={tid:tr.id,anchor:SEL.b,a:SEL.b,b:r6(SEL.b+len),st:SEL.st};msg='Copied, in Write too. The copy is selected.'}
     else if(op==='repeat'){const k=BARS.repeat(sa,sb,origin()+bars()*bs);msg=k?'Repeated to the end of the song ('+k+' time'+(k===1?'':'s')+'), in Write too.':'There are no notes in those bars to repeat.'}
     else if(op==='snap'){const k=BARS.snap(sa,sb,gridOf()*spb());msg=k?'Snapped '+k+' cue'+(k===1?'':'s')+'.':'There are no notes in those bars.'}
-    else if(op==='delete'){const k=BARS.del(sa,sb);msg=k?'Deleted '+k+' cue'+(k===1?'':'s')+'. Undo is in ▦ Edit in bars.':'There are no notes in those bars.'}
+    else if(op==='delete'){const k=BARS.del(sa,sb);msg=k?'Deleted '+k+' note'+(k===1?'':'s')+'. ↶ Undo brings them back.':'There are no notes in those bars.'}
+    if(JSON.stringify(S.cues)===c0){H.u.pop();renderUndo()}
     renderAll();if(msg)say(msg);return;
   }
   if(tr.type!=='pan'&&tr.type!=='drums')return;
@@ -1278,17 +1405,19 @@ function renderInst(){
     const n=BARS.events().length;
     // pans first here too: your part lights up on them as it plays
     const sk=setKey(),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
-    const phead=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
+    const phead=h.slice(headAt);h=h.slice(0,headAt)+'<div class="st-next" id="stNext"></div><div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>';
     // the words and buttons live in the Options menu, so the pans keep the room
-    h+='<div class="st-popts" id="stPopts" role="dialog" aria-label="My part options"><p class="help"><b>● Rec</b> and play the pans: every note goes straight into Write, so it\'s on your chart and in the game too. '+(n?'Your part has '+n+' notes now; change it here or in Write and both follow.':'')+'</p>'
-      +'<div class="row"><button class="btn primary" data-st="bars">▦ Edit in bars</button><button class="btn" data-st="towrite">Go to Write</button></div>'
+    const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';
+    h+='<div class="st-popts" id="stPopts" role="dialog" aria-label="My part options">'+pick+'<p class="help"><b>● Rec</b> and play the pans: every note goes into your part, so it\'s on your chart and in the game too. '+(n?'Your part has '+n+' notes now.':'')+'</p>'
+      +'<div class="row"><div class="seg st-mode" role="group" aria-label="Recording"><button data-st="mode" data-v="add" aria-pressed="'+(!song.recMode||song.recMode==='add')+'">Merge</button><button data-st="mode" data-v="replace" aria-pressed="'+(song.recMode==='replace'||song.recMode==='take')+'">Replace</button></div></div>'
+      +'<div class="row"><button class="btn primary" data-st="bars">▦ Edit in bars</button><button class="btn" data-st="towrite">The old Write screen</button></div>'
       +'<button class="btn sm" data-st="snaprec" aria-pressed="'+!!song.snapRec+'">'+(song.snapRec?'✓ ':'')+'Snap new notes</button>'
       +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div>'
       +'<p class="help">Select bars on its lane to move, copy, repeat, snap or delete them. Undo for your part is in ▦ Edit in bars or in Write.</p>'+phead.replace('st-ihead','st-ihead st-iend')+'</div>';
   }else if(tr.type==='pan'){
     const sk=trSet(tr),views=SETS[sk].views,order=sk==='guitar'&&S.swapped?[views[1],views[0]]:views;
     const pick='<label class="lab st-setpick">Pan<select data-st-set>'+Object.entries(SETS).map(([k,x])=>'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+x.name+'</option>').join('')+'</select></label>';
-    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>'
+    const head=h.slice(headAt);h=h.slice(0,headAt)+'<div class="st-next" id="stNext"></div><div class="pair st-pans'+(order.length===1?' one':'')+'" id="stPans">'+order.map(p=>panSVG(p,true)).join('')+'</div>'
       // the pan picker, recording choices and track name live in an Options menu, so the pans keep their room
       +'<div class="st-popts" id="stPopts" role="dialog" aria-label="Pan taps options">'+pick;
     h+='<p class="help">Tap <b>● Rec</b> and play along on the pans. Hold a note to roll. '+(mine('c')||Object.keys(SAMPLES.wav).some(mine)?'Your recorded pan sounds are used.':'Record your own pan sounds in Setup to hear your real pans here.')+'</p>';
@@ -1305,6 +1434,7 @@ function renderInst(){
       +'<div class="seg st-snap" role="group" aria-label="Snap to">'+SNAPS.map(([v,l])=>'<button data-st="snap" data-v="'+v+'" aria-pressed="'+((song.snap||'off')===v)+'">'+l+'</button>').join('')+'</div></div>'
       +head.replace('st-ihead','st-ihead st-iend')+'</div>';
   }else h+=seqHTML(tr);
+  {const ps=document.getElementById('gbPills'),home=q('#gbBar .gbl');if(ps&&home&&el.contains(ps))home.appendChild(ps)}   // the track picker (in the Coming up row) isn't redrawn away with the pans
   el.innerHTML=h;
   requestAnimationFrame(fitPans);
   el.querySelectorAll('#stPans .field').forEach(f=>f.addEventListener('pointerdown',e=>panDown(e,f)));
@@ -1326,7 +1456,7 @@ function seqHTML(tr){
     +'<p class="help">Tap a step for a hit, again for an accent, again to clear. The pattern repeats through the song; select bars on its lane to silence them (for an intro, say).</p>';
 }
 const seqGridOpen=()=>!!q('#stGrid');let lastCol=-1;
-function renderSeqNow(){const tr=selTr();if(tr.type!=='beats')return;const col=T.playing?((Math.floor(beatNow()*4)%tr.len)+tr.len)%tr.len:-1;if(col===lastCol)return;lastCol=col;
+function renderSeqNow(){const tr=selTr();if(tr.type!=='beats')return;const col=T.playing?((Math.floor(heardNow()*4)%tr.len)+tr.len)%tr.len:-1;if(col===lastCol)return;lastCol=col;
   q('#stGrid').querySelectorAll('.stc.now').forEach(c=>c.classList.remove('now'));if(col>=0)q('#stGrid').querySelectorAll('.stc[data-c="'+col+'"]').forEach(c=>c.classList.add('now'))}
 let VIEW='tracks';
 function fitPans(){
@@ -1423,7 +1553,7 @@ function renderStage(){
 const stWhere=p=>(p.y>.75?'front line':p.y>.55?'second row':p.y>.32?'middle':'back')+(p.x<.38?', left':p.x>.62?', right':', centre');
 // which sections are sounding right now
 function stageLights(){
-  const box=q('#stStage');if(!box||VIEW!=='stage'||box.hidden)return;const b=T.playing?beatNow():-1;
+  const box=q('#stStage');if(!box||VIEW!=='stage'||box.hidden)return;const b=T.playing?heardNow():-1;
   box.querySelectorAll('.stg-sec').forEach(g=>{const tr=trById(g.dataset.tid);if(!tr)return;let lit=false;
     if(b>=0&&audible(tr)){if(tr.type==='beats'||tr.type==='audio')lit=true;else for(const n of pnotes(tr)){if(n.t>b+.05)break;if(n.t<=b+.02&&b<n.t+Math.max(.2,Math.min(n.d||.3,.6))){lit=true;break}}}
     if(g.classList.contains('lit')!==lit)g.classList.toggle('lit',lit)});
@@ -1455,7 +1585,7 @@ function stageWire(){
 /* ---- sheets: add a track, mixer, export, timing fix, note editor ---- */
 const SH={kind:null,arg:null};
 function openSheet(kind,arg){SH.kind=kind;SH.arg=arg;q('#stSheet').hidden=false;renderSheet()}
-function closeSheet(){q('#stSheet').hidden=true;SH.kind=null;renderAll()}
+function closeSheet(){{const g=$('gridBox'),box=q('#stSheet');if(g&&box&&box.contains(g)){$('tlTools').appendChild(g);g.hidden=true}}q('#stSheet').hidden=true;SH.kind=null;renderAll()}
 function renderSheet(){
   const box=q('#stSheetBox');if(!SH.kind||!box)return;
   const head=t=>'<div class="sheethead"><h2>'+t+'</h2><button class="btn" data-st="close">Done</button></div>';
@@ -1477,7 +1607,7 @@ function renderSheet(){
       +'<div class="st-addopts"><div class="row">'+opt('scope','one','Only '+esc(me?me.name:'this track'))+(all.length>1||(all.length===1&&all[0]!==me)?opt('scope','all','Every track here ('+Math.max(all.length,1)+')'):'')+'</div>'
       +'<div class="row">'+opt('fill','repeat','Repeat to fill the section')+opt('fill','once','Just once')+'</div></div>'
       +(ss.length?'':'<p class="help">Your song has no sections yet. Make one below, or start from a template (⋯ → New song from a template).</p>')
-      +'<div class="st-addsecs">'+ss.map((x,i)=>{const n=trs.reduce((k,t)=>k+(t.notes||[]).filter(m=>m.t>=x.a*bpb&&m.t<x.b*bpb).length,0),len=x.b-x.a,cover=ad.fill==='once'?Math.min(L,len):len,rep=ad.fill==='once'?'':(len>L?' · plays ×'+Math.ceil(len/L):'');
+      +'<div class="st-addsecs">'+ss.map((x,i)=>{const n=trs.reduce((k,t)=>k+notesOf(t).filter(m=>m.t>=x.a*bpb&&m.t<x.b*bpb).length,0),len=x.b-x.a,cover=ad.fill==='once'?Math.min(L,len):len,rep=ad.fill==='once'?'':(len>L?' · plays ×'+Math.ceil(len/L):'');
         const over=x.a<ad.b&&x.b>ad.a;
         return '<button class="st-addsec" data-st="addsec" data-v="'+i+'"><b>'+esc(x.name)+'</b><small>'+len+' bar'+(len===1?'':'s')+rep+' · '+(n?n+' note'+(n===1?'':'s')+' will be replaced':'empty')+(over?' · your pick is in here':'')+(cover<len?' · fills the first '+cover:'')+'</small></button>'}).join('')
       +'<button class="st-addsec st-addnew" data-st="addsec" data-v="new"><b>＋ New section</b><small>'+lenLab(Math.max(1,Math.ceil(L-1e-6)))+', at the end of the song</small></button></div>'
@@ -1538,7 +1668,11 @@ function renderSheet(){
       +'<input type="range" id="stBpmR" min="40" max="240" step="1" value="'+Math.round(v)+'" aria-label="Tempo">'
       +'<div class="row"><button class="btn grow" data-st="taptempo">Tap tempo</button><span class="help" id="stTapMsg" role="status" aria-live="polite">Tap along 4 times</span></div>'
       +'<div class="lab">Beats in a bar<div class="seg">'+[2,3,4].map(n=>'<button data-st="sig" data-v="'+n+'" aria-pressed="'+(BPB()===n)+'">'+n+'/4</button>').join('')+'</div></div>'
-      +'<p class="help">'+(rec?'Your recording sets this song\'s tempo. Changing it here moves the bars to fit the recording (the same as ♩ Timing in Write).':'This song\'s own tempo. Your part in Write, the beat and every pan track speed up or slow down with it.')+'</p></div>'
+      +'<p class="help">'+(rec?'Your recording sets this song\'s tempo. Changing it here moves the bars to fit the recording.':'This song\'s own tempo. Your part, the beat and every pan track speed up or slow down with it.')+'</p></div>'
+      +'<div class="tsec"><h3>Playback speed</h3><div class="seg st-speed">'+[[1,'Full'],[.75,'¾'],[.5,'½']].map(([r,l])=>'<button data-st="speed" data-v="'+r+'" aria-pressed="'+(SPD.rate===r)+'">'+l+'</button>').join('')+'</div>'
+      +'<p class="help">Slow everything down to learn a hard passage. The pitch stays the same, and the bars and your notes stay where they are.</p></div>'
+      // Write's ♩ Timing, here: find the tempo in your recording and line the bars up with it
+      +(rec?'<div class="tsec"><h3>Line the bars up with your recording</h3><div id="stGridHome"></div></div>':'')
       +'<div class="tsec"><h3>Metronome</h3><div class="tlist">'+tog('metro','Click',song.metro,'Plays on every beat')+tog('recOnly','Only while recording',k.recOnly)+'</div>'
       +'<div class="tlist">'+CLICKS.map(([id,n])=>'<button class="trow" data-st="csound" data-v="'+id+'" aria-pressed="'+(k.sound===id)+'"><span class="tl"><b>'+n+'</b></span><span class="tcheck" aria-hidden="true">✓</span></button>').join('')+'</div>'
       +'<label class="lab">Metronome level<input type="range" id="stClickLv" min="0" max="1" step=".02" value="'+k.level+'"></label></div>'
@@ -1568,7 +1702,9 @@ function renderSheet(){
       +(pan||tr.type==='audio'?sec('Recording &amp; takes',takesHTML(tr)):'')
       +'</div>';
   }else if(SH.kind==='notes')h=notesHTML();
+  {const g=$('gridBox');if(g&&box.contains(g)){$('tlTools').appendChild(g);g.hidden=true}}   // Write's timing panel goes home before the sheet is redrawn
   box.innerHTML=h;box.classList.toggle('st-wide',SH.kind==='notes');
+  {const gh=q('#stGridHome'),g=$('gridBox');if(gh&&g){gh.appendChild(g);g.hidden=false;try{renderGrid()}catch{}}}
   if(SH.kind==='notes')afterNotes();
 }
 const lr=v=>Math.abs(v)<.03?'Centre':(v<0?'Left ':'Right ')+Math.round(Math.abs(v)*100);
@@ -1792,6 +1928,10 @@ function onClick(e){
     case 'tomix':openSheet('mixer');break;
     case 'tsetpick':SH.arg=b.dataset.v;song.sel=b.dataset.v;renderSheet();break;
     case 'tempo':setTempo(Math.round(bpm())+(+b.dataset.v));break;
+    case 'step':STEP.on=!STEP.on;nextKey='';if(STEP.on){if(T.playing)stop(false);say('✚ Step: tap the pans to put notes in at '+bbLab(T.pos)+' (several for a chord). → moves on by '+(SNAPS.find(x=>+x[0]===stepLen())||[0,'½ beat'])[1]+'.')}break;
+    case 'stepgo':{const d=+b.dataset.v*stepLen();T.pos=Math.max(0,r6(T.pos+d));if(T.pos>=bars()*BPB()-1e-6)song.minBars=bars()+4;nextKey='';updatePlayhead();break}
+    case 'nextat':seek(+b.dataset.v);nextKey='';break;
+    case 'speed':setSpeed(+b.dataset.v).then(()=>{if(SH.kind==='tempo')renderSheet()});break;
     case 'taptempo':tapTempo();break;
     case 'sig':setTempo(bpm(),{perBar:+b.dataset.v});break;
     case 'ctog':{const k=b.dataset.v;if(k==='metro'||k==='countIn'){if(k==='metro')song.metro=!song.metro;else song.countIn=song.countIn===false}else song.click={...ck(),[k]:!ck()[k]};dirty();renderTransport();renderSheet();break}
@@ -1853,7 +1993,7 @@ function onClick(e){
     case 'zout':PR.zoom=Math.max(.4,(PR.zoom||1)/1.25);savePR();renderTimeline();break;
     case 'mic':micStart(selTr());break;
     case 'bars':BARS.open(SEL&&SEL.tid===selTr().id?{a:origin()+SEL.a*BPB()*spb(),b:origin()+SEL.b*BPB()*spb()-1e-3}:null);break;
-    case 'towrite':showView('cues');break;
+    case 'towrite':showView('cues');break;   // the old Write screen
     case 'import':q('#stFile').click();break;
     case 'nudge':{const t=selTr(),ms=+b.dataset.v;pushHistory();t.lagMs=(t.lagMs||0)+ms;t.start=+(t.start+ms/1000/spb()).toFixed(5);if(t.start<0)t.start=0;dirty();restartIfPlaying();renderInst();renderTimeline();break}
     case 'mode':pushHistory();song.recMode=b.dataset.v;dirty();renderInst();if(SH.kind==='track')renderSheet();break;
@@ -1891,6 +2031,7 @@ function onChange(e){
   if(t.id==='stStyle'&&t.value){const tr=selTr(),st=STYLES[t.value];pushHistory();Object.assign(tr,{rows:styleRows(st),len:st.len,swing:st.swing,unit:st.unit,style:t.value});dirty();renderInst();renderTimeline();
     say('Loaded '+st.name+'.'+(Math.abs(bpm()-st.bpm)>8?' It usually sits around '+st.bpm+' bpm; here it plays at your song\'s tempo.':''));AC()&&warmDrums()}
   if(t.id==='stAddRow'&&t.value){const tr=selTr();pushHistory();tr.rows.push({m:+t.value,steps:Array(tr.len).fill(0)});dirty();renderInst()}
+  if(t.matches('[data-st-set]')&&selTr().type==='part'){partSet(t);return}
   if(t.matches('[data-st-set]')){const tr=selTr(),k=t.value;if(tr.type!=='pan'||k===trSet(tr))return;
     if(tr.notes.length&&!confirm(tr.name+' has '+tr.notes.length+' notes on the '+SETS[trSet(tr)].name+'. Switch to the '+SETS[k].name+' and clear them? (Undo brings them back.)')){t.value=trSet(tr);return}
     pushHistory();const old=SETS[trSet(tr)].name;tr.panSet=k;tr.notes=[];
@@ -1898,6 +2039,21 @@ function onChange(e){
     if(tr.name===old||/^Pan taps/.test(tr.name)||(tr.name.startsWith(old+' ')&&/^\d+$/.test(tr.name.slice(old.length+1)))){let nm=SETS[k].name,i=1;while(song.tracks.some(t=>t!==tr&&t.name===nm))nm=SETS[k].name+' '+(++i);tr.name=nm}dirty();renderAll();say(tr.name+' now plays the '+SETS[k].name+'.');return}
   if(t.id==='stFile'){const f=t.files&&t.files[0];t.value='';if(f)importFile(selTr(),f)}
 }
+// My part plays the song's pan. Choosing another one changes the song's pan, and your notes go across by pitch:
+// a note the new pan has stays, one it doesn't have is dropped (↶ Undo brings them back).
+function partSet(sel){
+  const k=sel.value,old=setKey();if(k===old||!SETS[k])return;
+  const ids=new Map();for(const v of SETS[k].views)for(const f of v.fields)if(PITCH[f[0]])ids.set(midiOf(PITCH[f[0]]),f[0]);
+  const to=id=>PITCH[id]?ids.get(midiOf(PITCH[id])):null;
+  let all=0,kept=0;S.cues.forEach(c=>(c.steps||[]).forEach(id=>{all++;if(to(id))kept++}));
+  if(all&&!confirm('Your part has '+all+' notes on the '+SETS[old].name+'. Switch the song to the '+SETS[k].name+'?\n\n'+(kept===all?'They all fit on it.':kept+' of them fit on it; the other '+(all-kept)+' are dropped.')+' (↶ Undo takes it back.)')){sel.value=old;return}
+  pushHistory();
+  S.cues=S.cues.map(c=>({...c,steps:(c.steps||[]).map(to).filter(Boolean)})).filter(c=>c.steps.length);
+  S.panSet=k;applyPanSet();partCache=null;try{save();renderCues();if(typeof renderVoice==='function')renderVoice()}catch{}
+  dirty();renderAll();say('Your part now plays the '+SETS[k].name+(all?' ('+kept+' of '+all+' notes kept).':'.'));
+}
+// a change made in the timing panel (now in Studio's Tempo sheet too) moves Studio's bars at once
+{const _rg=renderGrid;renderGrid=function(){_rg.apply(this,arguments);if(song&&document.body.dataset.view==='studio'){partCache=null;try{renderTimeline();renderTransport()}catch{}}}}
 function init(){
   BARS.onChange(()=>{partCache=null;if(song&&document.body.dataset.view==='studio')renderAll()});
   const v=q('#view-studio');if(!v)return;
@@ -1944,7 +2100,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{arrangementData,stageMix:tr=>stageMix(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,bars};
+return{arrangementData,stageMix:tr=>stageMix(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
