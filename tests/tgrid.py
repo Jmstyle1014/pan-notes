@@ -28,6 +28,9 @@ with sync_playwright() as p:
     c=clicks(2.4)
     check(len(c)>=4 and all(abs(x-round(x))<.002 for x,_ in c),'4/4 clicks fall exactly on beats: '+json.dumps(c[:6]))
     check(all(a==(round(x)%4==0) for x,a in c),'the loud click is beat 1 of each bar')
+    # after ■ Stop nothing more is lined up (the click stops with the song)
+    E(pg,"window._cl=[]");pg.wait_for_timeout(800)
+    check(len(E(pg,"window._cl"))==0 and not E(pg,"STUDIO.T.playing"),'after Stop no more clicks are lined up')
     # the lines and numbers at each zoom
     def ruler():
         return E(pg,"(()=>{const i=document.querySelector('.st-inner'),bar=parseFloat(i.style.getPropertyValue('--bar')),bt=parseFloat(i.style.getPropertyValue('--bt'));"

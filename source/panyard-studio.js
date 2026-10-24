@@ -479,7 +479,8 @@ function play(countIn){
 function stop(rewind){
   if(T.mic){micStop();return}
   if(!T.playing){T.pos=rewind===false?T.pos:0;renderTransport();updatePlayhead();return}
-  T.pos=Math.min(heardNow(),L());T.playing=false;   // it stops where you heard it stopclearInterval(T.timer);cancelAnimationFrame(T.raf);
+  // it stops where you heard it stop
+  T.pos=Math.min(heardNow(),L());T.playing=false;clearInterval(T.timer);cancelAnimationFrame(T.raf);
   // sounds lined up for the next moment are called off; notes already ringing ring on
   const now=ctx.currentTime;T.scheduled.forEach(([x,t])=>{if(t>now)try{x.stop(now)}catch{}});T.scheduled=[];
   T.sources.forEach(s=>{try{s.stop()}catch{}});T.sources=[];

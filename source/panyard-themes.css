@@ -538,6 +538,15 @@ html.th-cday .stg-card{border:1px solid var(--line);background:var(--surface)}
 html.th-cday .stg-cn small{color:var(--muted)}
 html.th-cday .stg-cb .btn.on{background:var(--gold);color:var(--gold-ink)}
 html.th-cday .stg-vol{color:var(--muted)}
+html.th-cday .st-nxh{color:var(--muted)}
+html.th-cday .st-nx{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cday .st-nx i{color:var(--muted)}
+html.th-cday .st-nx.now{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+html.th-cday .st-nx.now i{color:var(--gold-ink)}
+html.th-cday .st-nxe{color:var(--muted)}
+html.th-cday .st-nxs>b{color:var(--gold)}
+html.th-cday .st-nxs button{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cday .st-nxs .st-stepb[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
 html.th-cday .hm-decor{background:radial-gradient(circle at 104% 6%,transparent 0 74px,rgb(85 79 105/0.16) 75px 77px,transparent 78px 98px,rgb(85 79 105/0.1) 99px 100px,transparent 101px),
     radial-gradient(circle at -6% 46%,transparent 0 54px,rgb(81 163 246/0.13) 55px 57px,transparent 58px 76px,rgb(81 163 246/0.08) 77px 78px,transparent 79px)}
 html.th-cday .hm-top h1{color:var(--text)}
@@ -1461,6 +1470,15 @@ html.th-cnight .stg-card{border:1px solid var(--line);background:var(--surface)}
 html.th-cnight .stg-cn small{color:var(--muted)}
 html.th-cnight .stg-cb .btn.on{background:var(--gold);color:var(--gold-ink)}
 html.th-cnight .stg-vol{color:var(--muted)}
+html.th-cnight .st-nxh{color:var(--muted)}
+html.th-cnight .st-nx{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cnight .st-nx i{color:var(--muted)}
+html.th-cnight .st-nx.now{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+html.th-cnight .st-nx.now i{color:var(--gold-ink)}
+html.th-cnight .st-nxe{color:var(--muted)}
+html.th-cnight .st-nxs>b{color:var(--gold)}
+html.th-cnight .st-nxs button{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+html.th-cnight .st-nxs .st-stepb[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
 html.th-cnight .hm-decor{background:radial-gradient(circle at 104% 6%,transparent 0 74px,rgb(217 214 210/0.16) 75px 77px,transparent 78px 98px,rgb(217 214 210/0.1) 99px 100px,transparent 101px),
     radial-gradient(circle at -6% 46%,transparent 0 54px,rgb(143 199 255/0.13) 55px 57px,transparent 58px 76px,rgb(143 199 255/0.08) 77px 78px,transparent 79px)}
 html.th-cnight .hm-top h1{color:var(--text)}
