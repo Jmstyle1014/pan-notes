@@ -173,6 +173,11 @@ body.gbmode.gb-inbar #gbBar #gbPills{display:none;position:static;margin-left:4p
 body.gbmode.gb-inbar.st-inst #gbBar #gbPills{display:flex}
 body.gbmode.gb-inbar #gbBar #gbOpts{display:none!important}
 body.gbmode.gb-inbar #gbBar #gbPill{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* sideways: the track picker leads the Coming up row instead of being squeezed into the top bar */
+body.gbmode.st-inst #stNext #gbPills{display:flex;position:static;gap:6px}
+body.gbmode.st-inst #stNext #gbPill{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.gbmode.gb-inbar.gb-pillrow.st-inst.gb-picking #stInst>.st-tchips{top:var(--gbPillB,98px)}
+body.gbmode.gb-inbar.gb-pillrow.st-inst.gb-opts #stPopts{top:var(--gbPillB,98px);max-height:calc(100vh - var(--gbPillB,98px) - 10px)}
 .gbl{min-width:0}
 body.gbmode.gb-inbar.st-inst.gb-picking #stInst>.st-tchips{top:98px;left:var(--gbPillL,10px);max-height:calc(100vh - 108px)}
 body.gbmode.gb-inbar.st-inst.gb-opts #stPopts{top:98px;left:var(--gbPillL,10px);max-height:calc(100vh - 108px)}

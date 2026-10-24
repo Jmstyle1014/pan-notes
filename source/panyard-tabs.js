@@ -13,9 +13,13 @@ const TABS={
   last(){try{return JSON.parse(localStorage.getItem('panyard-subtab')||'{}')}catch{return{}}},
   remember(g,v){const l=this.last();l[g]=v;try{localStorage.setItem('panyard-subtab',JSON.stringify(l))}catch{}},
   groupOf(v){for(const [k,g] of Object.entries(this.groups))if(g.views.includes(v))return k;return null},
-  open(g){const G=this.groups[g],l=this.last()[g];showView(G.views.includes(l)?l:G.views[0])},
+  // Write and Studio are one place now: for a Producer, Write opens Studio with My part on the pans (a band member,
+  // who has no Studio, still gets the Write screen)
+  open(g){if(g==='write'&&!document.body.classList.contains('band')&&typeof STUDIO!=='undefined'&&STUDIO.writePart){STUDIO.writePart();return}
+    const G=this.groups[g],l=this.last()[g];showView(G.views.includes(l)?l:G.views[0])},
+  writing(){try{return document.body.dataset.view==='studio'&&STUDIO.view()==='inst'&&STUDIO.selType()==='part'}catch{return false}},
   render(){
-    const g=this.groupOf(this.cur);
+    let g=this.groupOf(this.cur);if(g==='studio'&&this.writing())g='write';
     document.querySelectorAll('.tabs button[data-tab]').forEach(b=>{const on=b.dataset.tab===g;b.setAttribute('aria-selected',String(on));b.setAttribute('aria-current',on?'page':'false')});
     const bar=$('subTabs'),G=g&&this.groups[g];
     if(!G||!G.names){bar.hidden=true;return}
