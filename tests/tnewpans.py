@@ -1,6 +1,6 @@
 import os,sys
 from playwright.sync_api import sync_playwright
-# The Double Tenor (F3–B5, flat side of the circle of fifths on the left pan, sharp side on the right) and the
+# The Double Tenor (A3–C♯6, flat side of the circle of fifths on the left pan, sharp side on the right) and the
 # Seven Bass (G♯1–E3, seven drums of three notes): every note is there once, each plays its own pitch, and both show
 # in Write, Play (upright and sideways), Studio and the pan chooser, with every note tapping to itself.
 D=os.environ['WORK']+'/tnewpans/';os.makedirs(D,exist_ok=True)
@@ -12,7 +12,7 @@ def check(ok,what):
 TAPS="""sel=>{let ok=0,n=0;for(const f of document.querySelectorAll(sel+' .field')){const t=f.querySelector('text');if(!t)continue;const r=t.getBoundingClientRect();if(!r.width||r.top<0||r.bottom>innerHeight-60)continue;n++;const e=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);if(e&&e.closest('.field')===f)ok++}return [ok,n]}"""
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
-    for k,name,lo,hi,n in [('dten','Double Tenor','F3','B5',31),('seven','Seven Bass','G#1','E3',21)]:
+    for k,name,lo,hi,n in [('dten','Double Tenor','A3','C#6',29),('seven','Seven Bass','G#1','E3',21)]:
         for W,H,nm in [(412,892,'up'),(892,412,'side')]:
             ctx=b.new_context(viewport={'width':W,'height':H},device_scale_factor=2,has_touch=True);pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
             pg.route('https://pan.test/**',lambda r:r.fulfill(body=html,content_type='text/html'));pg.route('https://fonts.googleapis.com/**',lambda r:r.abort())

@@ -4,9 +4,9 @@
    (and like the drum pads in Studio). A bigger finger contact counts as a harder hit on phones that report it.
    Sensitivity 0 is off: every hit is full. These belong to this phone (localStorage 'panyard-feel', not backed up). */
 var FEEL=(()=>{
-  const K='panyard-feel',D0={sens:5,roll:170,awake:true};
+  const K='panyard-feel',D0={sens:5,roll:170,awake:true,covers:false};
   let s={...D0};try{Object.assign(s,JSON.parse(localStorage.getItem(K)||'{}'))}catch{}
-  s.sens=Math.max(0,Math.min(10,Math.round(+s.sens||0)));s.roll=Math.max(100,Math.min(300,Math.round(+s.roll||D0.roll)));s.awake=s.awake!==false;
+  s.sens=Math.max(0,Math.min(10,Math.round(+s.sens||0)));s.roll=Math.max(100,Math.min(300,Math.round(+s.roll||D0.roll)));s.awake=s.awake!==false;s.covers=!!s.covers;
   const save=()=>{try{localStorage.setItem(K,JSON.stringify(s))}catch{}};
   HOLD_MS=s.roll;
   let avgA=0;   // the usual size of a finger's contact, so only a bigger-than-usual one counts as harder
@@ -48,12 +48,15 @@ var FEEL=(()=>{
     return '<section class="bandbox" id="feelBox"><div class="twsh"><h3>How you play</h3><p>These belong to this phone.</p></div>'
       +'<div class="sl"><label for="feelSens">Dynamics<small>hit the middle of a note for a full sound, nearer the edge for a softer one</small></label><input type="range" id="feelSens" min="0" max="10" step="1" value="'+s.sens+'"><output id="feelSensO">'+sensName(s.sens)+'</output><div class="ends"><span>every hit the same</span><span>very sensitive</span></div></div>'
       +'<div class="sl"><label for="feelRoll">Roll starts<small>how long you hold a note before it rolls</small></label><input type="range" id="feelRoll" min="100" max="300" step="10" value="'+s.roll+'"><output id="feelRollO">'+(s.roll/1000).toFixed(2)+' s</output><div class="ends"><span>sooner</span><span>later</span></div></div>'
+      +'<div class="tog"><span><b>Note covers</b><small>a soft pad on the outer and middle rings of the tenor, double tenor and double seconds: low notes start rounder, centre notes stay crisp (your recorded notes)</small></span><button class="sw" role="switch" id="feelCovers" aria-checked="'+s.covers+'" aria-label="Note covers"></button></div>'
       +'<div class="tog"><span><b>Keep the sound awake</b><small>stops the little tick some phones and Bluetooth speakers make when a note comes after a quiet moment</small></span><button class="sw" role="switch" id="feelAwake" aria-checked="'+s.awake+'" aria-label="Keep the sound awake"></button></div>'
       +'</section>';
   }
   function wire(box){
     box.querySelector('#feelSens').oninput=e=>{set('sens',+e.target.value);$('feelSensO').textContent=sensName(s.sens)};
     box.querySelector('#feelRoll').oninput=e=>{set('roll',+e.target.value);$('feelRollO').textContent=(s.roll/1000).toFixed(2)+' s'};
+    box.querySelector('#feelCovers').onclick=e=>{set('covers',!s.covers);e.currentTarget.setAttribute('aria-checked',String(s.covers));
+      say(s.covers?'Note covers on: the outer and middle rings start softer.':'Note covers off.');try{strike(SETS[setKey()].views[0].fields[0][0],.9)}catch(err){}};
     box.querySelector('#feelAwake').onclick=e=>{set('awake',!s.awake);e.currentTarget.setAttribute('aria-checked',String(s.awake));
       say(s.awake?'The sound stays awake while the app is open.':'The sound can sleep when nothing plays.')};
   }

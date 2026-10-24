@@ -4635,7 +4635,7 @@ function dsecSet(drums){
   });
   return{name:'Double Seconds',key:'dsec',view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
 }
-// Double tenor, F3–B5: two pans split round the circle of fifths (the flat side F B♭ E♭ A♭ D♭ G♭ on the left, the
+// Double tenor, A3–C♯6 (the range in the G-Pan patent, US 7,750,220): two pans split round the circle of fifths (the flat side F B♭ E♭ A♭ D♭ G♭ on the left, the
 // sharp side C G D A E B on the right). Like the tenor: the lowest notes in a ring round the rim, their octaves on a
 // middle ring at the same angle, the top notes in the centre.
 function dtenSet(drums){
@@ -4684,12 +4684,12 @@ const SETS={
       ['C♯',1360,480,430,[['G3',.02,-.76,.26],['G4',.54,-.53,.21],['Eb4',.69,-.14,.21],['B3',.6,.37,.26],['F3',.05,.72,.27],['F4',-.57,.52,.21],['A3',-.77,.04,.25],['C#4',-.59,-.54,.22],
         ['C#5',-.19,-.34,.15,1],['G5',.16,-.34,.12,1],['Eb5',.28,-.06,.14,1],['B4',.15,.27,.17,1],['F5',-.19,.31,.13,1],['A4',-.41,.01,.19,1],['A5',-.09,-.02,.1,1]]]])],
     groups:[{key:'gD0',name:'C pan',short:'C',color:'#f2b38a'},{key:'gD1',name:'C♯ pan',short:'C♯',color:'#8fc7ff'}]},
-  // Double tenor, F3–B5: the flat side of the circle of fifths on the left pan, the sharp side on the right
-  dten:{name:'Double Tenor',range:'F3–B5',plain:[60,71],
+  // Double tenor, A3–C♯6: the flat side of the circle of fifths on the left pan, the sharp side on the right
+  dten:{name:'Double Tenor',range:'A3–C♯6',plain:[60,71],
     views:[dtenSet([
-      ['F',460,480,430,['F3','Bb3','Eb4','Ab3','Db4','Gb3'],['F4','Bb4','Eb5','Ab4','Db5','Gb4'],[['F5',90],['Bb5',30],['Ab5',-90],['Gb5',150]]],
-      ['G',1360,480,430,['C4','G3','D4','A3','E4','B3'],['C5','G4','D5','A4','E5','B4'],[['G5',30],['A5',-90],['B5',150]]]])],
-    groups:[{key:'gDT0',name:'F pan',short:'F',color:'#f2b38a'},{key:'gDT1',name:'G pan',short:'G',color:'#8fc7ff'}]},
+      ['B♭',460,480,430,['F4','Bb3','Eb4','Ab4','Db4','Gb4'],['F5','Bb4','Eb5','Ab5','Db5','Gb5'],[['Bb5',30],['Db6',-150]]],
+      ['A',1360,480,430,['C4','G4','D4','A3','E4','B3'],['C5','G5','D5','A4','E5','B4'],[['C6',90],['A5',-90],['B5',150]]]])],
+    groups:[{key:'gDT0',name:'B♭ pan',short:'B♭',color:'#f2b38a'},{key:'gDT1',name:'A pan',short:'A',color:'#8fc7ff'}]},
   // Seven bass, G♯1–E3: seven drums in an arch, each with its note, the fifth and an octave
   seven:{name:'Seven Bass',range:'G♯1–E3',plain:[32,43],
     views:[bassSet('seven','Seven Bass',[
@@ -9064,9 +9064,9 @@ var TW=(()=>{
    (and like the drum pads in Studio). A bigger finger contact counts as a harder hit on phones that report it.
    Sensitivity 0 is off: every hit is full. These belong to this phone (localStorage 'panyard-feel', not backed up). */
 var FEEL=(()=>{
-  const K='panyard-feel',D0={sens:5,roll:170,awake:true};
+  const K='panyard-feel',D0={sens:5,roll:170,awake:true,covers:false};
   let s={...D0};try{Object.assign(s,JSON.parse(localStorage.getItem(K)||'{}'))}catch{}
-  s.sens=Math.max(0,Math.min(10,Math.round(+s.sens||0)));s.roll=Math.max(100,Math.min(300,Math.round(+s.roll||D0.roll)));s.awake=s.awake!==false;
+  s.sens=Math.max(0,Math.min(10,Math.round(+s.sens||0)));s.roll=Math.max(100,Math.min(300,Math.round(+s.roll||D0.roll)));s.awake=s.awake!==false;s.covers=!!s.covers;
   const save=()=>{try{localStorage.setItem(K,JSON.stringify(s))}catch{}};
   HOLD_MS=s.roll;
   let avgA=0;   // the usual size of a finger's contact, so only a bigger-than-usual one counts as harder
@@ -9108,12 +9108,15 @@ var FEEL=(()=>{
     return '<section class="bandbox" id="feelBox"><div class="twsh"><h3>How you play</h3><p>These belong to this phone.</p></div>'
       +'<div class="sl"><label for="feelSens">Dynamics<small>hit the middle of a note for a full sound, nearer the edge for a softer one</small></label><input type="range" id="feelSens" min="0" max="10" step="1" value="'+s.sens+'"><output id="feelSensO">'+sensName(s.sens)+'</output><div class="ends"><span>every hit the same</span><span>very sensitive</span></div></div>'
       +'<div class="sl"><label for="feelRoll">Roll starts<small>how long you hold a note before it rolls</small></label><input type="range" id="feelRoll" min="100" max="300" step="10" value="'+s.roll+'"><output id="feelRollO">'+(s.roll/1000).toFixed(2)+' s</output><div class="ends"><span>sooner</span><span>later</span></div></div>'
+      +'<div class="tog"><span><b>Note covers</b><small>a soft pad on the outer and middle rings of the tenor, double tenor and double seconds: low notes start rounder, centre notes stay crisp (your recorded notes)</small></span><button class="sw" role="switch" id="feelCovers" aria-checked="'+s.covers+'" aria-label="Note covers"></button></div>'
       +'<div class="tog"><span><b>Keep the sound awake</b><small>stops the little tick some phones and Bluetooth speakers make when a note comes after a quiet moment</small></span><button class="sw" role="switch" id="feelAwake" aria-checked="'+s.awake+'" aria-label="Keep the sound awake"></button></div>'
       +'</section>';
   }
   function wire(box){
     box.querySelector('#feelSens').oninput=e=>{set('sens',+e.target.value);$('feelSensO').textContent=sensName(s.sens)};
     box.querySelector('#feelRoll').oninput=e=>{set('roll',+e.target.value);$('feelRollO').textContent=(s.roll/1000).toFixed(2)+' s'};
+    box.querySelector('#feelCovers').onclick=e=>{set('covers',!s.covers);e.currentTarget.setAttribute('aria-checked',String(s.covers));
+      say(s.covers?'Note covers on: the outer and middle rings start softer.':'Note covers off.');try{strike(SETS[setKey()].views[0].fields[0][0],.9)}catch(err){}};
     box.querySelector('#feelAwake').onclick=e=>{set('awake',!s.awake);e.currentTarget.setAttribute('aria-checked',String(s.awake));
       say(s.awake?'The sound stays awake while the app is open.':'The sound can sleep when nothing plays.')};
   }
@@ -9170,13 +9173,21 @@ var BAND=(()=>{
     const b=now(),f=pitchHz(id)||440,nodes=[];
     const tn=toneNode(ac,T,id);if(tn)nodes.push(tn);
     const stick=b?b.stick:0;
-    let fc=20000;if(v<0.9&&FEEL.s.sens)fc=Math.min(fc,f*(3+30*v*v));   // a soft hit is darker too, as on a real panif(stick<0)fc=Math.min(fc,Math.max(f*3,18000*Math.pow(0.18,-stick/10)));
+    let fc=20000;if(v<0.9&&FEEL.s.sens)fc=Math.min(fc,f*(3+30*v*v));   // a soft hit is darker too, as on a real pan
+    if(stick<0)fc=Math.min(fc,Math.max(f*3,18000*Math.pow(0.18,-stick/10)));
     if(fc<16000){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;lp.frequency.value=fc;nodes.push(lp)}
     if(stick>0&&!light){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=0.9;pk.frequency.value=clamp(f*5,2500,7000);
       pk.gain.setValueAtTime(stick*0.7,t);pk.gain.setTargetAtTime(stick*0.2,t+0.03,0.08);nodes.push(pk)}
+    // Note covers (How you play): a thin soft pad on the outer and middle rings, as in the G-Pan patent, so the low
+    // notes start rounder (no clang) while the centre notes stay crisp
+    if(covered(id)&&!light){const lp=ac.createBiquadFilter(),g=ac.createGain();lp.type='lowpass';lp.Q.value=0.4;
+      lp.frequency.setValueAtTime(Math.min(16000,f*5),t);lp.frequency.exponentialRampToValueAtTime(18000,t+0.09);
+      g.gain.setValueAtTime(0.45,t);g.gain.linearRampToValueAtTime(1,t+0.03);nodes.push(lp,g)}
     for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);
     return nodes.length?{in:nodes[0],out:nodes[nodes.length-1]}:null;
   }
+  const COVER_SETS=['tenor','dten','dsec'];
+  function covered(id){if(!FEEL.s.covers)return false;const F=FIELDS.get(id);return !!(F&&COVER_SETS.includes(F.set)&&/\b(outer|middle)\b/.test(F.pos||''))}
   const shimmerOn=light=>{const b=now();return !!(b&&b.shimmer&&!light)};
 
   /* Room, Lo-fi and Punch on the tap sound: they sit between the pans and the room (your sound profile's chain) */
@@ -9313,7 +9324,7 @@ var BAND=(()=>{
   // backup files carry this song's band sound (Google Drive backup has all of them)
   setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const b=forSong();if(b)o.band=b;return o};
     const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
-  return {PRESETS,keyOf,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
+  return {PRESETS,keyOf,covered,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
 })();
 
 /* ---------- Settings: Band sound (this song) and How you play, one tap from the list ----------
