@@ -108,4 +108,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   profiles or borrowing; only notes the phone never recorded take the backup's sound. It used to pour the backup into
   the open song and put older sounds back. `SHARE.stale()`/`newest()` (Pan sounds → Sound) put notes left on an
   older recording back on their newest take. Test with `tsafeopen`.
+- **Pan sets** (`SETS` in `source/pansets.js` and `source/pan-notes.html`, kept the same; rebuild Next with
+  `make_next.py` before `make_panyard.py`): guitar, tenor, dsec, dten (Double Tenor, F3–B5, flat side of the circle of
+  fifths on the left pan, sharp side on the right), fcello, six, seven (Seven Bass, G♯1–E3, seven drums of three).
+  A new set also needs its key in `ARRANGE.SETS`, `LOOK.KEYS`, `ROLE.SECTIONS`, `STAGE.SK` (and six/seven layouts),
+  Studio's `PAN_RANK`/`SHORT`/`LAYER_OF`/`STG_*`, and `tune.js` PARTS for basses. Test with `tnewpans`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

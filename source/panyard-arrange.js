@@ -5,7 +5,7 @@
    Saved in localStorage panyard-layout (STAGE.lay). Reset puts this set back as it comes. */
 var ARRANGE={
   key:null,sel:-1,
-  SETS:['guitar','dsec','tenor','fcello','six'],
+  SETS:['guitar','dsec','dten','tenor','fcello','six','seven'],
   box(){   // the room the pans get: the screen above Play's play bar sideways (68px tall), the screen above this sheet upright
     const land=STAGE.orient()==='land',sh=$('arSheet');
     return land?{W:innerWidth,H:Math.max(200,innerHeight-68)}:{W:innerWidth,H:Math.max(240,innerHeight-(sh?sh.offsetHeight:300)-8)};
