@@ -41,6 +41,10 @@ rebuilding them would ship source changes that were never tested there.
 - Code style: global functions are wrapped by reassigning them (`const _f=fn;fn=function(){...}`). Module objects
   other modules check early (LOOK, ROLE, PARTS, DAY, GUIDE, POLISH, CLOUD, THEME) use `var`, not `const`.
 
+## Skills (`.claude/skills/`)
+`panyard-ship` (make a change and put it live, how to talk to the owner), `panyard-song-rescue` (song-only file from
+a backup, `scripts/song_only.py`) and `panyard-band-sound` (measure a band recording, `scripts/analyze.py`).
+
 ## Tests
 `tests/run_tests.sh` (all of them) or `tests/run_tests.sh tcloud rt` (just those). These are Playwright browser
 tests against `source/pan-notes-panyard.html`; they need `pip install playwright numpy pillow tinycss2` and
