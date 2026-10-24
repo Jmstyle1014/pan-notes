@@ -116,4 +116,11 @@ upright count is low because a checklist pushes the pans below the play bar ther
 - **Note covers** (How you play, `FEEL.s.covers`, applied in `BAND.chain` via `BAND.covered(id)`): a soft pad on the
   outer and middle rings of tenor, dten and dsec, after the G-Pan patent's claim 14; a slower, darker start on
   recorded notes only. Test with `tcovers`.
+- **Drum body** (Band sound slider `body` 0–10, on in Our yard): each pan's barrel hums at 343/(4(L+0.3d)) from its skirt
+  length (`BAND.BODY`: tenor 265 Hz … basses 83 Hz, G-Pan patent eq. 1); `BAND.chain` lifts that and 3× it per note.
+  Test with `tbody`.
+- **Real note sizes** (Pan layout switch, localStorage `panyard-notesizes`, `REAL` in `panyard-arrange.js`): each note
+  shape shrinks about 96.4% per semitone above the lowest on its ring or drum (93% area, the patent's rule), min 68%,
+  via a wrapping `<g transform>` (the press animation's CSS transform on `.zone` would fight one on the path).
+  Not the Double Guitar. Test with `treal`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

@@ -35,7 +35,7 @@ with sync_playwright() as p:
         a0=E(pg,"REF_A()");pg.click('#bandBox [data-b=panorama]');pg.wait_for_timeout(2500)
         st=E(pg,"[REF_A(),BAND.forSong().from,BAND.forSong().room,FX.decay,document.querySelectorAll('#bandBox .sl').length]")
         check(st[0]==442 and st[1]=='panorama' and st[2]=='yard',name+f': Panorama sets the song to A 442 and the panyard room {st}')
-        check(st[4]==5,name+': Pitch, Sweet ↔ Sharp, Tone, Ring and Stick sliders')
+        check(st[4]==6,name+': Pitch, Sweet ↔ Sharp, Tone, Ring, Stick and Drum body sliders')
         E(pg,"$('twSheet').querySelector('.twbox').scrollTop=0");pg.screenshot(path=D+name+'-2-panorama.png',full_page=False)
         E(pg,"$('bandBox').scrollIntoView({block:'start'});document.querySelector('#bandBox .bandctl').scrollIntoView({block:'start'})");pg.wait_for_timeout(200);pg.screenshot(path=D+name+'-3-controls.png',full_page=False)
         # per note: the top notes sharper than the low ones, shimmer adds a second player, tone and ring add on

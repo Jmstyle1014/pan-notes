@@ -34,3 +34,7 @@
 #arOv.ar-land #arSheet .ar-btns{grid-column:4;grid-row:2;margin:0}
 #arOv.ar-land #arSheet .ar-btns button{min-height:40px;padding:0 14px}
 #arOv:not(.ar-land) #arSheet .ar-sets{flex-basis:100%}
+#arSheet .ar-real{display:flex;gap:10px;align-items:center;margin:6px 0;font-size:13px;color:var(--muted,#ccc);min-height:36px}
+#arSheet .ar-real input{width:22px;height:22px;accent-color:var(--accent,#e3263a);flex:none}
+#arSheet .ar-real b{color:var(--text,#fff)}
+#arOv.ar-land #arSheet .ar-real{grid-column:1/-2;margin:0}

@@ -1993,6 +1993,10 @@ body.pfmode #nbPlay{display:none!important}
 #arOv.ar-land #arSheet .ar-btns{grid-column:4;grid-row:2;margin:0}
 #arOv.ar-land #arSheet .ar-btns button{min-height:40px;padding:0 14px}
 #arOv:not(.ar-land) #arSheet .ar-sets{flex-basis:100%}
+#arSheet .ar-real{display:flex;gap:10px;align-items:center;margin:6px 0;font-size:13px;color:var(--muted,#ccc);min-height:36px}
+#arSheet .ar-real input{width:22px;height:22px;accent-color:var(--accent,#e3263a);flex:none}
+#arSheet .ar-real b{color:var(--text,#fff)}
+#arOv.ar-land #arSheet .ar-real{grid-column:1/-2;margin:0}
 /* ---------- the sound editor (Tune my pans → Edit the sound) ---------- */
 .wv{z-index:25}
 .wv .wvbox{max-width:1100px;max-height:96dvh;overflow:auto;gap:10px}
@@ -2887,6 +2891,9 @@ html.th-cday #arSheet .ar-sl input{accent-color:var(--accent,#da2f41)}
 html.th-cday #arSheet .ar-reset{border:1px solid var(--line,#b6b2c7)}
 html.th-cday #arSheet .ar-done{background:var(--accent,#da2f41);color:#1c1a23}
 html.th-cday #arOv.ar-land #arSheet{background:color-mix(in srgb,var(--surface,#ebeaf0) 88%,transparent)}
+html.th-cday #arSheet .ar-real{color:var(--muted,#58526d)}
+html.th-cday #arSheet .ar-real input{accent-color:var(--accent,#da2f41)}
+html.th-cday #arSheet .ar-real b{color:var(--text,#1c1a23)}
 html.th-cday .wvtt p{color:var(--muted)}
 html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cday .wvview button{color:var(--muted)}
@@ -3802,6 +3809,9 @@ html.th-cnight #arSheet .ar-sl input{accent-color:var(--accent,#e3263a)}
 html.th-cnight #arSheet .ar-reset{border:1px solid var(--line,#4e4e4e)}
 html.th-cnight #arSheet .ar-done{background:var(--accent,#e3263a);color:#f8f7f7}
 html.th-cnight #arOv.ar-land #arSheet{background:color-mix(in srgb,var(--surface,#151517) 88%,transparent)}
+html.th-cnight #arSheet .ar-real{color:var(--muted,#bcbcbc)}
+html.th-cnight #arSheet .ar-real input{accent-color:var(--accent,#e3263a)}
+html.th-cnight #arSheet .ar-real b{color:var(--text,#f8f7f7)}
 html.th-cnight .wvtt p{color:var(--muted)}
 html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cnight .wvview button{color:var(--muted)}
@@ -9152,9 +9162,9 @@ var BAND=(()=>{
     {id:'rock',name:'Rock',em:'🎸',sub:'Hard stick, bright, pushed',a:440,stretch:2,tone:6,ring:-2,stick:8,shimmer:1,lofi:0,punch:1,room:'room'},
     // measured from the band's own practice recordings (tenor and seconds, the full band, the background pans):
     // tuned a hair sharp (A 441), long-singing notes, a warm top, the yard's long ring, and the hum of the other pans
-    {id:'ouryard',name:'Our yard',em:'🇹🇹',sub:'The hum and air of your own panyard',a:441,stretch:1,tone:-2,ring:4,stick:-1,shimmer:1,lofi:0,punch:0,hum:1,air:1,room:'ouryard'},
+    {id:'ouryard',name:'Our yard',em:'🇹🇹',sub:'The hum and air of your own panyard',a:441,stretch:1,tone:-2,ring:4,stick:-1,shimmer:1,lofi:0,punch:0,hum:1,air:1,body:6,room:'ouryard'},
   ];
-  const KEYS=['a','stretch','tone','ring','stick','shimmer','lofi','punch','hum','air','room'];
+  const KEYS=['a','stretch','tone','ring','stick','shimmer','lofi','punch','hum','air','body','room'];
   const ROOMS={dry:'Dry',room:'Room',yard:'Panyard',ouryard:'Our yard',hall:'Hall'};
   // the yard in those recordings rings on for about three seconds after the band stops
   SPACES.ouryard=SPACES.ouryard||{name:'Our yard',mix:0.3,decay:2.8,lowcut:100,bright:0};
@@ -9164,7 +9174,7 @@ var BAND=(()=>{
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   function clean(b){if(!b||typeof b!=='object')return null;const o={};
     o.a=clamp(Math.round((+b.a||440)*10)/10,432,446);for(const k of['stretch'])o[k]=clamp(Math.round(+b[k]||0),-6,8);
-    for(const k of['tone','ring','stick'])o[k]=clamp(Math.round(+b[k]||0),-10,10);for(const k of['shimmer','lofi','punch','hum','air'])o[k]=b[k]?1:0;
+    for(const k of['tone','ring','stick'])o[k]=clamp(Math.round(+b[k]||0),-10,10);o.body=clamp(Math.round(+b.body||0),0,10);for(const k of['shimmer','lofi','punch','hum','air'])o[k]=b[k]?1:0;
     o.room=ROOMS[b.room]?b.room:'room';o.from=String(b.from||'');o.name=String(b.name||'').slice(0,40);if(Number.isFinite(+b.prevA))o.prevA=+b.prevA;return o}
   const sid=()=>{try{return isDemo?'demo':songNow().id}catch{return 'demo'}};
   const forSong=()=>{const b=st.songs[sid()];return b?clean(b):null};
@@ -9188,6 +9198,11 @@ var BAND=(()=>{
     if(fc<16000){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;lp.frequency.value=fc;nodes.push(lp)}
     if(stick>0&&!light){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=0.9;pk.frequency.value=clamp(f*5,2500,7000);
       pk.gain.setValueAtTime(stick*0.7,t);pk.gain.setTargetAtTime(stick*0.2,t+0.03,0.08);nodes.push(pk)}
+    // Drum body: the air in the barrel hums at f = v / 4(L + 0.3d) (a tube closed at the playing surface, open at the
+    // bottom; G-Pan patent, US 7,750,220), and at 3 times that. A long bass skirt hums low, a short tenor skirt high.
+    // Each note gets a lift round its own pan's body note.
+    const bd=b&&b.body?BODY[(FIELDS.get(id)||{}).set||'guitar']:0;
+    if(bd&&!light){const amt=b.body/10;for(const [fq,gn] of [[bd,5.5*amt],[bd*3,2.5*amt]]){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=2.2;pk.frequency.value=fq;pk.gain.value=gn;nodes.push(pk)}}
     // Note covers (How you play): a thin soft pad on the outer and middle rings, as in the G-Pan patent, so the low
     // notes start rounder (no clang) while the centre notes stay crisp
     if(covered(id)&&!light){const lp=ac.createBiquadFilter(),g=ac.createGain();lp.type='lowpass';lp.Q.value=0.4;
@@ -9197,6 +9212,9 @@ var BAND=(()=>{
     return nodes.length?{in:nodes[0],out:nodes[nodes.length-1]}:null;
   }
   const COVER_SETS=['tenor','dten','dsec'];
+  // each pan's body note in Hz, from its skirt length (inches) and a 22.5 in drum: 343 / (4 (L + 0.3 d))
+  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:22,six:34,seven:34};
+  const BODY=Object.fromEntries(Object.entries(SKIRT_IN).map(([k,L])=>[k,Math.round(343/(4*(L*.0254+0.3*22.5*.0254)))]));
   function covered(id){if(!FEEL.s.covers)return false;const F=FIELDS.get(id);return !!(F&&COVER_SETS.includes(F.set)&&/\b(outer|middle)\b/.test(F.pos||''))}
   const shimmerOn=light=>{const b=now();return !!(b&&b.shimmer&&!light)};
 
@@ -9290,7 +9308,8 @@ var BAND=(()=>{
   let open=false;
   const msg=t=>{const m=$('bandMsg');if(m){m.textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>{if(m.textContent===t)m.textContent=''},4000)}};
   const CTL=[['a','Pitch centre','A in hertz: 440 is standard',432,446,1,v=>'A '+v,['lower','higher']],['stretch','Sweet ↔ Sharp','top notes a hair sharp, like a bright Panorama pan',-6,8,1,v=>(v>0?'+':'')+v,['sweet','sharp']],
-    ['tone','Tone','',-10,10,1,v=>(v>0?'+':'')+v,['darker','brighter']],['ring','Ring','how long notes sing',-10,10,1,v=>(v>0?'+':'')+v,['shorter','longer']],['stick','Stick','soft rubber ↔ hard',-10,10,1,v=>v<-3?'soft':v>3?'hard':'medium',['soft','hard']]];
+    ['tone','Tone','',-10,10,1,v=>(v>0?'+':'')+v,['darker','brighter']],['ring','Ring','how long notes sing',-10,10,1,v=>(v>0?'+':'')+v,['shorter','longer']],['stick','Stick','soft rubber ↔ hard',-10,10,1,v=>v<-3?'soft':v>3?'hard':'medium',['soft','hard']],
+    ['body','Drum body','the air inside the barrel: a fuller bass, a tighter tenor',0,10,1,v=>v?v:'off',['off','strong']]];
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function html(){
     const b=forSong(),cs=cards();
@@ -9334,7 +9353,7 @@ var BAND=(()=>{
   // backup files carry this song's band sound (Google Drive backup has all of them)
   setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const b=forSong();if(b)o.band=b;return o};
     const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
-  return {PRESETS,keyOf,covered,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
+  return {PRESETS,keyOf,covered,BODY,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
 })();
 
 /* ---------- Settings: Band sound (this song) and How you play, one tap from the list ----------
@@ -13970,6 +13989,7 @@ var ARRANGE={
         +'<div class="ar-sl"><label for="arOne">This pan</label><input id="arOne" type="range" min="60" max="150" step="1"></div>'
         +'<div class="ar-sl"><label for="arAll">All pans</label><input id="arAll" type="range" min="60" max="140" step="1"></div>'
         +'<div class="ar-sl"><label for="arSk">Skirt</label><input id="arSk" type="range" min="0" max="200" step="5"></div>'
+        +'<label class="ar-real"><input type="checkbox" id="arReal"> <span><b>Real note sizes</b> higher notes smaller, as on a real pan</span></label>'
         +'<div class="ar-btns"><button class="ar-reset" data-ar="reset">Reset</button><button class="ar-done" data-ar="done">Done</button></div></div>';
       document.body.appendChild(ov);this.wire(ov);
     }
@@ -13980,7 +14000,7 @@ var ARRANGE={
   refresh(){document.querySelectorAll('[data-pf]').forEach(b=>b.dataset.pf='');try{renderPans()}catch(e){}requestAnimationFrame(()=>{try{STAGE.render();STAGE.fitWrite();STAGE.fitStudio()}catch(e){}})},
   render(){
     const ov=$('arOv');if(!ov||ov.hidden)return;
-    ov.classList.toggle('ar-land',STAGE.orient()==='land');
+    ov.classList.toggle('ar-land',STAGE.orient()==='land');{const c=$('arReal');if(c)c.checked=REAL.on()}
     ov.querySelector('.ar-sets').innerHTML=this.SETS.map(k=>'<button role="tab" data-ark="'+k+'" aria-selected="'+(k===this.key)+'">'+esc(SETS[k].name)+'</button>').join('');
     const {W,H,L}=this.L(),st=$('arStage');st.style.height=H+'px';
     st.innerHTML=STAGE.svg(L,W,H,this.key);
@@ -14004,6 +14024,7 @@ var ARRANGE={
       if(b.dataset.ar==='done')this.close();
       else{const all=JSON.parse(JSON.stringify(STAGE.lay()));delete all[this.key];this.sel=-1;this.save(all);say('Back to the standard layout')}
     });
+    $('arReal').onchange=e=>{REAL.set(e.target.checked);this.render();say(e.target.checked?'Real note sizes: each note a step higher is a little smaller.':'Every note on a ring the same size again.')};
     $('arAll').oninput=e=>{const {all,a}=this.cur(true);a.all=e.target.value/100;this.save(all)};
     $('arSk').oninput=e=>{const all=JSON.parse(JSON.stringify(STAGE.lay()));all[this.key]=all[this.key]||{};all[this.key].skirt=e.target.value/100;this.save(all)};
     $('arOne').oninput=e=>{if(this.sel<0)return;const {all,o}=this.drum(this.sel);o[2]=e.target.value/100;this.save(all)};
@@ -14035,6 +14056,28 @@ var ARRANGE={
     let rz=0;addEventListener('resize',()=>{if(ov.hidden)return;cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>this.render())});
   }
 };
+/* Real note sizes (Pan layout): on a real pan each note a semitone higher has about 93% of the area of the one below
+   (G-Pan patent, US 7,750,220), so its width is about 96.4%. With this on, each note shape on a ring (or a bass
+   drum) is drawn that much smaller per semitone above the lowest note there, round its own label, never below 68%
+   so the top notes stay easy to tap. The Double Guitar is drawn from a real pan already and stays as it is. */
+var REAL={
+  K:'panyard-notesizes',SETS:['tenor','dten','dsec','fcello','six','seven'],map:null,
+  on(){try{return localStorage.getItem(this.K)==='1'}catch(e){return false}},
+  set(v){try{localStorage.setItem(this.K,v?'1':'0')}catch(e){}STAGE.lv++;ARRANGE.refresh()},
+  scaleOf(id){
+    if(!this.map){this.map=new Map();
+      for(const k of this.SETS)for(const v of SETS[k].views){const grp=new Map();
+        for(const f of v.fields){const g=(f[8]!=null?f[8]:f[7])+'|'+String(f[2]).split(' ').pop(),m=+String(f[0]).split(':')[1];if(!grp.has(g))grp.set(g,[]);grp.get(g).push([f,m])}
+        for(const list of grp.values()){const lo=Math.min(...list.map(x=>x[1]));for(const [f,m] of list){const sc=Math.max(.68,Math.pow(Math.sqrt(.93),m-lo));if(sc<.995)this.map.set(f[0],[sc,f[4],f[5]])}}}}
+    return this.map.get(id)||null;
+  }
+};
+{
+  const _ps=panSVG;panSVG=function(p,interactive){const h=_ps(p,interactive);if(!REAL.on())return h;
+    // (the shape goes in its own group: the press animation's centred CSS transform on .zone would move a transform set on the path itself)
+    return h.replace(/data-field="([^"]+)"([^>]*)>(<path class="zone" d="[^"]*"\/>)/g,(m,id,rest,path)=>{const t=REAL.scaleOf(id);if(!t)return m;const [sc,x,y]=t;
+      return 'data-field="'+id+'"'+rest+'><g transform="translate('+x+' '+y+') scale('+sc.toFixed(3)+') translate('+(-x)+' '+(-y)+')">'+path+'</g>'})};
+}
 {
   // Settings: a Pan layout row under the pan rows
   const row='<button class="sxrow" data-row="arrange"><span class="sxic" style="background:#ffd84a" aria-hidden="true">✥</span><span class="sxlab"><b>Pan layout</b><small>Move and size your pans, skirt length</small></span><span class="sxval">'

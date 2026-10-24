@@ -861,6 +861,9 @@ html.th-cday #arSheet .ar-sl input{accent-color:var(--accent,#da2f41)}
 html.th-cday #arSheet .ar-reset{border:1px solid var(--line,#b6b2c7)}
 html.th-cday #arSheet .ar-done{background:var(--accent,#da2f41);color:#1c1a23}
 html.th-cday #arOv.ar-land #arSheet{background:color-mix(in srgb,var(--surface,#ebeaf0) 88%,transparent)}
+html.th-cday #arSheet .ar-real{color:var(--muted,#58526d)}
+html.th-cday #arSheet .ar-real input{accent-color:var(--accent,#da2f41)}
+html.th-cday #arSheet .ar-real b{color:var(--text,#1c1a23)}
 html.th-cday .wvtt p{color:var(--muted)}
 html.th-cday .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cday .wvview button{color:var(--muted)}
@@ -1776,6 +1779,9 @@ html.th-cnight #arSheet .ar-sl input{accent-color:var(--accent,#e3263a)}
 html.th-cnight #arSheet .ar-reset{border:1px solid var(--line,#4e4e4e)}
 html.th-cnight #arSheet .ar-done{background:var(--accent,#e3263a);color:#f8f7f7}
 html.th-cnight #arOv.ar-land #arSheet{background:color-mix(in srgb,var(--surface,#151517) 88%,transparent)}
+html.th-cnight #arSheet .ar-real{color:var(--muted,#bcbcbc)}
+html.th-cnight #arSheet .ar-real input{accent-color:var(--accent,#e3263a)}
+html.th-cnight #arSheet .ar-real b{color:var(--text,#f8f7f7)}
 html.th-cnight .wvtt p{color:var(--muted)}
 html.th-cnight .wvview{border:1px solid var(--line);background:var(--bg)}
 html.th-cnight .wvview button{color:var(--muted)}
