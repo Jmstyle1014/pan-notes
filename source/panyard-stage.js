@@ -6,7 +6,7 @@ const STAGE={
   on:false,
   // how far each drum's skirt hangs below its face, as a part of its radius: a real drum's height, seen from where you
   // stand. The tenor is shortest, the bass a full oil drum. The Arrange pans screen can make any set's longer or shorter.
-  SK:{tenor:.15,dsec:.22,guitar:.32,fcello:.52,six:1},
+  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.52,six:1,seven:1},
   skf(k){const a=this.lay()[k];return (this.SK[k]||.2)*(a&&a.skirt!=null?a.skirt:1)},
   // your own arrangement (Arrange pans), per set and per way up: {skirt, land:{all,p:{drum:[dx,dy,size]}}, up:{...}}
   lv:0,_lay:null,
@@ -26,7 +26,7 @@ const STAGE={
   wanted(){
     if(document.body.dataset.view!=='play')return false;
     if(document.body.classList.contains('gametab')&&!(GM&&(GM.state==='run'||GM.state==='count')))return false;   // the Game's start and results panels show as usual
-    const W=innerWidth,H=innerHeight-(this.dockH()||0);return W/H>=1.15||setKey()==='six';
+    const W=innerWidth,H=innerHeight-(this.dockH()||0);return W/H>=1.15||setKey()==='six'||setKey()==='seven';
   },
   dockH(){const d=$('dock');return d?d.offsetHeight:0},
   // which drum each field belongs to
@@ -39,15 +39,15 @@ const STAGE={
     if((key||setKey())==='guitar'&&S.swapped)out.reverse();
     return out;
   },
-  horseshoe(bx,by,bw,bh,gap,strip){
+  horseshoe(bx,by,bw,bh,gap,strip,n){n=n||6;
     // the biggest equal drums that fit, then the tightest arch for that size: the bottom drums as close as the note strip allows
-    const fits=pts=>{for(let i=0;i<6;i++)for(let j=i+1;j<6;j++)if(Math.hypot(pts[i][0]-pts[j][0],(pts[i][1]-pts[j][1])/1.06)<2*pts.R+gap)return false;return true};
+    const fits=pts=>{const n=pts.length;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(Math.hypot(pts[i][0]-pts[j][0],(pts[i][1]-pts[j][1])/1.06)<2*pts.R+gap)return false;return true};
     for(let R=Math.floor(bh/2);R>20;R-=2){let best=null;
-      for(let S_=180;S_<=300;S_+=6){const a0=90+S_/2,angs=[0,1,2,3,4,5].map(i=>a0-S_/5*i),sn=angs.map(a=>Math.sin(a*Math.PI/180)),cs=angs.map(a=>Math.cos(a*Math.PI/180)),lo=Math.min(...sn);
+      for(let S_=180;S_<=300;S_+=6){const a0=90+S_/2,angs=Array.from({length:n},(_,i)=>a0-S_/(n-1)*i),sn=angs.map(a=>Math.sin(a*Math.PI/180)),cs=angs.map(a=>Math.cos(a*Math.PI/180)),lo=Math.min(...sn);
         const Ry=(bh-2.12*R)/(1-lo);if(Ry<=0)continue;
         for(let Rx=R*1.2;Rx<=bw/2-R;Rx+=4){const cx=bx+bw/2,cy=by+R+Ry,pts=cs.map((c,i)=>[cx+Rx*c,cy-Ry*sn[i]]);pts.R=R;
-          const inner=(pts[5][0]-R)-(pts[0][0]+R);if(inner<strip+10)continue;
-          if(fits(pts)){const span=pts[5][0]-pts[0][0];if(!best||span<best.span)best={R,pts,cx,inner,span};break}}}
+          const inner=(pts[n-1][0]-R)-(pts[0][0]+R);if(inner<strip+10)continue;
+          if(fits(pts)){const span=pts[n-1][0]-pts[0][0];if(!best||span<best.span)best={R,pts,cx,inner,span};break}}}
       if(best)return best}
     return null;
   },
@@ -65,13 +65,18 @@ const STAGE={
     }else if(ds.length===1){   // tenor: left-hand lane on the left of the pan, right-hand lane on the right
       const R=(H-2*pad)/2.12,lw=Math.max(48,Math.min(80,(W-2*R)/2-side-14));
       place.push([W/2,H/2-R*.06,R]);lanes.push({x:W/2-R-14-lw,w:lw},{x:W/2+R+14,w:lw});top=pad+6;
-    }else if(k==='six'&&W/H>=1.15){   // six bass: a tight arch, notes inside it between the two bottom drums
-      const strip=Math.min(116,W*.13),hs=this.horseshoe(side,pad,W-2*side,H-2*pad,4,strip);
+    }else if((k==='six'||k==='seven')&&W/H>=1.15){   // six or seven bass: a tight arch, notes inside it between the two bottom drums
+      const strip=Math.min(116,W*.13),hs=this.horseshoe(side,pad,W-2*side,H-2*pad,4,strip,ds.length);
       hs.pts.forEach(p=>place.push([p[0],p[1],hs.R]));
-      const sw=Math.min(strip,hs.inner-10),topGap=(hs.pts[3][0]-hs.R)-(hs.pts[2][0]+hs.R);
+      const sw=Math.min(strip,hs.inner-10),topGap=ds.length%2?-1:(hs.pts[3][0]-hs.R)-(hs.pts[2][0]+hs.R);
       // the strip runs from the top when it fits between the two top drums, otherwise it starts just under them
       top=topGap>=sw+8?pad+4:Math.max(pad,Math.min(...hs.pts.map(p=>p[1]))+hs.R*1.08);
       lanes.push({x:hs.cx-sw/2,w:sw/2-2},{x:hs.cx+2,w:sw/2-2});
+    }else if(k==='seven'){   // seven bass upright: the top drum in the middle, three down each side, notes between them
+      const strip=Math.min(96,W*.24),R=Math.min((W-strip-80)/4,(H-2*pad)/8.4),gy=R*2.08,used=gy*3+2.1*R,y0=(H-used)/2+R;
+      place[3]=[W/2,y0,R];
+      [[2,1],[1,2],[0,3],[4,1],[5,2],[6,3]].forEach(([di,row])=>{const left=di<3;place[di]=[W/2+(left?-1:1)*(strip/2+32+R+(row===2?6:0)),y0+row*gy,R]});
+      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=y0+R*1.05;
     }else if(k==='six'){   // six bass upright: left-hand drums down the left, right-hand drums down the right
       const strip=Math.min(96,W*.24),R=Math.min((W-strip-28)/4,(H-2*pad)/6.3),gy=R*2.08,used=gy*2+2.1*R,y0=(H-used)/2+R;
       [[2,0],[1,1],[0,2],[3,0],[4,1],[5,2]].forEach(([di,row])=>{const left=di<3;place[di]=[W/2+(left?-1:1)*(strip/2+6+R+(row===1?6:0)),y0+row*gy,R]});
@@ -119,6 +124,12 @@ const STAGE={
     const k=key||setKey(),ds=this.drumsOf(key),place=[],t=.94;
     // force: an upright screen's pans, even in a short wide box (Write's top half): side by side, never the sideways layout
     if(!force&&W/H>=1.15)return this.layout0(W,H,key);
+    if(k==='seven'){   // the top drum in the middle, then two columns with no gap, each row a step lower (and wider when there's room)
+      const g=2,pad=6,sp=.1,R=Math.min((W-2*g-8)/4,(H-2*pad)/(8*t+3*sp)),gy=2*R*t+R*sp,e=Math.max(0,Math.min(R*.35,(W/2-2*R-g-4)/2));
+      const y0=Math.max(pad+R*t,(H-(gy*3+2*R*t))/2+R*t);place[3]=[W/2,y0,R];
+      [[2,1],[1,2],[0,3],[4,1],[5,2],[6,3]].forEach(([di,row])=>{place[di]=[W/2+(di<3?-1:1)*(g/2+R+e*(row-1)),y0+row*gy,R]});
+      return{ds,place};
+    }
     if(k==='six'){   // two columns with no gap, the top pair almost touching, each row a step lower (and wider when there's room)
       const g=2,pad=6,sp=.1,R=Math.min((W-2*g-8)/4,(H-2*pad)/(6*t+2*sp)),gy=2*R*t+R*sp,e=Math.max(0,Math.min(R*.35,(W/2-2*R-g-4)/2));
       const y0=Math.max(pad+R*t,(H-(gy*2+2*R*t))/2+R*t);

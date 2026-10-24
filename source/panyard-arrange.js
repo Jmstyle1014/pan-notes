@@ -5,7 +5,7 @@
    Saved in localStorage panyard-layout (STAGE.lay). Reset puts this set back as it comes. */
 var ARRANGE={
   key:null,sel:-1,
-  SETS:['guitar','dsec','tenor','fcello','six'],
+  SETS:['guitar','dsec','dten','tenor','fcello','six','seven'],
   box(){   // the room the pans get: the screen above Play's play bar sideways (68px tall), the screen above this sheet upright
     const land=STAGE.orient()==='land',sh=$('arSheet');
     return land?{W:innerWidth,H:Math.max(200,innerHeight-68)}:{W:innerWidth,H:Math.max(240,innerHeight-(sh?sh.offsetHeight:300)-8)};
@@ -32,6 +32,7 @@ var ARRANGE={
         +'<div class="ar-sl"><label for="arOne">This pan</label><input id="arOne" type="range" min="60" max="150" step="1"></div>'
         +'<div class="ar-sl"><label for="arAll">All pans</label><input id="arAll" type="range" min="60" max="140" step="1"></div>'
         +'<div class="ar-sl"><label for="arSk">Skirt</label><input id="arSk" type="range" min="0" max="200" step="5"></div>'
+        +'<label class="ar-real"><input type="checkbox" id="arReal"> <span><b>Real note sizes</b> higher notes smaller, as on a real pan</span></label>'
         +'<div class="ar-btns"><button class="ar-reset" data-ar="reset">Reset</button><button class="ar-done" data-ar="done">Done</button></div></div>';
       document.body.appendChild(ov);this.wire(ov);
     }
@@ -42,7 +43,7 @@ var ARRANGE={
   refresh(){document.querySelectorAll('[data-pf]').forEach(b=>b.dataset.pf='');try{renderPans()}catch(e){}requestAnimationFrame(()=>{try{STAGE.render();STAGE.fitWrite();STAGE.fitStudio()}catch(e){}})},
   render(){
     const ov=$('arOv');if(!ov||ov.hidden)return;
-    ov.classList.toggle('ar-land',STAGE.orient()==='land');
+    ov.classList.toggle('ar-land',STAGE.orient()==='land');{const c=$('arReal');if(c)c.checked=REAL.on()}
     ov.querySelector('.ar-sets').innerHTML=this.SETS.map(k=>'<button role="tab" data-ark="'+k+'" aria-selected="'+(k===this.key)+'">'+esc(SETS[k].name)+'</button>').join('');
     const {W,H,L}=this.L(),st=$('arStage');st.style.height=H+'px';
     st.innerHTML=STAGE.svg(L,W,H,this.key);
@@ -66,6 +67,7 @@ var ARRANGE={
       if(b.dataset.ar==='done')this.close();
       else{const all=JSON.parse(JSON.stringify(STAGE.lay()));delete all[this.key];this.sel=-1;this.save(all);say('Back to the standard layout')}
     });
+    $('arReal').onchange=e=>{REAL.set(e.target.checked);this.render();say(e.target.checked?'Real note sizes: each note a step higher is a little smaller.':'Every note on a ring the same size again.')};
     $('arAll').oninput=e=>{const {all,a}=this.cur(true);a.all=e.target.value/100;this.save(all)};
     $('arSk').oninput=e=>{const all=JSON.parse(JSON.stringify(STAGE.lay()));all[this.key]=all[this.key]||{};all[this.key].skirt=e.target.value/100;this.save(all)};
     $('arOne').oninput=e=>{if(this.sel<0)return;const {all,o}=this.drum(this.sel);o[2]=e.target.value/100;this.save(all)};
@@ -97,6 +99,28 @@ var ARRANGE={
     let rz=0;addEventListener('resize',()=>{if(ov.hidden)return;cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>this.render())});
   }
 };
+/* Real note sizes (Pan layout): on a real pan each note a semitone higher has about 93% of the area of the one below
+   (G-Pan patent, US 7,750,220), so its width is about 96.4%. With this on, each note shape on a ring (or a bass
+   drum) is drawn that much smaller per semitone above the lowest note there, round its own label, never below 68%
+   so the top notes stay easy to tap. The Double Guitar is drawn from a real pan already and stays as it is. */
+var REAL={
+  K:'panyard-notesizes',SETS:['tenor','dten','dsec','fcello','six','seven'],map:null,
+  on(){try{return localStorage.getItem(this.K)==='1'}catch(e){return false}},
+  set(v){try{localStorage.setItem(this.K,v?'1':'0')}catch(e){}STAGE.lv++;ARRANGE.refresh()},
+  scaleOf(id){
+    if(!this.map){this.map=new Map();
+      for(const k of this.SETS)for(const v of SETS[k].views){const grp=new Map();
+        for(const f of v.fields){const g=(f[8]!=null?f[8]:f[7])+'|'+String(f[2]).split(' ').pop(),m=+String(f[0]).split(':')[1];if(!grp.has(g))grp.set(g,[]);grp.get(g).push([f,m])}
+        for(const list of grp.values()){const lo=Math.min(...list.map(x=>x[1]));for(const [f,m] of list){const sc=Math.max(.68,Math.pow(Math.sqrt(.93),m-lo));if(sc<.995)this.map.set(f[0],[sc,f[4],f[5]])}}}}
+    return this.map.get(id)||null;
+  }
+};
+{
+  const _ps=panSVG;panSVG=function(p,interactive){const h=_ps(p,interactive);if(!REAL.on())return h;
+    // (the shape goes in its own group: the press animation's centred CSS transform on .zone would move a transform set on the path itself)
+    return h.replace(/data-field="([^"]+)"([^>]*)>(<path class="zone" d="[^"]*"\/>)/g,(m,id,rest,path)=>{const t=REAL.scaleOf(id);if(!t)return m;const [sc,x,y]=t;
+      return 'data-field="'+id+'"'+rest+'><g transform="translate('+x+' '+y+') scale('+sc.toFixed(3)+') translate('+(-x)+' '+(-y)+')">'+path+'</g>'})};
+}
 {
   // Settings: a Pan layout row under the pan rows
   const row='<button class="sxrow" data-row="arrange"><span class="sxic" style="background:#ffd84a" aria-hidden="true">✥</span><span class="sxlab"><b>Pan layout</b><small>Move and size your pans, skirt length</small></span><span class="sxval">'

@@ -4,8 +4,8 @@
 // until you change it (tap your pan at the top of Home). A Producer sees everything, as before.
 // New song now asks for the song's name first (and, for a Producer, which pan it's for).
 var ROLE={   // var: Home can ask about it before this part has run
-  SECTIONS:{front:{name:'Frontline',sub:'The melody: Tenor or Double Seconds',pans:['tenor','dsec']},
-            back:{name:'Backline',sub:'The harmony and bass: Double Guitar, Four Cello or Six Bass',pans:['guitar','fcello','six']}},
+  SECTIONS:{front:{name:'Frontline',sub:'The melody: Tenor, Double Tenor or Double Seconds',pans:['tenor','dten','dsec']},
+            back:{name:'Backline',sub:'The harmony and bass: Double Guitar, Four Cello, Six or Seven Bass',pans:['guitar','fcello','six','seven']}},
   get(){try{const x=JSON.parse(localStorage.getItem('panyard-role')||'null');if(x&&(x.role==='producer'||(x.role==='band'&&SETS[x.pan])))return x}catch{}return null},
   // the last band pan is kept while you're a Producer, so the switch on Home can go straight back to it
   put(x){const o=this.get(),last=x.role==='band'?x.pan:(o&&(o.pan||o.lastPan));if(last&&SETS[last])x.lastPan=last;try{localStorage.setItem('panyard-role',JSON.stringify(x))}catch{}},

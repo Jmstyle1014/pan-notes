@@ -836,7 +836,7 @@ function chartParts(){
 const songGeo=()=>({spb:spb(),bpb:BPB(),origin:origin(),bars:bars()});
 /* the arrangement for the Chart tab: the song's sections, and each pan in the song with its notes as cues.
    Drums and the engine room are left off. A section that's note-for-note the same as an earlier one says so. */
-const PAN_RANK=k=>({tenor:0,dsec:1,guitar:2,fcello:3,six:5}[k]??4);
+const PAN_RANK=k=>({tenor:0,dten:.5,dsec:1,guitar:2,fcello:3,six:5,seven:5}[k]??4);
 function arrangementData(){
   if(!song)return null;const ss=ownSecs(),bpb=BPB();
   const trs=song.tracks.filter(t=>t.type==='pan'&&(zoneOn()?inSong(t):(t.notes||[]).length)).sort((x,y)=>PAN_RANK(trSet(x))-PAN_RANK(trSet(y)));
@@ -881,7 +881,7 @@ const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'M
 const ICON={practice:'♪',audio:'🎙',pan:'◉',part:'✎',beats:'▦',drums:'🥁'};
 // a pan track shows a little drawing of its pans (one for the tenor, six for the bass) and a short name, so you can
 // tell them apart in the narrow track column; a name you gave it yourself stays as you wrote it
-const SHORT={tenor:'Tenor',guitar:'Guitar',dsec:'Seconds',fcello:'Cello',six:'Bass'};
+const SHORT={tenor:'Tenor',dten:'Dbl Tenor',guitar:'Guitar',dsec:'Seconds',fcello:'Cello',six:'Bass',seven:'7 Bass'};
 const trIcon=tr=>tr.type==='pan'&&SETS[tr.panSet]&&typeof HOME!=='undefined'?'<span class="st-ic st-icpan" aria-hidden="true">'+HOME.mini(tr.panSet,28)+'</span>':'<span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span>';
 const trName=tr=>tr.type==='pan'&&SETS[tr.panSet]&&tr.name===SETS[tr.panSet].name&&SHORT[tr.panSet]?SHORT[tr.panSet]:tr.name;
 function renderTransport(){
@@ -971,7 +971,7 @@ function secOp(op,i){
    The notes are copied (your take stays where it is), and replace what that track had in the section. */
 const ownSecs=()=>song.secs&&song.secs.length?song.secs:sections().map(s=>({name:s.name,a:Math.max(0,Math.round(s.a/BPB())),b:Math.max(1,Math.round(s.b/BPB())),en:3})).filter(x=>x.b>x.a);
 const addSrc=(a,b)=>{const A=a*BPB(),B=b*BPB();return song.tracks.filter(t=>(t.type==='pan'||t.type==='drums')&&(t.notes||[]).some(n=>n.t>=A&&n.t<B))};
-const LAYER_OF={tenor:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',six:'Bass'};
+const LAYER_OF={tenor:'Front line',dten:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',six:'Bass',seven:'Bass'};
 function songTwin(tr){
   if(inSong(tr))return tr;
   let t=song.tracks.find(x=>inSong(x)&&x.type===tr.type&&(tr.type!=='pan'||x.panSet===tr.panSet));
@@ -1360,14 +1360,14 @@ function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs()
    listening seat in song.stage.hear ('judges', 'middle' or 'off': the mix as it is). */
 const STG_ON=tr=>['pan','part','drums','beats','audio'].includes(tr.type);
 const STG_SET=tr=>tr.type==='drums'||tr.type==='beats'?'engine':tr.type==='audio'?'mic':tr.type==='part'?'me':trSet(tr);
-const STG_HOME={tenor:[.5,.86,4],dsec:[.72,.66,3],guitar:[.32,.47,3],fcello:[.68,.47,2],six:[.12,.18,2],engine:[.5,.12,1],mic:[.9,.62,1],me:[.16,.8,1]};
-const STG_R={tenor:.82,dsec:.86,guitar:.92,fcello:.98,six:1.08,engine:.9,mic:.7,me:.85};
-const STG_NAME={tenor:'Tenors',dsec:'Double seconds',guitar:'Guitars',fcello:'Cellos',six:'Basses',engine:'Engine room',mic:'Mic'};
+const STG_HOME={tenor:[.5,.86,4],dsec:[.72,.66,3],guitar:[.32,.47,3],fcello:[.68,.47,2],six:[.12,.18,2],seven:[.88,.18,2],dten:[.28,.66,3],engine:[.5,.12,1],mic:[.9,.62,1],me:[.16,.8,1]};
+const STG_R={tenor:.82,dsec:.86,guitar:.92,fcello:.98,six:1.08,seven:1.08,dten:.84,engine:.9,mic:.7,me:.85};
+const STG_NAME={tenor:'Tenors',dsec:'Double seconds',guitar:'Guitars',fcello:'Cellos',six:'Basses',seven:'Seven bass',dten:'Double tenors',engine:'Engine room',mic:'Mic'};
 // a section with no place yet stands where its kind stands on a Panorama stage (the second of a kind beside the first)
 function stPlace(tr){
   if(tr.st&&Number.isFinite(tr.st.x))return tr.st;
   const k=STG_SET(tr),h=STG_HOME[k]||[.5,.5,2],same=song.tracks.filter(t=>STG_ON(t)&&STG_SET(t)===k&&t.st&&Number.isFinite(t.st.x)).length;
-  const side=same?(same%2?1:-1)*Math.ceil(same/2):0;let x=h[0]+side*.2;if(k==='six'&&same%2)x=1-h[0];
+  const side=same?(same%2?1:-1)*Math.ceil(same/2):0;let x=h[0]+side*.2;if((k==='six'||k==='seven')&&same%2)x=1-h[0];
   tr.st={x:Math.max(.06,Math.min(.94,x)),y:h[1],n:tr.type==='part'?1:h[2]};return tr.st;
 }
 const stHear=()=>(song.stage&&song.stage.hear)||'judges';
@@ -1393,7 +1393,7 @@ function renderStage(){
   // back to front, so the front sections cover the skirts of the ones behind
   const order=secs.map(t=>[t,stPlace(t)]).sort((a,b)=>a[1].y-b[1].y);
   for(const [tr,p] of order){
-    const k=STG_SET(tr),pk=k==='me'?trSet(tr):k,n=Math.max(1,Math.min(12,p.n||1)),r=u*(STG_R[k]||.9)*(n>6?.85:1),per=Math.min(n,k==='six'?2:4),rows=Math.ceil(n/per),sk=k==='engine'||k==='mic'?.25:(typeof STAGE!=='undefined'?STAGE.SK[pk]||.25:.25);
+    const k=STG_SET(tr),pk=k==='me'?trSet(tr):k,n=Math.max(1,Math.min(12,p.n||1)),r=u*(STG_R[k]||.9)*(n>6?.85:1),per=Math.min(n,k==='six'||k==='seven'?2:4),rows=Math.ceil(n/per),sk=k==='engine'||k==='mic'?.25:(typeof STAGE!=='undefined'?STAGE.SK[pk]||.25:.25);
     const cx=p.x*W,cy=u*1.6+p.y*(H-u*4.2),w=per*2.1*r,top=cy-rows*r*.62;
     const on=audible(tr),sel=tr.id===song.sel,name=trName(tr)+(n>1?' ×'+n:'');
     s+='<g class="stg-sec'+(on?'':' off')+(sel?' sel':'')+'" data-tid="'+tr.id+'" data-k="'+k+'">';

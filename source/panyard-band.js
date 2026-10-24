@@ -18,9 +18,9 @@ var BAND=(()=>{
     {id:'rock',name:'Rock',em:'🎸',sub:'Hard stick, bright, pushed',a:440,stretch:2,tone:6,ring:-2,stick:8,shimmer:1,lofi:0,punch:1,room:'room'},
     // measured from the band's own practice recordings (tenor and seconds, the full band, the background pans):
     // tuned a hair sharp (A 441), long-singing notes, a warm top, the yard's long ring, and the hum of the other pans
-    {id:'ouryard',name:'Our yard',em:'🇹🇹',sub:'The hum and air of your own panyard',a:441,stretch:1,tone:-2,ring:4,stick:-1,shimmer:1,lofi:0,punch:0,hum:1,air:1,room:'ouryard'},
+    {id:'ouryard',name:'Our yard',em:'🇹🇹',sub:'The hum and air of your own panyard',a:441,stretch:1,tone:-2,ring:4,stick:-1,shimmer:1,lofi:0,punch:0,hum:1,air:1,body:6,room:'ouryard'},
   ];
-  const KEYS=['a','stretch','tone','ring','stick','shimmer','lofi','punch','hum','air','room'];
+  const KEYS=['a','stretch','tone','ring','stick','shimmer','lofi','punch','hum','air','body','room'];
   const ROOMS={dry:'Dry',room:'Room',yard:'Panyard',ouryard:'Our yard',hall:'Hall'};
   // the yard in those recordings rings on for about three seconds after the band stops
   SPACES.ouryard=SPACES.ouryard||{name:'Our yard',mix:0.3,decay:2.8,lowcut:100,bright:0};
@@ -30,7 +30,7 @@ var BAND=(()=>{
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   function clean(b){if(!b||typeof b!=='object')return null;const o={};
     o.a=clamp(Math.round((+b.a||440)*10)/10,432,446);for(const k of['stretch'])o[k]=clamp(Math.round(+b[k]||0),-6,8);
-    for(const k of['tone','ring','stick'])o[k]=clamp(Math.round(+b[k]||0),-10,10);for(const k of['shimmer','lofi','punch','hum','air'])o[k]=b[k]?1:0;
+    for(const k of['tone','ring','stick'])o[k]=clamp(Math.round(+b[k]||0),-10,10);o.body=clamp(Math.round(+b.body||0),0,10);for(const k of['shimmer','lofi','punch','hum','air'])o[k]=b[k]?1:0;
     o.room=ROOMS[b.room]?b.room:'room';o.from=String(b.from||'');o.name=String(b.name||'').slice(0,40);if(Number.isFinite(+b.prevA))o.prevA=+b.prevA;return o}
   const sid=()=>{try{return isDemo?'demo':songNow().id}catch{return 'demo'}};
   const forSong=()=>{const b=st.songs[sid()];return b?clean(b):null};
@@ -49,13 +49,29 @@ var BAND=(()=>{
     const b=now(),f=pitchHz(id)||440,nodes=[];
     const tn=toneNode(ac,T,id);if(tn)nodes.push(tn);
     const stick=b?b.stick:0;
-    let fc=20000;if(v<0.9&&FEEL.s.sens)fc=Math.min(fc,f*(3+30*v*v));   // a soft hit is darker too, as on a real panif(stick<0)fc=Math.min(fc,Math.max(f*3,18000*Math.pow(0.18,-stick/10)));
+    let fc=20000;if(v<0.9&&FEEL.s.sens)fc=Math.min(fc,f*(3+30*v*v));   // a soft hit is darker too, as on a real pan
+    if(stick<0)fc=Math.min(fc,Math.max(f*3,18000*Math.pow(0.18,-stick/10)));
     if(fc<16000){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;lp.frequency.value=fc;nodes.push(lp)}
     if(stick>0&&!light){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=0.9;pk.frequency.value=clamp(f*5,2500,7000);
       pk.gain.setValueAtTime(stick*0.7,t);pk.gain.setTargetAtTime(stick*0.2,t+0.03,0.08);nodes.push(pk)}
+    // Drum body: the air in the barrel hums at f = v / 4(L + 0.3d) (a tube closed at the playing surface, open at the
+    // bottom; G-Pan patent, US 7,750,220), and at 3 times that. A long bass skirt hums low, a short tenor skirt high.
+    // Each note gets a lift round its own pan's body note.
+    const bd=b&&b.body?BODY[(FIELDS.get(id)||{}).set||'guitar']:0;
+    if(bd&&!light){const amt=b.body/10;for(const [fq,gn] of [[bd,5.5*amt],[bd*3,2.5*amt]]){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=2.2;pk.frequency.value=fq;pk.gain.value=gn;nodes.push(pk)}}
+    // Note covers (How you play): a thin soft pad on the outer and middle rings, as in the G-Pan patent, so the low
+    // notes start rounder (no clang) while the centre notes stay crisp
+    if(covered(id)&&!light){const lp=ac.createBiquadFilter(),g=ac.createGain();lp.type='lowpass';lp.Q.value=0.4;
+      lp.frequency.setValueAtTime(Math.min(16000,f*5),t);lp.frequency.exponentialRampToValueAtTime(18000,t+0.09);
+      g.gain.setValueAtTime(0.45,t);g.gain.linearRampToValueAtTime(1,t+0.03);nodes.push(lp,g)}
     for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);
     return nodes.length?{in:nodes[0],out:nodes[nodes.length-1]}:null;
   }
+  const COVER_SETS=['tenor','dten','dsec'];
+  // each pan's body note in Hz, from its skirt length (inches) and a 22.5 in drum: 343 / (4 (L + 0.3 d))
+  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:22,six:34,seven:34};
+  const BODY=Object.fromEntries(Object.entries(SKIRT_IN).map(([k,L])=>[k,Math.round(343/(4*(L*.0254+0.3*22.5*.0254)))]));
+  function covered(id){if(!FEEL.s.covers)return false;const F=FIELDS.get(id);return !!(F&&COVER_SETS.includes(F.set)&&/\b(outer|middle)\b/.test(F.pos||''))}
   const shimmerOn=light=>{const b=now();return !!(b&&b.shimmer&&!light)};
 
   /* Room, Lo-fi and Punch on the tap sound: they sit between the pans and the room (your sound profile's chain) */
@@ -148,7 +164,8 @@ var BAND=(()=>{
   let open=false;
   const msg=t=>{const m=$('bandMsg');if(m){m.textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>{if(m.textContent===t)m.textContent=''},4000)}};
   const CTL=[['a','Pitch centre','A in hertz: 440 is standard',432,446,1,v=>'A '+v,['lower','higher']],['stretch','Sweet ↔ Sharp','top notes a hair sharp, like a bright Panorama pan',-6,8,1,v=>(v>0?'+':'')+v,['sweet','sharp']],
-    ['tone','Tone','',-10,10,1,v=>(v>0?'+':'')+v,['darker','brighter']],['ring','Ring','how long notes sing',-10,10,1,v=>(v>0?'+':'')+v,['shorter','longer']],['stick','Stick','soft rubber ↔ hard',-10,10,1,v=>v<-3?'soft':v>3?'hard':'medium',['soft','hard']]];
+    ['tone','Tone','',-10,10,1,v=>(v>0?'+':'')+v,['darker','brighter']],['ring','Ring','how long notes sing',-10,10,1,v=>(v>0?'+':'')+v,['shorter','longer']],['stick','Stick','soft rubber ↔ hard',-10,10,1,v=>v<-3?'soft':v>3?'hard':'medium',['soft','hard']],
+    ['body','Drum body','the air inside the barrel: a fuller bass, a tighter tenor',0,10,1,v=>v?v:'off',['off','strong']]];
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function html(){
     const b=forSong(),cs=cards();
@@ -192,7 +209,7 @@ var BAND=(()=>{
   // backup files carry this song's band sound (Google Drive backup has all of them)
   setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const b=forSong();if(b)o.band=b;return o};
     const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
-  return {PRESETS,keyOf,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
+  return {PRESETS,keyOf,covered,BODY,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
 })();
 
 /* ---------- Settings: Band sound (this song) and How you play, one tap from the list ----------

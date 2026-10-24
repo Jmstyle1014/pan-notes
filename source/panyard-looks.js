@@ -3,7 +3,7 @@
 // shapes and places, so taps land exactly as before. Photos sit behind the notes; Line up moves, turns and sizes a
 // photo until your real notes sit under the outlines. The Double Guitar's photos are the ones it already had.
 var LOOK={   // var: Setup can ask about it before this part has run
-  KEYS:['guitar','tenor','dsec','fcello','six'],
+  KEYS:['guitar','tenor','dten','dsec','fcello','six','seven'],
   STYLES:[['night','App look'],   // the usual style: it takes the app look's colours (Night, Chrome Night, Trinidad & Tobago...)
   ['steel','Steel'],['painted','Painted'],['photo','My photos']],
   NAMES:[['oct','Letters + octaves'],['plain','Letters'],['none','Hidden']],
@@ -16,7 +16,7 @@ var LOOK={   // var: Setup can ask about it before this part has run
   set(k,patch){this.d[k]=Object.assign(this.of(k),patch);this.save();this.apply();this.renderPanel()},
   drums(k){
     if(k==='guitar')return[{pk:'ec',name:'E / C pan'},{pk:'bf',name:'B / F pan'}];
-    const v=SETS[k].views[0];return v.drums.map((d,i)=>({i,name:v.drums.length===1?SETS[k].name:(k==='six'?d.name+' drum':/pan$/.test(d.name)?d.name:d.name+' pan')}));
+    const v=SETS[k].views[0];return v.drums.map((d,i)=>({i,name:v.drums.length===1?SETS[k].name:(k==='six'||k==='seven'?d.name+' drum':/pan$/.test(d.name)?d.name:d.name+' pan')}));
   },
   slot(k,dr){return k==='guitar'?dr.pk:String(dr.i)},
   src(k,slot){return k==='guitar'?photoSrc(slot):(this.urls[k+':'+slot]||null)},
