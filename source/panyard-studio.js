@@ -1663,12 +1663,13 @@ function stPlayerSVG(pl){
 }
 // the camera: how far in you've zoomed and where you're looking (for this visit; Fit puts the whole stage in view)
 const CAM={z:0,x:0,y:0,fit:1,vw:0,vh:0};
-function camFit(vw,vh){const S=STW(),bw=vw-56,bh=vh-(stFloat()?56:0),z=Math.min(bw/S.W,bh/S.H);Object.assign(CAM,{z,fit:z,x:(bw-S.W*z)/2,y:(bh-S.H*z)/2,vw,vh})}
+function camFit(vw,vh){const S=STW(),bw=vw,bh=vh-(stFloat()?56:0),z=Math.min(bw/S.W,bh/S.H);Object.assign(CAM,{z,fit:z,x:(bw-S.W*z)/2,y:(bh-S.H*z)/2,vw,vh})}
 const stFloat=()=>innerWidth>innerHeight&&innerHeight<=520;   // sideways phone: the card floats over the stage
 function camClamp(){const S=STW();CAM.z=Math.max(CAM.fit*.8,Math.min(CAM.fit*5,CAM.z));
   const w=S.W*CAM.z,h=S.H*CAM.z;CAM.x=w<CAM.vw?(CAM.vw-w)/2:Math.min(40,Math.max(CAM.vw-w-40,CAM.x));CAM.y=h<CAM.vh?(CAM.vh-h)/2:Math.min(40,Math.max(CAM.vh-h-40,CAM.y))}
 // the names stay the same size on screen however far you zoom
-function camApply(){const g=q('#stgW');if(g){g.setAttribute('transform','translate('+CAM.x.toFixed(1)+' '+CAM.y.toFixed(1)+') scale('+CAM.z.toFixed(4)+')');g.style.setProperty('--stz',CAM.z.toFixed(4))}stMini()}
+function camApply(){const g=q('#stgW');if(g){g.setAttribute('transform','translate('+CAM.x.toFixed(1)+' '+CAM.y.toFixed(1)+') scale('+CAM.z.toFixed(4)+')');g.style.setProperty('--stz',CAM.z.toFixed(4));
+  const k=(1/CAM.z).toFixed(4);g.querySelectorAll('.stg-lbl').forEach(l=>l.setAttribute('transform','translate('+l.dataset.x+' '+l.dataset.y+') scale('+k+')'))}stMini()}
 function camZoom(f,px,py){const z0=CAM.z;CAM.z*=f;camClamp();const k=CAM.z/z0;CAM.x=px-(px-CAM.x)*k;CAM.y=py-(py-CAM.y)*k;camClamp();camApply()}
 // the little map in the corner, once you've zoomed in
 function stMini(){
@@ -1695,7 +1696,7 @@ function renderStage(){
     const x0=Math.min(...xs)-hw-8,x1=Math.max(...xs)+hw+8,y1=Math.max(...ys)+sk+P.r*.9,ly=Math.min(...ys)-P.r*(P.list[0].pk==='six'||P.list[0].pk==='seven'?1.7:1.05)-6;
     s+='<g class="stg-sec'+(on?'':' off')+(sel?' sel':'')+'" data-tid="'+tr.id+'" data-k="'+STG_SET(tr)+'"><rect class="stg-hit" x="'+x0+'" y="'+(ly-22)+'" width="'+(x1-x0)+'" height="'+(y1-ly+22)+'" rx="14"/>';
     s+=P.list.slice().sort((a,b)=>a.y-b.y).map(stPlayerSVG).join('');
-    s+='<text class="stg-tag stg-name" x="'+(x0+x1)/2+'" y="'+ly+'" text-anchor="middle">'+esc(name.toUpperCase())+'</text></g>';
+    {const lw=Math.round(name.length*6.6+18);s+='<g class="stg-lbl" data-x="'+((x0+x1)/2).toFixed(1)+'" data-y="'+(ly-4).toFixed(1)+'"><rect x="'+(-lw/2)+'" y="-11" width="'+lw+'" height="20" rx="6"/><text class="stg-name" x="0" y="3.5" text-anchor="middle">'+esc(name)+'</text></g></g>'}
     mini.push([P.cx,P.cy,sel]);
   }
   s+='</g></svg>';
@@ -1703,19 +1704,20 @@ function renderStage(){
   const mm='<svg class="stg-mini" id="stgMini" hidden aria-hidden="true"><rect width="100%" height="100%" fill="#0d0a0c"/>'+mini.map(([x,y,sel])=>'<circle cx="'+(x*sc).toFixed(1)+'" cy="'+(y*sc).toFixed(1)+'" r="3" fill="'+(sel?'#ffd84a':'#e3263a')+'"/>').join('')+'<rect class="stg-mv" fill="none" stroke="#ffd84a" stroke-width="1.5"/></svg>';
   const cur=selTr(),cp=STG_ON(cur)?stPlace(cur):null;
   const ck=STG_SET(cur),cpk=ck==='me'?trSet(cur):ck,np=ck==='engine'||ck==='mic'?0:rigOf(cpk).p.length;
-  const card=cp?'<div class="stg-card" data-tid="'+cur.id+'"><div class="stg-cn"><b>'+esc(trName(cur))+'</b><small>'+(cp.n||1)+' player'+((cp.n||1)>1?'s':'')+(np?' · '+np+' pan'+(np>1?'s':'')+' each':'')+' · '+stWhere(cp)+' · hold a set of pans to move just that player</small></div>'
-    +'<div class="stg-cb"><button class="btn sm" data-stg="less" aria-label="One player less">− Player</button><button class="btn sm" data-stg="more" aria-label="One player more">＋ Player</button>'
+  const card=cp?'<div class="stg-card" data-tid="'+cur.id+'"><div class="stg-cn"><b>'+esc(trName(cur))+'</b><small>'+(np?(cp.n||1)+' complete instrument'+((cp.n||1)>1?'s':'')+' · '+np+' pan'+(np>1?'s':'')+' per instrument':(cp.n||1)+' player'+((cp.n||1)>1?'s':''))+' · '+stWhere(cp)+'. Hold a set of pans to move just that one.</small></div>'
+    +'<div class="stg-cb"><button class="btn sm" data-stg="less" aria-label="One instrument less">−</button><button class="btn sm" data-stg="more" aria-label="One instrument more">＋</button>'
     +'<button class="btn sm'+(cur.mute?' on':'')+'" data-st="mute" aria-pressed="'+!!cur.mute+'">Mute</button><button class="btn sm'+(cur.solo?' on':'')+'" data-st="solo" aria-pressed="'+!!cur.solo+'">Solo</button>'
     +(cp.pp&&Object.keys(cp.pp).length?'<button class="btn sm" data-stg="line" title="Put the players back in line">⇆ In line</button>':'')
     +'<button class="btn sm" data-stg="dup">Copy section</button><button class="btn sm" data-st="tset">Settings</button></div>'
     +'<label class="stg-vol">Volume<input type="range" data-stg="vol" min="0" max="1.2" step=".01" value="'+cur.vol+'"></label></div>'
     :'<div class="stg-card"><span class="help">Tap a section to change it. Drag it to move it; pinch to zoom.</span></div>';
-  box.innerHTML='<div class="stg-top"><div class="seg stg-hear" role="group" aria-label="Hear it from">'+[['judges','🎧 Judges'],['middle','In the band'],['off','As mixed']].map(([v,l])=>'<button data-stg="hear" data-v="'+v+'" aria-pressed="'+(hear===v)+'">'+l+'</button>').join('')+'</div>'
-    +'<button class="btn" data-stg="add">＋ Section</button><button class="btn stg-layb" data-stg="lay">▦ '+LAYOUTS.find(x=>x[0]===stLay())[1]+' ▾</button></div>'
-    +'<div class="stg-floor" id="stgFloor">'+s+'<div class="stg-zm"><button data-stg="zin" aria-label="Zoom in">＋</button><button data-stg="zout" aria-label="Zoom out">−</button><button data-stg="fit" aria-label="Fit the whole stage">⤢</button></div>'+mm+'</div>'+card;
+  box.innerHTML='<div class="stg-top"><div class="seg stg-hear" role="group" aria-label="Hear it from">'+[['judges','🎧 '+(stLay()==='stage'?'Audience':'Crowd')],['middle','In the band'],['off','As mixed']].map(([v,l])=>'<button data-stg="hear" data-v="'+v+'" aria-pressed="'+(hear===v)+'">'+l+'</button>').join('')+'</div>'
+    +'<button class="btn" data-stg="add">＋ Section</button><button class="btn stg-layb" data-stg="lay">▦ '+LAYOUTS.find(x=>x[0]===stLay())[1]+' ▾</button>'
+    +'<span class="stg-zm" role="group" aria-label="Zoom"><button data-stg="zout" aria-label="Zoom out">−</button><button data-stg="fit" aria-label="Fit the whole stage">Fit</button><button data-stg="zin" aria-label="Zoom in">＋</button></span></div>'
+    +'<div class="stg-floor" id="stgFloor">'+s+mm+'</div>'+card;
   {const over=document.scrollingElement.scrollHeight-innerHeight;if(over>0)box.style.height=Math.max(220,box.offsetHeight-over)+'px'}   // the page's own padding below: nothing to scroll
   const fl=q('#stgFloor'),vw=fl.clientWidth,vh=fl.clientHeight;
-  {const a=(vh-(stFloat()?56:0))/Math.max(1,vw-56);if(vw&&Math.abs(a-STA)>.03){STA=a;CAM.z=0;renderStage();return}}   // drawn again in the floor's own shape
+  {const a=(vh-(stFloat()?56:0))/Math.max(1,vw);if(vw&&Math.abs(a-STA)>.03){STA=a;CAM.z=0;renderStage();return}}   // drawn again in the floor's own shape
   const sz=STW();
   if(!CAM.z||CAM.vw!==vw||CAM.vh!==vh||CAM.sw!==sz.W){const keep=CAM.z&&CAM.sw===sz.W?CAM.z/CAM.fit:1;camFit(vw,vh);CAM.sw=sz.W;if(keep>1.01){camZoom(keep,vw/2,vh/2);return}}
   camApply();
@@ -1774,7 +1776,7 @@ function stageWire(){
   box.addEventListener('click',e=>{const b=e.target.closest('[data-stg]');if(!b||b.tagName==='INPUT')return;const a=b.dataset.stg,tr=selTr();
     if(a==='zin'||a==='zout'){camZoom(a==='zin'?1.35:1/1.35,CAM.vw/2,CAM.vh/2);return}
     if(a==='fit'){camFit(CAM.vw,CAM.vh);camApply();return}
-    if(a==='hear'){song.stage={...(song.stage||{}),hear:b.dataset.v};refreshGains();dirty();renderStage();say(b.dataset.v==='off'?'Hearing the mix as it is.':b.dataset.v==='middle'?'Hearing it from the middle of the band.':'Hearing it from the judges\' seat.');return}
+    if(a==='hear'){song.stage={...(song.stage||{}),hear:b.dataset.v};refreshGains();dirty();renderStage();say(b.dataset.v==='off'?'Hearing the mix as it is.':b.dataset.v==='middle'?'Hearing it from the middle of the band.':'Hearing it from '+(stLay()==='stage'?'the audience':'the crowd')+'.');return}
     if(a==='add'){openSheet('add');return}
     if(a==='lay'){openSheet('stglay');return}
     if(a==='reset'){if(!confirm('Put every section back where it stands on a Panorama stage?'))return;pushHistory();song.tracks.forEach(t=>{delete t.st});song.tracks.filter(STG_ON).forEach(stPlace);refreshGains();dirty();renderStage();return}
