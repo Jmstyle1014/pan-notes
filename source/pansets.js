@@ -131,7 +131,7 @@ const SETS={
       ['C',1470,690,160,[['C2',-119],['C3',113],['G2',-5.7]]]])],
     groups:['B♭','E♭','C♯','B','D','C'].map((n,i)=>({key:'gS'+i,name:n+' drum',short:n,color:['#f2b38a','#ffd36b','#9be38f','#8fc7ff','#c9a2ff','#ff9ac1'][i]}))},
   // Four cello, B♭1–C♯4: two smaller pans on top, two larger below
-  fcello:{name:'Four Cello',range:'B♭1–C♯4',plain:[46,57],
+  fcello:{name:'Four Cello',range:'B♭2–C♯5',plain:[46,57],
     views:[cello4Set([
       ['B♭ pan',730,240,190,[['Eb3',-97.5,.7],['F2',-40,.76],['Eb2',-166.3,.67],['F3',-56.7,.23],['Bb3',114.6,.22],['Bb2',126.5,.72],['Bb1',40.8,.66]]],
       ['C♯ pan',1180,230,180,[['C#3',-145.1,.76],['F#2',-86.3,.65],['F#3',-12.6,.66],['C#4',-152.2,.28],['G#3',29.1,.18],['C#2',134.2,.64],['G#2',46.2,.74]]],
@@ -168,8 +168,11 @@ const SETS={
 const OCT_MARK={1:'̇',2:'̈','-1':'̣','-2':'̤'};
 function dottedLabel(m,plain){const L=PC_LAB[m%12];if(!plain)return L;const o=m<plain[0]?-Math.ceil((plain[0]-m)/12):m>plain[1]?Math.ceil((m-plain[1])/12):0;return o?L[0]+OCT_MARK[o]+L.slice(1):L}
 const SET_PITCH={};
+// a set that sounds higher than its note numbers: the four cello's notes were measured an octave low (B♭1–C♯4); a real
+// four cello plays B♭2–C♯5 (the G-Pan patent: about B2 to D5). Its saved notes and recordings keep their names.
+const SOUND_UP={fcello:12};
 for(const [sk,set] of Object.entries(SETS)){if(sk==='guitar')continue;
-  for(const v of set.views)for(const f of v.fields){const m=+f[0].split(':')[1];SET_PITCH[f[0]]=PC_NAME[m%12]+(Math.floor(m/12)-1);
+  for(const v of set.views)for(const f of v.fields){const m=+f[0].split(':')[1],ms=m+(SOUND_UP[sk]||0);SET_PITCH[f[0]]=PC_NAME[ms%12]+(Math.floor(ms/12)-1);
     FIELDS.set(f[0],{label:dottedLabel(m,set.plain),pos:f[2],pan:v.drums.length>1?(f[2].split(' ')[0]+' '+(sk==='six'||sk==='seven'?'drum':'pan')):set.name,grp:f[7],set:sk})}}
 GUITAR_PANS.forEach(p=>p.fields.forEach(f=>{const x=FIELDS.get(f[0]);x.grp=p.key;x.set='guitar'}));
 const setKey=()=>S&&SETS[S.panSet]?S.panSet:'guitar';
