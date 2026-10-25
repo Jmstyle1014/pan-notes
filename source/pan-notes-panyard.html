@@ -4790,6 +4790,17 @@ function dtenSet(drums){
   });
   return{name:'Double Tenor',key:'dten',view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
 }
+// Three cello, B2–G4: three pans, each a diminished chord (C E♭ F♯ A, C♯ E G B♭, B D F G♯). The low octave in four big
+// notes round the rim, the octave above in three smaller notes inside.
+function tcelloSet(drums){
+  const fields=[],ds=[];
+  drums.forEach(([dn,cx,cy,r,outer,inner],di)=>{
+    ds.push({name:dn,cx,cy,rx:r,ry:r});const k=r/445,add=(n,pos,path,x,y,fs)=>{const m=nmOf(n);fields.push(['tcello:'+m,PC_LAB[m%12],dn+' '+pos,path,f1(x),f1(y),Math.round(fs*k),'gTC'+di,di])};
+    outer.forEach((n,i)=>{const a=90-90*i,[x,y]=arcXY(cx,cy,r*.74,a);add(n,'outer',ringTile(cx,cy,r*.5,r*.955,a-45,a+45,r*.04,r*.12),x,y,78)});
+    inner.forEach((n,i)=>{const a=30-120*i,[x,y]=arcXY(cx,cy,r*.25,a);add(n,'inner',ellPath(x,y,r*.19,r*.19,0),x,y,56)});
+  });
+  return{name:'Three Cello',key:'tcello',view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
+}
 const FIFTHS=[0,7,2,9,4,11,6,1,8,3,10,5];
 const fifthsRing=(oct,d)=>FIFTHS.map((pc,k)=>[PC_NAME[pc]+oct,90-30*k,d]);
 const GUITAR_PANS=PANS;
@@ -4832,6 +4843,13 @@ const SETS={
       ['B♭',460,480,430,['F4','Bb3','Eb4','Ab4','Db4','Gb4'],['F5','Bb4','Eb5','Ab5','Db5','Gb5'],[['Bb5',30],['Db6',-150]]],
       ['A',1360,480,430,['C4','G4','D4','A3','E4','B3'],['C5','G5','D5','A4','E5','B4'],[['C6',90],['A5',-90],['B5',150]]]])],
     groups:[{key:'gDT0',name:'B♭ pan',short:'B♭',color:'#f2b38a'},{key:'gDT1',name:'A pan',short:'A',color:'#8fc7ff'}]},
+  // Three cello, B2–G4 (the G-Pan patent's range): three pans of a diminished chord each, low notes round the rim
+  tcello:{name:'Three Cello',range:'B2–G4',plain:[48,59],
+    views:[tcelloSet([
+      ['C',330,420,330,['C3','Eb3','F#3','A3'],['C4','Eb4','F#4']],
+      ['C♯',1010,420,330,['C#3','E3','G3','Bb3'],['C#4','E4','G4']],
+      ['B',1690,420,330,['B2','D3','F3','G#3'],['B3','D4','F4']]])],
+    groups:[{key:'gTC0',name:'C pan',short:'C',color:'#f2b38a'},{key:'gTC1',name:'C♯ pan',short:'C♯',color:'#9be38f'},{key:'gTC2',name:'B pan',short:'B',color:'#8fc7ff'}]},
   // Seven bass, G♯1–E3: seven drums in an arch, each with its note, the fifth and an octave
   seven:{name:'Seven Bass',range:'G♯1–E3',plain:[32,43],
     views:[bassSet('seven','Seven Bass',[
@@ -8797,7 +8815,7 @@ var TW=(()=>{
   const mid=id=>midiOf(PITCH[id]);
   const nice=id=>PITCH[id].replace('#','♯').replace(/([A-G])b/,'$1♭');
   const stdHz=id=>440*Math.pow(2,(mid(id)-69)/12);   // the note at A = 440; the song's own A is added when it plays
-  const PARTS=k=>['six','seven','fcello'].includes(k)?[[1,'Note','the note itself'],[2,'Octave','twice as high']]
+  const PARTS=k=>['six','seven','fcello','tcello'].includes(k)?[[1,'Note','the note itself'],[2,'Octave','twice as high']]
     :[[1,'Note','the note itself'],[2,'Octave','twice as high'],[3,'Twelfth','an octave and a fifth up']];
 
   /* which recording plays each note */
@@ -9338,7 +9356,7 @@ var BAND=(()=>{
   }
   const COVER_SETS=['tenor','dten','dsec'];
   // each pan's body note in Hz, from its skirt length (inches) and a 22.5 in drum: 343 / (4 (L + 0.3 d))
-  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:18,six:34,seven:34};   // a four cello's skirt is about a guitar's, a little longer
+  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:18,tcello:18,six:34,seven:34};   // a four cello's skirt is about a guitar's, a little longer
   const BODY=Object.fromEntries(Object.entries(SKIRT_IN).map(([k,L])=>[k,Math.round(343/(4*(L*.0254+0.3*22.5*.0254)))]));
   function covered(id){if(!FEEL.s.covers)return false;const F=FIELDS.get(id);return !!(F&&COVER_SETS.includes(F.set)&&/\b(outer|middle)\b/.test(F.pos||''))}
   const shimmerOn=light=>{const b=now();return !!(b&&b.shimmer&&!light)};
@@ -10828,7 +10846,7 @@ function chartParts(){
 const songGeo=()=>({spb:spb(),bpb:BPB(),origin:origin(),bars:bars()});
 /* the arrangement for the Chart tab: the song's sections, and each pan in the song with its notes as cues.
    Drums and the engine room are left off. A section that's note-for-note the same as an earlier one says so. */
-const PAN_RANK=k=>({tenor:0,dten:.5,dsec:1,guitar:2,fcello:3,six:5,seven:5}[k]??4);
+const PAN_RANK=k=>({tenor:0,dten:.5,dsec:1,guitar:2,fcello:3,tcello:3,six:5,seven:5}[k]??4);
 function arrangementData(){
   if(!song)return null;const ss=ownSecs(),bpb=BPB();
   const trs=song.tracks.filter(t=>t.type==='pan'&&(zoneOn()?inSong(t):(t.notes||[]).length)).sort((x,y)=>PAN_RANK(trSet(x))-PAN_RANK(trSet(y)));
@@ -10873,7 +10891,7 @@ const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'M
 const ICON={practice:'♪',audio:'🎙',pan:'◉',part:'✎',beats:'▦',drums:'🥁'};
 // a pan track shows a little drawing of its pans (one for the tenor, six for the bass) and a short name, so you can
 // tell them apart in the narrow track column; a name you gave it yourself stays as you wrote it
-const SHORT={tenor:'Tenor',dten:'Dbl Tenor',guitar:'Guitar',dsec:'Seconds',fcello:'Cello',six:'Bass',seven:'7 Bass'};
+const SHORT={tenor:'Tenor',dten:'Dbl Tenor',guitar:'Guitar',dsec:'Seconds',fcello:'Cello',tcello:'3 Cello',six:'Bass',seven:'7 Bass'};
 const trIcon=tr=>tr.type==='pan'&&SETS[tr.panSet]&&typeof HOME!=='undefined'?'<span class="st-ic st-icpan" aria-hidden="true">'+HOME.mini(tr.panSet,28)+'</span>':'<span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span>';
 const trName=tr=>tr.type==='pan'&&SETS[tr.panSet]&&tr.name===SETS[tr.panSet].name&&SHORT[tr.panSet]?SHORT[tr.panSet]:tr.name;
 function renderTransport(){
@@ -10965,7 +10983,7 @@ const ownSecs=()=>song.secs&&song.secs.length?song.secs:sections().map(s=>({name
 const addSrc=(a,b)=>{const A=a*BPB(),B=b*BPB();return song.tracks.filter(t=>(t.type==='pan'||t.type==='drums'||t.type==='part')&&notesOf(t).some(n=>n.t>=A&&n.t<B))};
 // My part's notes as a pan track's: a roll's quick strikes are marked the way a recorded roll is
 const asPan=n=>{const o={t:n.t,d:n.d,p:n.p,v:n.v};if(n.roll)o.r=1;return o};
-const LAYER_OF={tenor:'Front line',dten:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',six:'Bass',seven:'Bass'};
+const LAYER_OF={tenor:'Front line',dten:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',tcello:'Middle',six:'Bass',seven:'Bass'};
 function songTwin(tr){
   if(tr.type==='part')tr={type:'pan',panSet:setKey(),vol:tr.vol,pan:tr.pan,fx:tr.fx};   // My part goes onto the song's track for its pan
   if(inSong(tr))return tr;
@@ -11414,9 +11432,9 @@ function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs()
    listening seat in song.stage.hear ('judges', 'middle' or 'off': the mix as it is). */
 const STG_ON=tr=>['pan','part','drums','beats','audio'].includes(tr.type);
 const STG_SET=tr=>tr.type==='drums'||tr.type==='beats'?'engine':tr.type==='audio'?'mic':tr.type==='part'?'me':trSet(tr);
-const STG_HOME={tenor:[.5,.86,4],dsec:[.72,.66,3],guitar:[.32,.47,3],fcello:[.68,.47,2],six:[.12,.18,2],seven:[.88,.18,2],dten:[.28,.66,3],engine:[.5,.12,1],mic:[.9,.62,1],me:[.16,.8,1]};
-const STG_R={tenor:.82,dsec:.86,guitar:.92,fcello:.98,six:1.08,seven:1.08,dten:.84,engine:.9,mic:.7,me:.85};
-const STG_NAME={tenor:'Tenors',dsec:'Double seconds',guitar:'Guitars',fcello:'Cellos',six:'Basses',seven:'Seven bass',dten:'Double tenors',engine:'Engine room',mic:'Mic'};
+const STG_HOME={tenor:[.5,.86,4],dsec:[.72,.66,3],guitar:[.32,.47,3],fcello:[.68,.47,2],tcello:[.5,.5,2],six:[.12,.18,2],seven:[.88,.18,2],dten:[.28,.66,3],engine:[.5,.12,1],mic:[.9,.62,1],me:[.16,.8,1]};
+const STG_R={tenor:.82,dsec:.86,guitar:.92,fcello:.98,tcello:.95,six:1.08,seven:1.08,dten:.84,engine:.9,mic:.7,me:.85};
+const STG_NAME={tenor:'Tenors',dsec:'Double seconds',guitar:'Guitars',fcello:'Cellos',tcello:'Three cellos',six:'Basses',seven:'Seven bass',dten:'Double tenors',engine:'Engine room',mic:'Mic'};
 // a section with no place yet stands where its kind stands on a Panorama stage (the second of a kind beside the first)
 function stPlace(tr){
   if(tr.st&&Number.isFinite(tr.st.x))return tr.st;
@@ -11549,6 +11567,7 @@ const RIG={
   guitar:{r:1.02,sk:.5,p:[[-1.05,0],[1.05,0]]},
   fcello:{r:.92,sk:.58,p:[[-1.45,-.35],[-.5,-.75],[.5,-.75],[1.45,-.35]]},
   six:{r:1,sk:1.1,p:[[-2.2,.15],[-1.55,-.9],[-.5,-1.35],[.6,-1.35],[1.65,-.9],[2.25,.15]]},
+  tcello:{r:.95,sk:.55,p:[[-1.1,-.15],[0,-.75],[1.1,-.15]]},
   seven:{r:.95,sk:1.1,p:[[-2.5,.35],[-2.05,-.7],[-1.15,-1.35],[0,-1.55],[1.15,-1.35],[2.05,-.7],[2.5,.35]]}
 };
 const rigOf=k=>RIG[k]||RIG.tenor;
@@ -12399,7 +12418,7 @@ const STAGE={
   on:false,
   // how far each drum's skirt hangs below its face, as a part of its radius: a real drum's height, seen from where you
   // stand. The tenor is shortest, the bass a full oil drum. The Arrange pans screen can make any set's longer or shorter.
-  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.38,six:1,seven:1},
+  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.38,tcello:.36,six:1,seven:1},
   skf(k){const a=this.lay()[k];return (this.SK[k]||.2)*(a&&a.skirt!=null?a.skirt:1)},
   // your own arrangement (Arrange pans), per set and per way up: {skirt, land:{all,p:{drum:[dx,dy,size]}}, up:{...}}
   lv:0,_lay:null,
@@ -12474,6 +12493,11 @@ const STAGE={
       const strip=Math.min(96,W*.24),R=Math.min((W-strip-28)/4,(H-2*pad)/6.3),gy=R*2.08,used=gy*2+2.1*R,y0=(H-used)/2+R;
       [[2,0],[1,1],[0,2],[3,0],[4,1],[5,2]].forEach(([di,row])=>{const left=di<3;place[di]=[W/2+(left?-1:1)*(strip/2+6+R+(row===1?6:0)),y0+row*gy,R]});
       lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=y0-R;
+    }else if(ds.length===3){   // three cello: one pan on top in the middle, two below out to the sides, notes falling between them
+      const strip=Math.min(120,W*.14),R=Math.min((H-2*pad)/3.95,(W-2*side-strip-24)/4),y1=pad+R*.96,y2=H-pad-R*1.12;
+      place.push([W/2,y1,R],[W/2-strip/2-24-R,y2,R],[W/2+strip/2+24+R,y2,R]);
+      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});
+      return{ds,place,lanes,top:y1+R*1.0,bottom:Math.min(H-pad,y2+R*.55)};
     }else if(k==='fcello'&&this.cello(W,H)){   // four cello: the top two touching in the middle, the bottom two out to the sides
       const strip=Math.min(110,W*.13),c=this.cello(W,H);
       lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});
@@ -12532,6 +12556,8 @@ const STAGE={
     // two pans always side by side, as you stand at them: as big as the width allows, the same size
     if(ds.length===2){const g=Math.max(6,W*.015),R=Math.min((W-3*g)/4,(H-16)/2.3);place.push([W/2-R-g/2,H/2,R],[W/2+R+g/2,H/2,R])}
     else if(ds.length===1){const R=Math.min((W-12)/2,(H-12)/2.12);place.push([W/2,H/2,R])}
+    else if(ds.length===3){   // three cello upright: one pan on top, the other two side by side under it
+      const R=Math.min((W-10)/4.02,(H-12)/(4*t+.1));place.push([W/2,H/2-R*t-R*.05,R],[W/2-R-2,H/2+R*t+R*.05,R],[W/2+R+2,H/2+R*t+R*.05,R])}
     else{   // four cello: the top pair touching, the bottom pair just below (a little wider when there's room)
       const R=Math.min((W-10)/4.02,(H-12)/(4*t+.1)),st=Math.max(0,Math.min(R*.5,W/2-2*R-6));
       place.push([W/2-R-1,H/2-R*t-R*.05,R],[W/2+R+1,H/2-R*t-R*.05,R],[W/2-R-1-st,H/2+R*t+R*.05,R],[W/2+R+1+st,H/2+R*t+R*.05,R])}
@@ -13095,7 +13121,7 @@ WB.init();
 // shapes and places, so taps land exactly as before. Photos sit behind the notes; Line up moves, turns and sizes a
 // photo until your real notes sit under the outlines. The Double Guitar's photos are the ones it already had.
 var LOOK={   // var: Setup can ask about it before this part has run
-  KEYS:['guitar','tenor','dten','dsec','fcello','six','seven'],
+  KEYS:['guitar','tenor','dten','dsec','tcello','fcello','six','seven'],
   STYLES:[['night','App look'],   // the usual style: it takes the app look's colours (Night, Chrome Night, Trinidad & Tobago...)
   ['steel','Steel'],['painted','Painted'],['photo','My photos']],
   NAMES:[['oct','Letters + octaves'],['plain','Letters'],['none','Hidden']],
@@ -13294,7 +13320,7 @@ LOOK.init();
 // New song now asks for the song's name first (and, for a Producer, which pan it's for).
 var ROLE={   // var: Home can ask about it before this part has run
   SECTIONS:{front:{name:'Frontline',sub:'The melody: Tenor, Double Tenor or Double Seconds',pans:['tenor','dten','dsec']},
-            back:{name:'Backline',sub:'The harmony and bass: Double Guitar, Four Cello, Six or Seven Bass',pans:['guitar','fcello','six','seven']}},
+            back:{name:'Backline',sub:'The harmony and bass: Double Guitar, Three or Four Cello, Six or Seven Bass',pans:['guitar','tcello','fcello','six','seven']}},
   get(){try{const x=JSON.parse(localStorage.getItem('panyard-role')||'null');if(x&&(x.role==='producer'||(x.role==='band'&&SETS[x.pan])))return x}catch{}return null},
   // the last band pan is kept while you're a Producer, so the switch on Home can go straight back to it
   put(x){const o=this.get(),last=x.role==='band'?x.pan:(o&&(o.pan||o.lastPan));if(last&&SETS[last])x.lastPan=last;try{localStorage.setItem('panyard-role',JSON.stringify(x))}catch{}},
@@ -14481,7 +14507,7 @@ BACK.init();
    Saved in localStorage panyard-layout (STAGE.lay). Reset puts this set back as it comes. */
 var ARRANGE={
   key:null,sel:-1,
-  SETS:['guitar','dsec','dten','tenor','fcello','six','seven'],
+  SETS:['guitar','dsec','dten','tenor','tcello','fcello','six','seven'],
   box(){   // the room the pans get: the screen above Play's play bar sideways (68px tall), the screen above this sheet upright
     const land=STAGE.orient()==='land',sh=$('arSheet');
     return land?{W:innerWidth,H:Math.max(200,innerHeight-68)}:{W:innerWidth,H:Math.max(240,innerHeight-(sh?sh.offsetHeight:300)-8)};
@@ -14580,7 +14606,7 @@ var ARRANGE={
    drum) is drawn that much smaller per semitone above the lowest note there, round its own label, never below 68%
    so the top notes stay easy to tap. The Double Guitar is drawn from a real pan already and stays as it is. */
 var REAL={
-  K:'panyard-notesizes',SETS:['tenor','dten','dsec','fcello','six','seven'],map:null,
+  K:'panyard-notesizes',SETS:['tenor','dten','dsec','tcello','fcello','six','seven'],map:null,
   on(){try{return localStorage.getItem(this.K)==='1'}catch(e){return false}},
   set(v){try{localStorage.setItem(this.K,v?'1':'0')}catch(e){}STAGE.lv++;ARRANGE.refresh()},
   scaleOf(id){

@@ -16,7 +16,7 @@ var TW=(()=>{
   const mid=id=>midiOf(PITCH[id]);
   const nice=id=>PITCH[id].replace('#','♯').replace(/([A-G])b/,'$1♭');
   const stdHz=id=>440*Math.pow(2,(mid(id)-69)/12);   // the note at A = 440; the song's own A is added when it plays
-  const PARTS=k=>['six','seven','fcello'].includes(k)?[[1,'Note','the note itself'],[2,'Octave','twice as high']]
+  const PARTS=k=>['six','seven','fcello','tcello'].includes(k)?[[1,'Note','the note itself'],[2,'Octave','twice as high']]
     :[[1,'Note','the note itself'],[2,'Octave','twice as high'],[3,'Twelfth','an octave and a fifth up']];
 
   /* which recording plays each note */

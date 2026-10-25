@@ -3,7 +3,7 @@
 // shapes and places, so taps land exactly as before. Photos sit behind the notes; Line up moves, turns and sizes a
 // photo until your real notes sit under the outlines. The Double Guitar's photos are the ones it already had.
 var LOOK={   // var: Setup can ask about it before this part has run
-  KEYS:['guitar','tenor','dten','dsec','fcello','six','seven'],
+  KEYS:['guitar','tenor','dten','dsec','tcello','fcello','six','seven'],
   STYLES:[['night','App look'],   // the usual style: it takes the app look's colours (Night, Chrome Night, Trinidad & Tobago...)
   ['steel','Steel'],['painted','Painted'],['photo','My photos']],
   NAMES:[['oct','Letters + octaves'],['plain','Letters'],['none','Hidden']],

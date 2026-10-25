@@ -1263,6 +1263,17 @@ function dtenSet(drums){
   });
   return{name:'Double Tenor',key:'dten',view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
 }
+// Three cello, B2–G4: three pans, each a diminished chord (C E♭ F♯ A, C♯ E G B♭, B D F G♯). The low octave in four big
+// notes round the rim, the octave above in three smaller notes inside.
+function tcelloSet(drums){
+  const fields=[],ds=[];
+  drums.forEach(([dn,cx,cy,r,outer,inner],di)=>{
+    ds.push({name:dn,cx,cy,rx:r,ry:r});const k=r/445,add=(n,pos,path,x,y,fs)=>{const m=nmOf(n);fields.push(['tcello:'+m,PC_LAB[m%12],dn+' '+pos,path,f1(x),f1(y),Math.round(fs*k),'gTC'+di,di])};
+    outer.forEach((n,i)=>{const a=90-90*i,[x,y]=arcXY(cx,cy,r*.74,a);add(n,'outer',ringTile(cx,cy,r*.5,r*.955,a-45,a+45,r*.04,r*.12),x,y,78)});
+    inner.forEach((n,i)=>{const a=30-120*i,[x,y]=arcXY(cx,cy,r*.25,a);add(n,'inner',ellPath(x,y,r*.19,r*.19,0),x,y,56)});
+  });
+  return{name:'Three Cello',key:'tcello',view:stageViewBox(ds),cx:ds[0].cx,cy:ds[0].cy,rx:ds[0].rx,ry:ds[0].ry,drums:ds,fields};
+}
 const FIFTHS=[0,7,2,9,4,11,6,1,8,3,10,5];
 const fifthsRing=(oct,d)=>FIFTHS.map((pc,k)=>[PC_NAME[pc]+oct,90-30*k,d]);
 const GUITAR_PANS=PANS;
@@ -1305,6 +1316,13 @@ const SETS={
       ['B♭',460,480,430,['F4','Bb3','Eb4','Ab4','Db4','Gb4'],['F5','Bb4','Eb5','Ab5','Db5','Gb5'],[['Bb5',30],['Db6',-150]]],
       ['A',1360,480,430,['C4','G4','D4','A3','E4','B3'],['C5','G5','D5','A4','E5','B4'],[['C6',90],['A5',-90],['B5',150]]]])],
     groups:[{key:'gDT0',name:'B♭ pan',short:'B♭',color:'#f2b38a'},{key:'gDT1',name:'A pan',short:'A',color:'#8fc7ff'}]},
+  // Three cello, B2–G4 (the G-Pan patent's range): three pans of a diminished chord each, low notes round the rim
+  tcello:{name:'Three Cello',range:'B2–G4',plain:[48,59],
+    views:[tcelloSet([
+      ['C',330,420,330,['C3','Eb3','F#3','A3'],['C4','Eb4','F#4']],
+      ['C♯',1010,420,330,['C#3','E3','G3','Bb3'],['C#4','E4','G4']],
+      ['B',1690,420,330,['B2','D3','F3','G#3'],['B3','D4','F4']]])],
+    groups:[{key:'gTC0',name:'C pan',short:'C',color:'#f2b38a'},{key:'gTC1',name:'C♯ pan',short:'C♯',color:'#9be38f'},{key:'gTC2',name:'B pan',short:'B',color:'#8fc7ff'}]},
   // Seven bass, G♯1–E3: seven drums in an arch, each with its note, the fifth and an octave
   seven:{name:'Seven Bass',range:'G♯1–E3',plain:[32,43],
     views:[bassSet('seven','Seven Bass',[

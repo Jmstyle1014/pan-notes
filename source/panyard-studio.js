@@ -904,7 +904,7 @@ function chartParts(){
 const songGeo=()=>({spb:spb(),bpb:BPB(),origin:origin(),bars:bars()});
 /* the arrangement for the Chart tab: the song's sections, and each pan in the song with its notes as cues.
    Drums and the engine room are left off. A section that's note-for-note the same as an earlier one says so. */
-const PAN_RANK=k=>({tenor:0,dten:.5,dsec:1,guitar:2,fcello:3,six:5,seven:5}[k]??4);
+const PAN_RANK=k=>({tenor:0,dten:.5,dsec:1,guitar:2,fcello:3,tcello:3,six:5,seven:5}[k]??4);
 function arrangementData(){
   if(!song)return null;const ss=ownSecs(),bpb=BPB();
   const trs=song.tracks.filter(t=>t.type==='pan'&&(zoneOn()?inSong(t):(t.notes||[]).length)).sort((x,y)=>PAN_RANK(trSet(x))-PAN_RANK(trSet(y)));
@@ -949,7 +949,7 @@ const KIND={practice:'Your recording',audio:'Mic / audio',pan:'Pan taps',part:'M
 const ICON={practice:'♪',audio:'🎙',pan:'◉',part:'✎',beats:'▦',drums:'🥁'};
 // a pan track shows a little drawing of its pans (one for the tenor, six for the bass) and a short name, so you can
 // tell them apart in the narrow track column; a name you gave it yourself stays as you wrote it
-const SHORT={tenor:'Tenor',dten:'Dbl Tenor',guitar:'Guitar',dsec:'Seconds',fcello:'Cello',six:'Bass',seven:'7 Bass'};
+const SHORT={tenor:'Tenor',dten:'Dbl Tenor',guitar:'Guitar',dsec:'Seconds',fcello:'Cello',tcello:'3 Cello',six:'Bass',seven:'7 Bass'};
 const trIcon=tr=>tr.type==='pan'&&SETS[tr.panSet]&&typeof HOME!=='undefined'?'<span class="st-ic st-icpan" aria-hidden="true">'+HOME.mini(tr.panSet,28)+'</span>':'<span class="st-ic" aria-hidden="true">'+ICON[tr.type]+'</span>';
 const trName=tr=>tr.type==='pan'&&SETS[tr.panSet]&&tr.name===SETS[tr.panSet].name&&SHORT[tr.panSet]?SHORT[tr.panSet]:tr.name;
 function renderTransport(){
@@ -1041,7 +1041,7 @@ const ownSecs=()=>song.secs&&song.secs.length?song.secs:sections().map(s=>({name
 const addSrc=(a,b)=>{const A=a*BPB(),B=b*BPB();return song.tracks.filter(t=>(t.type==='pan'||t.type==='drums'||t.type==='part')&&notesOf(t).some(n=>n.t>=A&&n.t<B))};
 // My part's notes as a pan track's: a roll's quick strikes are marked the way a recorded roll is
 const asPan=n=>{const o={t:n.t,d:n.d,p:n.p,v:n.v};if(n.roll)o.r=1;return o};
-const LAYER_OF={tenor:'Front line',dten:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',six:'Bass',seven:'Bass'};
+const LAYER_OF={tenor:'Front line',dten:'Front line',dsec:'Front line',guitar:'Middle',fcello:'Middle',tcello:'Middle',six:'Bass',seven:'Bass'};
 function songTwin(tr){
   if(tr.type==='part')tr={type:'pan',panSet:setKey(),vol:tr.vol,pan:tr.pan,fx:tr.fx};   // My part goes onto the song's track for its pan
   if(inSong(tr))return tr;
@@ -1490,9 +1490,9 @@ function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs()
    listening seat in song.stage.hear ('judges', 'middle' or 'off': the mix as it is). */
 const STG_ON=tr=>['pan','part','drums','beats','audio'].includes(tr.type);
 const STG_SET=tr=>tr.type==='drums'||tr.type==='beats'?'engine':tr.type==='audio'?'mic':tr.type==='part'?'me':trSet(tr);
-const STG_HOME={tenor:[.5,.86,4],dsec:[.72,.66,3],guitar:[.32,.47,3],fcello:[.68,.47,2],six:[.12,.18,2],seven:[.88,.18,2],dten:[.28,.66,3],engine:[.5,.12,1],mic:[.9,.62,1],me:[.16,.8,1]};
-const STG_R={tenor:.82,dsec:.86,guitar:.92,fcello:.98,six:1.08,seven:1.08,dten:.84,engine:.9,mic:.7,me:.85};
-const STG_NAME={tenor:'Tenors',dsec:'Double seconds',guitar:'Guitars',fcello:'Cellos',six:'Basses',seven:'Seven bass',dten:'Double tenors',engine:'Engine room',mic:'Mic'};
+const STG_HOME={tenor:[.5,.86,4],dsec:[.72,.66,3],guitar:[.32,.47,3],fcello:[.68,.47,2],tcello:[.5,.5,2],six:[.12,.18,2],seven:[.88,.18,2],dten:[.28,.66,3],engine:[.5,.12,1],mic:[.9,.62,1],me:[.16,.8,1]};
+const STG_R={tenor:.82,dsec:.86,guitar:.92,fcello:.98,tcello:.95,six:1.08,seven:1.08,dten:.84,engine:.9,mic:.7,me:.85};
+const STG_NAME={tenor:'Tenors',dsec:'Double seconds',guitar:'Guitars',fcello:'Cellos',tcello:'Three cellos',six:'Basses',seven:'Seven bass',dten:'Double tenors',engine:'Engine room',mic:'Mic'};
 // a section with no place yet stands where its kind stands on a Panorama stage (the second of a kind beside the first)
 function stPlace(tr){
   if(tr.st&&Number.isFinite(tr.st.x))return tr.st;
@@ -1625,6 +1625,7 @@ const RIG={
   guitar:{r:1.02,sk:.5,p:[[-1.05,0],[1.05,0]]},
   fcello:{r:.92,sk:.58,p:[[-1.45,-.35],[-.5,-.75],[.5,-.75],[1.45,-.35]]},
   six:{r:1,sk:1.1,p:[[-2.2,.15],[-1.55,-.9],[-.5,-1.35],[.6,-1.35],[1.65,-.9],[2.25,.15]]},
+  tcello:{r:.95,sk:.55,p:[[-1.1,-.15],[0,-.75],[1.1,-.15]]},
   seven:{r:.95,sk:1.1,p:[[-2.5,.35],[-2.05,-.7],[-1.15,-1.35],[0,-1.55],[1.15,-1.35],[2.05,-.7],[2.5,.35]]}
 };
 const rigOf=k=>RIG[k]||RIG.tenor;

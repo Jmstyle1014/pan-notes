@@ -69,7 +69,7 @@ var BAND=(()=>{
   }
   const COVER_SETS=['tenor','dten','dsec'];
   // each pan's body note in Hz, from its skirt length (inches) and a 22.5 in drum: 343 / (4 (L + 0.3 d))
-  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:18,six:34,seven:34};   // a four cello's skirt is about a guitar's, a little longer
+  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:18,tcello:18,six:34,seven:34};   // a four cello's skirt is about a guitar's, a little longer
   const BODY=Object.fromEntries(Object.entries(SKIRT_IN).map(([k,L])=>[k,Math.round(343/(4*(L*.0254+0.3*22.5*.0254)))]));
   function covered(id){if(!FEEL.s.covers)return false;const F=FIELDS.get(id);return !!(F&&COVER_SETS.includes(F.set)&&/\b(outer|middle)\b/.test(F.pos||''))}
   const shimmerOn=light=>{const b=now();return !!(b&&b.shimmer&&!light)};

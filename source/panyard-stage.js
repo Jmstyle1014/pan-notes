@@ -6,7 +6,7 @@ const STAGE={
   on:false,
   // how far each drum's skirt hangs below its face, as a part of its radius: a real drum's height, seen from where you
   // stand. The tenor is shortest, the bass a full oil drum. The Arrange pans screen can make any set's longer or shorter.
-  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.38,six:1,seven:1},
+  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.38,tcello:.36,six:1,seven:1},
   skf(k){const a=this.lay()[k];return (this.SK[k]||.2)*(a&&a.skirt!=null?a.skirt:1)},
   // your own arrangement (Arrange pans), per set and per way up: {skirt, land:{all,p:{drum:[dx,dy,size]}}, up:{...}}
   lv:0,_lay:null,
@@ -81,6 +81,11 @@ const STAGE={
       const strip=Math.min(96,W*.24),R=Math.min((W-strip-28)/4,(H-2*pad)/6.3),gy=R*2.08,used=gy*2+2.1*R,y0=(H-used)/2+R;
       [[2,0],[1,1],[0,2],[3,0],[4,1],[5,2]].forEach(([di,row])=>{const left=di<3;place[di]=[W/2+(left?-1:1)*(strip/2+6+R+(row===1?6:0)),y0+row*gy,R]});
       lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});top=y0-R;
+    }else if(ds.length===3){   // three cello: one pan on top in the middle, two below out to the sides, notes falling between them
+      const strip=Math.min(120,W*.14),R=Math.min((H-2*pad)/3.95,(W-2*side-strip-24)/4),y1=pad+R*.96,y2=H-pad-R*1.12;
+      place.push([W/2,y1,R],[W/2-strip/2-24-R,y2,R],[W/2+strip/2+24+R,y2,R]);
+      lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});
+      return{ds,place,lanes,top:y1+R*1.0,bottom:Math.min(H-pad,y2+R*.55)};
     }else if(k==='fcello'&&this.cello(W,H)){   // four cello: the top two touching in the middle, the bottom two out to the sides
       const strip=Math.min(110,W*.13),c=this.cello(W,H);
       lanes.push({x:W/2-strip/2,w:strip/2-2},{x:W/2+2,w:strip/2-2});
@@ -139,6 +144,8 @@ const STAGE={
     // two pans always side by side, as you stand at them: as big as the width allows, the same size
     if(ds.length===2){const g=Math.max(6,W*.015),R=Math.min((W-3*g)/4,(H-16)/2.3);place.push([W/2-R-g/2,H/2,R],[W/2+R+g/2,H/2,R])}
     else if(ds.length===1){const R=Math.min((W-12)/2,(H-12)/2.12);place.push([W/2,H/2,R])}
+    else if(ds.length===3){   // three cello upright: one pan on top, the other two side by side under it
+      const R=Math.min((W-10)/4.02,(H-12)/(4*t+.1));place.push([W/2,H/2-R*t-R*.05,R],[W/2-R-2,H/2+R*t+R*.05,R],[W/2+R+2,H/2+R*t+R*.05,R])}
     else{   // four cello: the top pair touching, the bottom pair just below (a little wider when there's room)
       const R=Math.min((W-10)/4.02,(H-12)/(4*t+.1)),st=Math.max(0,Math.min(R*.5,W/2-2*R-6));
       place.push([W/2-R-1,H/2-R*t-R*.05,R],[W/2+R+1,H/2-R*t-R*.05,R],[W/2-R-1-st,H/2+R*t+R*.05,R],[W/2+R+1+st,H/2+R*t+R*.05,R])}

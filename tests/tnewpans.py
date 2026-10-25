@@ -2,6 +2,7 @@ import os,sys
 from playwright.sync_api import sync_playwright
 # The Double Tenor (A3–C♯6, flat side of the circle of fifths on the left pan, sharp side on the right) and the
 # Seven Bass (G♯1–E3, seven drums of three notes): every note is there once, each plays its own pitch, and both show
+# Three Cello (B2–G4, three pans of a diminished chord each) the same way; all show
 # in Write, Play (upright and sideways), Studio and the pan chooser, with every note tapping to itself.
 D=os.environ['WORK']+'/tnewpans/';os.makedirs(D,exist_ok=True)
 html='<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"></head><body>'+open(os.environ['APP']).read()+'</body></html>'
@@ -12,7 +13,7 @@ def check(ok,what):
 TAPS="""sel=>{let ok=0,n=0;for(const f of document.querySelectorAll(sel+' .field')){const t=f.querySelector('text');if(!t)continue;const r=t.getBoundingClientRect();if(!r.width||r.top<0||r.bottom>innerHeight-60)continue;n++;const e=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);if(e&&e.closest('.field')===f)ok++}return [ok,n]}"""
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
-    for k,name,lo,hi,n in [('dten','Double Tenor','A3','C#6',29),('seven','Seven Bass','G#1','E3',21)]:
+    for k,name,lo,hi,n in [('dten','Double Tenor','A3','C#6',29),('seven','Seven Bass','G#1','E3',21),('tcello','Three Cello','B2','G4',21)]:
         for W,H,nm in [(412,892,'up'),(892,412,'side')]:
             ctx=b.new_context(viewport={'width':W,'height':H},device_scale_factor=2,has_touch=True);pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
             pg.route('https://pan.test/**',lambda r:r.fulfill(body=html,content_type='text/html'));pg.route('https://fonts.googleapis.com/**',lambda r:r.abort())
@@ -23,6 +24,7 @@ with sync_playwright() as p:
                 info=pg.evaluate("k=>{const ids=SETS[k].views.flatMap(v=>v.fields.map(f=>f[0])),ms=ids.map(i=>+i.split(':')[1]).sort((a,b)=>a-b);return [ids.length,new Set(ids).size,PITCH[ids.find(i=>+i.split(':')[1]===ms[0])],PITCH[ids.find(i=>+i.split(':')[1]===ms.at(-1))],ms.every((m,i)=>!i||m===ms[i-1]+1)]}",k)
                 check(info[0]==n and info[1]==n,f'{name}: {n} notes, each once {info[:2]}');check(info[2]==lo and info[3]==hi and info[4],f'{name}: {lo} to {hi}, every note in between {info[2:]}')
                 pc=pg.evaluate("k=>{const o={};for(const f of SETS[k].views[0].drums.length>1?SETS[k].views[0].fields:[])o[f[8]]=(o[f[8]]||new Set()).add(+f[0].split(':')[1]%12);return Object.values(o).map(s=>[...s].sort((a,b)=>a-b))}",k)
+                if k=='tcello':check(pc==[[0,3,6,9],[1,4,7,10],[2,5,8,11]],f'Three Cello: a diminished chord on each pan {pc}')
                 if k=='dten':check(pc==[[1,3,5,6,8,10],[0,2,4,7,9,11]],f'Double Tenor: flat side on the left pan, sharp side on the right {pc}')
                 pg.evaluate("showView('cues')");pg.wait_for_timeout(700);t=pg.evaluate(TAPS,'#editPans');check(t[1]>=n*.6 and t[0]==t[1],f'{name}: Write, every note taps to itself {t}');pg.screenshot(path=D+k+'-write.png')
                 ids=pg.evaluate("k=>[...FIELDS.keys()].filter(i=>i.startsWith(k+':'))",k);check(len(ids)==n,f'{name}: notes known to the app ({len(ids)})')
