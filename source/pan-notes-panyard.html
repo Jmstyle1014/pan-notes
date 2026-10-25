@@ -4783,7 +4783,7 @@ const SETS={
       ['C',1470,690,160,[['C2',-119],['C3',113],['G2',-5.7]]]])],
     groups:['B♭','E♭','C♯','B','D','C'].map((n,i)=>({key:'gS'+i,name:n+' drum',short:n,color:['#f2b38a','#ffd36b','#9be38f','#8fc7ff','#c9a2ff','#ff9ac1'][i]}))},
   // Four cello, B♭1–C♯4: two smaller pans on top, two larger below
-  fcello:{name:'Four Cello',range:'B♭1–C♯4',plain:[46,57],
+  fcello:{name:'Four Cello',range:'B♭2–C♯5',plain:[46,57],
     views:[cello4Set([
       ['B♭ pan',730,240,190,[['Eb3',-97.5,.7],['F2',-40,.76],['Eb2',-166.3,.67],['F3',-56.7,.23],['Bb3',114.6,.22],['Bb2',126.5,.72],['Bb1',40.8,.66]]],
       ['C♯ pan',1180,230,180,[['C#3',-145.1,.76],['F#2',-86.3,.65],['F#3',-12.6,.66],['C#4',-152.2,.28],['G#3',29.1,.18],['C#2',134.2,.64],['G#2',46.2,.74]]],
@@ -4820,8 +4820,11 @@ const SETS={
 const OCT_MARK={1:'̇',2:'̈','-1':'̣','-2':'̤'};
 function dottedLabel(m,plain){const L=PC_LAB[m%12];if(!plain)return L;const o=m<plain[0]?-Math.ceil((plain[0]-m)/12):m>plain[1]?Math.ceil((m-plain[1])/12):0;return o?L[0]+OCT_MARK[o]+L.slice(1):L}
 const SET_PITCH={};
+// a set that sounds higher than its note numbers: the four cello's notes were measured an octave low (B♭1–C♯4); a real
+// four cello plays B♭2–C♯5 (the G-Pan patent: about B2 to D5). Its saved notes and recordings keep their names.
+const SOUND_UP={fcello:12};
 for(const [sk,set] of Object.entries(SETS)){if(sk==='guitar')continue;
-  for(const v of set.views)for(const f of v.fields){const m=+f[0].split(':')[1];SET_PITCH[f[0]]=PC_NAME[m%12]+(Math.floor(m/12)-1);
+  for(const v of set.views)for(const f of v.fields){const m=+f[0].split(':')[1],ms=m+(SOUND_UP[sk]||0);SET_PITCH[f[0]]=PC_NAME[ms%12]+(Math.floor(ms/12)-1);
     FIELDS.set(f[0],{label:dottedLabel(m,set.plain),pos:f[2],pan:v.drums.length>1?(f[2].split(' ')[0]+' '+(sk==='six'||sk==='seven'?'drum':'pan')):set.name,grp:f[7],set:sk})}}
 GUITAR_PANS.forEach(p=>p.fields.forEach(f=>{const x=FIELDS.get(f[0]);x.grp=p.key;x.set='guitar'}));
 const setKey=()=>S&&SETS[S.panSet]?S.panSet:'guitar';
@@ -9307,7 +9310,7 @@ var BAND=(()=>{
   }
   const COVER_SETS=['tenor','dten','dsec'];
   // each pan's body note in Hz, from its skirt length (inches) and a 22.5 in drum: 343 / (4 (L + 0.3 d))
-  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:22,six:34,seven:34};
+  const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:18,six:34,seven:34};   // a four cello's skirt is about a guitar's, a little longer
   const BODY=Object.fromEntries(Object.entries(SKIRT_IN).map(([k,L])=>[k,Math.round(343/(4*(L*.0254+0.3*22.5*.0254)))]));
   function covered(id){if(!FEEL.s.covers)return false;const F=FIELDS.get(id);return !!(F&&COVER_SETS.includes(F.set)&&/\b(outer|middle)\b/.test(F.pos||''))}
   const shimmerOn=light=>{const b=now();return !!(b&&b.shimmer&&!light)};
@@ -11410,7 +11413,7 @@ const RIG={
   dten:{r:.92,sk:.25,p:[[-1,0],[1,0]]},
   dsec:{r:.95,sk:.3,p:[[-1,0],[1,0]]},
   guitar:{r:1.02,sk:.5,p:[[-1.05,0],[1.05,0]]},
-  fcello:{r:.92,sk:.75,p:[[-1.45,-.35],[-.5,-.75],[.5,-.75],[1.45,-.35]]},
+  fcello:{r:.92,sk:.58,p:[[-1.45,-.35],[-.5,-.75],[.5,-.75],[1.45,-.35]]},
   six:{r:1,sk:1.1,p:[[-2.2,.15],[-1.55,-.9],[-.5,-1.35],[.6,-1.35],[1.65,-.9],[2.25,.15]]},
   seven:{r:.95,sk:1.1,p:[[-2.5,.35],[-2.05,-.7],[-1.15,-1.35],[0,-1.55],[1.15,-1.35],[2.05,-.7],[2.5,.35]]}
 };
@@ -12249,7 +12252,7 @@ const STAGE={
   on:false,
   // how far each drum's skirt hangs below its face, as a part of its radius: a real drum's height, seen from where you
   // stand. The tenor is shortest, the bass a full oil drum. The Arrange pans screen can make any set's longer or shorter.
-  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.52,six:1,seven:1},
+  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.38,six:1,seven:1},
   skf(k){const a=this.lay()[k];return (this.SK[k]||.2)*(a&&a.skirt!=null?a.skirt:1)},
   // your own arrangement (Arrange pans), per set and per way up: {skirt, land:{all,p:{drum:[dx,dy,size]}}, up:{...}}
   lv:0,_lay:null,

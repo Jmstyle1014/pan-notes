@@ -6,7 +6,7 @@ const STAGE={
   on:false,
   // how far each drum's skirt hangs below its face, as a part of its radius: a real drum's height, seen from where you
   // stand. The tenor is shortest, the bass a full oil drum. The Arrange pans screen can make any set's longer or shorter.
-  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.52,six:1,seven:1},
+  SK:{tenor:.15,dten:.18,dsec:.22,guitar:.32,fcello:.38,six:1,seven:1},
   skf(k){const a=this.lay()[k];return (this.SK[k]||.2)*(a&&a.skirt!=null?a.skirt:1)},
   // your own arrangement (Arrange pans), per set and per way up: {skirt, land:{all,p:{drum:[dx,dy,size]}}, up:{...}}
   lv:0,_lay:null,
