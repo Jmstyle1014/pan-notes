@@ -1225,16 +1225,35 @@ body.st-song #stSecs{display:none!important}
 .stg-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .stg-hear{flex:1 1 260px;display:flex}.stg-hear button{flex:1;min-height:40px;font-size:13px}
 .stg-hear button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink)}
-.stg-floor{border-radius:16px;overflow:hidden;border:1px solid var(--line);touch-action:none}
-.stg-svg{display:block;width:100%;height:auto}
+/* a fixed screen: the stage box is as tall as what's left of the phone; the floor fills it between the top row and the card */
+#stStage:not([hidden]){display:flex;flex-direction:column;overflow:hidden}
+.stg-top{flex:none}.stg-card{flex:none}
+.stg-floor{position:relative;flex:1;min-height:180px;border-radius:16px;overflow:hidden;border:1px solid var(--line);touch-action:none;-webkit-user-select:none;user-select:none}
+.stg-svg{display:block;width:100%;height:100%}
+.stg-zm{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+.stg-zm button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:rgb(25 19 46 / .82);color:var(--text);font-size:18px;cursor:pointer}
+.stg-mini{position:absolute;left:8px;bottom:8px;border:1px solid var(--line);border-radius:8px;pointer-events:none}
+.stg-mini[hidden]{display:none}
+.stg-svg .stg-tag{font-size:calc(11px / var(--stz,1))}
+/* sideways the phone is short: a slimmer top row, and the card floats over the bottom of the stage */
+@media (orientation:landscape) and (max-height:520px){
+  .stg-top{margin-bottom:6px}.stg-top .btn,.stg-hear button{min-height:34px;padding:4px 10px;font-size:12px}
+  #stStage{position:relative}
+  #stStage .stg-card{position:absolute;left:10px;bottom:10px;margin:0;max-width:calc(100% - 80px);padding:4px 8px;gap:6px 10px;flex-wrap:nowrap;background:rgb(20 14 30 / .9);backdrop-filter:blur(6px)}
+  #stStage .stg-card .stg-cn{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#stStage .stg-cb{flex-wrap:nowrap}
+  #stStage .stg-card .stg-cn small{display:none}#stStage .stg-card .stg-vol{display:none}
+  #stStage .stg-cb .btn{min-width:36px;min-height:36px}
+  .stg-mini{bottom:auto;top:8px}
+}
+.stg-pl.stg-lift{filter:drop-shadow(0 8px 10px rgba(0,0,0,.7)) drop-shadow(0 0 6px rgba(255,216,74,.8))}
 .stg-tag{font:700 11px system-ui,sans-serif;letter-spacing:.06em;fill:#ffd84a}
 .stg-hit{fill:transparent}
 .stg-sec{cursor:grab}
 .stg-sec.sel .stg-hit{fill:rgba(255,216,74,.08);stroke:#ffd84a;stroke-dasharray:5 4}
 .stg-sec.off{opacity:.38}
 .stg-sec.lit .stg-face{stroke:#ffd84a;stroke-width:3}
-.stg-sec.lit .stg-p{filter:drop-shadow(0 0 6px rgba(255,216,74,.85))}
-.stg-card{margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.stg-sec.lit .stg-pl{filter:drop-shadow(0 0 6px rgba(255,216,74,.85))}
+.stg-card{margin-top:8px;max-height:40%;overflow:auto;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
 .stg-cn{flex:1 1 140px;min-width:0}.stg-cn small{display:block;color:var(--muted)}
 .stg-cb{display:flex;gap:6px;flex-wrap:wrap}.stg-cb .btn{min-width:40px;min-height:40px}
 .stg-cb .btn.on{background:var(--gold);color:var(--gold-ink)}
@@ -2607,10 +2626,14 @@ html.th-cday .st-selmore{background:var(--raised);border:1px solid var(--line)}
 html.th-cday .st-selarrow{background:var(--raised);border-right:1px solid var(--teal);border-bottom:1px solid var(--teal)}
 html.th-cday .stg-hear button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink)}
 html.th-cday .stg-floor{border:1px solid var(--line)}
+html.th-cday .stg-zm button{border:1px solid var(--line);background:rgb(227 226 234/0.82);color:var(--text)}
+html.th-cday .stg-mini{border:1px solid var(--line)}
+@media (orientation:landscape) and (max-height:520px){html.th-cday #stStage .stg-card{background:rgb(236 235 241/0.9)}}
+html.th-cday .stg-pl.stg-lift{filter:drop-shadow(0 8px 10px rgb(31 26 41/0.315)) drop-shadow(0 0 6px rgb(220 179 86/0.8))}
 html.th-cday .stg-tag{fill:#dcb356}
 html.th-cday .stg-sec.sel .stg-hit{fill:rgb(220 179 86/0.08);stroke:#dcb356}
 html.th-cday .stg-sec.lit .stg-face{stroke:#dcb356}
-html.th-cday .stg-sec.lit .stg-p{filter:drop-shadow(0 0 6px rgb(220 179 86/0.85))}
+html.th-cday .stg-sec.lit .stg-pl{filter:drop-shadow(0 0 6px rgb(220 179 86/0.85))}
 html.th-cday .stg-card{border:1px solid var(--line);background:var(--surface)}
 html.th-cday .stg-cn small{color:var(--muted)}
 html.th-cday .stg-cb .btn.on{background:var(--gold);color:var(--gold-ink)}
@@ -3540,10 +3563,14 @@ html.th-cnight .st-selmore{background:var(--raised);border:1px solid var(--line)
 html.th-cnight .st-selarrow{background:var(--raised);border-right:1px solid var(--teal);border-bottom:1px solid var(--teal)}
 html.th-cnight .stg-hear button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink)}
 html.th-cnight .stg-floor{border:1px solid var(--line)}
+html.th-cnight .stg-zm button{border:1px solid var(--line);background:rgb(28 29 31/0.82);color:var(--text)}
+html.th-cnight .stg-mini{border:1px solid var(--line)}
+@media (orientation:landscape) and (max-height:520px){html.th-cnight #stStage .stg-card{background:rgb(19 20 21/0.9)}}
+html.th-cnight .stg-pl.stg-lift{filter:drop-shadow(0 8px 10px rgb(0 0 0/0.7)) drop-shadow(0 0 6px rgb(246 183 77/0.8))}
 html.th-cnight .stg-tag{fill:#f6b74d}
 html.th-cnight .stg-sec.sel .stg-hit{fill:rgb(246 183 77/0.08);stroke:#f6b74d}
 html.th-cnight .stg-sec.lit .stg-face{stroke:#f6b74d}
-html.th-cnight .stg-sec.lit .stg-p{filter:drop-shadow(0 0 6px rgb(246 183 77/0.85))}
+html.th-cnight .stg-sec.lit .stg-pl{filter:drop-shadow(0 0 6px rgb(246 183 77/0.85))}
 html.th-cnight .stg-card{border:1px solid var(--line);background:var(--surface)}
 html.th-cnight .stg-cn small{color:var(--muted)}
 html.th-cnight .stg-cb .btn.on{background:var(--gold);color:var(--gold-ink)}
@@ -11385,46 +11412,106 @@ function stageMix(tr){
   return{pan:Math.max(-.85,Math.min(.85,dx*1.7)),gain:Math.max(.4,Math.min(1.25,1/(.55+d*.9)))*(1+.1*Math.min(8,(p.n||1)-1)),wet:Math.min(.4,d*.3)};
 }
 let STGSEL=null;
+/* ---- the stage: every player with their own set of pans, on a stage that fills the screen. Pinch (or + / −) to zoom,
+   drag the floor to look round, drag a section to move it, hold a player's pans and drag to move just that player. ---- */
+// each player's set: where their drums stand (in drum radii, left/right and back/front), how big, how long the skirts
+const RIG={
+  tenor:{r:1,sk:.18,p:[[0,0]]},
+  dten:{r:.92,sk:.25,p:[[-1,0],[1,0]]},
+  dsec:{r:.95,sk:.3,p:[[-1,0],[1,0]]},
+  guitar:{r:1.02,sk:.5,p:[[-1.05,0],[1.05,0]]},
+  fcello:{r:.92,sk:.75,p:[[-1.45,-.35],[-.5,-.75],[.5,-.75],[1.45,-.35]]},
+  six:{r:1,sk:1.1,p:[[-2.2,.15],[-1.55,-.9],[-.5,-1.35],[.6,-1.35],[1.65,-.9],[2.25,.15]]},
+  seven:{r:.95,sk:1.1,p:[[-2.5,.35],[-2.05,-.7],[-1.15,-1.35],[0,-1.55],[1.15,-1.35],[2.05,-.7],[2.5,.35]]}
+};
+const rigOf=k=>RIG[k]||RIG.tenor;
+const rigHW=k=>Math.max(...rigOf(k).p.map(q=>Math.abs(q[0])))*1.02+1;   // half a set's width, in drum radii
+// the stage's own size: wide when the phone is sideways, tall when it's upright (a section's x/y is a share of it)
+// (its shape follows the floor on screen, so the whole band fills it when you fit it)
+let STA=0;
+const STW=()=>{const land=innerWidth>innerHeight,a=STA||(land?.5:1.45);return land?{W:1000,H:Math.round(1000*Math.max(.36,Math.min(.9,a)))}:{W:620,H:Math.round(620*Math.max(1,Math.min(2,a)))}};
+const stU=()=>{const s=STW();return s.W>s.H?s.W/40:s.W/24};
+// where each player of a section stands (stage units), front rows last so they cover the ones behind
+function stPlayers(tr){
+  const S=STW(),p=stPlace(tr),k=STG_SET(tr),pk=k==='me'?trSet(tr):k,n=Math.max(1,Math.min(12,p.n||1)),cy=S.H*.1+p.y*S.H*.74;let cx=p.x*S.W;
+  if(k==='engine'||k==='mic'){const r=stU()*(k==='mic'?.7:.9),out=[];for(let i=0;i<n;i++){const o=(p.pp&&p.pp[i])||[0,0];out.push({i,x:cx+(i-(n-1)/2)*r*2.3+o[0]*S.W,y:cy+o[1]*S.H,r,k,pk})}return{list:out,cx,cy,r,top:cy-r}}
+  const R=rigOf(pk),r=stU()*(STG_R[k]||.9)*R.r*(n>6?.88:1),w=(2*rigHW(pk)+.4)*r,h=(R.p.length>4?3.4:R.p.length>2?2.2:1.45)*r;
+  const per=Math.max(1,Math.min(n,Math.floor(S.W*.62/w)||1,R.p.length>4?2:R.p.length>2?3:4)),rows=Math.ceil(n/per),list=[];
+  {const half=(per*w)/2+r*.3;cx=Math.max(half,Math.min(S.W-half,cx))}   // the whole set stays on the stage
+  for(let j=0;j<rows;j++){const cnt=Math.min(per,n-j*per);for(let i=0;i<cnt;i++){const ix=j*per+i,o=(p.pp&&p.pp[ix])||[0,0];list.push({i:ix,x:cx+(i-(cnt-1)/2)*w+(j%2?w*.15:0)+o[0]*S.W,y:cy+(j-(rows-1)/2)*h+o[1]*S.H,r,k,pk})}}
+  return{list,cx,cy,r,top:cy-(rows-1)/2*h-r*(R.p.length>4?1.6:1)};
+}
+function stDrum(x,y,r,sk){
+  return '<ellipse cx="'+x+'" cy="'+(y+r*sk*1.6+r*.6)+'" rx="'+r*.95+'" ry="'+r*.16+'" fill="#000" opacity=".45"/>'
+   +'<path d="M'+(x-r)+' '+y+' V'+(y+r*sk*1.6)+' A'+r+' '+r*.5+' 0 0 0 '+(x+r)+' '+(y+r*sk*1.6)+' V'+y+' Z" fill="url(#stgSk)"/>'
+   +'<ellipse class="stg-face" cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+r*.5+'" fill="url(#stgCh)"/>';
+}
+function stPlayerSVG(pl){
+  const {x,y,r,k,pk}=pl;let s='<g class="stg-pl stg-p" data-i="'+pl.i+'">';
+  if(k==='engine')s+='<ellipse cx="'+x+'" cy="'+(y+r*.55)+'" rx="'+r*.95+'" ry="'+r*.4+'" fill="#2a2a30" stroke="#888"/><circle cx="'+(x-r*.45)+'" cy="'+(y-r*.1)+'" r="'+r*.35+'" fill="#c9a24a"/><circle cx="'+(x+r*.45)+'" cy="'+(y-r*.05)+'" r="'+r*.35+'" fill="#c9a24a"/><rect x="'+(x+r*.7)+'" y="'+(y-r*.5)+'" width="'+r*.18+'" height="'+r*.9+'" fill="#bbb" transform="rotate(20 '+(x+r*.8)+' '+y+')"/>';
+  else if(k==='mic')s+='<circle cx="'+x+'" cy="'+y+'" r="'+r*.5+'" fill="#ddd"/><rect x="'+(x-r*.08)+'" y="'+(y+r*.4)+'" width="'+r*.16+'" height="'+r*1.1+'" fill="#999"/>';
+  else{const R=rigOf(pk);R.p.map(([a,b])=>[x+a*r*1.02,y+b*r*.55]).sort((p,q)=>p[1]-q[1]).forEach(([px,py])=>{s+=stDrum(px,py,r,R.sk)})}
+  return s+'</g>';
+}
+// the camera: how far in you've zoomed and where you're looking (for this visit; Fit puts the whole stage in view)
+const CAM={z:0,x:0,y:0,fit:1,vw:0,vh:0};
+function camFit(vw,vh){const S=STW(),bw=vw-56,bh=vh-(stFloat()?56:0),z=Math.min(bw/S.W,bh/S.H);Object.assign(CAM,{z,fit:z,x:(bw-S.W*z)/2,y:(bh-S.H*z)/2,vw,vh})}
+const stFloat=()=>innerWidth>innerHeight&&innerHeight<=520;   // sideways phone: the card floats over the stage
+function camClamp(){const S=STW();CAM.z=Math.max(CAM.fit*.8,Math.min(CAM.fit*5,CAM.z));
+  const w=S.W*CAM.z,h=S.H*CAM.z;CAM.x=w<CAM.vw?(CAM.vw-w)/2:Math.min(40,Math.max(CAM.vw-w-40,CAM.x));CAM.y=h<CAM.vh?(CAM.vh-h)/2:Math.min(40,Math.max(CAM.vh-h-40,CAM.y))}
+// the names stay the same size on screen however far you zoom
+function camApply(){const g=q('#stgW');if(g){g.setAttribute('transform','translate('+CAM.x.toFixed(1)+' '+CAM.y.toFixed(1)+') scale('+CAM.z.toFixed(4)+')');g.style.setProperty('--stz',CAM.z.toFixed(4))}stMini()}
+function camZoom(f,px,py){const z0=CAM.z;CAM.z*=f;camClamp();const k=CAM.z/z0;CAM.x=px-(px-CAM.x)*k;CAM.y=py-(py-CAM.y)*k;camClamp();camApply()}
+// the little map in the corner, once you've zoomed in
+function stMini(){
+  const m=q('#stgMini');if(!m)return;const S=STW(),on=CAM.z>CAM.fit*1.15;m.hidden=!on;if(!on)return;
+  const sc=Math.min(110/S.W,80/S.H),v=m.querySelector('.stg-mv');m.setAttribute('viewBox','0 0 '+S.W*sc+' '+S.H*sc);m.style.width=S.W*sc+'px';m.style.height=S.H*sc+'px';
+  if(v){v.setAttribute('x',(-CAM.x/CAM.z*sc).toFixed(1));v.setAttribute('y',(-CAM.y/CAM.z*sc).toFixed(1));v.setAttribute('width',(CAM.vw/CAM.z*sc).toFixed(1));v.setAttribute('height',(CAM.vh/CAM.z*sc).toFixed(1))}
+}
 function renderStage(){
   const box=q('#stStage');if(!box||!song)return;if(VIEW!=='stage'){box.hidden=true;return}box.hidden=false;
-  const W=Math.round(box.clientWidth||innerWidth-16),land=innerWidth>innerHeight,H=Math.round(land?Math.max(240,innerHeight-230):Math.min(W*1.25,innerHeight-330));
-  const u=Math.min(W/22,H/15),secs=song.tracks.filter(STG_ON);
-  let s='<svg class="stg-svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="The band on stage"><defs>'
+  // a fixed screen: the stage takes what's left between the top bar and the bottom of the phone
+  const top=box.getBoundingClientRect().top,dock=(typeof STAGE!=='undefined'&&STAGE.dockH)?STAGE.dockH():0;
+  box.style.height=Math.max(260,innerHeight-Math.max(0,top)-dock-8)+'px';
+  const S=STW(),secs=song.tracks.filter(STG_ON),hear=stHear();
+  let s='<svg class="stg-svg" role="img" aria-label="The band on stage"><defs>'
     +'<radialGradient id="stgCh" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#c9c9cf"/><stop offset=".8" stop-color="#7d7d86"/><stop offset="1" stop-color="#3a3a40"/></radialGradient>'
     +'<linearGradient id="stgSk" x1="0" x2="1"><stop offset="0" stop-color="#7a0b17"/><stop offset=".3" stop-color="#e3263a"/><stop offset=".6" stop-color="#9a1020"/><stop offset="1" stop-color="#5a0711"/></linearGradient>'
-    +'<radialGradient id="stgFloor" cx=".5" cy="1.05" r="1.1"><stop offset="0" stop-color="#3a0d14"/><stop offset=".55" stop-color="#170a0e"/><stop offset="1" stop-color="#0d0a0c"/></radialGradient></defs>'
-    +'<rect width="'+W+'" height="'+H+'" fill="url(#stgFloor)"/>'
-    +'<rect x="0" y="'+(H-u*1.1)+'" width="'+W+'" height="'+u*1.1+'" fill="#000" opacity=".55"/><text class="stg-tag" x="'+W/2+'" y="'+(H-u*.38)+'" text-anchor="middle">⭐ JUDGES · AUDIENCE ⭐</text>';
-  const hear=stHear();if(hear!=='off'){const ly=hear==='middle'?H*.5:H-u*1.6;s+='<text x="'+W/2+'" y="'+ly+'" text-anchor="middle" font-size="'+u*1.1+'">🎧</text>'}
-  // back to front, so the front sections cover the skirts of the ones behind
-  const order=secs.map(t=>[t,stPlace(t)]).sort((a,b)=>a[1].y-b[1].y);
-  for(const [tr,p] of order){
-    const k=STG_SET(tr),pk=k==='me'?trSet(tr):k,n=Math.max(1,Math.min(12,p.n||1)),r=u*(STG_R[k]||.9)*(n>6?.85:1),per=Math.min(n,k==='six'||k==='seven'?2:4),rows=Math.ceil(n/per),sk=k==='engine'||k==='mic'?.25:(typeof STAGE!=='undefined'?STAGE.SK[pk]||.25:.25);
-    const cx=p.x*W,cy=u*1.6+p.y*(H-u*4.2),w=per*2.1*r,top=cy-rows*r*.62;
-    const on=audible(tr),sel=tr.id===song.sel,name=trName(tr)+(n>1?' ×'+n:'');
-    s+='<g class="stg-sec'+(on?'':' off')+(sel?' sel':'')+'" data-tid="'+tr.id+'" data-k="'+k+'">';
-    const ly=top-r*.75-4,ry=ly-u*.95;s+='<rect class="stg-hit" x="'+(cx-w/2-8)+'" y="'+ry+'" width="'+(w+16)+'" height="'+(top+rows*r*1.25+r*sk+r*.5-ry)+'" rx="12"/>';
-    for(let j=0;j<rows;j++)for(let i=0;i<per&&j*per+i<n;i++){
-      const x=cx-w/2+r*1.05+i*2.1*r+(j%2?r*.5:0),y=top+j*r*1.25;
-      if(k==='engine'){s+='<g class="stg-p"><ellipse cx="'+x+'" cy="'+(y+r*.55)+'" rx="'+r*.95+'" ry="'+r*.4+'" fill="#2a2a30" stroke="#888"/><circle cx="'+(x-r*.45)+'" cy="'+(y-r*.1)+'" r="'+r*.35+'" fill="#c9a24a"/><circle cx="'+(x+r*.45)+'" cy="'+(y-r*.1)+'" r="'+r*.35+'" fill="#c9a24a"/><rect x="'+(x-r*.25)+'" y="'+(y-r*.05)+'" width="'+r*.5+'" height="'+r*.55+'" fill="#7a0b17"/></g>';continue}
-      if(k==='mic'){s+='<g class="stg-p"><circle cx="'+x+'" cy="'+y+'" r="'+r*.5+'" fill="#ddd"/><rect x="'+(x-r*.08)+'" y="'+(y+r*.4)+'" width="'+r*.16+'" height="'+r*1.1+'" fill="#999"/></g>';continue}
-      s+='<g class="stg-p"><ellipse cx="'+x+'" cy="'+(y+r*sk+r*.62)+'" rx="'+r*.9+'" ry="'+r*.13+'" fill="#000" opacity=".5"/>'
-        +'<path d="M'+(x-r)+' '+y+' V'+(y+r*sk)+' A'+r+' '+r*.55+' 0 0 0 '+(x+r)+' '+(y+r*sk)+' V'+y+' Z" fill="url(#stgSk)"/>'
-        +'<ellipse class="stg-face" cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+r*.55+'" fill="url(#stgCh)"/></g>';
-    }
-    s+='<text class="stg-tag" x="'+cx+'" y="'+ly+'" text-anchor="middle">'+esc(name.toUpperCase())+'</text></g>';
+    +'<radialGradient id="stgFloorG" cx=".5" cy="1.05" r="1.1"><stop offset="0" stop-color="#3a0d14"/><stop offset=".55" stop-color="#170a0e"/><stop offset="1" stop-color="#0d0a0c"/></radialGradient>'
+    +'<pattern id="stgGrid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#ffffff0a"/></pattern></defs>'
+    +'<rect class="stg-bg" width="100%" height="100%" fill="url(#stgFloorG)"/><g id="stgW"><rect class="stg-bg" width="'+S.W+'" height="'+S.H+'" fill="url(#stgGrid)" stroke="#ffffff14" rx="18"/>'
+    +'<rect x="0" y="'+(S.H-34)+'" width="'+S.W+'" height="34" fill="#000" opacity=".55"/><text class="stg-tag" x="'+S.W/2+'" y="'+(S.H-12)+'" text-anchor="middle">⭐ JUDGES · AUDIENCE ⭐</text>';
+  if(hear!=='off'){const ly=hear==='middle'?S.H*.5:S.H-58;s+='<text x="'+S.W/2+'" y="'+ly+'" text-anchor="middle" font-size="30">🎧</text>'}
+  const mini=[];
+  for(const tr of secs.map(t=>[t,stPlace(t)]).sort((a,b)=>a[1].y-b[1].y).map(a=>a[0])){
+    const P=stPlayers(tr),p=stPlace(tr),n=P.list.length,on=audible(tr),sel=tr.id===song.sel,name=trName(tr)+(n>1?' ×'+n:'');
+    const xs=P.list.map(o=>o.x),ys=P.list.map(o=>o.y),hw=(P.list[0].k==='engine'||P.list[0].k==='mic'?1.1:rigHW(P.list[0].pk))*P.r,sk=(rigOf(P.list[0].pk).sk||.2)*1.6*P.r;
+    const x0=Math.min(...xs)-hw-8,x1=Math.max(...xs)+hw+8,y1=Math.max(...ys)+sk+P.r*.9,ly=Math.min(...ys)-P.r*(P.list[0].pk==='six'||P.list[0].pk==='seven'?1.7:1.05)-6;
+    s+='<g class="stg-sec'+(on?'':' off')+(sel?' sel':'')+'" data-tid="'+tr.id+'" data-k="'+STG_SET(tr)+'"><rect class="stg-hit" x="'+x0+'" y="'+(ly-22)+'" width="'+(x1-x0)+'" height="'+(y1-ly+22)+'" rx="14"/>';
+    s+=P.list.slice().sort((a,b)=>a.y-b.y).map(stPlayerSVG).join('');
+    s+='<text class="stg-tag stg-name" x="'+(x0+x1)/2+'" y="'+ly+'" text-anchor="middle">'+esc(name.toUpperCase())+'</text></g>';
+    mini.push([P.cx,P.cy,sel]);
   }
-  s+='</svg>';
+  s+='</g></svg>';
+  const sc=Math.min(110/S.W,80/S.H);
+  const mm='<svg class="stg-mini" id="stgMini" hidden aria-hidden="true"><rect width="100%" height="100%" fill="#0d0a0c"/>'+mini.map(([x,y,sel])=>'<circle cx="'+(x*sc).toFixed(1)+'" cy="'+(y*sc).toFixed(1)+'" r="3" fill="'+(sel?'#ffd84a':'#e3263a')+'"/>').join('')+'<rect class="stg-mv" fill="none" stroke="#ffd84a" stroke-width="1.5"/></svg>';
   const cur=selTr(),cp=STG_ON(cur)?stPlace(cur):null;
-  const card=cp?'<div class="stg-card" data-tid="'+cur.id+'"><div class="stg-cn"><b>'+esc(trName(cur))+'</b><small>'+(cp.n||1)+' player'+((cp.n||1)>1?'s':'')+' · '+stWhere(cp)+'</small></div>'
+  const card=cp?'<div class="stg-card" data-tid="'+cur.id+'"><div class="stg-cn"><b>'+esc(trName(cur))+'</b><small>'+(cp.n||1)+' player'+((cp.n||1)>1?'s':'')+' · '+stWhere(cp)+' · hold a set of pans to move just that player</small></div>'
     +'<div class="stg-cb"><button class="btn sm" data-stg="less" aria-label="One player less">−</button><button class="btn sm" data-stg="more" aria-label="One player more">＋</button>'
     +'<button class="btn sm'+(cur.mute?' on':'')+'" data-st="mute" aria-pressed="'+!!cur.mute+'">M</button><button class="btn sm'+(cur.solo?' on':'')+'" data-st="solo" aria-pressed="'+!!cur.solo+'">S</button>'
+    +(cp.pp&&Object.keys(cp.pp).length?'<button class="btn sm" data-stg="line" title="Put the players back in line">⇆ In line</button>':'')
     +'<button class="btn sm" data-stg="dup">⧉ Copy</button><button class="btn sm" data-st="tset" aria-label="Track settings">⚙</button></div>'
     +'<label class="stg-vol">Volume<input type="range" data-stg="vol" min="0" max="1.2" step=".01" value="'+cur.vol+'"></label></div>'
-    :'<div class="stg-card"><span class="help">Tap a section to change it. Drag it to move it.</span></div>';
+    :'<div class="stg-card"><span class="help">Tap a section to change it. Drag it to move it; pinch to zoom.</span></div>';
   box.innerHTML='<div class="stg-top"><div class="seg stg-hear" role="group" aria-label="Hear it from">'+[['judges','🎧 Judges'],['middle','In the band'],['off','As mixed']].map(([v,l])=>'<button data-stg="hear" data-v="'+v+'" aria-pressed="'+(hear===v)+'">'+l+'</button>').join('')+'</div>'
     +'<button class="btn" data-stg="add">＋ Section</button><button class="btn" data-stg="reset">↺ Set up</button></div>'
-    +'<div class="stg-floor">'+s+'</div>'+card;
+    +'<div class="stg-floor" id="stgFloor">'+s+'<div class="stg-zm"><button data-stg="zin" aria-label="Zoom in">＋</button><button data-stg="zout" aria-label="Zoom out">−</button><button data-stg="fit" aria-label="Fit the whole stage">⤢</button></div>'+mm+'</div>'+card;
+  {const over=document.scrollingElement.scrollHeight-innerHeight;if(over>0)box.style.height=Math.max(220,box.offsetHeight-over)+'px'}   // the page's own padding below: nothing to scroll
+  const fl=q('#stgFloor'),vw=fl.clientWidth,vh=fl.clientHeight;
+  {const a=(vh-(stFloat()?56:0))/Math.max(1,vw-56);if(vw&&Math.abs(a-STA)>.03){STA=a;CAM.z=0;renderStage();return}}   // drawn again in the floor's own shape
+  const sz=STW();
+  if(!CAM.z||CAM.vw!==vw||CAM.vh!==vh||CAM.sw!==sz.W){const keep=CAM.z&&CAM.sw===sz.W?CAM.z/CAM.fit:1;camFit(vw,vh);CAM.sw=sz.W;if(keep>1.01){camZoom(keep,vw/2,vh/2);return}}
+  camApply();
 }
 const stWhere=p=>(p.y>.75?'front line':p.y>.55?'second row':p.y>.32?'middle':'back')+(p.x<.38?', left':p.x>.62?', right':', centre');
 // which sections are sounding right now
@@ -11436,24 +11523,57 @@ function stageLights(){
 }
 {const lp=()=>{try{stageLights()}catch(e){}requestAnimationFrame(lp)};requestAnimationFrame(lp)}
 function stageWire(){
-  const box=q('#stStage');if(!box||box.dataset.w)return;box.dataset.w='1';let dr=null;
-  box.addEventListener('pointerdown',e=>{const g=e.target.closest('.stg-sec');if(!g)return;const tr=trById(g.dataset.tid);if(!tr)return;e.preventDefault();
-    const svg=box.querySelector('svg').getBoundingClientRect();dr={tr,sx:e.clientX,sy:e.clientY,p0:{...stPlace(tr)},W:svg.width,H:svg.height,moved:false,pushed:false};try{box.setPointerCapture(e.pointerId)}catch(_){}});
-  box.addEventListener('pointermove',e=>{if(!dr)return;const dx=e.clientX-dr.sx,dy=e.clientY-dr.sy;if(!dr.moved&&Math.hypot(dx,dy)<6)return;
-    if(!dr.pushed){pushHistory();dr.pushed=true}dr.moved=true;const u=Math.min(dr.W/22,dr.H/15);
-    dr.tr.st={...dr.tr.st,x:Math.max(.04,Math.min(.96,dr.p0.x+dx/dr.W)),y:Math.max(0,Math.min(1,dr.p0.y+dy/Math.max(60,dr.H-u*4.2)))};
-    song.sel=dr.tr.id;refreshGains();renderStage()});
-  const up=()=>{if(!dr)return;const d=dr;dr=null;if(!d.moved){song.sel=d.tr.id;renderStage();renderViews();return}dirty();renderStage()};
+  const box=q('#stStage');if(!box||box.dataset.w)return;box.dataset.w='1';
+  // one finger: on a section it moves the section (held still first: just that player); on the floor it looks round.
+  // Two fingers: pinch to zoom. A double tap on the floor fits the whole stage.
+  const pts=new Map();let dr=null,pinch=null,lastTap=0;
+  const local=e=>{const r=q('#stgFloor').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+  box.addEventListener('pointerdown',e=>{
+    if(!e.target.closest('#stgFloor')||e.target.closest('.stg-zm'))return;e.preventDefault();
+    pts.set(e.pointerId,local(e));try{box.setPointerCapture(e.pointerId)}catch(_){}
+    if(pts.size===2){if(dr&&dr.timer)clearTimeout(dr.timer);if(dr&&dr.moved){dirty();renderStage()}dr=null;const [a,b]=[...pts.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),m:[(a[0]+b[0])/2,(a[1]+b[1])/2]};return}
+    if(pts.size>2)return;
+    const g=e.target.closest('.stg-sec'),pl=e.target.closest('.stg-pl'),tr=g&&trById(g.dataset.tid),[x,y]=local(e);
+    dr={tr,sx:x,sy:y,cx:CAM.x,cy:CAM.y,p0:tr?JSON.parse(JSON.stringify(stPlace(tr))):null,i:pl?+pl.dataset.i:null,one:false,moved:false,pushed:false,g,pl};
+    // hold a player still for a moment: then only that player moves
+    if(tr&&pl)dr.timer=setTimeout(()=>{if(dr&&!dr.moved){dr.one=true;pl.classList.add('stg-lift');if(navigator.vibrate)try{navigator.vibrate(15)}catch(_){}}},380);
+  });
+  box.addEventListener('pointermove',e=>{
+    if(!pts.has(e.pointerId))return;pts.set(e.pointerId,local(e));
+    if(pinch&&pts.size>=2){const [a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+      CAM.x+=m[0]-pinch.m[0];CAM.y+=m[1]-pinch.m[1];camZoom(d/Math.max(1,pinch.d),m[0],m[1]);pinch={d,m};return}
+    if(!dr)return;const [x,y]=local(e),dx=x-dr.sx,dy=y-dr.sy;if(!dr.moved&&Math.hypot(dx,dy)<7)return;
+    if(dr.timer&&!dr.moved){clearTimeout(dr.timer);dr.timer=0}dr.moved=true;
+    if(!dr.tr){CAM.x=dr.cx+dx;CAM.y=dr.cy+dy;camClamp();camApply();return}
+    if(!dr.pushed){pushHistory();dr.pushed=true;song.sel=dr.tr.id}
+    const S=STW(),wx=dx/CAM.z/S.W,wy=dy/CAM.z/S.H;
+    if(dr.one){const pp={...(dr.p0.pp||{})},o=pp[dr.i]||[0,0];pp[dr.i]=[+(o[0]+wx).toFixed(4),+(o[1]+wy).toFixed(4)];dr.tr.st={...dr.tr.st,pp};dr.pl.setAttribute('transform','translate('+(dx/CAM.z).toFixed(1)+' '+(dy/CAM.z).toFixed(1)+')');return}
+    dr.tr.st={...dr.tr.st,x:Math.max(.03,Math.min(.97,dr.p0.x+wx)),y:Math.max(0,Math.min(1,dr.p0.y+wy/.74))};
+    dr.g.setAttribute('transform','translate('+(dx/CAM.z).toFixed(1)+' '+(dy/CAM.z).toFixed(1)+')');
+  });
+  const up=e=>{
+    pts.delete(e.pointerId);if(pinch){if(pts.size<2)pinch=null;return}
+    if(!dr)return;const d=dr;dr=null;if(d.timer)clearTimeout(d.timer);
+    if(!d.moved){
+      if(!d.tr){const now=Date.now();if(now-lastTap<320){const fl=q('#stgFloor');camFit(fl.clientWidth,fl.clientHeight);camApply()}lastTap=now;return}
+      song.sel=d.tr.id;renderStage();renderViews();return}
+    if(d.tr){refreshGains();dirty();renderStage();if(d.one)say('Moved one '+trName(d.tr).replace(/s$/,'')+' player. ⇆ In line puts them back.')}
+  };
   box.addEventListener('pointerup',up);box.addEventListener('pointercancel',up);
+  box.addEventListener('wheel',e=>{if(!e.target.closest('#stgFloor'))return;e.preventDefault();const [x,y]=local(e);camZoom(Math.exp(-e.deltaY*.0015),x,y)},{passive:false});
+  addEventListener('resize',()=>{if(VIEW==='stage')requestAnimationFrame(renderStage)});
   box.addEventListener('input',e=>{if(e.target.dataset.stg==='vol'){const tr=selTr();tr.vol=+e.target.value;refreshGains();dirty()}});
   box.addEventListener('change',e=>{if(e.target.dataset.stg==='vol')pushHistory()});
   box.addEventListener('click',e=>{const b=e.target.closest('[data-stg]');if(!b||b.tagName==='INPUT')return;const a=b.dataset.stg,tr=selTr();
+    if(a==='zin'||a==='zout'){camZoom(a==='zin'?1.35:1/1.35,CAM.vw/2,CAM.vh/2);return}
+    if(a==='fit'){camFit(CAM.vw,CAM.vh);camApply();return}
     if(a==='hear'){song.stage={...(song.stage||{}),hear:b.dataset.v};refreshGains();dirty();renderStage();say(b.dataset.v==='off'?'Hearing the mix as it is.':b.dataset.v==='middle'?'Hearing it from the middle of the band.':'Hearing it from the judges\' seat.');return}
     if(a==='add'){openSheet('add');return}
     if(a==='reset'){if(!confirm('Put every section back where it stands on a Panorama stage?'))return;pushHistory();song.tracks.forEach(t=>{delete t.st});song.tracks.filter(STG_ON).forEach(stPlace);refreshGains();dirty();renderStage();return}
     if(!STG_ON(tr))return;
-    if(a==='more'||a==='less'){pushHistory();const p=stPlace(tr);p.n=Math.max(1,Math.min(12,(p.n||1)+(a==='more'?1:-1)));refreshGains();dirty();renderStage();return}
-    if(a==='dup'){pushHistory();const c=JSON.parse(JSON.stringify(tr));c.id=uid();c.name=(trName(tr)+' 2').slice(0,28);c.solo=false;const p=stPlace(tr);const off=Math.min(.45,Math.min(p.n||1,4)*.1+.06);c.st={...p,x:Math.max(.06,Math.min(.94,p.x+(p.x>.5?-off:off)))};
+    if(a==='line'){pushHistory();const p=stPlace(tr);delete p.pp;dirty();renderStage();return}
+    if(a==='more'||a==='less'){pushHistory();const p=stPlace(tr);p.n=Math.max(1,Math.min(12,(p.n||1)+(a==='more'?1:-1)));if(p.pp)for(const k of Object.keys(p.pp))if(+k>=p.n)delete p.pp[k];refreshGains();dirty();renderStage();return}
+    if(a==='dup'){pushHistory();const c=JSON.parse(JSON.stringify(tr));c.id=uid();c.name=(trName(tr)+' 2').slice(0,28);c.solo=false;const p=stPlace(tr);const off=Math.min(.45,Math.min(p.n||1,4)*.1+.06);c.st={...p,x:Math.max(.06,Math.min(.94,p.x+(p.x>.5?-off:off)))};delete c.st.pp;
       song.tracks.splice(song.tracks.indexOf(tr)+1,0,c);song.sel=c.id;refreshGains();dirty();renderStage();say('Copied '+trName(tr)+': same notes, its own place on the stage.');return}
   });
 }
