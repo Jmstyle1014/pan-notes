@@ -5,7 +5,7 @@
    Saved in localStorage panyard-layout (STAGE.lay). Reset puts this set back as it comes. */
 var ARRANGE={
   key:null,sel:-1,
-  SETS:['guitar','dsec','dten','tenor','fcello','six','seven'],
+  SETS:['guitar','dsec','dten','tenor','tcello','fcello','six','seven'],
   box(){   // the room the pans get: the screen above Play's play bar sideways (68px tall), the screen above this sheet upright
     const land=STAGE.orient()==='land',sh=$('arSheet');
     return land?{W:innerWidth,H:Math.max(200,innerHeight-68)}:{W:innerWidth,H:Math.max(240,innerHeight-(sh?sh.offsetHeight:300)-8)};
@@ -104,7 +104,7 @@ var ARRANGE={
    drum) is drawn that much smaller per semitone above the lowest note there, round its own label, never below 68%
    so the top notes stay easy to tap. The Double Guitar is drawn from a real pan already and stays as it is. */
 var REAL={
-  K:'panyard-notesizes',SETS:['tenor','dten','dsec','fcello','six','seven'],map:null,
+  K:'panyard-notesizes',SETS:['tenor','dten','dsec','tcello','fcello','six','seven'],map:null,
   on(){try{return localStorage.getItem(this.K)==='1'}catch(e){return false}},
   set(v){try{localStorage.setItem(this.K,v?'1':'0')}catch(e){}STAGE.lv++;ARRANGE.refresh()},
   scaleOf(id){

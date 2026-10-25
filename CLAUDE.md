@@ -118,7 +118,8 @@ upright count is low because a checklist pushes the pans below the play bar ther
 - **Pan sets** (`SETS` in `source/pansets.js` and `source/pan-notes.html`, kept the same; rebuild Next with
   `make_next.py` before `make_panyard.py`): guitar, tenor, dsec, dten (Double Tenor, A3–C♯6 as in the G-Pan patent, flat side of the circle of
   fifths on the left pan, sharp side on the right), fcello (its note ids are an octave low; `SOUND_UP.fcello=12` makes it sound
-  B♭2–C♯5 as a real four cello, skirt 18 in), six, seven (Seven Bass, G♯1–E3, seven drums of three).
+  B♭2–C♯5 as a real four cello, skirt 18 in), tcello (Three Cello, B2–G4, three pans of a diminished chord each: C E♭ F♯ A,
+  C♯ E G B♭, B D F G♯; low notes round the rim, the octave above inside; one pan on top and two below in Play), six, seven (Seven Bass, G♯1–E3, seven drums of three).
   A new set also needs its key in `ARRANGE.SETS`, `LOOK.KEYS`, `ROLE.SECTIONS`, `STAGE.SK` (and six/seven layouts),
   Studio's `PAN_RANK`/`SHORT`/`LAYER_OF`/`STG_*`, and `tune.js` PARTS for basses. Test with `tnewpans`.
 - **Note covers** (How you play, `FEEL.s.covers`, applied in `BAND.chain` via `BAND.covered(id)`): a soft pad on the
