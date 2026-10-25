@@ -103,7 +103,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   drawn with their real set (`RIG`: tenor 1, doubles 2, four cello 4, six/seven bass 6/7). The stage is a fixed screen
   in its own units (`STW()`, shaped like the floor, `STA`); `CAM` is the zoom (pinch, wheel, + / − / ⤢, double tap fits,
   a mini map once zoomed). Hold a player's pans, then drag, to move just that player: `tr.st.pp[i]=[dx,dy]` (shares of the
-  stage); ⇆ In line clears it. Test with `tstageside` and `tstagepans`.
+  stage); ⇆ In line clears it. Layouts (`LAYOUTS`, `song.stage.layout`: 'stage' Panorama risers and lights, 'yard' a
+  circle under the galvanize, 'road' on the truck): `stScene()` draws the scene in SVG (wider than the stage, so no edge
+  shows); `LAY_Y`/`stY()`/`stDepth()` set each layout's rows and how much smaller the back looks; `layHome()` places a
+  section; `layApply()` moves everyone (one undo step). Pans are chrome on stands (`stDrum`). Test with `tstageside` and `tstagepans`.
 - **Sounds files** (`panyard-share.js`, `SHARE`): Pan sounds → Sound → Save my sounds file writes `format:'panyard-sounds'`
   JSON (recorded notes trimmed to their kept part, their tuning, the profile's room; no songs). Opening one (that card,
   or Open backup file) adds each note as a new take plus a new sound profile, so the phone's own stay. Test with `tshare`.
