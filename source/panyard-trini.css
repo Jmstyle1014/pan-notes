@@ -40,3 +40,15 @@ html.th-tt #seek{accent-color:#ff3a4f}
 .tt-dim{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:center;gap:10px;margin:12px 0 4px;font-size:14px}
 .tt-dim input{width:100%;accent-color:var(--gold);min-height:32px}
 .tt-dim output{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+/* ---------- Vincy Mas (St. Vincent and the Grenadines): the same look in blue, gold and green; --vmg is the background's glow ---------- */
+html.th-tt.th-vm{--gold:#fcd116;--gold-ink:#1a1400;--surface:rgb(8 14 20/.78);--raised:rgb(16 24 32/.86);--bg:#03080d;background:#03080d!important}
+html.th-tt.th-vm :is(.sheetbox,.twbox,dialog){background:#0a1016!important}
+html.th-tt.th-vm.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .rim{fill:url(#vmRim)!important}
+html.th-tt.th-vm.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .bed{fill:url(#vmBed)!important}
+html.th-tt.th-vm.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) svg path[fill="url(#hgSkirt)"]{fill:url(#vmSkirt)!important}
+html.th-tt.th-vm.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])) .field:not(:is(.active,.hit,.play-hit)) .zone{fill:url(#vmZone)!important}
+html.th-tt.th-vm.th-cnight .pan:is([data-lk=night],[data-lk=steel],:not([data-lk])):not(.lkhit) .field:is(.active,.hit,.play-hit) .zone{fill:url(#vmHit)!important;animation:panStrike .38s var(--ease),vmGlow .7s ease-out!important}
+@keyframes vmGlow{0%{filter:drop-shadow(0 0 3px #fff) brightness(1.25)}100%{filter:drop-shadow(0 0 10px rgb(var(--vmg,252 209 22)/.85))}}
+html.th-tt.th-vm.th-cnight #dock .transport{background:rgb(6 14 22/.62)!important;border:1px solid rgb(var(--vmg,252 209 22)/.5)!important;box-shadow:0 0 22px rgb(var(--vmg,252 209 22)/.32),inset 0 1px 0 rgb(255 255 255/.12)!important}
+html.th-tt.th-vm.th-cnight #dock #playBtn{color:#06121c!important;box-shadow:0 0 0 2px rgb(var(--vmg,252 209 22)/.8),0 0 16px rgb(var(--vmg,252 209 22)/.5)!important}
+html.th-tt.th-vm #seek{accent-color:#fcd116}

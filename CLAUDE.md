@@ -157,4 +157,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   `tr.fx.own` is set (moving one of those sliders sets it; the ✨ Suggested switch clears it, or turns it off = flat).
   Older tracks with no `own` count as their own when Treble, Bass or Compressor isn't 0. Each pan's Bass/Treble shelves
   sit at its own range (`SHELF`). Test with `ttone`.
+- **Vincy Mas look** (App look `vm`, St. Vincent and the Grenadines): built on the Trinidad & Tobago look (`TT` in
+  `panyard-trini.js`, html classes `th-cnight th-tt th-vm`), with its own backgrounds `TT.VM` (gems, gren, flag; your own
+  pictures are shared with T&T), kept apart in localStorage `panyard-bg` (`vm` beside `tt`). `vmPaint()` recolours the
+  pans' gradients (`vmSkirt/vmRim/vmBed/vmHit`) and the play bar glow (`--vmg`) to match the background. ☀ / 🌙 go back to
+  the flag you came from (`panyard-ttday`: '1' T&T, 'vm'). Test with `tvincy` (and `ttt`).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
