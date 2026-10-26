@@ -162,4 +162,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   pictures are shared with T&T), kept apart in localStorage `panyard-bg` (`vm` beside `tt`). `vmPaint()` recolours the
   pans' gradients (`vmSkirt/vmRim/vmBed/vmHit`) and the play bar glow (`--vmg`) to match the background. ☀ / 🌙 go back to
   the flag you came from (`panyard-ttday`: '1' T&T, 'vm'). Test with `tvincy` (and `ttt`).
+- **On the phone speaker** (Settings switch, `PHONE` in `panyard-phone.js`, localStorage `panyard-phone`, not backed up):
+  for bass pans (six, seven, fcello, tcello) a waveshaper adds the notes' overtones (150–1100 Hz) and two 80 Hz high-passes
+  trim the sub a phone can't play. Play: put between `FX.hp` and `FX.shelf` while the song's pan is a bass (`sync()`, via
+  `applyFx`/`applyPanSet`); Studio: in `channel()` between `hp` and the tone shelves of bass tracks (`c.ph`). Test with
+  `tphone` (its recorder taps every connection to the speakers, so Studio is heard too).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

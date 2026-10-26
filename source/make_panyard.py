@@ -152,7 +152,7 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-wave.j
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-tune.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # how you play (dynamics, when a held note rolls, keeping the sound awake) and Band sounds (per song, Pan sounds → Sound)
 rep('const HOLD_MS=280;', 'let HOLD_MS=280;   // FEEL: Pan sounds → Sound → Roll starts')
-rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-feel.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-band.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-part.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-notes.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-feel.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-band.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-phone.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-part.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-notes.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # no recording yet: ▶ plays your part (panyard-part.js). It is never uploaded as the song's recording, and the
 # checklist still asks for the real one
 n = s.count("curName!=='Example tones')uploadRecording(")

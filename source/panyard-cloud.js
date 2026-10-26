@@ -10,7 +10,7 @@ var CLOUD={
   MAN:'panyard-backup.json',
   K:'panyard-cloud',
   // settings that belong to this phone, not to you (its speaker and mic timing, which tips you've seen)
-  SKIP:/^(panyard-studio|panyard-smooth|panyard-feel|panyard-cloud.*|panyard-guide|pan-lastBackup|panyard-subtab|pan-snooze-.*)$/,
+  SKIP:/^(panyard-studio|panyard-smooth|panyard-feel|panyard-phone|panyard-cloud.*|panyard-guide|pan-lastBackup|panyard-subtab|pan-snooze-.*)$/,
   st:null,tok:null,dirty:false,busy:false,
   cid(){try{return localStorage.getItem('panyard-gclient')||this.CID}catch{return this.CID}},
   load(){try{this.st=Object.assign({on:0,email:'',last:0,blobs:{},man:''},JSON.parse(localStorage.getItem(this.K)||'{}'))}catch{this.st={on:0,email:'',last:0,blobs:{},man:''}}
