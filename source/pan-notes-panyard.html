@@ -9988,7 +9988,16 @@ const MIXDEF={practice:.04,audio:.08,pan:.22,part:.22,beats:.05,drums:.06},DECAY
 const mixOf=tr=>tr.mix==null?MIXDEF[tr.type]:tr.mix;
 // each track's own settings (Track settings): tone, echo and room; for pan tracks also quantize and transpose
 const FX0={treble:0,bass:0,comp:0,echo:0,echoT:'q',room:0};
-const fxOf=tr=>Object.assign({},FX0,tr.fx||{});
+// a suggested tone for each pan, on until you move Treble, Bass or Compressor yourself (fx.own): the basses get more
+// bottom and less stick click, the tenors more shine and less boom. Tracks set before this kept what you'd moved.
+const TONE={tenor:{bass:-2,treble:2,comp:.2},dten:{bass:-1,treble:2,comp:.2},dsec:{bass:-1,treble:1,comp:.2},guitar:{bass:0,treble:0,comp:.2},
+  fcello:{bass:1,treble:-1,comp:.2},tcello:{bass:1,treble:-1,comp:.2},six:{bass:4,treble:-3,comp:.35},seven:{bass:4,treble:-3,comp:.35}};
+// where each pan's Bass and Treble take hold, so Bass on a tenor (lowest note about 260 Hz) still does something
+const SHELF={tenor:[420,5000],dten:[360,4500],dsec:[330,4200],guitar:[260,3600],fcello:[220,3200],tcello:[220,3200],six:[140,2400],seven:[140,2400]};
+const toneSet=tr=>tr&&(tr.type==='pan'||tr.type==='part')?trSet(tr):null;
+const toneOf=tr=>TONE[toneSet(tr)]||null;
+const ownTone=tr=>{const f=tr.fx;if(!f)return false;return f.own!==undefined?!!f.own:!!(f.treble||f.bass||f.comp)};
+const fxOf=tr=>{const o=Object.assign({},FX0,tr.fx||{}),s=toneOf(tr);o.own=ownTone(tr);if(s&&!o.own)Object.assign(o,s);return o};
 const ECHOES={q:{n:'Quarter note',b:1,fb:.32},e:{n:'Eighth note',b:.5,fb:.3},de:{n:'Dotted eighth',b:.75,fb:.35},t:{n:'Triplet',b:2/3,fb:.3},h:{n:'Half note',b:2,fb:.3},amb:{n:'Ambient',b:1.5,fb:.55,dark:1},slap:{n:'Slap back',b:.25,fb:.08}};
 const ROOMS=[[0,'Usual'],[.7,'Small room'],[1.4,'Panyard'],[2.6,'Hall'],[4,'Cathedral']];
 const QNT={none:'None',straight:'Straight',triplet:'Triplet',swing:'Swing'};
@@ -10116,7 +10125,7 @@ function channel(tr){
   const fx=fxOf(tr);
   // parts that are switched off are taken out of the way, so a phone doesn't spend effort on them for every track
   {const on=fx.comp>.001;if(c.compOn!==on){try{c.hi.disconnect()}catch{}c.hi.connect(on?c.comp:c.mk);c.compOn=on}}
-  {const on=fx.echo>.001;if(c.echoOn!==on){if(on)c.last.connect(c.esend);else try{c.last.disconnect(c.esend)}catch{}c.echoOn=on}}c.lo.gain.value=fx.bass;c.hi.gain.value=fx.treble;
+  {const on=fx.echo>.001;if(c.echoOn!==on){if(on)c.last.connect(c.esend);else try{c.last.disconnect(c.esend)}catch{}c.echoOn=on}}c.lo.gain.value=fx.bass;c.hi.gain.value=fx.treble;{const sf=SHELF[toneSet(tr)]||[220,3200];c.lo.frequency.value=sf[0];c.hi.frequency.value=sf[1]}
   c.comp.threshold.value=-fx.comp*32;c.comp.ratio.value=1+fx.comp*7;c.mk.gain.value=1+fx.comp*.9;
   const E=ECHOES[fx.echoT]||ECHOES.q;c.dl.delayTime.value=Math.min(4.9,E.b*cspb());c.fb.gain.value=E.fb;c.dk.frequency.value=E.dark?2200:4500;c.esend.gain.value=fx.echo;
   const sm=stageMix(tr),mx=Math.min(1,mixOf(tr)+(sm?sm.wet:0));c.out.gain.value=tr.vol*(sm?sm.gain:1);c.play.gain.value=audible(tr)?1:0;if(c.pan)c.pan.pan.value=sm?sm.pan:(tr.pan||0);
@@ -10809,7 +10818,7 @@ window.backupIn=async p=>{
   const tracks=st.tracks.filter(t=>t&&['practice','part','pan','beats','drums'].includes(t.type)).slice(0,24).map(t=>{
     const o=trk(t.type,{...(typeof t.role==='string'?{role:t.role.slice(0,20)}:{}),...(typeof t.song==='boolean'?{song:t.song}:{}),name:String(t.name||'').slice(0,28)||trk(t.type).name,vol:num(t.vol,0,1.5,.85),pan:num(t.pan,-1,1,0),mute:!!t.mute,solo:!!t.solo,mix:t.mix==null?null:num(t.mix,0,1,null)});
     const cleanN=arr=>(Array.isArray(arr)?arr:[]).filter(n=>n&&PITCH[n.p]&&Number.isFinite(+n.t)&&n.t>=0).slice(0,20000).map(n=>({t:+n.t,d:num(n.d,.02,64,.5),p:n.p,v:num(n.v,0,1,.9),...(n.roll?{roll:1}:{})}));
-    if(t.fx&&typeof t.fx==='object')o.fx={treble:num(t.fx.treble,-12,12,0),bass:num(t.fx.bass,-12,12,0),comp:num(t.fx.comp,0,1,0),echo:num(t.fx.echo,0,.6,0),echoT:ECHOES[t.fx.echoT]?t.fx.echoT:'q',room:ROOMS.some(r=>r[0]===+t.fx.room)?+t.fx.room:0};
+    if(t.fx&&typeof t.fx==='object')o.fx={treble:num(t.fx.treble,-12,12,0),bass:num(t.fx.bass,-12,12,0),comp:num(t.fx.comp,0,1,0),echo:num(t.fx.echo,0,.6,0),echoT:ECHOES[t.fx.echoT]?t.fx.echoT:'q',room:ROOMS.some(r=>r[0]===+t.fx.room)?+t.fx.room:0,...(t.fx.own!==undefined?{own:!!t.fx.own}:{})};
     if(t.type==='pan'){o.panSet=SETS[t.panSet]?t.panSet:'guitar';o.notes=cleanN(t.notes);if(t.chart)o.chart=true;if(typeof t.chartText==='string')o.chartText=t.chartText.slice(0,40000);
       if(t.q&&QNT[t.q.mode])o.q={mode:t.q.mode,div:[1,.5,.25].includes(+t.q.div)?+t.q.div:.5,sw:t.q.sw==='heavy'?'heavy':'light'};
       if(Number.isInteger(t.tp)&&t.tp&&Math.abs(t.tp)<=24)o.tp=t.tp;
@@ -11843,7 +11852,7 @@ function renderSheet(){
       +'<div data-tid="'+tr.id+'" class="tset">'
       +sec('Output',sl('vol','Volume',0,1.2,.01,tr.vol,pct(tr.vol/1.2),'data-mk')+sl('pan','Left · Right',-1,1,.05,tr.pan||0,lr(tr.pan||0),'data-mk')
         +'<div class="row st-ms tms"><button class="m" data-st="mute" aria-pressed="'+tr.mute+'">Mute</button><button class="s" data-st="solo" aria-pressed="'+tr.solo+'">Solo</button></div>')
-      +sec('Tone',sl('treble','Treble',-12,12,1,fx.treble,db(fx.treble))+sl('bass','Bass',-12,12,1,fx.bass,db(fx.bass))+sl('comp','Compressor',0,1,.05,fx.comp,fx.comp?pct(fx.comp):'Off')+'<p class="help">Compressor evens out loud and soft hits, so the track sits steady in the mix.</p>')
+      +sec('Tone',(toneOf(tr)?'<div class="tlist"><button class="trow" data-st="tone" aria-pressed="'+!fx.own+'"><span class="tl"><b>✨ Suggested for the '+esc(SETS[toneSet(tr)].name)+'</b><small>'+(fx.own?'Off: your own tone. Tap to go back to the suggested one.':'On: set for this pan. Move a slider to make it your own.')+'</small></span><span class="tcheck" aria-hidden="true">✓</span></button></div>':'')+sl('treble','Treble',-12,12,1,fx.treble,db(fx.treble))+sl('bass','Bass',-12,12,1,fx.bass,db(fx.bass))+sl('comp','Compressor',0,1,.05,fx.comp,fx.comp?pct(fx.comp):'Off')+'<p class="help">Compressor evens out loud and soft hits, so the track sits steady in the mix.</p>')
       +sec('Echo',sl('echo','Echo',0,.6,.02,fx.echo,fx.echo?pct(fx.echo/.6):'Off')+'<div class="tlist">'+Object.entries(ECHOES).map(([k,e])=>'<button class="trow" data-st="echoT" data-v="'+k+'" aria-pressed="'+(fx.echoT===k)+'"><span class="tl"><b>'+e.n+'</b></span><span class="tcheck" aria-hidden="true">✓</span></button>').join('')+'</div><p class="help">Echoes land in time with the song\'s tempo.</p>')
       +sec('Reverb',sl('mix','Reverb',0,.6,.02,mixOf(tr),pct(mixOf(tr)/.6),'data-mk')+'<div class="seg tseg">'+ROOMS.map(([d,n])=>'<button data-st="room" data-v="'+d+'" aria-pressed="'+((fx.room||0)===d)+'">'+n+'</button>').join('')+'</div>')
       +(pan?sec('Quantize','<div class="seg tseg">'+Object.entries(QNT).map(([k,n])=>'<button data-st="qmode" data-v="'+k+'" aria-pressed="'+((tr.q&&tr.q.mode||'none')===k)+'">'+n+'</button>').join('')+'</div>'
@@ -12127,6 +12136,7 @@ function onClick(e){
       if(AC()){warmDrums();const r=tr.rows&&tr.rows.find(x=>x.steps.some(Boolean));if(r)setTimeout(()=>playDrum(r.m,channel(tr).out,ctx.currentTime+.003,1,realKit(tr)),b.dataset.v==='real'&&!KIT.ok?400:0)}
       say(b.dataset.v==='synth'?'Classic: the built-in drum tones.':'Real kit: recorded drums and percussion.');break}
     case 'tchart':pushHistory();tr.chart=!tr.chart;dirty();renderSheet();say(tr.chart?tr.name+' now has its own part in the Chart tab.':tr.name+' is off the Chart.');break;
+    case 'tone':{pushHistory();const f=fxOf(tr);tr.fx=f.own?{...f,own:false}:{...f,treble:0,bass:0,comp:0,own:true};refreshGains();dirty();renderSheet();break}
     case 'echoT':pushHistory();tr.fx={...fxOf(tr),echoT:b.dataset.v};if(!tr.fx.echo)tr.fx.echo=.22;refreshGains();dirty();renderSheet();break;
     case 'room':pushHistory();tr.fx={...fxOf(tr),room:+b.dataset.v};if(tr.mix===0)tr.mix=.2;refreshGains();dirty();renderSheet();break;
     case 'qmode':pushHistory();tr.q={div:.5,sw:'light',...(tr.q||{}),mode:b.dataset.v};dirty();renderTimeline();renderSheet();say(b.dataset.v==='none'?'Quantize off: your notes play as you played them.':'Quantize: '+QNT[b.dataset.v]+'.');break;
@@ -12178,6 +12188,7 @@ function onInput(e){
   if(t.id==='stBpmR'){const v=+t.value;q('#stBpmV').textContent=v;clearTimeout(t._r);t._r=setTimeout(()=>setTempo(v),250);return}
   if(t.id==='stClickLv'){song.click={...ck(),level:+t.value};dirty();clearTimeout(t._r);t._r=setTimeout(()=>{if(AC())click(ctx.currentTime+.02,true)},120);return}
   if(t.dataset.fx){const tr=trById(t.closest('[data-tid]').dataset.tid),k=t.dataset.fx,v=+t.value;tr.fx={...fxOf(tr),[k]:v};if(ctx)channel(tr);dirty();
+    if(['treble','bass','comp'].includes(k)&&!tr.fx.own){tr.fx.own=true;const b=t.closest('.tset').querySelector('[data-st=tone]');if(b){b.setAttribute('aria-pressed','false');b.querySelector('small').textContent='Off: your own tone. Tap to go back to the suggested one.'}}
     const sh=t.closest('.tsl')&&t.closest('.tsl').querySelector('[data-show]');if(sh)sh.textContent=k==='comp'?(v?Math.round(v*100)+'%':'Off'):k==='echo'?(v?Math.round(v/.6*100)+'%':'Off'):(v>0?'+':'')+Math.round(v)+' dB';return}
   if(t.dataset.mk){{const sh=t.closest('.tsl')&&t.closest('.tsl').querySelector('[data-show]'),v=+t.value,k=t.dataset.mk;if(sh)sh.textContent=k==='pan'?lr(v):k==='vol'?Math.round(v/1.2*100)+'%':Math.round(v/.6*100)+'%'}const k=t.dataset.mk,v=+t.value;if(k==='master'){song.master=v;if(master)master.gain.value=v}else{const tr=trById(t.closest('[data-tid]').dataset.tid);if(k==='mix')tr.mix=v;else tr[k]=k==='pan'&&Math.abs(v)<.03?0:v;if(ctx)channel(tr)}dirty()}
 }
@@ -12255,7 +12266,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{arrangementData,stageMix:tr=>stageMix(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
+return{arrangementData,stageMix:tr=>stageMix(tr),fxOf:tr=>fxOf(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';

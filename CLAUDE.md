@@ -152,4 +152,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
     (`stretched()`, same pitch); mic takes need full speed.
   - The Tempo sheet holds Write's timing panel (`#gridBox`, moved in and back out like WB's sheet).
   Test with `tpart` (My part) and `tmerge` (the rest).
+- **Suggested tone per pan** (Studio track settings → Tone, `TONE`/`SHELF`/`fxOf` in `panyard-studio.js`): pan and My part
+  tracks get their pan's Treble/Bass/Compressor (basses more bass and less treble, tenors the opposite) unless
+  `tr.fx.own` is set (moving one of those sliders sets it; the ✨ Suggested switch clears it, or turns it off = flat).
+  Older tracks with no `own` count as their own when Treble, Bass or Compressor isn't 0. Each pan's Bass/Treble shelves
+  sit at its own range (`SHELF`). Test with `ttone`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
