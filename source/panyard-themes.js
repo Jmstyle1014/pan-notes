@@ -1,19 +1,20 @@
-/* ---------- App look: Night, Day, Chrome Day, Chrome Night, Trinidad & Tobago ---------- */
+/* ---------- App look: Night, Day, Chrome Day, Chrome Night, Trinidad & Tobago, Vincy Mas ---------- */
 // Night and Day are the looks the app always had. Chrome Day (a pan in daylight: lavender-silver, champagne, blue glints)
 // and Chrome Night (polished steel under amber lights, on black) recolour everything; their colours are made at build
 // time by make_themes.py. The ☀/🌙 button on Home switches between the day and night of whichever family you're in.
 var THEME={
   K:'panyard-theme',
-  LOOKS:[['night','Night','Panyard’s usual purple night'],['day','Day','Light colours for daytime'],['cday','Chrome Day','Lavender silver and champagne, like a pan in the sun'],['cnight','Chrome Night','Polished steel under warm lights'],['tt','Trinidad & Tobago','Mirror chrome on red, white and black, with a background you choose']],
+  LOOKS:[['night','Night','Panyard’s usual purple night'],['day','Day','Light colours for daytime'],['cday','Chrome Day','Lavender silver and champagne, like a pan in the sun'],['cnight','Chrome Night','Polished steel under warm lights'],['tt','Trinidad & Tobago','Mirror chrome on red, white and black, with a background you choose'],['vm','Vincy Mas','St. Vincent blue, gold and green: the gems, the Grenadines or the flag']],
   // Trinidad & Tobago is Chrome Night underneath (its colours, its canvases) with its own pans, play bar and background (TT)
-  CH:['cday','cnight','tt'],
+  // Vincy Mas is built the same way as Trinidad & Tobago (th-tt underneath), in St. Vincent's colours (th-vm)
+  CH:['cday','cnight','tt','vm'],
   get(){try{return localStorage.getItem(this.K)||''}catch{return ''}},
   look(){const t=this.get();if(this.CH.includes(t))return t;try{return localStorage.getItem('panyard-day')==='1'?'day':'night'}catch{return 'night'}},
   setLook(k){try{localStorage.setItem(this.K,this.CH.includes(k)?k:'');localStorage.setItem('panyard-day',k==='day'?'1':'0')}catch{}
     this.apply();try{DAY.apply()}catch{}try{HOME.render()}catch{}try{SETUP.render()}catch{}this.redraw();if($('thSheet')&&!$('thSheet').hidden)this.renderSheet()},
   set(v){this.setLook(v)},
-  apply(){const v=this.get();this.cur=v==='tt'?'cnight':v==='cday'||v==='cnight'?v:'';const h=document.documentElement;h.classList.toggle('th-cday',v==='cday');h.classList.toggle('th-cnight',v==='cnight'||v==='tt');h.classList.toggle('th-tt',v==='tt');try{TT.apply()}catch{}this.memo={};try{colors=null}catch{}
-    const mc=document.querySelector('meta[name=theme-color]');if(mc){if(!mc.dataset.orig)mc.dataset.orig=mc.content;mc.content=v==='cday'?'#e6e3ec':v==='cnight'?'#0b0b0d':v==='tt'?'#120406':mc.dataset.orig}},
+  apply(){const v=this.get();const fl=v==='tt'||v==='vm';this.cur=fl?'cnight':v==='cday'||v==='cnight'?v:'';const h=document.documentElement;h.classList.toggle('th-cday',v==='cday');h.classList.toggle('th-cnight',v==='cnight'||fl);h.classList.toggle('th-tt',fl);h.classList.toggle('th-vm',v==='vm');try{TT.apply()}catch{}this.memo={};try{colors=null}catch{}
+    const mc=document.querySelector('meta[name=theme-color]');if(mc){if(!mc.dataset.orig)mc.dataset.orig=mc.content;mc.content=v==='cday'?'#e6e3ec':v==='cnight'?'#0b0b0d':v==='tt'?'#120406':v==='vm'?'#03080d':mc.dataset.orig}},
   redraw(){for(const f of[()=>drawTL(),()=>GB.drawRuler(),()=>WB.drawRuler(),()=>drawLanes(audio.currentTime||0)])try{f()}catch{}},
   defs(){if(document.getElementById('thDefs'))return;const d=document.createElement('div');d.id='thDefs';d.setAttribute('aria-hidden','true');d.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
     d.innerHTML='<svg width="0" height="0"><defs>'
@@ -64,16 +65,17 @@ var THEME={
   setRow(){const l=$('setList');if(!l)return;const old=l.querySelector('[data-row=day]');let r=l.querySelector('[data-row=look]');
     const name=(this.LOOKS.find(x=>x[0]===this.look())||this.LOOKS[0])[1];
     if(!r){if(!old)return;r=document.createElement('button');r.className='sxrow';r.dataset.row='look';old.replaceWith(r)}else if(old)old.remove();
-    const sub=this.look()==='tt'&&typeof TT!=='undefined'?'Background: '+TT.bgName():'';
+    const sub=(this.look()==='tt'||this.look()==='vm')&&typeof TT!=='undefined'?'Background: '+TT.bgName():'';
     r.innerHTML='<span class="sxic" style="background:#c9d3e6" aria-hidden="true">◐</span><span class="sxlab"><b>App look</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="sxval">'+name+'</span><span class="sxchev" aria-hidden="true">›</span>'},
   init(){this.defs();this.apply();
     if(typeof DAY!=='undefined'){
       // html.day (the old Day) only for Day; the sun/moon flips day and night within the family you're in
       DAY.on=()=>{const L=THEME.look();return L==='day'||L==='cday'};
       const _ap=DAY.apply.bind(DAY);DAY.apply=function(){_ap();document.documentElement.classList.toggle('day',THEME.look()==='day')};
-      // Trinidad & Tobago's day is Chrome Day; the moon from there goes back to Trinidad & Tobago
-      DAY.set=function(v){const L=THEME.look(),ch=L==='cday'||L==='cnight';let tt=false;try{tt=localStorage.getItem('panyard-ttday')==='1'}catch{}
-        const to=L==='tt'?(v?'cday':'tt'):ch?(v?'cday':(L==='cday'&&tt?'tt':'cnight')):(v?'day':'night');THEME.setLook(to);try{localStorage.setItem('panyard-ttday',L==='tt'&&to==='cday'?'1':'0')}catch{}try{say((THEME.LOOKS.find(x=>x[0]===THEME.look())||[])[1]+'.')}catch{}};
+      // Trinidad & Tobago's and Vincy Mas's day is Chrome Day; the moon from there goes back to the flag you came from
+      // ('panyard-ttday': '1' Trinidad & Tobago, 'vm' Vincy Mas, '0' neither)
+      DAY.set=function(v){const L=THEME.look(),ch=L==='cday'||L==='cnight',fl=L==='tt'||L==='vm';let tt='';try{const x=localStorage.getItem('panyard-ttday');tt=x==='1'?'tt':x==='vm'?'vm':''}catch{}
+        const to=fl?(v?'cday':L):ch?(v?'cday':(L==='cday'&&tt?tt:'cnight')):(v?'day':'night');THEME.setLook(to);try{localStorage.setItem('panyard-ttday',fl&&to==='cday'?(L==='tt'?'1':'vm'):'0')}catch{}try{say((THEME.LOOKS.find(x=>x[0]===THEME.look())||[])[1]+'.')}catch{}};
       DAY.apply()}
     if(typeof SETUP!=='undefined'){const _s=SETUP.render.bind(SETUP);SETUP.render=function(){_s();THEME.setRow()};this.setRow();
       const l=$('setList');if(l)l.addEventListener('click',e=>{if(e.target.closest('[data-row=look]')){e.stopPropagation();THEME.sheet(true)}},true)}
@@ -92,6 +94,7 @@ var THEME={
 .th-sw-day{background:#f1eef8}.th-sw-day i{background:radial-gradient(circle at 35% 30%,#d9cff8,#9d8fd6)}
 .th-sw-cday{background:linear-gradient(160deg,#f3f1f6,#cfd3de)}.th-sw-cday i{background:radial-gradient(circle at 35% 28%,#fff,#ece6d8 40%,#cfd6e2 75%,#a9aec0)}
 .th-sw-tt{background:linear-gradient(to top right,#ce1126 0 38%,#fff 38% 43%,#0a0a0a 43% 57%,#fff 57% 62%,#ce1126 62%)}.th-sw-tt i{background:radial-gradient(circle at 34% 26%,#fff,#d9dce2 30%,#5a5d65 62%,#c9ccd2 80%,#8a1420)}
+.th-sw-vm{background:linear-gradient(90deg,#0047ab 0 25%,#fcd116 25% 75%,#009e60 75%)}.th-sw-vm i{background:radial-gradient(circle at 34% 26%,#fff,#d9dce2 30%,#5a5d65 62%,#c9ccd2 80%,#009e60)}
 .th-sw-cnight{background:#0b0b0d}.th-sw-cnight i{background:radial-gradient(circle at 34% 26%,#f0f1f4,#9ea2ab 35%,#5a5d65 65%,#8a6a3a 88%,#3b3d43)}
 `;document.head.appendChild(st)}
 try{THEME.init()}catch(e){console.warn('themes',e)}
