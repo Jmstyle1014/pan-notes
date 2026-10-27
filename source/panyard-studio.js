@@ -178,12 +178,15 @@ function channel(tr){
     // echo: a delay in time with the song, feeding back on itself, a little darker each time round
     const esend=ctx.createGain(),dl=ctx.createDelay(5),fb=ctx.createGain(),dk=ctx.createBiquadFilter();dk.type='lowpass';dk.frequency.value=4500;
     last.connect(esend);esend.connect(dl);dl.connect(dk);dk.connect(fb);fb.connect(dl);dk.connect(master);
-    c={out,play,pan,dry,send,meter,rev:null,lo,hi,comp,mk,esend,dl,fb,dk,last,compOn:true,echoOn:true};chans.set(tr.id,c);
+    c={out,play,pan,dry,send,meter,rev:null,hp,lo,hi,comp,mk,esend,dl,fb,dk,last,compOn:true,echoOn:true};chans.set(tr.id,c);
   }
   const fx=fxOf(tr);
   // parts that are switched off are taken out of the way, so a phone doesn't spend effort on them for every track
   {const on=fx.comp>.001;if(c.compOn!==on){try{c.hi.disconnect()}catch{}c.hi.connect(on?c.comp:c.mk);c.compOn=on}}
   {const on=fx.echo>.001;if(c.echoOn!==on){if(on)c.last.connect(c.esend);else try{c.last.disconnect(c.esend)}catch{}c.echoOn=on}}c.lo.gain.value=fx.bass;c.hi.gain.value=fx.treble;{const sf=SHELF[toneSet(tr)]||[220,3200];c.lo.frequency.value=sf[0];c.hi.frequency.value=sf[1]}
+  // On the phone speaker (Settings): a bass track's overtones brought out, between the low cut and the tone shelves
+  {const on=typeof PHONE!=='undefined'&&PHONE.on&&PHONE.bassSet(toneSet(tr));if(!!c.phOn!==on){if(on&&!c.ph)c.ph=PHONE.make(ctx);try{c.hp.disconnect()}catch{}try{if(c.ph)c.ph.out.disconnect()}catch{}
+    if(on){c.hp.connect(c.ph.in);c.ph.out.connect(c.lo)}else c.hp.connect(c.lo);c.phOn=on}}
   c.comp.threshold.value=-fx.comp*32;c.comp.ratio.value=1+fx.comp*7;c.mk.gain.value=1+fx.comp*.9;
   const E=ECHOES[fx.echoT]||ECHOES.q;c.dl.delayTime.value=Math.min(4.9,E.b*cspb());c.fb.gain.value=E.fb;c.dk.frequency.value=E.dark?2200:4500;c.esend.gain.value=fx.echo;
   const sm=stageMix(tr),mx=Math.min(1,mixOf(tr)+(sm?sm.wet:0));c.out.gain.value=tr.vol*(sm?sm.gain:1);c.play.gain.value=audible(tr)?1:0;if(c.pan)c.pan.pan.value=sm?sm.pan:(tr.pan||0);
@@ -2324,7 +2327,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{arrangementData,stageMix:tr=>stageMix(tr),fxOf:tr=>fxOf(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
+return{arrangementData,refresh:()=>refreshGains(),stageMix:tr=>stageMix(tr),fxOf:tr=>fxOf(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
