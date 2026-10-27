@@ -24,6 +24,7 @@ var MYPART=(()=>{
     const oc=new OfflineAudioContext(1,Math.ceil(sr*end),sr),out=oc.createGain(),cp=oc.createDynamicsCompressor();
     out.gain.value=0.55;cp.threshold.value=-10;cp.ratio.value=4;out.connect(cp);cp.connect(oc.destination);
     const one=(id,t,v,light)=>{
+      if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){STEEL.play(oc,out,id,t,v,light);return}
       let src=id,sh=0;if(S.panVoice==='mine'&&(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id)))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
       const b=S.panVoice==='mine'&&src?SAMPLES.buf[src]:null;
       if(b){const T=BAND.tune(tuneOf(src)),e2=Math.min(b.duration,T.end??b.duration),st=Math.min(T.start,e2-.05),len=(e2-st)/Math.pow(2,sh/1200);
