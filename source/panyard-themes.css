@@ -923,6 +923,8 @@ html.th-cday .refval span{color:var(--muted)}
 html.th-cday .refval small{color:var(--muted)}
 html.th-cday .refstep{border:1px solid var(--line);background:var(--raised,var(--surface));color:var(--text)}
 html.th-cday .steelsl small{color:var(--muted)}
+html.th-cday .steelfitl{color:var(--muted)}
+html.th-cday .steelfitl b{color:var(--text)}
 html.th-cday .steelsl input{accent-color:var(--gold)}
 html.th-cday .steelsl output{color:var(--muted)}
 html.th-cday #gdRing{border:2.5px solid var(--gold,#dcb356);box-shadow:0 0 0 200vmax rgb(31 26 41/0.261),0 0 22px 4px rgb(220 179 86/0.55)}
@@ -1870,6 +1872,8 @@ html.th-cnight .refval span{color:var(--muted)}
 html.th-cnight .refval small{color:var(--muted)}
 html.th-cnight .refstep{border:1px solid var(--line);background:var(--raised,var(--surface));color:var(--text)}
 html.th-cnight .steelsl small{color:var(--muted)}
+html.th-cnight .steelfitl{color:var(--muted)}
+html.th-cnight .steelfitl b{color:var(--text)}
 html.th-cnight .steelsl input{accent-color:var(--gold)}
 html.th-cnight .steelsl output{color:var(--muted)}
 html.th-cnight #gdRing{border:2.5px solid var(--gold,#f7c267);box-shadow:0 0 0 200vmax rgb(8 9 9/0.58),0 0 22px 4px rgb(247 194 103/0.55)}
