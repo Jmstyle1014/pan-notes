@@ -9610,17 +9610,18 @@ var STEEL=(()=>{
   const mallet=(f,tau)=>{const w=2*Math.PI*f,d=1-Math.pow(w*tau/Math.PI,2);return Math.abs(d)<1e-6?Math.PI/4:Math.abs(Math.cos(w*tau/2)/d)};
   const NB=new WeakMap();
   function noise(ac){let b=NB.get(ac);if(!b){b=ac.createBuffer(1,Math.round(ac.sampleRate*.05),ac.sampleRate);const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;NB.set(ac,b)}return b}
-  // one note into dest at time t; v 0–1; light = a roll's quick strike
-  function play(ac,dest,id,t,v,light,extraCents){
-    if(!PITCH[id])return;v=clamp(v||.9,.05,1);
+  // one note into dest at time t; v 0–1; light = a roll's quick strike. raw: made once at A 440 with no band sound, to be
+  // kept as a ready note (the band sound, the song's A and Sweet ↔ Sharp go on when it plays, as on a recording)
+  function play(ac,dest,id,t,v,light,extraCents,raw){
+    if(!PITCH[id])return;v=clamp(v||.9,.05,1);const srcs=[];
     const set=(FIELDS.get(id)||{}).set||setKey(),bass=set==='six'||set==='seven',low=bass||set==='fcello'||set==='tcello';
-    const T=typeof BAND!=='undefined'?BAND.tune({}):{},ringF=Math.pow(2,(+T.ring||0)/10);
-    const cents=(typeof BAND!=='undefined'?BAND.cents(id):0)+(extraCents||0),f=pitchHz(id)*Math.pow(2,cents/1200);
+    const hasB=!raw&&typeof BAND!=='undefined',T=hasB?BAND.tune({}):{},ringF=Math.pow(2,(+T.ring||0)/10);
+    const cents=(hasB?BAND.cents(id):0)+(extraCents||0),f=(raw?440*Math.pow(2,(midiOf(PITCH[id])-69)/12):pitchHz(id))*Math.pow(2,cents/1200);
     const F=st.fit&&st.fit[set];   // Tune it like your pans: measured from your recordings of this pan
     const T60=(F?F.t60*Math.pow(F.f/f,.3):(bass?5:low?3.6:2.6)*Math.pow(261.6/f,.3))*ringF*(light?.35:1);
     const tau=(bass?.0016:low?.0009:.00045)*(1.25-.35*v),third=f<330?3:4,bl=st.bloom/5;
     const out=ac.createGain();out.gain.value=.32*v*(light?.7:1);
-    const ch=typeof BAND!=='undefined'?BAND.chain(ac,T,id,v,t,light):null;if(ch){out.connect(ch.in);ch.out.connect(dest)}else out.connect(dest);
+    const ch=hasB?BAND.chain(ac,T,id,v,t,light):null;if(ch){out.connect(ch.in);ch.out.connect(dest)}else out.connect(dest);
     // with your pans' measurements, the octave and third come out as loud as on your pans (the stick's filter taken off)
     const m1=mallet(f,tau),o2=F?clamp(F.r2*m1/Math.max(1e-3,mallet(2*f,tau)),.03,3):.95,o3=F?clamp(F.r3*m1/Math.max(1e-3,mallet(third*f,tau)),.01,2):.5,
       b2=F?clamp(F.bloom/2.5,.004,.12):.045,b3=F?clamp(F.bloom/4,.003,.08):.02;
@@ -9634,24 +9635,58 @@ var STEEL=(()=>{
       if(bloom){g.gain.linearRampToValueAtTime(a*clamp(1-.65*bl,.2,1),t+.002);g.gain.setTargetAtTime(a,t+.002,bloom)}
       else g.gain.linearRampToValueAtTime(a,t+.002);
       g.gain.setTargetAtTime(0,t+.002+(bloom?bloom*2:0),dur/6.9);
-      o.start(t);o.stop(t+dur+.05);end=Math.max(end,t+dur+.05)}
+      o.start(t);o.stop(t+dur+.05);srcs.push(o);end=Math.max(end,t+dur+.05)}
     if(!light){
       // the fundamental and octave pass energy back and forth: a slow, gentle swell
-      const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=bass?1.6:3.1;lg.gain.value=.06*.32*v;lfo.connect(lg);lg.connect(out.gain);lfo.start(t);lfo.stop(end);
+      const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=bass?1.6:3.1;lg.gain.value=.06*.32*v;lfo.connect(lg);lg.connect(out.gain);lfo.start(t);lfo.stop(end);srcs.push(lfo);
       // neighbours a fifth and an octave away ring along very softly
       for(const mul of [1.5,2]){const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f*mul*1.0007;o.connect(g);g.connect(out);
-        g.gain.setValueAtTime(0,t);g.gain.setTargetAtTime(.025,t,.12);g.gain.setTargetAtTime(0,t+.3,T60*1.3/6.9);o.start(t);o.stop(end)}
+        g.gain.setValueAtTime(0,t);g.gain.setTargetAtTime(.025,t,.12);g.gain.setTargetAtTime(0,t+.3,T60*1.3/6.9);o.start(t);o.stop(end);srcs.push(o)}
       // the barrel hums at its skirt's note
       const bh=typeof BAND!=='undefined'&&BAND.BODY?BAND.BODY[set]:0;
       if(bh&&st.hum>0){const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=bh;o.connect(g);g.connect(out);
-        g.gain.setValueAtTime(0,t);g.gain.setTargetAtTime(.05*st.hum/6*(bass?1.4:1),t,.03);g.gain.setTargetAtTime(0,t+.15,1.2/6.9);o.start(t);o.stop(Math.max(end,t+1.4))}}
-    // the stick touching the steel: a tiny click
-    const s=ac.createBufferSource(),ng=ac.createGain(),hp=ac.createBiquadFilter();s.buffer=noise(ac);hp.type='highpass';hp.frequency.value=bass?800:2000;
-    s.connect(hp);hp.connect(ng);ng.connect(out);ng.gain.setValueAtTime(.08*v*(bass?.4:1),t);ng.gain.setTargetAtTime(0,t+.001,.0012);s.start(t);s.stop(t+.012);
+        g.gain.setValueAtTime(0,t);g.gain.setTargetAtTime(.05*st.hum/6*(bass?1.4:1),t,.03);g.gain.setTargetAtTime(0,t+.15,1.2/6.9);o.start(t);o.stop(Math.max(end,t+1.4));srcs.push(o)}}
+    // the rubber tip touching the steel: a soft, short tap (not on a roll's quick strikes, where it piled up into ticks)
+    if(!light){const s=ac.createBufferSource(),ng=ac.createGain(),bp=ac.createBiquadFilter();s.buffer=noise(ac);bp.type='bandpass';bp.Q.value=.8;bp.frequency.value=Math.min(3000,f*(bass?6:3));
+      s.connect(bp);bp.connect(ng);ng.connect(out);ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(.025*v,t+.0008);ng.gain.setTargetAtTime(0,t+.001,.002);s.start(t);s.stop(t+.02);srcs.push(s)}
+    return srcs;
+  }
+  /* Ready notes: each note made once (at 32 kHz, a few seconds) and played like a recording, so a whole song costs the
+     phone no more than your recordings do, and Studio's Stop, loops and same-note damping work on it as on them.
+     Remade when Barrel hum, Octave bloom or your pans' measurements change. */
+  const BUF=new Map();let sig='';
+  function fresh(){const x=JSON.stringify([st.hum,st.bloom,st.fit||null]);if(x!==sig){sig=x;BUF.clear()}}
+  function ready(id){fresh();const b=BUF.get(id);return b instanceof AudioBuffer?b:null}
+  function make(id){fresh();if(BUF.has(id))return Promise.resolve(BUF.get(id));if(!PITCH[id]||typeof OfflineAudioContext==='undefined')return Promise.resolve(null);
+    const set=(FIELDS.get(id)||{}).set||setKey(),bass=set==='six'||set==='seven',low=bass||set==='fcello'||set==='tcello',F=st.fit&&st.fit[set],
+      f=440*Math.pow(2,(midiOf(PITCH[id])-69)/12),T60=F?F.t60*Math.pow(F.f/f,.3):(bass?5:low?3.6:2.6)*Math.pow(261.6/f,.3),dur=clamp(T60*1.05+.2,1,6.5),sr=32000,my=sig;
+    const p=(async()=>{try{const oc=new OfflineAudioContext(1,Math.ceil(sr*dur),sr);play(oc,oc.destination,id,0,.9,false,0,true);const b=await oc.startRendering();
+      // fade the very end so a note that's still ringing when the made part ends never stops with a click
+      const d=b.getChannelData(0),n=Math.min(d.length,Math.round(sr*.25));for(let i=0;i<n;i++)d[d.length-1-i]*=i/n;
+      if(sig===my)BUF.set(id,b);return b}catch(e){console.warn('steel',e);BUF.delete(id);return null}})();
+    BUF.set(id,p);return p}
+  const warm=ids=>Promise.all([...new Set(ids)].map(make));
+  // played like a recording: Band sound's chain, the song's A and Sweet ↔ Sharp; a new hit damps the same note's last ring
+  const TUNE=b=>({start:0,end:b.duration,db:0,fade:.12,cents:0});
+  const LAST=new Map();
+  function tapBuf(ac,dest,id,b,t,v,light){
+    const T=typeof BAND!=='undefined'?BAND.tune(TUNE(b)):TUNE(b),det=(typeof refCents==='function'?refCents():0)+(typeof BAND!=='undefined'?BAND.cents(id):0);
+    const ch=typeof BAND!=='undefined'?BAND.chain(ac,T,id,Math.min(1,v),t,light):null;if(ch)ch.out.connect(dest);
+    const old=LAST.get(id);if(old&&!light){try{old.g.gain.cancelScheduledValues(t);old.g.gain.setTargetAtTime(0,t,.03);old.s.stop(t+.25)}catch{}}
+    const one=(d,a,at)=>{const s=ac.createBufferSource(),g=ac.createGain();s.buffer=b;s.detune.value=d;s.connect(g);g.connect(ch?ch.in:dest);
+      const len=b.duration;if(light){g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(a,at+.004);const e=Math.min(len,.45);g.gain.setValueAtTime(a,at+.12);g.gain.linearRampToValueAtTime(0,at+e);s.start(at);s.stop(at+e+.01)}
+      else{noteEnvelope(g.gain,a,at,len,T.fade,T);s.start(at);s.stop(at+len+.01)}return {s,g}};
+    const m=one(det,v*(light?.7:1),t);if(!light)LAST.set(id,m);
+    if(typeof BAND!=='undefined'&&BAND.shimmerOn&&BAND.shimmerOn(light))one(det+9,v*.5*(light?.7:1),t+.012);
   }
   function shimmer(ac,dest,id,t,v,light){play(ac,dest,id,t,v,light);if(typeof BAND!=='undefined'&&BAND.shimmerOn&&BAND.shimmerOn(light))play(ac,dest,id,t+.012,v*.5,light,9)}
   /* Play: your taps (inside strike, after How you play has set the hit's strength) */
-  {const _sm=strikeMine;strikeMine=function(id,vel,light){if(S.panVoice!=='steel')return _sm.apply(this,arguments);const ac=panCtx();if(ac&&PITCH[id])shimmer(ac,pBus,id,ac.currentTime+.003,vel||1,light);return true}}
+  {const _sm=strikeMine;strikeMine=function(id,vel,light){if(S.panVoice!=='steel')return _sm.apply(this,arguments);const ac=panCtx();if(!ac||!PITCH[id])return true;
+    const b=ready(id),t=ac.currentTime+.003;if(b)tapBuf(ac,pBus,id,b,t,vel||1,light);else{make(id);shimmer(ac,pBus,id,t,vel||1,light)}return true}}
+  // the song's pans get ready as soon as Tuned steel is on (a few at a time, so nothing stutters)
+  function warmSong(){if(S.panVoice!=='steel'||!SETS[setKey()])return;const ids=SETS[setKey()].views.flatMap(v=>v.fields.map(f=>f[0]));(async()=>{for(const id of ids){await make(id);await new Promise(r=>setTimeout(r,15))}})()}
+  {const _p=applyPanSet;applyPanSet=function(){const r=_p.apply(this,arguments);setTimeout(warmSong,300);return r}}
+  setTimeout(warmSong,1500);
   /* Tune it like your pans: listen to your recordings of each pan and measure how it rings. The pitch always comes from
      the tuning maths, so a recording a little off, late or noisy doesn't matter; only its character is taken:
      how long the note rings (t60), how loud the octave and the third are next to the note (r2, r3) and how soon the
@@ -9699,7 +9734,7 @@ var STEEL=(()=>{
     const seg=$('voiceSeg');if(!seg||seg.querySelector('[data-v=steel]'))return;
     const b=document.createElement('button');b.dataset.v='steel';b.textContent='Tuned steel';b.setAttribute('aria-pressed',String(S.panVoice==='steel'));
     const mine=seg.querySelector('[data-v=mine]');seg.insertBefore(b,mine);const bi=seg.querySelector('[data-v=synth]');if(bi)bi.textContent='Built-in';
-    b.onclick=()=>{S.panVoice='steel';try{renderVoice()}catch{}try{save()}catch{}strike(first(),.9);render()};
+    b.onclick=()=>{S.panVoice='steel';setTimeout(warmSong,50);try{renderVoice()}catch{}try{save()}catch{}strike(first(),.9);render()};
     seg.addEventListener('click',()=>setTimeout(render,0));
     const box=document.createElement('div');box.id='steelBox';box.className='steelbox';seg.after(box);render();
     box.addEventListener('click',e=>{const b=e.target.closest('[data-steelfit]');if(!b)return;if(b.dataset.steelfit==='clear'){unlearn();return}b.disabled=true;b.textContent='Listening to your pans…';learn().finally(()=>render())});
@@ -9722,7 +9757,7 @@ var STEEL=(()=>{
 .steelsl span{display:flex;flex-direction:column}.steelsl small{color:var(--muted);font-size:12px}
 .steelfit{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}.steelfitl{margin:6px 0 4px;padding-left:18px;font-size:13px;color:var(--muted)}.steelfitl b{color:var(--text)}
 .steelsl input{width:100%;accent-color:var(--gold);min-height:32px}.steelsl output{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}`;document.head.appendChild(c)}
-  return {play:shimmer,one:play,get s(){return st},set(k,v){st[k]=v;keep();render()},mount,learn,unlearn,measure};
+  return {play:shimmer,one:play,ready,make,warm,tapBuf,T:TUNE,get s(){return st},set(k,v){st[k]=v;keep();render()},mount,learn,unlearn,measure};
 })();
 
 /* ---------- no recording yet? ▶ plays your part ----------
@@ -10534,7 +10569,10 @@ const mine=id=>S.panVoice==='mine'&&SAMPLES.wav[id];
 // light: a roll's quick strike. Notes recorded before dynamics don't say, so a soft one counts as a roll's
 function panVoice(dest,id,t,v,light){
   if(!PITCH[id])return;if(light===undefined)light=v<.78;
-  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){STEEL.play(ctx,dest,id,t,v,light);return}   // Tuned steel (panyard-steel.js)
+  // Tuned steel (panyard-steel.js): its ready note, played like a recording (Stop, loops and damping included); until
+  // it's ready, made live, with every part lined up so Stop can still cancel it
+  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const b=STEEL.ready(id);if(b){playBuf(dest,id,b,STEEL.T(b),t,v,light);return}
+    STEEL.make(id);(STEEL.one(ctx,dest,id,t,v,light)||[]).forEach(x=>lineUp(x,t));return}
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
@@ -10632,6 +10670,8 @@ function play(countIn){
   // slowed down, and a recording isn't stretched yet (a new take, a new song recording): get it ready, then play
   if(SPD.rate!==1){const miss=song.tracks.map(audioOf).filter(b=>b&&!(SPD.cache.get(b)||{})[SPD.rate]);
     if(miss.length){if(SPD.busy)return;const r=SPD.rate;SPD.busy=r;say('Getting the slower version ready…');Promise.all(miss.map(b=>stretched(b,r))).then(()=>{SPD.busy=null;if(SPD.rate===r)play(countIn)});return}}refreshGains();
+  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const miss=steelIds().filter(id=>!STEEL.ready(id));
+    if(miss.length){if(T.steelBusy)return;T.steelBusy=1;say('Getting Tuned steel ready…');STEEL.warm(miss).then(()=>{T.steelBusy=0;play(countIn)});return}}
   if(looping()&&(T.pos<loopS()||T.pos>=loopE()))T.pos=loopS();
   if(!looping()&&!T.rec&&T.pos>=L()-.01)T.pos=0;
   audio.pause();
@@ -12189,9 +12229,11 @@ function expRange(){
   if(songV&&ss.length)return{a:0,b:Math.max(...ss.map(x=>x.b))*bpb,name:'',sec};
   return{a:0,b:L(),name:'',sec};
 }
+// every pan note the song plays (for Tuned steel to get ready)
+function steelIds(){const ids=new Set();for(const tr of song.tracks){if(tr.type==='part')partNotes().forEach(n=>ids.add(n.p));else if(tr.type==='pan')pnotes(tr).forEach(n=>ids.add(n.p))}return [...ids]}
 const hasContent=tr=>tr.type==='beats'?tr.rows.some(r=>r.steps.some(Boolean)):isNotey(tr)?notesOf(tr).length>0:!!audioOf(tr);
 async function renderSong(only,onProgress,RG){
-  AC();await warmDrums();await warmPans();
+  AC();await warmDrums();await warmPans();if(S.panVoice==='steel'&&typeof STEEL!=='undefined')await STEEL.warm(steelIds());
   const live={ctx,master,meterM,reverbs,PV},saved=new Map(chans);
   const RA=RG?RG.a:0,RB=RG?RG.b:L(),sr=44100,sp=spb(),Lb=RB,T0=.05-RA*sp,off=new OfflineAudioContext(2,Math.ceil(sr*((RB-RA)*sp+.05+3)),sr);
   try{
