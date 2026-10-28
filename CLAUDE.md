@@ -173,4 +173,14 @@ upright count is low because a checklist pushes the pans below the play bar ther
   Band sound still shapes it. Its sliders Barrel hum (6) and Octave bloom (5) sit at the top of Pan sounds → Sound
   (localStorage `panyard-steel`). Play: `strikeMine` wrapper (after How you play's hit strength); Studio: `panVoice()`;
   My part's sound file: `panyard-part.js`. `make_panyard.py` lets a saved song keep 'steel'. Test with `tsteel`.
+  **Tune it like your pans** (button under its sliders): `STEEL.learn()` measures every pan's recorded notes with
+  Goertzel filters at the note, 2× and 3×/4× (`measure()`: ring t60 from the fundamental's fall, octave and third peaks
+  next to the note's, and when the octave peaks), takes each pan's middle values into `st.fit[set]`, and `play()` uses
+  them (the mallet filter taken off so the result matches). The pitch always comes from the tuning maths, so noise or a
+  recording a bit off doesn't get in. Standard pan (`unlearn`) clears it. Test with `tsteelfit` (pretend noisy recordings).
+  **Ready notes:** each note is made once (`make()`, an OfflineAudioContext at 32 kHz, `raw` = A 440 and no band sound) and
+  played like a recording: Studio's `panVoice()` hands it to `playBuf` (Stop, loops, same-note damping, Band sound, the
+  song's A), Play's taps use `tapBuf`. Live tones are only the stand-in while a note is being made (all `lineUp`'d).
+  Studio's `play()` and `renderSong()` get the song's notes ready first (`steelIds()`). Making ~10 live tones per note
+  once crackled on phones and left notes ringing after Stop. Test with `tsteeltrack`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

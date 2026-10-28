@@ -381,7 +381,10 @@ const mine=id=>S.panVoice==='mine'&&SAMPLES.wav[id];
 // light: a roll's quick strike. Notes recorded before dynamics don't say, so a soft one counts as a roll's
 function panVoice(dest,id,t,v,light){
   if(!PITCH[id])return;if(light===undefined)light=v<.78;
-  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){STEEL.play(ctx,dest,id,t,v,light);return}   // Tuned steel (panyard-steel.js)
+  // Tuned steel (panyard-steel.js): its ready note, played like a recording (Stop, loops and damping included); until
+  // it's ready, made live, with every part lined up so Stop can still cancel it
+  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const b=STEEL.ready(id);if(b){playBuf(STEEL.soft(ctx,dest,id,v,t),id,b,STEEL.T(b),t,v,light);return}
+    STEEL.make(id);(STEEL.one(ctx,dest,id,t,v,light)||[]).forEach(x=>lineUp(x,t));return}
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
@@ -479,6 +482,8 @@ function play(countIn){
   // slowed down, and a recording isn't stretched yet (a new take, a new song recording): get it ready, then play
   if(SPD.rate!==1){const miss=song.tracks.map(audioOf).filter(b=>b&&!(SPD.cache.get(b)||{})[SPD.rate]);
     if(miss.length){if(SPD.busy)return;const r=SPD.rate;SPD.busy=r;say('Getting the slower version ready…');Promise.all(miss.map(b=>stretched(b,r))).then(()=>{SPD.busy=null;if(SPD.rate===r)play(countIn)});return}}refreshGains();
+  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const miss=steelIds().filter(id=>!STEEL.ready(id));
+    if(miss.length){if(T.steelBusy)return;T.steelBusy=1;say('Getting Tuned steel ready…');STEEL.warm(miss).then(()=>{T.steelBusy=0;play(countIn)});return}}
   if(looping()&&(T.pos<loopS()||T.pos>=loopE()))T.pos=loopS();
   if(!looping()&&!T.rec&&T.pos>=L()-.01)T.pos=0;
   audio.pause();
@@ -2036,9 +2041,11 @@ function expRange(){
   if(songV&&ss.length)return{a:0,b:Math.max(...ss.map(x=>x.b))*bpb,name:'',sec};
   return{a:0,b:L(),name:'',sec};
 }
+// every pan note the song plays (for Tuned steel to get ready)
+function steelIds(){const ids=new Set();for(const tr of song.tracks){if(tr.type==='part')partNotes().forEach(n=>ids.add(n.p));else if(tr.type==='pan')pnotes(tr).forEach(n=>ids.add(n.p))}return [...ids]}
 const hasContent=tr=>tr.type==='beats'?tr.rows.some(r=>r.steps.some(Boolean)):isNotey(tr)?notesOf(tr).length>0:!!audioOf(tr);
 async function renderSong(only,onProgress,RG){
-  AC();await warmDrums();await warmPans();
+  AC();await warmDrums();await warmPans();if(S.panVoice==='steel'&&typeof STEEL!=='undefined')await STEEL.warm(steelIds());
   const live={ctx,master,meterM,reverbs,PV},saved=new Map(chans);
   const RA=RG?RG.a:0,RB=RG?RG.b:L(),sr=44100,sp=spb(),Lb=RB,T0=.05-RA*sp,off=new OfflineAudioContext(2,Math.ceil(sr*((RB-RA)*sp+.05+3)),sr);
   try{
