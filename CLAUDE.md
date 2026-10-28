@@ -183,4 +183,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   song's A), Play's taps use `tapBuf`. Live tones are only the stand-in while a note is being made (all `lineUp`'d).
   Studio's `play()` and `renderSong()` get the song's notes ready first (`steelIds()`). Making ~10 live tones per note
   once crackled on phones and left notes ringing after Stop. Test with `tsteeltrack`.
+  **The steel sound** (`tone()` in `play()`): besides the tuned note, octave and third (each a close doublet, 84/16, for the
+  shimmer), the ladder 3×–12× the note (from the steel bending, so no stick filter; `.24·0.8^(k-3)`, bright burst at the
+  hit), six untuned plate tones and the 22.5 in oil drum's shell (seven Q 45 resonators struck by a noise burst, ready
+  notes only). Nothing above 8 kHz and softer from 4.5 kHz (very high bursts sounded like ticks). Steel edge slider
+  (`st.edge`, 6) scales the ladder, plate and shell; Tune it like your pans measures the ladder 1×–8× (`F.h`).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
