@@ -383,7 +383,7 @@ function panVoice(dest,id,t,v,light){
   if(!PITCH[id])return;if(light===undefined)light=v<.78;
   // Tuned steel (panyard-steel.js): its ready note, played like a recording (Stop, loops and damping included); until
   // it's ready, made live, with every part lined up so Stop can still cancel it
-  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const b=STEEL.ready(id);if(b){playBuf(dest,id,b,STEEL.T(b),t,v,light);return}
+  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const b=STEEL.ready(id);if(b){playBuf(STEEL.soft(ctx,dest,id,v,t),id,b,STEEL.T(b),t,v,light);return}
     STEEL.make(id);(STEEL.one(ctx,dest,id,t,v,light)||[]).forEach(x=>lineUp(x,t));return}
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it

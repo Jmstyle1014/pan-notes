@@ -74,10 +74,13 @@ var STEEL=(()=>{
   const warm=ids=>Promise.all([...new Set(ids)].map(make));
   // played like a recording: Band sound's chain, the song's A and Sweet ↔ Sharp; a new hit damps the same note's last ring
   const TUNE=b=>({start:0,end:b.duration,db:0,fade:.12,cents:0});
+  // the ready note was made at a firm hit; a softer one is darker too (less of the stick's bite reaches the high tones)
+  function soft(ac,dest,id,v,t){if(v>=.85)return dest;const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=.5;
+    lp.frequency.setValueAtTime(Math.min(16000,(typeof pitchHz==='function'?pitchHz(id):440)*(1.6+14*v*v)),t);lp.connect(dest);return lp}
   const LAST=new Map();
   function tapBuf(ac,dest,id,b,t,v,light){
     const T=typeof BAND!=='undefined'?BAND.tune(TUNE(b)):TUNE(b),det=(typeof refCents==='function'?refCents():0)+(typeof BAND!=='undefined'?BAND.cents(id):0);
-    const ch=typeof BAND!=='undefined'?BAND.chain(ac,T,id,Math.min(1,v),t,light):null;if(ch)ch.out.connect(dest);
+    dest=soft(ac,dest,id,v,t);const ch=typeof BAND!=='undefined'?BAND.chain(ac,T,id,Math.min(1,v),t,light):null;if(ch)ch.out.connect(dest);
     const old=LAST.get(id);if(old&&!light){try{old.g.gain.cancelScheduledValues(t);old.g.gain.setTargetAtTime(0,t,.03);old.s.stop(t+.25)}catch{}}
     const one=(d,a,at)=>{const s=ac.createBufferSource(),g=ac.createGain();s.buffer=b;s.detune.value=d;s.connect(g);g.connect(ch?ch.in:dest);
       const len=b.duration;if(light){g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(a,at+.004);const e=Math.min(len,.45);g.gain.setValueAtTime(a,at+.12);g.gain.linearRampToValueAtTime(0,at+e);s.start(at);s.stop(at+e+.01)}
@@ -163,5 +166,5 @@ var STEEL=(()=>{
 .steelsl span{display:flex;flex-direction:column}.steelsl small{color:var(--muted);font-size:12px}
 .steelfit{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}.steelfitl{margin:6px 0 4px;padding-left:18px;font-size:13px;color:var(--muted)}.steelfitl b{color:var(--text)}
 .steelsl input{width:100%;accent-color:var(--gold);min-height:32px}.steelsl output{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}`;document.head.appendChild(c)}
-  return {play:shimmer,one:play,ready,make,warm,tapBuf,T:TUNE,get s(){return st},set(k,v){st[k]=v;keep();render()},mount,learn,unlearn,measure};
+  return {play:shimmer,one:play,ready,make,warm,tapBuf,soft,T:TUNE,get s(){return st},set(k,v){st[k]=v;keep();render()},mount,learn,unlearn,measure};
 })();
