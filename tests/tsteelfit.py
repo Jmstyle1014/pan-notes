@@ -37,10 +37,11 @@ with sync_playwright() as p:
         x=np.concatenate([np.array(r) for r in pg.evaluate("window._rec")]);sr=pg.evaluate("panCtx().sampleRate");i=np.argmax(abs(x)>0.002);return x[i:],sr
     n=ids[3];f0=pg.evaluate(f"pitchHz('{n}')")
     def shape():
+        pg.evaluate(f"STEEL.make('{n}')");pg.wait_for_timeout(2500)   # its ready note (and the rest of the pan) first
         r=[shape1() for _ in range(3)];return tuple(float(np.median([x[k] for x in r])) for k in (0,1))
     def shape1():
         x,sr=grab(f"strike('{n}',.9)");w=x[:int(sr*.5)]
-        F=abs(np.fft.rfft(w*np.hanning(len(w))));f=np.fft.rfftfreq(len(w),1/sr);pk=lambda c:F[(f>c*.97)&(f<c*1.03)].max()
+        F=abs(np.fft.rfft(w*np.hanning(len(w))));f=np.fft.rfftfreq(len(w),1/sr);pk=lambda c:np.sqrt((F[(f>c*.97)&(f<c*1.03)]**2).sum())   # all of it: a shimmering tone is two close peaks
         env=np.array([np.sqrt((x[i:i+1024]**2).mean()) for i in range(0,len(x)-1024,512)])
         j=np.argmax(env<env.max()*10**(-20/20)) or len(env)
         return round(20*np.log10(pk(2*f0)/pk(f0)),1),round(j*512/sr,2)
@@ -53,6 +54,7 @@ with sync_playwright() as p:
     check(F and abs(F['t60']-1.2)<.3,f'it hears how long they ring through the noise: {F and round(F["t60"],2)} s (made 1.2 s)')
     t=np.arange(0,1,1e-4);true=20*np.log10(.38*((1-np.exp(-t/.02))*np.exp(-6.9*t/.9)).max())   # the octave's own peak, next to the note's
     check(F and abs(20*np.log10(F['r2'])-true)<2,f'and how strong the octave is: {F and round(20*np.log10(F["r2"]),1)} dB (made {true:.1f})')
+    check(F and F.get('h') and abs(20*np.log10(max(1e-6,F['h'][3]))-20*np.log10(.05))<4,f'and the ladder of steel tones (4× the note: {F and F.get("h") and round(20*np.log10(max(1e-6,F["h"][3])),1)} dB, made {20*np.log10(.05):.1f})')
     check(F and .02<F['bloom']<.12,f'and when the octave peaks: {F and round(F["bloom"]*1000)} ms after the hit')
     pg.evaluate("document.querySelector('#steelBox .steelfitl').scrollIntoView({block:'center'})");pg.wait_for_timeout(200);pg.screenshot(path=D+'1-measured.png')
     pg.evaluate("TW.open(false)");pg.wait_for_timeout(200)
