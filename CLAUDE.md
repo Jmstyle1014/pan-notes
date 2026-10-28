@@ -167,4 +167,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   trim the sub a phone can't play. Play: put between `FX.hp` and `FX.shelf` while the song's pan is a bass (`sync()`, via
   `applyFx`/`applyPanSet`); Studio: in `channel()` between `hp` and the tone shelves of bass tracks (`c.ph`). Test with
   `tphone` (its recorder taps every connection to the speakers, so Studio is heard too).
+- **Tuned steel** (Pan sounds voice `S.panVoice='steel'`, `STEEL` in `panyard-steel.js`): notes made from the tuner's recipe,
+  modes 1 : 2 : 3 (low notes) or 1 : 2 : 4, a few untuned high modes, the octave blooming in, a rubber-tip mallet filter
+  (harder = brighter), neighbours ringing along and the barrel hum at `BAND.BODY`; through `BAND.chain`/`BAND.tune`, so
+  Band sound still shapes it. Its sliders Barrel hum (6) and Octave bloom (5) sit at the top of Pan sounds → Sound
+  (localStorage `panyard-steel`). Play: `strikeMine` wrapper (after How you play's hit strength); Studio: `panVoice()`;
+  My part's sound file: `panyard-part.js`. `make_panyard.py` lets a saved song keep 'steel'. Test with `tsteel`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

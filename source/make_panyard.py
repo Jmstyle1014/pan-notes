@@ -16,6 +16,9 @@ def rep(a, b, n=1):
 rep('</style>\n\n<header class="appbar">', '</style>\n<style>\n' + open(os.path.join(HERE, 'panyard-look.css'), encoding='utf-8').read()
     + '</style>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&display=swap">\n\n<header class="appbar">')
 rep('<span class="eyebrow">Now rehearsing</span>', '<span class="eyebrow">Panyard · night session</span>')
+# Tuned steel (panyard-steel.js): a third pan sound, kept with the song and named in Settings
+rep("S.panVoice=p.panVoice==='mine'?'mine':'synth'", "S.panVoice=p.panVoice==='mine'?'mine':p.panVoice==='steel'?'steel':'synth'")
+rep("S.panVoice==='mine'?'My recordings':'Built-in'", "S.panVoice==='mine'?'My recordings':S.panVoice==='steel'?'Tuned steel':'Built-in'")
 rep('      <div id="playPans" class="pair"></div>', '      <canvas id="lanes" aria-label="Your notes falling down two lanes, one per pan, onto the line where you play them"></canvas>\n      <div id="playPans" class="pair"></div>')
 # (each pan's key is already a class: pan-ec / pan-bf, or the set name)
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-game.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
@@ -152,7 +155,7 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-wave.j
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-tune.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # how you play (dynamics, when a held note rolls, keeping the sound awake) and Band sounds (per song, Pan sounds → Sound)
 rep('const HOLD_MS=280;', 'let HOLD_MS=280;   // FEEL: Pan sounds → Sound → Roll starts')
-rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-feel.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-band.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-phone.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-part.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-notes.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-feel.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-band.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-phone.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-steel.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-part.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-notes.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # no recording yet: ▶ plays your part (panyard-part.js). It is never uploaded as the song's recording, and the
 # checklist still asks for the real one
 n = s.count("curName!=='Example tones')uploadRecording(")

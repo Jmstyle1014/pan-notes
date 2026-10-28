@@ -381,6 +381,7 @@ const mine=id=>S.panVoice==='mine'&&SAMPLES.wav[id];
 // light: a roll's quick strike. Notes recorded before dynamics don't say, so a soft one counts as a roll's
 function panVoice(dest,id,t,v,light){
   if(!PITCH[id])return;if(light===undefined)light=v<.78;
+  if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){STEEL.play(ctx,dest,id,t,v,light);return}   // Tuned steel (panyard-steel.js)
   if(S.panVoice==='mine'){
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
