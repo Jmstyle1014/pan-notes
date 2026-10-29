@@ -3032,6 +3032,10 @@ html.th-cday .refval b{color:var(--gold)}
 html.th-cday .refval span{color:var(--muted)}
 html.th-cday .refval small{color:var(--muted)}
 html.th-cday .refstep{border:1px solid var(--line);background:var(--raised,var(--surface));color:var(--text)}
+html.th-cday .mixbtn{border:1px solid rgb(43 41 50/0.144);background:rgb(43 41 50/0.054)}
+html.th-cday .mixbtn[aria-expanded=true]{background:var(--gold);border-color:var(--gold)}
+html.th-cday .mixbox{background:var(--raised,#dedce5);border:1px solid rgb(43 41 50/0.126);box-shadow:0 14px 36px rgb(31 26 41/0.225)}
+html.th-cday .mix-reset{border:1px solid rgb(43 41 50/0.144);background:rgb(43 41 50/0.054)}
 html.th-cday .steelsl small{color:var(--muted)}
 html.th-cday .steelfitl{color:var(--muted)}
 html.th-cday .steelfitl b{color:var(--text)}
@@ -3981,6 +3985,10 @@ html.th-cnight .refval b{color:var(--gold)}
 html.th-cnight .refval span{color:var(--muted)}
 html.th-cnight .refval small{color:var(--muted)}
 html.th-cnight .refstep{border:1px solid var(--line);background:var(--raised,var(--surface));color:var(--text)}
+html.th-cnight .mixbtn{border:1px solid rgb(248 247 247/0.16);background:rgb(248 247 247/0.06)}
+html.th-cnight .mixbtn[aria-expanded=true]{background:var(--gold);border-color:var(--gold)}
+html.th-cnight .mixbox{background:var(--raised,#222326);border:1px solid rgb(248 247 247/0.14);box-shadow:0 14px 36px rgb(0 0 0/0.5)}
+html.th-cnight .mix-reset{border:1px solid rgb(248 247 247/0.16);background:rgb(248 247 247/0.06)}
 html.th-cnight .steelsl small{color:var(--muted)}
 html.th-cnight .steelfitl{color:var(--muted)}
 html.th-cnight .steelfitl b{color:var(--text)}
@@ -9600,6 +9608,68 @@ var PHONE=(()=>{
   return {get on(){return on},set,sync,make,bassSet,BASS};
 })();
 
+/* ---------- Mix: the song's recording against your pans, in Play ----------
+   🎚 on the play bar opens a little mixer: Recording (the song's recording, 0–100%), Your pans (the notes you tap and
+   your written part's pans, 0–200%; the limiter keeps it from clipping) and whether you hear your pans while the
+   song plays (the same as Settings → Play along → Pan sounds: Always, or When paused). Each song keeps its own mix
+   (localStorage 'panyard-mix', songs[songId] = {rec, pan}). */
+var MIX=(()=>{
+  const K='panyard-mix',D={rec:100,pan:100};
+  let st={songs:{}};try{const x=JSON.parse(localStorage.getItem(K)||'null');if(x&&x.songs&&typeof x.songs==='object')st.songs=x.songs}catch{}
+  const keep=()=>{try{localStorage.setItem(K,JSON.stringify(st))}catch{}};
+  const sid=()=>{try{return isDemo?'demo':songNow().id}catch{return 'demo'}};
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const get=()=>{const m=st.songs[sid()]||{};return {rec:clamp(Number.isFinite(+m.rec)?+m.rec:D.rec,0,100),pan:clamp(Number.isFinite(+m.pan)?+m.pan:D.pan,0,200)}};
+  // the pans' bus starts at its own level (headroom), and Your pans scales that
+  function apply(){const m=get();
+    try{audio.volume=m.rec/100}catch{}
+    if(typeof pBus!=='undefined'&&pBus){if(pBus._base==null)pBus._base=pBus.gain.value;const v=pBus._base*m.pan/100;if(Math.abs(pBus.gain.value-v)>1e-4)pBus.gain.value=v}}
+  function set(k,v){const m=get();m[k]=v;st.songs[sid()]=m;keep();apply()}
+  {const _p=panCtx;panCtx=function(){const r=_p.apply(this,arguments);apply();return r}}
+  ['loadedmetadata','play'].forEach(e=>audio.addEventListener(e,apply));
+  const over=()=>S.tapSound==='always';
+  function setOver(on){S.tapSound=on?'always':'paused';try{renderSound()}catch{}save()}
+  /* the button and the mixer */
+  const pct=v=>Math.round(v)+'%';
+  function render(){const m=get(),box=$('mixBox');if(!box)return;
+    box.innerHTML='<div class="mix-hd"><b>Mix</b><button class="mix-x" data-mx="close" aria-label="Close the mixer">✕</button></div>'
+      +'<label class="mix-row"><span>🎵 Recording <b id="mixRecV">'+pct(m.rec)+'</b></span><input type="range" id="mixRec" min="0" max="100" step="1" value="'+m.rec+'" aria-label="Recording volume"></label>'
+      +'<label class="mix-row"><span>🥁 Your pans <b id="mixPanV">'+pct(m.pan)+'</b></span><input type="range" id="mixPan" min="0" max="200" step="5" value="'+m.pan+'" aria-label="Your pans volume"></label>'
+      +'<button class="mix-sw" data-mx="over" role="switch" aria-checked="'+over()+'"><span><b>Hear my pans while the song plays</b><small>'+(over()?'On: your taps sound over the recording.':'Off: your taps only sound while the song is stopped.')+'</small></span><span class="sxtog'+(over()?' on':'')+'" aria-hidden="true"><i></i></span></button>'
+      +'<button class="mix-reset" data-mx="reset">Back to even (100% / 100%)</button>';
+    $('mixRec').oninput=e=>{set('rec',+e.target.value);$('mixRecV').textContent=pct(+e.target.value)};
+    $('mixPan').oninput=e=>{set('pan',+e.target.value);$('mixPanV').textContent=pct(+e.target.value)};
+  }
+  function open(on){const box=$('mixBox');if(!box)return;box.hidden=!on;$('mixBtn').setAttribute('aria-expanded',String(on));if(on)render()}
+  function mount(){
+    if($('mixBtn'))return;const tr=document.querySelector('#dock .transport');if(!tr)return;
+    const b=document.createElement('button');b.id='mixBtn';b.className='mixbtn';b.setAttribute('aria-label','Mix: recording and pans volume');b.setAttribute('aria-expanded','false');b.textContent='🎚';
+    const lp=$('loopPill');tr.insertBefore(b,lp&&lp.parentNode===tr?lp:null);
+    const box=document.createElement('div');box.id='mixBox';box.className='mixbox';box.hidden=true;box.setAttribute('role','dialog');box.setAttribute('aria-label','Mix');
+    $('dock').appendChild(box);
+    b.onclick=e=>{e.stopPropagation();open(box.hidden)};
+    box.addEventListener('click',e=>{e.stopPropagation();const x=e.target.closest('[data-mx]');if(!x)return;const k=x.dataset.mx;
+      if(k==='close')open(false);
+      else if(k==='over'){setOver(!over());render();say(over()?'You’ll hear your pans over the song.':'Your pans only sound while the song is stopped.')}
+      else if(k==='reset'){st.songs[sid()]={...D};keep();apply();render()}});
+    document.addEventListener('click',e=>{if(!box.hidden&&!box.contains(e.target)&&e.target!==b)open(false)});
+  }
+  mount();
+  {const _sv=showView;showView=function(){open(false);return _sv.apply(this,arguments)}}
+  {const c=document.createElement('style');c.textContent=`
+.mixbtn{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid rgb(255 255 255/.16);background:rgb(255 255 255/.06);color:inherit;font-size:19px;line-height:1;display:grid;place-items:center;margin-left:6px;padding:0}
+.mixbtn[aria-expanded=true]{background:var(--gold);border-color:var(--gold)}
+.mixbox{position:absolute;left:12px;right:12px;bottom:calc(100% + 8px);z-index:60;background:var(--raised,#1d1638);border:1px solid rgb(255 255 255/.14);border-radius:18px;padding:12px 14px 14px;box-shadow:0 14px 36px rgb(0 0 0/.5);max-width:460px;margin:0 auto}
+.mixbox[hidden]{display:none}
+.mix-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}.mix-hd b{font-size:17px}
+.mix-x{width:40px;height:40px;border:0;background:none;color:inherit;font-size:18px;border-radius:50%}
+.mix-row{display:block;margin:10px 0}.mix-row span{display:flex;justify-content:space-between;font-size:15px;margin-bottom:6px}.mix-row input{width:100%;min-height:32px}
+.mix-sw{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:inherit;padding:8px 0;min-height:48px}
+.mix-sw>span:first-child{flex:1}.mix-sw small{display:block;opacity:.75;font-size:13px;margin-top:2px}
+.mix-reset{width:100%;min-height:44px;margin-top:6px;border-radius:12px;border:1px solid rgb(255 255 255/.16);background:rgb(255 255 255/.06);color:inherit;font-size:14px}`;document.head.appendChild(c)}
+  return {get,set,apply,open,over,setOver};
+})();
+
 /* ---------- Tuned steel: pan notes made the way a tuner tunes them, no recording needed ----------
    Each note area is a small dome that rings in a few modes. The tuner hammers it until mode 1 is the note, mode 2 is
    exactly the octave and mode 3 an octave and a fifth (cellos and basses) or two octaves (the small notes of the higher
@@ -12559,7 +12629,7 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{arrangementData,refresh:()=>refreshGains(),stageMix:tr=>stageMix(tr),fxOf:tr=>fxOf(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
+return{TONE,SHELF,arrangementData,refresh:()=>refreshGains(),stageMix:tr=>stageMix(tr),fxOf:tr=>fxOf(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';
@@ -15160,17 +15230,65 @@ var BANDAPP=(()=>{
     catch(e){console.warn('band sounds',e);say('The pan sounds couldn’t be fetched. Check the internet and open Panyard Band again.');return false}
     finally{installing=false;cover(false)}
   }
+  /* Drum body hum and Suggested tone: on for every song (a band member has no Band sound or Studio to set them), each
+     with its own switch in Settings (localStorage 'panyard-bandtone', {body, tone}). Drum body lifts each pan's barrel
+     hum (BAND.BODY, from its skirt length) as the Band sound's Drum body at 6 does; Suggested tone is Studio's tone for
+     that pan (STUDIO.TONE / SHELF: basses more bottom, tenors more shine). */
+  const TK='panyard-bandtone';let tn={body:1,tone:1,intro:0};
+  try{Object.assign(tn,JSON.parse(localStorage.getItem(TK)||'{}'))}catch{}
+  const tkeep=()=>{try{localStorage.setItem(TK,JSON.stringify(tn))}catch{}};
+  const BODYAMT=.6;
+  {const _ch=BAND.chain.bind(BAND);BAND.chain=function(ac,T,id,v,t,light){
+    const ch=_ch(ac,T,id,v,t,light),set=(FIELDS.get(id)||{}).set,nodes=[];
+    if(light||!set)return ch;
+    const pk=(ty,f,g,q)=>{const b=ac.createBiquadFilter();b.type=ty;b.frequency.value=f;b.gain.value=g;if(q)b.Q.value=q;nodes.push(b)};
+    const b=BAND.now();
+    if(tn.body&&!(b&&b.body)){const bd=BAND.BODY[set];if(bd){pk('peaking',bd,5.5*BODYAMT,2.2);pk('peaking',bd*3,2.5*BODYAMT,2.2)}}
+    if(tn.tone){let TO=null,SH=null;try{TO=STUDIO.TONE[set];SH=STUDIO.SHELF[set]}catch{}
+      if(TO&&SH){if(TO.bass)pk('lowshelf',SH[0],TO.bass);if(TO.treble)pk('highshelf',SH[1],TO.treble)}}
+    if(!nodes.length)return ch;
+    for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);
+    if(ch){ch.out.connect(nodes[0]);return {in:ch.in,out:nodes[nodes.length-1]}}
+    return {in:nodes[0],out:nodes[nodes.length-1]}}}
+  // a few notes on your pan, low ones and a chord, to hear the hum
+  function riff(){const ids=(SETS[S.panSet]||SETS.tenor).views.flatMap(v=>v.fields.map(f=>f[0])).filter(i=>PITCH[i]).sort((a,b)=>midiOf(PITCH[a])-midiOf(PITCH[b]));
+    if(!ids.length)return 0;const pick=[ids[0],ids[2]||ids[0],ids[4]||ids[0]];
+    pick.forEach((id,i)=>setTimeout(()=>strike(id,.85),i*380));setTimeout(()=>pick.forEach(id=>strike(id,.7)),pick.length*380);return pick.length*380+1600}
+  function hearBoth(){const was={body:tn.body,tone:tn.tone};tn.body=0;tn.tone=0;say('Without the hum and tone…');const d=riff();
+    setTimeout(()=>{tn.body=1;tn.tone=1;say('…and with them.');setTimeout(()=>{tn.body=was.body;tn.tone=was.tone},riff())},d)}
+  const ROWS=[['body','🥁','#ffcf6e','Drum body hum','The air inside the barrel hums, as on a real pan: a fuller bass, a tighter, ringing tenor. Each pan hums at its own note, from how long its skirt is.'],
+    ['tone','✨','#9fe3c4','Suggested tone for my pan','The best bass and treble for your pan: basses get more bottom and less stick click, tenors more shine and less boom.']];
+  function rowsHTML(cls){return ROWS.map(([k,ic,col,t,x])=>'<button class="'+cls+'" data-row="bt-'+k+'" data-bt="'+k+'" role="switch" aria-checked="'+!!tn[k]+'"><span class="sxic" style="background:'+col+'" aria-hidden="true">'+ic+'</span><span class="sxlab"><b>'+t+'</b><small>'+x+'</small></span><span class="sxtog'+(tn[k]?' on':'')+'" aria-hidden="true"><i></i></span></button>').join('')}
+  function flip(k){tn[k]=tn[k]?0:1;tkeep();say(ROWS.find(r=>r[0]===k)[3]+(tn[k]?': on. Have a listen.':': off. Have a listen.'));riff()}
+  {const _sr=SETUP.render.bind(SETUP);SETUP.render=function(){_sr();try{const list=$('setList');if(!list||list.querySelector('[data-row=bt-body]'))return;
+      const at=list.querySelector('[data-row=phone]')||list.querySelector('[data-row=feel]')||list.querySelector('[data-row=play]');if(!at)return;
+      const w=document.createElement('div');w.innerHTML=rowsHTML('sxrow');let after=at;
+      [...w.children].forEach(r=>{r.onclick=e=>{e.stopPropagation();flip(r.dataset.bt);SETUP.render()};after.parentNode.insertBefore(r,after.nextSibling);after=r});
+      const h=document.createElement('button');h.className='sxrow bt-hear';h.dataset.row='bt-hear';h.innerHTML='<span class="sxic" style="background:#c9b8ff" aria-hidden="true">▶</span><span class="sxlab"><b>Hear the difference</b><small>A few notes on your pan without the hum and tone, then with them.</small></span>';
+      h.onclick=e=>{e.stopPropagation();hearBoth()};after.parentNode.insertBefore(h,after.nextSibling)}catch(e){console.warn(e)}}}
+  // the first time: a short introduction
+  function intro(){if(tn.intro)return;const d=document.createElement('div');d.id='btIntro';d.className='band-inst bt-intro';d.setAttribute('role','dialog');d.setAttribute('aria-label','Your pan’s hum and tone');
+    d.innerHTML='<div class="bt-card"><b>Your pan’s hum and tone</b><p>Two things now make your pan sound more like it does in the yard. Both are on; you can turn either off here or later in Settings.</p><div class="bt-rows">'+rowsHTML('sxrow bt-row')+'</div><button class="bt-btn" data-bt="hear">▶ Hear the difference</button><button class="bt-btn bt-go" data-bt="ok">Got it</button></div>';
+    document.body.appendChild(d);
+    const draw=()=>d.querySelectorAll('[data-bt=body],[data-bt=tone]').forEach(r=>{const k=r.dataset.bt;r.setAttribute('aria-checked',String(!!tn[k]));r.querySelector('.sxtog').classList.toggle('on',!!tn[k])});
+    d.addEventListener('click',e=>{const x=e.target.closest('[data-bt]');if(!x)return;const k=x.dataset.bt;
+      if(k==='ok'){tn.intro=1;tkeep();d.remove()}else if(k==='hear')hearBoth();else{flip(k);draw()}})}
   const ready=(async()=>{
     // let Panyard read its saved notes first, then add the band's
     await new Promise(r=>setTimeout(r,900));
     const ok=await install();
-    if(!_band())ROLE.open('section');
+    if(!_band())ROLE.open('section');else intro();
     return ok})();
   {const c=document.createElement('style');c.textContent=`
 body.bandapp [data-r=producer],body.bandapp [data-rs=p],body.bandapp .role-ov [data-to=who],body.bandapp .tabs [data-tab=studio]{display:none!important}
 .band-inst{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgb(6 8 14/.86);color:#fff;text-align:center;padding:24px}
-.band-inst[hidden]{display:none}.band-inst b{font-size:22px}.band-inst p{margin:10px 0 0;opacity:.85}`;document.head.appendChild(c)}
-  return {A,ready,install,get installing(){return installing}};
+.band-inst[hidden]{display:none}
+.bt-card{background:var(--raised,#1d1638);border:1px solid rgb(255 255 255/.14);border-radius:20px;padding:18px 16px;max-width:440px;width:100%;text-align:left;max-height:calc(100vh - 32px);overflow:auto}
+.bt-card>b{font-size:20px}.bt-card>p{opacity:.85;margin:8px 0 10px}
+.bt-row{width:100%;text-align:left}.bt-row .sxlab b{font-size:16px}
+.bt-btn{display:block;width:100%;min-height:48px;margin-top:10px;border-radius:14px;border:1px solid rgb(255 255 255/.18);background:rgb(255 255 255/.07);color:inherit;font-size:16px;font-weight:600}
+.bt-go{background:var(--gold);color:#1a1205;border-color:var(--gold)}.band-inst b{font-size:22px}.band-inst p{margin:10px 0 0;opacity:.85}`;document.head.appendChild(c)}
+  return {A,ready,install,tone:tn,intro,hearBoth,get installing(){return installing}};
 })();
 
 </script>
