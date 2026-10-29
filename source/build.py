@@ -95,12 +95,14 @@ def icon(size, maskable):
         d.ellipse([x - s2, y - s2, x + s2, y + s2], fill=light)
     return im.resize((size, size), Image.LANCZOS)
 # Panyard has its own drawn icon (a chrome pan, Chrome Night colours): source/icons/panyard-*.png, made with
-# source/icons/panyard-icon.js. The other versions keep the gold pan drawn above.
+# source/icons/panyard-icon.js. Panyard Band has its own too (a pan with a gold note ringing out above it):
+# source/icons/band-*.png, made with source/icons/band-icon.py. The other versions keep the gold pan drawn above.
 ICONS = os.path.join(HERE, 'icons')
-own = NAME == 'Panyard' and os.path.isfile(os.path.join(ICONS, 'panyard-icon.png'))
+PRE = {'Panyard': 'panyard', 'Panyard Band': 'band'}.get(NAME)
+own = PRE and os.path.isfile(os.path.join(ICONS, PRE + '-icon.png'))
 for size in (192, 512):
     if own:
-        for f, out in (('panyard-icon.png', f'icon-{size}.png'), ('panyard-maskable.png', f'maskable-{size}.png')):
+        for f, out in ((PRE + '-icon.png', f'icon-{size}.png'), (PRE + '-maskable.png', f'maskable-{size}.png')):
             Image.open(os.path.join(ICONS, f)).convert('RGBA').resize((size, size), Image.LANCZOS).save(os.path.join(OUT, 'icons', out))
     else:
         icon(size, False).save(os.path.join(OUT, 'icons', f'icon-{size}.png'))

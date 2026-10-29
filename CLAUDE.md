@@ -195,6 +195,6 @@ upright count is low because a checklist pushes the pans below the play bar ther
   The band's pan sounds are `source/band-sounds/` (FLAC + `manifest.json`, made by `make_band_sounds.py` from the owner's
   "Save my sounds file"); on first open (and when the manifest's `version` changes) they go in through `SHARE.open`.
   The BANDSHIM script keeps its storage apart from Panyard's on the same site (localStorage keys `pb:…`, IndexedDB
-  `band-…`), and its Drive backup is `panyard-band-backup.json`. Test with `tbandapp`. Rebuild `band/` after Panyard
+  `band-…`), and its Drive backup is `panyard-band-backup.json`. Its icon (a pan with a gold note ringing out) is `source/icons/band-*.png`, made by `band-icon.py` from `band-icon.svg`. Test with `tbandapp`. Rebuild `band/` after Panyard
   changes that band members should get. New band sounds: run make_band_sounds.py on a new sounds file, then rebuild.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
