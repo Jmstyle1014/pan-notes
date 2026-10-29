@@ -197,4 +197,4 @@ upright count is low because a checklist pushes the pans below the play bar ther
   The BANDSHIM script keeps its storage apart from Panyard's on the same site (localStorage keys `pb:…`, IndexedDB
   `band-…`), and its Drive backup is `panyard-band-backup.json`. Test with `tbandapp`. Rebuild `band/` after Panyard
   changes that band members should get. New band sounds: run make_band_sounds.py on a new sounds file, then rebuild.
- `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
+- **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
