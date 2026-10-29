@@ -197,4 +197,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   The BANDSHIM script keeps its storage apart from Panyard's on the same site (localStorage keys `pb:…`, IndexedDB
   `band-…`), and its Drive backup is `panyard-band-backup.json`. Its icon (a pan with a gold note ringing out) is `source/icons/band-*.png`, made by `band-icon.py` from `band-icon.svg`. Test with `tbandapp`. Rebuild `band/` after Panyard
   changes that band members should get. New band sounds: run make_band_sounds.py on a new sounds file, then rebuild.
+- **Mix** (`panyard-mix.js`, `MIX`, Play's 🎚 on the play bar, Panyard and Panyard Band): per song in localStorage
+  `panyard-mix` (`songs[songId]={rec,pan}`): Recording sets `audio.volume` (0–100%), Your pans scales `pBus` from its own
+  level (`pBus._base`, 0–200%; the limiter and soft clip keep chords under 1.0), and its switch is `S.tapSound`
+  (always/paused). Panyard Band also has **Drum body hum** and **Suggested tone** for every song (`panyard-bandapp.js`,
+  localStorage `panyard-bandtone`, wrapping `BAND.chain`: `BAND.BODY` at Drum body 6, and `STUDIO.TONE`/`SHELF`), with
+  Settings switches, ▶ Hear the difference and a one-time introduction. Test with `tbandmix`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
