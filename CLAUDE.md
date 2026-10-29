@@ -31,7 +31,7 @@ GitHub Pages deploys on push. The Android app (`android-chrome/`, a Trusted Web 
 site in Chrome) picks up website changes by itself, so it doesn't need a new APK. `.github/workflows/android.yml`
 still builds a fresh APK on changes under `panyard/`.
 
-**Only rebuild the site you changed.** The top-level site and `next/` are behind their sources on purpose:
+**Only rebuild the site you changed.** The top-level site and `next/` are behind their sources on purpose (Panyard Band, `band/`, follows Panyard: see below):
 rebuilding them would ship source changes that were never tested there.
 
 ### Before you change anything
@@ -188,4 +188,13 @@ upright count is low because a checklist pushes the pans below the play bar ther
   hit), six untuned plate tones and the 22.5 in oil drum's shell (seven Q 45 resonators struck by a noise burst, ready
   notes only). Nothing above 8 kHz and softer from 4.5 kHz (very high bursts sounded like ticks). Steel edge slider
   (`st.edge`, 6) scales the ladder, plate and shell; Tune it like your pans measures the ladder 1×–8× (`F.h`).
-- **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
+- **Panyard Band** (`/pan-notes/band/`, for band members): `python3 source/make_band.py` builds
+  `source/pan-notes-band.html` from the Panyard file (rebuild Panyard first), then `build.py … "Panyard Band"` into `band/`.
+  `panyard-bandapp.js` (`BANDAPP`): always Band member (ROLE never offers Producer), no Studio / Pan sounds (`TW`) / Band sound
+  / tuning / pan picker, `S.refA` and `S.panVoice` fixed by getters (441, 'mine'), and a sounds file can't change the sounds.
+  The band's pan sounds are `source/band-sounds/` (FLAC + `manifest.json`, made by `make_band_sounds.py` from the owner's
+  "Save my sounds file"); on first open (and when the manifest's `version` changes) they go in through `SHARE.open`.
+  The BANDSHIM script keeps its storage apart from Panyard's on the same site (localStorage keys `pb:…`, IndexedDB
+  `band-…`), and its Drive backup is `panyard-band-backup.json`. Test with `tbandapp`. Rebuild `band/` after Panyard
+  changes that band members should get. New band sounds: run make_band_sounds.py on a new sounds file, then rebuild.
+ `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

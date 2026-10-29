@@ -1,0 +1,915 @@
+{
+"format": "panyard-band-sounds",
+"name": "My pans",
+"sets": [
+"guitar",
+"six",
+"tenor",
+"fcello",
+"dsec"
+],
+"files": {
+"a": "000.flac",
+"b": "001.flac",
+"bb": "002.flac",
+"c": "003.flac",
+"cs-inner": "004.flac",
+"cs-low": "005.flac",
+"d-inner": "006.flac",
+"d-low": "007.flac",
+"dsec:52": "008.flac",
+"dsec:53": "009.flac",
+"dsec:54": "010.flac",
+"dsec:55": "011.flac",
+"dsec:56": "012.flac",
+"dsec:57": "013.flac",
+"dsec:58": "014.flac",
+"dsec:59": "015.flac",
+"dsec:60": "016.flac",
+"dsec:61": "017.flac",
+"dsec:62": "018.flac",
+"dsec:63": "019.flac",
+"dsec:64": "020.flac",
+"dsec:65": "021.flac",
+"dsec:66": "022.flac",
+"dsec:67": "023.flac",
+"dsec:68": "024.flac",
+"dsec:69": "025.flac",
+"dsec:70": "026.flac",
+"dsec:71": "027.flac",
+"dsec:72": "028.flac",
+"dsec:73": "029.flac",
+"dsec:74": "030.flac",
+"dsec:75": "031.flac",
+"dsec:76": "032.flac",
+"dsec:77": "033.flac",
+"dsec:78": "034.flac",
+"dsec:79": "035.flac",
+"dsec:80": "036.flac",
+"dsec:81": "037.flac",
+"e-low": "038.flac",
+"e-top": "039.flac",
+"eb-low": "040.flac",
+"eb-top": "041.flac",
+"f-inner": "042.flac",
+"f-low": "043.flac",
+"fcello:34": "044.flac",
+"fcello:35": "045.flac",
+"fcello:36": "046.flac",
+"fcello:37": "047.flac",
+"fcello:38": "048.flac",
+"fcello:39": "049.flac",
+"fcello:40": "050.flac",
+"fcello:41": "051.flac",
+"fcello:42": "052.flac",
+"fcello:43": "053.flac",
+"fcello:44": "054.flac",
+"fcello:45": "055.flac",
+"fcello:46": "056.flac",
+"fcello:47": "057.flac",
+"fcello:48": "058.flac",
+"fcello:49": "059.flac",
+"fcello:50": "060.flac",
+"fcello:51": "061.flac",
+"fcello:52": "062.flac",
+"fcello:53": "063.flac",
+"fcello:54": "064.flac",
+"fcello:55": "065.flac",
+"fcello:56": "066.flac",
+"fcello:57": "067.flac",
+"fcello:58": "068.flac",
+"fcello:59": "069.flac",
+"fcello:60": "070.flac",
+"fcello:61": "071.flac",
+"fs-inner": "072.flac",
+"fs-low": "073.flac",
+"g-inner": "074.flac",
+"g-low": "075.flac",
+"gs-inner": "076.flac",
+"gs-low": "077.flac",
+"six:34": "078.flac",
+"six:35": "079.flac",
+"six:36": "080.flac",
+"six:37": "081.flac",
+"six:38": "082.flac",
+"six:39": "083.flac",
+"six:40": "084.flac",
+"six:41": "085.flac",
+"six:42": "086.flac",
+"six:43": "087.flac",
+"six:44": "088.flac",
+"six:45": "089.flac",
+"six:46": "090.flac",
+"six:47": "091.flac",
+"six:48": "092.flac",
+"six:49": "093.flac",
+"six:50": "094.flac",
+"six:51": "095.flac",
+"tenor:60": "096.flac",
+"tenor:61": "097.flac",
+"tenor:62": "098.flac",
+"tenor:63": "099.flac",
+"tenor:64": "100.flac",
+"tenor:65": "101.flac",
+"tenor:66": "102.flac",
+"tenor:67": "103.flac",
+"tenor:68": "104.flac",
+"tenor:69": "105.flac",
+"tenor:70": "106.flac",
+"tenor:71": "107.flac",
+"tenor:72": "108.flac",
+"tenor:73": "109.flac",
+"tenor:74": "110.flac",
+"tenor:75": "111.flac",
+"tenor:76": "112.flac",
+"tenor:77": "113.flac",
+"tenor:78": "114.flac",
+"tenor:79": "115.flac",
+"tenor:80": "116.flac",
+"tenor:81": "117.flac",
+"tenor:82": "118.flac",
+"tenor:83": "119.flac",
+"tenor:84": "120.flac",
+"tenor:85": "121.flac",
+"tenor:86": "122.flac",
+"tenor:87": "123.flac",
+"tenor:88": "124.flac"
+},
+"tune": {
+"a": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": -13.2
+},
+"b": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": -12.8
+},
+"bb": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": -12.6
+},
+"c": {
+"start": 0,
+"db": 2.5,
+"fade": 0.35,
+"cents": -12.7
+},
+"cs-inner": {
+"start": 0,
+"db": 3,
+"fade": 0.35,
+"cents": -12.8
+},
+"cs-low": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": -13.5
+},
+"d-inner": {
+"start": 0,
+"fade": 0.35,
+"cents": 12.3
+},
+"d-low": {
+"start": 0,
+"end": 2.613,
+"db": -2.5,
+"fade": 0.35,
+"cents": -13.7
+},
+"dsec:52": {
+"start": 0,
+"db": -1.5,
+"fade": 0.35,
+"cents": -11.7
+},
+"dsec:53": {
+"start": 0,
+"db": -1,
+"fade": 0.35,
+"cents": -11
+},
+"dsec:54": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": -11.9
+},
+"dsec:55": {
+"start": 0,
+"db": -3.5,
+"fade": 0.35,
+"cents": -11.4
+},
+"dsec:56": {
+"start": 0,
+"db": -1.5,
+"fade": 0.35,
+"cents": -12.6
+},
+"dsec:57": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": -12.6
+},
+"dsec:58": {
+"start": 0,
+"fade": 0.35,
+"cents": -12.4,
+"db": -0.5
+},
+"dsec:59": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -12.9
+},
+"dsec:60": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -12.6
+},
+"dsec:61": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": -12.7
+},
+"dsec:62": {
+"start": 0,
+"fade": 0.35,
+"cents": 12.2
+},
+"dsec:63": {
+"start": 0,
+"fade": 0.35,
+"cents": 12.5,
+"db": -0.5
+},
+"dsec:64": {
+"start": 0,
+"db": -1,
+"fade": 0.35,
+"cents": 12.6
+},
+"dsec:65": {
+"start": 0,
+"fade": 0.35,
+"cents": 13.9
+},
+"dsec:66": {
+"start": 0,
+"db": 3,
+"fade": 0.35,
+"cents": 14.1
+},
+"dsec:67": {
+"start": 0,
+"db": 6,
+"fade": 0.35,
+"cents": 13.4
+},
+"dsec:68": {
+"start": 0,
+"db": 3.5,
+"fade": 0.35,
+"cents": 13.3
+},
+"dsec:69": {
+"start": 0,
+"db": -2.5,
+"fade": 0.35,
+"cents": -1.4
+},
+"dsec:70": {
+"start": 0,
+"fade": 0.35,
+"cents": -2.1,
+"db": -0.5
+},
+"dsec:71": {
+"start": 0,
+"fade": 0.35,
+"cents": -2.2,
+"db": -0.5
+},
+"dsec:72": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": 13.1
+},
+"dsec:73": {
+"start": 0,
+"fade": 0.35,
+"cents": 13
+},
+"dsec:74": {
+"start": 0,
+"db": 2.5,
+"fade": 0.35,
+"cents": -18.6
+},
+"dsec:75": {
+"start": 0,
+"fade": 0.35,
+"cents": -18.6
+},
+"dsec:76": {
+"start": 0,
+"fade": 0.35,
+"cents": -18.8
+},
+"dsec:77": {
+"start": 0,
+"db": 3,
+"fade": 0.35,
+"cents": -18.7
+},
+"dsec:78": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -12.6
+},
+"dsec:79": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": -12.8
+},
+"dsec:80": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": 26.8
+},
+"dsec:81": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": 27.1
+},
+"e-low": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": -11.9
+},
+"e-top": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": 12.6
+},
+"eb-low": {
+"start": 0,
+"end": 2.627,
+"db": -1.5,
+"fade": 0.35,
+"cents": -12.7
+},
+"eb-top": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": 12.5
+},
+"f-inner": {
+"start": 0,
+"fade": 0.35,
+"cents": 13.8
+},
+"f-low": {
+"start": 0,
+"db": -1,
+"fade": 0.35,
+"cents": -10.7
+},
+"fcello:34": {
+"fade": 0.35,
+"cents": -6.6,
+"start": 0
+},
+"fcello:35": {
+"start": 0,
+"end": 2.5,
+"fade": 0.35,
+"cents": 6.7
+},
+"fcello:36": {
+"start": 0,
+"db": 2,
+"fade": 0.35,
+"cents": -0.5
+},
+"fcello:37": {
+"start": 0,
+"end": 2.6309,
+"db": 2,
+"fade": 0.35,
+"cents": 4.7
+},
+"fcello:38": {
+"start": 0,
+"end": 2.6118,
+"db": -1,
+"fade": 0.35,
+"cents": 3.9
+},
+"fcello:39": {
+"start": 0,
+"db": -1.5,
+"fade": 0.35,
+"cents": 3.4
+},
+"fcello:40": {
+"start": 0,
+"end": 2.5,
+"db": -1.5,
+"fade": 0.35,
+"cents": 20.4
+},
+"fcello:41": {
+"start": 0,
+"end": 2.6445,
+"fade": 0.35,
+"cents": 4.4
+},
+"fcello:42": {
+"start": 0,
+"fade": 0.35,
+"cents": 4.6
+},
+"fcello:43": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": 4.2
+},
+"fcello:44": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": 5.1
+},
+"fcello:45": {
+"start": 0,
+"end": 2.5,
+"db": 3,
+"fade": 0.35,
+"cents": 17.8
+},
+"fcello:46": {
+"start": 0,
+"end": 2.629,
+"fade": 0.35,
+"cents": -1.3
+},
+"fcello:47": {
+"start": 0,
+"end": 2.5,
+"db": -0.5,
+"fade": 0.35,
+"cents": -17.6
+},
+"fcello:48": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -11.6
+},
+"fcello:49": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -13.3
+},
+"fcello:50": {
+"start": 0,
+"db": 2.5,
+"fade": 0.35,
+"cents": -13.1
+},
+"fcello:51": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": -12.4
+},
+"fcello:52": {
+"start": 0,
+"end": 2.5,
+"db": 0.5,
+"fade": 0.35,
+"cents": 24.2
+},
+"fcello:53": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": -10.6
+},
+"fcello:54": {
+"start": 0,
+"db": 2.5,
+"fade": 0.35,
+"cents": -12
+},
+"fcello:55": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": -11.5
+},
+"fcello:56": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -12.5
+},
+"fcello:57": {
+"start": 0,
+"end": 2.5,
+"db": 1,
+"fade": 0.35,
+"cents": 9
+},
+"fcello:58": {
+"start": 0,
+"fade": 0.35,
+"cents": -12.2,
+"db": 2.5
+},
+"fcello:59": {
+"start": 0,
+"end": 2.5,
+"db": 8.5,
+"fade": 0.35,
+"cents": 8.4
+},
+"fcello:60": {
+"start": 0,
+"db": 4,
+"fade": 0.35,
+"cents": -12.6
+},
+"fcello:61": {
+"start": 0,
+"db": 5,
+"fade": 0.35,
+"cents": -12.9
+},
+"fs-inner": {
+"start": 0,
+"fade": 0.35,
+"cents": 13.6,
+"db": 0.5
+},
+"fs-low": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": -12
+},
+"g-inner": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": 13.6
+},
+"g-low": {
+"start": 0,
+"db": -1.5,
+"fade": 0.35,
+"cents": -11.3
+},
+"gs-inner": {
+"start": 0,
+"end": 2.5,
+"db": 1.5,
+"fade": 0.35,
+"cents": 13.5
+},
+"gs-low": {
+"start": 0,
+"end": 2.6076,
+"db": 1,
+"fade": 0.35,
+"cents": -12.5
+},
+"six:34": {
+"start": 0,
+"end": 2.6329,
+"db": -0.5,
+"fade": 0.35,
+"cents": -6.3
+},
+"six:35": {
+"start": 0,
+"fade": 0.35,
+"cents": 1.3,
+"db": 4.5
+},
+"six:36": {
+"start": 0,
+"end": 2.5,
+"db": -2,
+"fade": 0.35,
+"cents": 1
+},
+"six:37": {
+"start": 0,
+"end": 2.6135,
+"db": 3,
+"fade": 0.35,
+"cents": 4.8
+},
+"six:38": {
+"start": 0,
+"end": 2.611,
+"db": 0.5,
+"fade": 0.35,
+"cents": 4
+},
+"six:39": {
+"start": 0,
+"end": 2.6188,
+"db": 0.5,
+"fade": 0.35,
+"cents": 3.2
+},
+"six:40": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": 3.7
+},
+"six:41": {
+"start": 0,
+"end": 2.5,
+"db": 4.5,
+"fade": 0.35,
+"cents": -24.5
+},
+"six:42": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": 3.8
+},
+"six:43": {
+"start": 0,
+"end": 2.5,
+"db": 0.5,
+"fade": 0.35,
+"cents": 13.1
+},
+"six:44": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": 5.5
+},
+"six:45": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": 6.9
+},
+"six:46": {
+"start": 0,
+"db": 4,
+"fade": 0.35,
+"cents": -9.3
+},
+"six:47": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": 16.5
+},
+"six:48": {
+"start": 0,
+"fade": 0.35,
+"cents": -11.8
+},
+"six:49": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": -13.2
+},
+"six:50": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": -13.2
+},
+"six:51": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -12.6
+},
+"tenor:60": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": -12.6
+},
+"tenor:61": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": -12.7
+},
+"tenor:62": {
+"start": 0,
+"db": -2,
+"fade": 0.35,
+"cents": 12.4
+},
+"tenor:63": {
+"start": 0,
+"db": -1,
+"fade": 0.35,
+"cents": 12.4
+},
+"tenor:64": {
+"start": 0,
+"db": -0.5,
+"fade": 0.35,
+"cents": 12.6
+},
+"tenor:65": {
+"start": 0,
+"db": -1.5,
+"fade": 0.35,
+"cents": 13.7
+},
+"tenor:66": {
+"start": 0,
+"end": 2.5,
+"db": -4,
+"fade": 0.35,
+"cents": 13.6
+},
+"tenor:67": {
+"start": 0,
+"fade": 0.35,
+"cents": 13.7
+},
+"tenor:68": {
+"start": 0,
+"db": -1,
+"fade": 0.35,
+"cents": 13.7
+},
+"tenor:69": {
+"start": 0,
+"db": -1.5,
+"fade": 0.35,
+"cents": -1.8
+},
+"tenor:70": {
+"start": 0,
+"fade": 0.35,
+"cents": -1.9,
+"db": -2
+},
+"tenor:71": {
+"start": 0,
+"db": -3.5,
+"fade": 0.35,
+"cents": -2.2
+},
+"tenor:72": {
+"start": 0,
+"fade": 0.35,
+"cents": 13
+},
+"tenor:73": {
+"start": 0,
+"fade": 0.35,
+"cents": 13.1
+},
+"tenor:74": {
+"start": 0,
+"end": 2.5,
+"db": 1.5,
+"fade": 0.35,
+"cents": -19
+},
+"tenor:75": {
+"start": 0,
+"db": -1,
+"fade": 0.35,
+"cents": -18.7
+},
+"tenor:76": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": -18.4
+},
+"tenor:77": {
+"start": 0,
+"db": 2,
+"fade": 0.35,
+"cents": -18.8
+},
+"tenor:78": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": -12.7
+},
+"tenor:79": {
+"start": 0,
+"db": -1.5,
+"fade": 0.35,
+"cents": -12.6
+},
+"tenor:80": {
+"start": 0,
+"db": -1,
+"fade": 0.35,
+"cents": 27.8
+},
+"tenor:81": {
+"start": 0,
+"fade": 0.35,
+"cents": 26.3
+},
+"tenor:82": {
+"start": 0,
+"db": 0.5,
+"fade": 0.35,
+"cents": 27.4
+},
+"tenor:83": {
+"start": 0,
+"fade": 0.35,
+"cents": 26.9
+},
+"tenor:84": {
+"start": 0,
+"db": 0.5,
+"fade": 0.26,
+"cents": 26.6
+},
+"tenor:85": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": 26.7
+},
+"tenor:86": {
+"start": 0,
+"db": 1,
+"fade": 0.35,
+"cents": 26.9
+},
+"tenor:87": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": 27.6
+},
+"tenor:88": {
+"start": 0,
+"db": 1.5,
+"fade": 0.35,
+"cents": 1.8
+}
+},
+"fx": {
+"space": "yard",
+"mix": 0.24,
+"decay": 1.9,
+"lowcut": 140,
+"bright": 2
+},
+"borrow": {
+"six": "guitar",
+"dsec": "tenor",
+"tenor": "*",
+"guitar": "*",
+"fcello": "guitar",
+"seven": "six",
+"tcello": "guitar",
+"dten": "tenor"
+},
+"savedAt": "2026-10-26T01:28:42.283Z",
+"version": "0f448d2055"
+}
