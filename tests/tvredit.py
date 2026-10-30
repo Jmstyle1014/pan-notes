@@ -56,6 +56,13 @@ with sync_playwright() as p:
     check('tenor:62' in hs,'with swing on the off-beat note still plays')
     pg.evaluate("VR.act('speed')");check(pg.evaluate("VR.song().speed")==.75 and pg.evaluate("VR.song().bpm")==120,'Speed ¾ slows the practice, the song stays at ♩ 120')
     pg.screenshot(path=D+'2-edit-rows.png')
+    # a new song, then Undo; putting the table away stops the music, bringing it back
+    pg.evaluate("VR.act('play')");pg.evaluate("VR.act('newsong')");sg=pg.evaluate("VR.song()")
+    check(not sg['tracks'] and pg.evaluate("VR.tr().state")=='idle','🗋 New song stops and starts an empty song')
+    pg.evaluate("VR.act('undo')");check(len(pg.evaluate("VR.song().tracks"))==2,'↶ Undo brings the old song back')
+    pg.evaluate("VR.act('play');VR.act('hide')");check(not pg.evaluate("VR.tableOn()") and pg.evaluate("VR.tr().state")=='idle' and not pg.evaluate("VR.song().click"),'putting the table away stops the music and the click')
+    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000);check(not pg.evaluate("VR.tableOn()"),'it stays away next time')
+    pg.click('#studioSeg [data-st=on]');check(pg.evaluate("VR.tableOn()"),'and comes back out')
     check(not errs,'no errors '+str(errs[:3]))
     b.close()
 print('FAILED: '+str(len(fails)) if fails else 'all passed')

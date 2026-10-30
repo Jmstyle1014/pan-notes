@@ -256,5 +256,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   second and tenor red, kit wooden; held pointing forward and a touch down (`STICK_TILT`). **Bounce:** hits use the hand's
   real tip; then `bounce()` bends the stick back from the hand until its tip rests on the steel (`sinkOf`) and a hit
   flicks it up (`kickBack`). Test with `tvrpans` (`VR.pushStick`).
+  **Just play:** 🗋 New song (an ↶ Undo away) and "Put the table away" sit on the screen's bottom row when no note is
+  picked; `showTable()` hides the table, stops the music and the click (localStorage `panyard-vr-studio`); holding A / X
+  a second (a tap still brings the pans) or the page's Studio table switch brings it back. The trigger only kicks on the
+  drum kit.
   Test with `tvr` (`VR.swing`, `VR.hitDrum`, `VR.kick`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
