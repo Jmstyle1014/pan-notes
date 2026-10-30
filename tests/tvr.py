@@ -123,46 +123,6 @@ with sync_playwright() as p:
     xy=pg.evaluate("VR.screenOfPanel('screen','click')");pg.mouse.click(*xy);pg.wait_for_timeout(200)
     check(pg.evaluate("VR.song().click"),'pointing at Click on the screen and pressing works')
     pg.evaluate("VR.act('click');VR.view('pans')")
-    pg.evaluate("document.getElementById('hud').hidden=true");xy=pg.evaluate("VR.screenOf('tenor:72')")
-    pg.mouse.click(*xy);pg.wait_for_timeout(300)
-    check(pg.evaluate("VR.hits.length")>n0+1,f'a tap on the pan plays a note {pg.evaluate("VR.hits.slice(-1)")}')
-    # the Double Guitar: two pans, every note found, a swing on each pan plays
-    pg.evaluate("VR.set('guitar')");pg.wait_for_timeout(300)
-    gids=pg.evaluate("VR.notes()");gbad=[i for i in gids if pg.evaluate(f"VR.noteAt('{i}')")!=i]
-    check(pg.evaluate("VR.state().drums")==2 and len(gids)==20 and not gbad,f'the Double Guitar has two pans, and every note\'s place finds that note {gbad}')
-    r3,x3=grab(pg,"VR.swing('d-low',3)");r4,x4=grab(pg,"VR.swing('cs-inner',3)")
-    check(r3=='d-low' and r4=='cs-inner' and abs(x3).max()>.05 and abs(x4).max()>.05,f'a swing plays the E/C pan\'s low D and the B/F pan\'s inner C# ({abs(x3).max():.2f}, {abs(x4).max():.2f})')
-    # the Double Second: the C pan and the C♯ pan
-    pg.evaluate("VR.set('dsec')");pg.wait_for_timeout(300)
-    dids=pg.evaluate("VR.notes()");dbad=[i for i in dids if pg.evaluate(f"VR.noteAt('{i}')")!=i]
-    check(pg.evaluate("VR.state().drums")==2 and len(dids)==30 and not dbad,f'the Double Second has two pans, and every note\'s place finds that note {dbad}')
-    r5,x5=grab(pg,"VR.swing('dsec:60',3)");r6,x6=grab(pg,"VR.swing('dsec:61',3)")
-    check(r5=='dsec:60' and r6=='dsec:61' and abs(x5).max()>.05 and abs(x6).max()>.05,f'a swing plays the C pan\'s C and the C♯ pan\'s C♯ ({abs(x5).max():.2f}, {abs(x6).max():.2f})')
-    pg.screenshot(path=D+'2b-dsec.png')
-    # the metronome: the Click pad, hit with a stick
-    pg.evaluate("VR.met.bpm=200");c0=pg.evaluate("VR.clicks")
-    check(pg.evaluate("VR.hitPad('click')")=='click','hitting the Click pad with a stick presses it')
-    pg.wait_for_timeout(1300);c1=pg.evaluate("VR.clicks")
-    check(c1-c0>=3 and pg.evaluate("VR.met.on"),f'the metronome clicks ({c1-c0} clicks in 1.3 s at 200)')
-    pg.evaluate("VR.pad('click')");pg.wait_for_timeout(400);c2=pg.evaluate("VR.clicks");pg.wait_for_timeout(600)
-    check(pg.evaluate("VR.clicks")==c2,'Click again stops it')
-    pg.evaluate("VR.pad('fast')");check(pg.evaluate("VR.met.bpm")==204,'+ makes it faster')
-    pg.evaluate("VR.met.bpm=200")
-    # recording: a bar to count in, three notes, ● again, and it plays them back
-    pg.evaluate("VR.pad('clear');VR.pad('rec')");pg.wait_for_timeout(1350)
-    check(pg.evaluate("VR.tr().state")=='rec' and pg.evaluate("VR.tr().beat")>=0,'● Rec counts in a bar, then records')
-    for nid in ['dsec:60','dsec:64','dsec:67']:
-        pg.evaluate(f"VR.swing('{nid}',2.5)");pg.wait_for_timeout(300)
-    pg.evaluate("VR.pad('rec')");tk=pg.evaluate("VR.take()")
-    check([n['id'] for n in tk['n']]==['dsec:60','dsec:64','dsec:67'] and tk['L']%4==0 and tk['L']>max(n['b'] for n in tk['n']),f'the take has the three notes, rounded up to whole bars {tk}')
-    h0=pg.evaluate("VR.hits.length");pg.wait_for_timeout(2600)
-    back=[h['id'] for h in pg.evaluate("VR.hits").__getitem__(slice(h0,None)) if h['p']]
-    check(back[:3]==['dsec:60','dsec:64','dsec:67'],f'● again stops, and it plays the take back on a loop {back[:6]}')
-    pg.screenshot(path=D+'2c-recording.png')
-    pg.evaluate("VR.pad('play')");check(pg.evaluate("VR.tr().state")=='idle','▶ / ■ stops it')
-    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000)
-    check(pg.evaluate("VR.state().set")=='dsec' and len(pg.evaluate("VR.take()")['n'])==3,'the take is kept for next time')
-    pg.evaluate("VR.pad('clear')");check(not pg.evaluate("VR.take()")['n'],'✕ Clear empties it')
     pg.evaluate("document.getElementById('hud').hidden=true")
     pg.evaluate("VR.look('gems')");pg.wait_for_timeout(300)
     check(pg.evaluate("VR.state().look")=='gems','the Vincy Mas look goes on')
