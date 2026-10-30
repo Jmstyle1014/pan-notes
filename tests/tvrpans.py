@@ -38,6 +38,22 @@ with sync_playwright() as p:
         check(deep<=2.5,f'{k}: the stick tip stays on the steel while the hand goes 8 cm further down (deepest {deep} mm)')
         check(hit==[nid],f'{k}: and the hit still plays once ({hit})')
         check(fr[-1]['bend']>-.22+.05,f'{k}: the stick bends back from the hand (to {fr[-1]["bend"]} rad)')
+    # shorter sticks, and a length to choose
+    pg.evaluate("VR.set('tenor')");L0=pg.evaluate("VR.stickLen()")
+    check(.14<=L0<=.16,f'a tenor stick shows about 15 cm past the hand ({L0} m)')
+    pg.evaluate("document.getElementById('hud').hidden=false");pg.click('#lenSeg [data-len=short]');L1=pg.evaluate("VR.stickLen()")
+    check(L1<L0*.85,f'Sticks: Short makes them shorter ({L1} m)')
+    pg.click('#lenSeg [data-len=medium]')
+    # move one pan by its rim; the notes don't grab it; it stays; ↺ Pans back
+    pg.evaluate("VR.set('six')");p0=pg.evaluate("VR.panPos(2)")
+    check(not pg.evaluate("VR.movePan(2,.2,0,.1,true)"),'a hand over the notes doesn\'t grab the pan (playing never moves it)')
+    check(pg.evaluate("VR.movePan(2,.2,.05,.1)"),'a grip squeezed at a pan\'s rim grabs it')
+    p1=pg.evaluate("VR.panPos(2)");check(abs(p1[0]-p0[0]-.2)<.01 and abs(p1[2]-p0[2]-.1)<.01 and abs(p1[1]-p0[1]-.05)<.01 and pg.evaluate("VR.panPos(1)")!=p1,f'that one pan moves with the hand {p0} → {p1}')
+    r1=pg.evaluate("VR.swing('six:40',2.5)") if 'six:40' in pg.evaluate("VR.notes()") else 'skip'
+    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=125",timeout=90000)
+    check(pg.evaluate("VR.state().set")=='six' and pg.evaluate("VR.panPos(2)")==p1,'it stays where you put it')
+    ids=pg.evaluate("VR.notes()");check(all(pg.evaluate(f"VR.swing('{i}',2.5)")==i for i in ids),'every note still plays after moving it')
+    pg.evaluate("VR.pansBack()");check(pg.evaluate("VR.panPos(2)")==p0,'↺ Pans back puts it back')
     check(not errs,'no errors '+str(errs[:3]))
     b.close()
 print('FAILED: '+str(len(fails)) if fails else 'all passed')
