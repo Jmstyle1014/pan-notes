@@ -229,5 +229,17 @@ upright count is low because a checklist pushes the pans below the play bar ther
   round every note and domes it up to 6 mm (smaller notes less); `surf(d,x,z)` is the playing surface everywhere (the
   dish, the glows, the hit test). **Grab the table:** squeeze a grip with the beam on it (or the hand near it) and move;
   it turns to face you and is kept in localStorage `panyard-vr-table` (rig-local x, y, z).
-  Test with `tvr` (`VR.swing`, `VR.press`/`VR.drag` on the desk or screen).
+  **Drum kit** (set `'kit'`, after the pans in `KEYS`; `kitG` replaces the pans): `KITP` places snare, hi-hat, high/mid/floor
+  tom, crash, ride, the iron and the engine room's bass drum (GM 35, the kick lower and longer, on its side facing you);
+  a stick crossing a head plays it (`trackKit`; near the edge: rimshot 37, open hat 46, muted iron 80), a trigger
+  (beam off the table) is the kick (`kickNow`). Sounds are Panyard's `../panyard/drums/` (`kit.json`); notes are
+  `drum:<GM>` (`strikeDrum`), so the studio records and plays them; kit lanes are drawn by `KROWS`.
+  **Songs from Google Drive** (☁ My songs, off the headset: Google's sign-in can't open in VR): `gdList()` signs in with
+  Panyard's `CLOUD.CID` (drive.appdata), reads `panyard-backup.json` (`gdDec` unpacks its `$o`/`$b` packing) and lists
+  `pan-songs`; `gdImport(id)` takes `studio:<id>` pan and drums tracks (rolls dropped), My part from the song's cues
+  (`pan-notes-v2` for the open song, else `song:<id>`), and the recording (IndexedDB `panyard-vr` / `rec`, a `rec` track
+  played from bar 1 by `recSchedule`, offset by Studio's `origin()`); beats tracks and mic takes stay in Panyard.
+  Six bass and four cello notes play from the band's sounds (`moreSounds`, `PANSET.six/fcello` hum and tone); ↶ Undo
+  goes back. Test with `tvrdrive` (a pretend Google and Drive).
+  Test with `tvr` (`VR.swing`, `VR.hitDrum`, `VR.kick`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
