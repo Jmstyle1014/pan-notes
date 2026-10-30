@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panyard VR</title>
+<meta name="description" content="Play the band's tenor pan in VR with your controllers as sticks.">
+<style>
+:root{--bg:#0b1117;--text:#eef2f4;--muted:#9fb0b8;--gold:#f6ba45;--card:rgb(14 22 28/.86);--line:rgb(255 255 255/.14)}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#0b1117}}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+canvas{display:block}
+#hud{position:fixed;left:16px;right:16px;bottom:16px;max-width:520px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 18px;backdrop-filter:blur(8px)}
+#hud h1{margin:0 0 4px;font-size:22px}#hud p{margin:6px 0;color:var(--muted)}
+#hud b{color:var(--text)}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btns button{flex:1;min-width:150px;min-height:52px;border-radius:14px;border:1px solid var(--line);background:rgb(255 255 255/.08);color:var(--text);font-size:17px;font-weight:600}
+.btns button.go{background:var(--gold);color:#1a1205;border-color:var(--gold)}
+.btns button[disabled]{opacity:.45}
+#status{font-size:14px}
+</style>
+<script type="importmap">{"imports":{"three":"./lib/three.module.min.js"}}</script>
+</head>
+<body>
+<div id="hud">
+  <h1>Panyard VR</h1>
+  <p>The band's tenor, with your controllers as sticks. Hit harder for a louder note.</p>
+  <p>In VR: <b>A</b> or <b>X</b> brings the pan in front of you. <b>Thumbstick</b> up or down moves it higher or lower.</p>
+  <p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p>
+  <div class="btns"><button id="goRoom" class="go" hidden>Play in my room</button><button id="goVR" hidden>Enter VR</button></div>
+  <p id="noxr" hidden>Open this page in your headset's browser to play in VR. Here you can tap the notes with the mouse or your finger.</p>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from './lib/RoomEnvironment.js';
+
+/* ---------- the tenor: its notes as drawn in Panyard (1000 × 1000 units, playing surface radius 445) ---------- */
+const TENOR=/*TENOR*/[];
+const SOUNDS='../band/band-sounds/';
+const A=441;                       // Panyard Band's tuning
+const RS=0.285,DEPTH=0.11;         // 22.5 in drum: surface radius in metres, how deep the bowl sinks
+const S=0.27/445;                  // drawing units → metres
+const h=r=>-DEPTH*Math.max(0,1-(r/RS)**2);   // the bowl's height at a distance from the centre
+const $=id=>document.getElementById(id);
+
+/* ---------- sound: the band's recordings, as Panyard Band plays them (A 441, drum body hum, suggested tenor tone) ---------- */
+let ac=null,master=null,man=null;const buf={};
+function audio(){
+  if(ac)return ac;ac=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;
+  const lim=ac.createDynamicsCompressor();lim.threshold.value=-3;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.12;
+  master=ac.createGain();master.gain.value=.6;
+  // a small yard: a short decaying noise as the reverb, kept a quarter of the mix
+  const rv=ac.createConvolver(),len=Math.floor(ac.sampleRate*1.9),ir=ac.createBuffer(2,len,ac.sampleRate);
+  for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.exp(-6.9*i/len)}
+  rv.buffer=ir;const wet=ac.createGain();wet.gain.value=.24;const lc=ac.createBiquadFilter();lc.type='highpass';lc.frequency.value=140;
+  master.connect(comp);master.connect(lc);lc.connect(rv);rv.connect(wet);wet.connect(comp);comp.connect(lim);lim.connect(ac.destination);
+  return ac;
+}
+async function loadSounds(){
+  try{man=await (await fetch(SOUNDS+'manifest.json',{cache:'no-cache'})).json()}catch{$('status').textContent='The pan sounds couldn’t be fetched. Check the internet and open this page again.';return false}
+  audio();let n=0;const ids=TENOR.map(f=>f.id).filter(id=>man.files[id]);
+  await Promise.all(ids.map(async id=>{try{const r=await fetch(SOUNDS+man.files[id]);buf[id]=await ac.decodeAudioData(await r.arrayBuffer());$('status').textContent='Getting the band’s pan sounds ready… '+(++n)+' of '+ids.length}catch(e){console.warn(id,e)}}));
+  $('status').textContent=n?'Ready: '+n+' tenor notes from the band’s pans.':'The pan sounds couldn’t be read on this browser.';
+  return n>0;
+}
+const voices=new Map();
+function strike(id,v){
+  const b=buf[id];if(!ac||!b)return false;if(ac.state==='suspended')ac.resume();
+  const T=(man&&man.tune&&man.tune[id])||{},t=ac.currentTime+.002,f=TENOR.find(x=>x.id===id).hz;
+  const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440);
+  const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
+  pk('peaking',265,3.3,2.2);pk('peaking',795,1.5,2.2);   // drum body hum: a tenor's 6 in skirt
+  pk('lowshelf',420,-2);pk('highshelf',5000,2);          // suggested tone for a tenor
+  if(v<.9){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=.5;lp.frequency.value=Math.min(18000,f*(3+30*v*v));nodes.push(lp)}   // a soft hit is darker
+  src.connect(g);g.connect(nodes[0]);for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);nodes[nodes.length-1].connect(master);
+  const a=Math.pow(10,(+T.db||0)/20)*(.18+.82*v*v),start=Math.min(+T.start||0,b.duration-.05),len=b.duration-start,fade=Math.min(len*.5,+T.fade||.3);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.003);g.gain.setValueAtTime(a,t+len-fade);g.gain.linearRampToValueAtTime(0,t+len);
+  src.start(t,start);src.stop(t+len+.02);
+  // the same note hit again: the older ring is damped quickly, like a real pan
+  const p=voices.get(id);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
+  voices.set(id,{src,g,end:t+len});
+  VR.hits.push({id,v:+v.toFixed(2)});return true;
+}
+
+/* ---------- the scene ---------- */
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);
+renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
+document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene();const BG=new THREE.Color('#0b1117');scene.background=BG;
+const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.02,50);camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5);
+scene.add(new THREE.HemisphereLight('#dfe8ff','#20160c',.7));
+const sun=new THREE.DirectionalLight('#fff3dd',1.6);sun.position.set(.6,3,1.2);scene.add(sun);
+// the yard floor
+const floor=new THREE.Mesh(new THREE.CircleGeometry(4,64),new THREE.MeshStandardMaterial({color:'#2a2622',roughness:.95}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const env=[floor];
+
+// the pan
+const pan=new THREE.Group();pan.rotation.order='YXZ';pan.position.set(0,.9,-.5);pan.rotation.x=.2;scene.add(pan);
+const notes=TENOR.map(f=>({...f,p2:new Path2D(f.path)}));
+const hitCtx=document.createElement('canvas').getContext('2d');
+// the playing surface: chrome with the notes' grooves and names drawn on, mapped flat from above
+function surfaceTexture(){
+  const W=2048,c=document.createElement('canvas');c.width=c.height=W;const g=c.getContext('2d');
+  const k=S/RS*W/2;g.fillStyle='#d9dde2';g.fillRect(0,0,W,W);
+  g.setTransform(k,0,0,k,W/2-500*k,W/2-500*k);
+  const rg=g.createRadialGradient(500,500,40,500,500,470);rg.addColorStop(0,'#c9ced4');rg.addColorStop(1,'#eef1f4');g.fillStyle=rg;g.beginPath();g.arc(500,500,470,0,7);g.fill();
+  for(const n of notes){g.fillStyle=n.pos==='outer'?'#e8ebef':n.pos==='middle'?'#dfe3e8':'#d6dbe1';g.fill(n.p2);g.lineWidth=7;g.strokeStyle='#7d858e';g.stroke(n.p2);g.lineWidth=2;g.strokeStyle='#fbfcfd';g.stroke(n.p2)}
+  g.fillStyle='#232a31';g.textAlign='center';g.textBaseline='middle';
+  for(const n of notes){g.font='700 '+Math.round(n.fs*.9)+'px system-ui,sans-serif';g.fillText(n.label,n.x,n.y)}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;
+}
+{const geo=new THREE.RingGeometry(.0005,RS,160,56);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
+  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i);p.setY(i,h(Math.hypot(x,z)))}geo.computeVertexNormals();
+  const dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:surfaceTexture(),metalness:.55,roughness:.4,envMapIntensity:.7,side:THREE.DoubleSide}));pan.add(dish)}
+const chrome=new THREE.MeshStandardMaterial({color:'#e9edf1',metalness:1,roughness:.16});
+{const sk=new THREE.Mesh(new THREE.CylinderGeometry(RS+.012,RS+.012,.16,96,1,true),chrome);sk.position.y=-.08;pan.add(sk);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(RS+.012,.009,12,96),chrome);rim.rotation.x=Math.PI/2;pan.add(rim)}
+// each note's glow when it's hit: its shape from the drawing, laid on the bowl
+const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
+for(const n of notes){
+  const pe=document.createElementNS('http://www.w3.org/2000/svg','path');pe.setAttribute('d',n.path);SV.appendChild(pe);
+  const L=pe.getTotalLength(),pts=[];for(let i=0;i<64;i++){const q=pe.getPointAtLength(L*i/64);pts.push(new THREE.Vector2((q.x-500)*S,(q.y-500)*S))}
+  const geo=new THREE.ShapeGeometry(new THREE.Shape(pts),1),p=geo.attributes.position;
+  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getY(i);p.setXYZ(i,x,h(Math.hypot(x,z))+.0035,z)}
+  n.glow=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:'#ffcf5a',transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+  n.glow.visible=false;pan.add(n.glow);n.lit=0;
+}
+SV.remove();
+// the stand: a pole down to the floor (it follows the pan)
+const pole=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1,16),chrome);scene.add(pole);
+const feet=new THREE.Group();for(let i=0;i<3;i++){const l=new THREE.Mesh(new THREE.CylinderGeometry(.009,.009,.36,10),chrome);l.position.set(Math.sin(i*2.094)*.15,.06,Math.cos(i*2.094)*.15);l.rotation.set(Math.cos(i*2.094)*1.1,0,-Math.sin(i*2.094)*1.1);feet.add(l)}scene.add(feet);
+function standFollow(){const b=new THREE.Vector3(0,-.16,0);pan.localToWorld(b);pole.scale.y=Math.max(.05,b.y);pole.position.set(b.x,b.y/2,b.z);feet.position.set(b.x,0,b.z)}
+// a sign behind the pan
+{const c=document.createElement('canvas');c.width=1024;c.height=256;const g=c.getContext('2d');g.fillStyle='rgba(12,18,24,.82)';g.beginPath();g.roundRect(0,0,1024,256,40);g.fill();
+  g.fillStyle='#f6ba45';g.font='700 64px system-ui,sans-serif';g.fillText('Panyard VR · Tenor',44,96);g.fillStyle='#dfe7ec';g.font='38px system-ui,sans-serif';
+  g.fillText('A / X: bring the pan to you',44,160);g.fillText('Thumbstick: higher or lower',44,214);
+  const tx=new THREE.CanvasTexture(c);tx.colorSpace=THREE.SRGBColorSpace;const sign=new THREE.Mesh(new THREE.PlaneGeometry(.8,.2),new THREE.MeshBasicMaterial({map:tx,transparent:true}));
+  sign.position.set(0,.55,-.55);sign.rotation.x=-.2;pan.add(sign)}
+
+/* ---------- the sticks: one on each controller, a rubber tip at the end ---------- */
+const STICK=.32;
+function makeStick(){const piv=new THREE.Group();piv.rotation.x=-.6;   // held like a pan stick: pointing forward and a little down
+  const wood=new THREE.Mesh(new THREE.CylinderGeometry(.0055,.0065,STICK,12),new THREE.MeshStandardMaterial({color:'#c79a5b',roughness:.6}));wood.rotation.x=Math.PI/2;wood.position.z=-STICK/2;piv.add(wood);
+  const tip=new THREE.Mesh(new THREE.SphereGeometry(.016,20,14),new THREE.MeshStandardMaterial({color:'#2b2b2e',roughness:.85}));tip.scale.set(1,1,1.25);tip.position.z=-STICK;piv.add(tip);
+  return {piv,tip,prev:null,armed:true,src:null}}
+const sticks=[0,1].map(i=>{const grip=renderer.xr.getControllerGrip(i),s=makeStick();grip.add(s.piv);scene.add(grip);
+  grip.addEventListener('connected',e=>{s.src=e.data});grip.addEventListener('disconnected',()=>{s.src=null;s.prev=null});return s});
+
+/* ---------- a hit: the stick's tip crossing down through the bowl over a note ---------- */
+const local=new THREE.Vector3();
+function noteAt(x,z){const xs=x/S+500,ys=z/S+500;for(const n of notes)if(hitCtx.isPointInPath(n.p2,xs,ys))return n;
+  hitCtx.lineWidth=16;for(const n of notes)if(hitCtx.isPointInStroke(n.p2,xs,ys))return n;return null}   // a hair onto the groove still counts
+function track(s,world,dt){
+  local.copy(world);pan.worldToLocal(local);
+  const r=Math.hypot(local.x,local.z),d=local.y-(r<RS?h(r):0)-.012;   // the tip's height above the steel (its radius taken off)
+  const prev=s.prev;s.prev={x:local.x,y:local.y,z:local.z,d};
+  if(d>.012)s.armed=true;                                               // lifted off: ready for the next hit
+  if(!prev||!s.armed||r>RS||!(prev.d>0&&d<=0))return null;
+  const sp=Math.hypot(local.x-prev.x,local.y-prev.y,local.z-prev.z)/Math.max(dt,1e-3);
+  const n=noteAt(local.x,local.z);s.armed=false;if(!n)return null;
+  const v=Math.max(.12,Math.min(1,sp/3.2));                             // about 3 m/s is a full stroke
+  strike(n.id,v);n.lit=1;
+  try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}
+  return n.id;
+}
+
+/* ---------- moving the pan to you ---------- */
+const head=new THREE.Vector3(),fwd=new THREE.Vector3();
+function bringPan(){const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
+  if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();pan.position.set(head.x+fwd.x*.48,Math.max(.55,head.y-.66),head.z+fwd.z*.48);pan.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
+let placed=false;const pressed=new Map();
+
+/* ---------- each frame ---------- */
+let last=performance.now();const tipW=new THREE.Vector3();
+renderer.setAnimationLoop((now,frame)=>{
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(renderer.xr.isPresenting){
+    if(!placed&&frame){placed=true;bringPan()}
+    for(const s of sticks){if(!s.src){s.prev=null;continue}s.tip.getWorldPosition(tipW);track(s,tipW,dt);
+      const gp=s.src.gamepad;if(!gp)continue;const key=s.src.handedness;
+      const ab=gp.buttons[4]&&gp.buttons[4].pressed;if(ab&&!pressed.get(key))bringPan();pressed.set(key,ab);
+      const y=gp.axes[3]||0;if(Math.abs(y)>.25)pan.position.y=Math.max(.45,Math.min(1.5,pan.position.y-y*dt*.35))}
+  }
+  for(const n of notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.55*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
+  standFollow();renderer.render(scene,camera);
+});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+
+/* ---------- off the headset: tap the notes ---------- */
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown',e=>{audio();mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mouse,camera);
+  const hit=ray.intersectObject(pan.children[0])[0];if(!hit)return;local.copy(hit.point);pan.worldToLocal(local);const n=noteAt(local.x,local.z);if(n){strike(n.id,.8);n.lit=1}});
+
+/* ---------- going into VR (or into your own room, with the headset's cameras) ---------- */
+async function enter(mode){
+  audio();if(ac.state==='suspended')await ac.resume();
+  try{const sess=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','bounded-floor']});
+    const room=mode==='immersive-ar';scene.background=room?null:BG;env.forEach(o=>o.visible=!room);
+    renderer.xr.setReferenceSpaceType('local-floor');await renderer.xr.setSession(sess);placed=false;$('hud').hidden=true;
+    sess.addEventListener('end',()=>{$('hud').hidden=false;scene.background=BG;env.forEach(o=>o.visible=true)})}
+  catch(e){console.warn(e);$('status').textContent='The headset didn’t start: '+(e.message||e)}
+}
+$('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immersive-ar');
+(async()=>{
+  const xr=navigator.xr;let vr=false,ar=false;
+  if(xr){try{vr=await xr.isSessionSupported('immersive-vr')}catch{}try{ar=await xr.isSessionSupported('immersive-ar')}catch{}}
+  $('goVR').hidden=!vr;$('goRoom').hidden=!ar;$('noxr').hidden=vr||ar;
+  if(vr&&!ar)$('goVR').classList.add('go');
+  await loadSounds();
+})();
+
+/* for the tests: the notes, what was played, and a stick swung through a note */
+const VR=window.VR={hits:[],notes:()=>notes.map(n=>n.id),ready:()=>Object.keys(buf).length,strike,noteAt:(id)=>{const n=notes.find(x=>x.id===id);const m=noteAt((n.x-500)*S,(n.y-500)*S);return m&&m.id},
+  swing(id,speed){const n=notes.find(x=>x.id===id),s=makeStick(),x=(n.x-500)*S,z=(n.y-500)*S,y=h(Math.hypot(x,z));const dt=1/72,step=speed*dt;
+    let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(x,y+.012+k*step,z);pan.localToWorld(w);out=track(s,w,dt)||out}return out},
+  // two sticks held over the pan, for a picture off the headset
+  demo(){[[-.12,.16,-.1,-.25],[.13,.11,.02,.2]].forEach(([x,y,z,yaw])=>{const s=makeStick(),g=new THREE.Group();g.add(s.piv);g.position.set(x,y,z);g.rotation.set(.75,yaw,0);
+    const w=new THREE.Vector3();pan.localToWorld(w.set(x,y,z));g.position.copy(w);g.position.z+=.25;scene.add(g)})},
+  screenOf(id){const n=notes.find(x=>x.id===id),x=(n.x-500)*S,z=(n.y-500)*S,w=new THREE.Vector3(x,h(Math.hypot(x,z)),z);pan.localToWorld(w);w.project(camera);return [(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight]},
+  bring:bringPan,pan,camera};
+</script>
+</body>
+</html>
