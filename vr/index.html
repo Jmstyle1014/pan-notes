@@ -20,6 +20,7 @@ canvas{display:block}
 .btns button{flex:1;min-width:150px;min-height:52px;border-radius:14px;border:1px solid var(--line);background:rgb(255 255 255/.08);color:var(--text);font-size:17px;font-weight:600}
 .btns button.go{background:var(--gold);color:#1a1205;border-color:var(--gold)}
 #status{font-size:14px}
+#gdBox p{margin:8px 0}.gdl{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}.gdl button{min-height:46px;border-radius:12px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px;text-align:left;padding:0 14px}
 </style>
 <script type="importmap">{"imports":{"three":"./lib/three.module.min.js"}}</script>
 </head>
@@ -34,6 +35,9 @@ canvas{display:block}
   <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Squeeze a grip</b> on the studio table to move it. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
   <div class="lab">Off the headset, look at</div>
   <div class="seg" id="viewSeg"><button data-view="pans" aria-pressed="true">The pans</button><button data-view="table">The studio table</button></div>
+  <div class="lab">Your songs</div>
+  <div class="btns" style="margin-top:0"><button id="gdGo">☁ My songs from Google Drive</button></div>
+  <div id="gdBox"></div>
   <p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p>
   <div class="btns"><button id="goRoom" class="go" hidden>Play in my room</button><button id="goVR" hidden>Enter VR</button></div>
   <p id="noxr" hidden>Open this page in your headset's browser to play in VR. Here you can tap the notes with the mouse or your finger.</p>
@@ -56,6 +60,7 @@ const PANSET={
   // depth: how far the bowl is sunk (a tenor about 7½ in, a double second 6½, a guitar 5½; the higher the pan, the deeper)
   tenor:{skirt:6,depth:.19,tone:[420,-2,5000,2],place:[[0,0]]},
   guitar:{skirt:16,depth:.14,tone:null,place:[[-.33,.2],[.33,-.2]]},   // the E/C pan on the left, B/F on the right, both turned a little to you
+  six:{skirt:34,tone:[140,4,2400,-3]},fcello:{skirt:18,tone:[220,1,3200,-1]},   // heard in songs from Panyard, not played here
   dsec:{skirt:9,depth:.165,tone:[330,-1,4200,1],place:[[-.33,.2],[.33,-.2]]},   // the C pan on the left, C♯ on the right
 };
 for(const k in PANSET){const L=PANSET[k].skirt*.0254;PANSET[k].body=Math.round(343/(4*(L+.3*22.5*.0254)))}
@@ -90,7 +95,7 @@ async function loadSounds(){
   try{man=await (await fetch(SOUNDS+'manifest.json',{cache:'no-cache'})).json()}catch{$('status').textContent='The pan sounds couldn’t be fetched. Check the internet and open this page again.';return false}
   audio();let n=0;const ids=ALL.map(f=>f.id).filter(id=>man.files[id]);
   await Promise.all(ids.map(async id=>{try{const r=await fetch(SOUNDS+man.files[id]);buf[id]=await ac.decodeAudioData(await r.arrayBuffer());$('status').textContent='Getting the band’s pan sounds ready… '+(++n)+' of '+ids.length}catch(e){console.warn(id,e)}}));
-  const nd=await loadDrums();
+  const nd=await loadDrums();await moreSounds(SONG.tracks.flatMap(t=>t.notes.map(q=>q.id)));await recLoad();
   $('status').textContent=n?'Ready: '+n+' notes from the band’s pans'+(nd?' and the drum kit.':'.'):'The pan sounds couldn’t be read on this browser.';
   return n>0;
 }
@@ -99,7 +104,7 @@ function strike(id,v,at,tr){
   if(id.startsWith('drum:'))return strikeDrum(id,v,at,tr);
   const fromTake=!!tr;
   const b=buf[id],n=NOTE[id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
-  const T=(man&&man.tune&&man.tune[id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set];
+  const T=(man&&man.tune&&man.tune[id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set]||{body:150,tone:null};
   const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440);
   const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
   pk('peaking',P.body,3.3,2.2);pk('peaking',P.body*3,1.5,2.2);              // drum body hum, from the skirt's length
@@ -317,7 +322,7 @@ function loadSong(){try{SONG=JSON.parse(LS('song')||'null')}catch{SONG=null}
   if(!SONG||!Array.isArray(SONG.tracks)){SONG={bpm:Math.max(40,Math.min(220,+LS('bpm')||100)),L:0,loop:{on:false,s:0,e:1},sel:0,click:false,tracks:[]};
     // takes from before the studio become its first tracks
     for(const k of Object.keys(SETS)){try{const t=JSON.parse(LS('take-'+k)||'null');if(t&&t.n&&t.n.length){SONG.tracks.push(newTrack(k,t.n));SONG.L=Math.max(SONG.L,t.L||0)}}catch{}}}
-  SONG.tracks=SONG.tracks.filter(t=>t&&(SETS[t.set]||t.set==='kit')&&Array.isArray(t.notes)).slice(0,MAXT);SONG.loop=SONG.loop||{on:false,s:0,e:1}}
+  SONG.tracks=SONG.tracks.filter(t=>t&&typeof t.set==='string'&&Array.isArray(t.notes)).slice(0,MAXT);SONG.loop=SONG.loop||{on:false,s:0,e:1};SONG.tracks.forEach(t=>t.notes.forEach(n=>ensureNote(n.id,t.set)))}
 const saveSong=()=>LSset('song',JSON.stringify(SONG));
 const selTrack=()=>SONG.tracks[SONG.sel]||null;
 // undo: the song as it was before each change
@@ -327,7 +332,7 @@ let MSG='',msgT=0;function msg(s){MSG=s;msgT=2.5;dirty=true}
 
 /* each track's channel: volume, left/right, mute and solo */
 const CH=new Map();
-function chan(t){let c=CH.get(t.id);if(!c&&ac){const g=ac.createGain(),p=ac.createStereoPanner();g.connect(p);p.connect(master);c={g,p};CH.set(t.id,c)}return c}
+function chan(t){let c=CH.get(t.id);if(!c&&ac){const g=ac.createGain(),p=ac.createStereoPanner();g.gain.value=audible(t)?t.vol:0;p.pan.value=t.pan||0;g.connect(p);p.connect(master);c={g,p};CH.set(t.id,c)}return c}
 const audible=t=>!t.mute&&(!SONG.tracks.some(x=>x.solo)||t.solo);
 function mixAll(){if(ac)for(const t of SONG.tracks){const c=chan(t);c.g.gain.setTargetAtTime(audible(t)?t.vol:0,ac.currentTime,.02);c.p.pan.setTargetAtTime(t.pan,ac.currentTime,.02)}dirty=true}
 
@@ -345,7 +350,8 @@ function tick(){
   while(TR.t0+TR.next*spb()<hor){const b=TR.next,t=TR.t0+b*spb();if(SONG.click||b<0||TR.state==='rec')click(t,((b%4)+4)%4===0);TR.next++}
   const [A,B]=region(),W=B-A;
   if(TR.state!=='idle'&&W>0){const hb=beatAt(hor);
-    for(let c=Math.floor(Math.max(0,TR.cursor)/W);c<=Math.floor(hb/W);c++)for(const tr of SONG.tracks){if(!audible(tr))continue;
+    for(let c=Math.floor(Math.max(0,TR.cursor)/W);c<=Math.floor(hb/W);c++){if(c*W>=TR.cursor&&c*W<hb)recSchedule(c*W,A,W)}
+    for(let c=Math.floor(Math.max(0,TR.cursor)/W);c<=Math.floor(hb/W);c++)for(const tr of SONG.tracks){if(!audible(tr)||tr.rec)continue;
       for(const n of tr.notes){if(n.b<A||n.b>=B)continue;const lin=c*W+(n.b-A);if(lin>=TR.cursor&&lin<hb&&lin>=0)strike(n.id,n.v,TR.t0+lin*spb(),tr)}}
     TR.cursor=hb}
 }
@@ -354,19 +360,19 @@ function recHit(id,v,t){if(TR.state!=='rec'||!TR.rec)return;const lin=beatAt(t);
   const b=SONG.L?posOf(Math.max(0,lin)):Math.max(0,lin);TR.rec.notes.push({id,v:+v.toFixed(2),b:+b.toFixed(3)});dirty=true}
 function endRec(){if(!SONG.L){const lin=beatAt(ac.currentTime),mx=Math.max(lin,...TR.rec.notes.map(n=>n.b+.25));SONG.L=Math.max(4,Math.ceil((mx-.5)/4)*4)}
   TR.rec.notes.sort((a,b)=>a.b-b.b);TR.rec=null;saveSong()}
-function stopAll(){if(TR.state==='rec')endRec();TR.state='idle';TR.run=SONG.click;if(TR.run)startClock(false);dirty=true}
+function stopAll(){recStop();if(TR.state==='rec')endRec();TR.state='idle';TR.run=SONG.click;if(TR.run)startClock(false);dirty=true}
 const hasNotes=()=>SONG.tracks.some(t=>t.notes.length);
 function play(){audio();if(TR.state!=='idle')return stopAll();if(!hasNotes())return msg('Nothing recorded yet: pick a track and press ● Rec');startClock(false);TR.state='play';dirty=true}
 function record(noUndo){audio();if(ac.state==='suspended')ac.resume();
   if(TR.state==='rec'){endRec();TR.state='play';TR.cursor=beatAt(ac.currentTime+.12);dirty=true;return}
-  let t=selTrack();if(!t){if(SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');snapUndo();t=newTrack(setKey);SONG.tracks.push(t);SONG.sel=SONG.tracks.length-1;mixAll()}else if(!noUndo)snapUndo();
-  if(t.set!==setKey)useSet(t.set);
+  let t=selTrack();if(t&&(t.rec||!KEYS.includes(t.set)))t=null;if(!t){if(SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');snapUndo();t=newTrack(setKey);SONG.tracks.push(t);SONG.sel=SONG.tracks.length-1;mixAll()}else if(!noUndo)snapUndo();
+  if(t.set!==setKey&&KEYS.includes(t.set))useSet(t.set);
   TR.rec=t;if(TR.state==='play'){TR.state='rec'}else{startClock(true);TR.state='rec'}dirty=true}
-function select(i){if(!SONG.tracks[i])return;SONG.sel=i;const t=SONG.tracks[i];if(TR.state!=='rec'&&t.set!==setKey)useSet(t.set);saveSong();dirty=true}
+function select(i){if(!SONG.tracks[i])return;SONG.sel=i;const t=SONG.tracks[i];if(TR.state!=='rec'&&t.set!==setKey&&KEYS.includes(t.set))useSet(t.set);saveSong();dirty=true}
 function addTrack(){if(SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');snapUndo();SONG.tracks.push(newTrack(setKey));SONG.sel=SONG.tracks.length-1;saveSong();mixAll()}
 function delTrack(i){const t=SONG.tracks[i];if(!t)return;if(TR.rec===t){TR.rec=null;TR.state='play'}snapUndo();SONG.tracks.splice(i,1);SONG.sel=Math.max(0,Math.min(SONG.sel,SONG.tracks.length-1));
   if(!SONG.tracks.length){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}saveSong();mixAll();msg('Deleted '+t.name+' (↶ Undo brings it back)')}
-function rerecord(i){const t=SONG.tracks[i];if(!t)return;if(TR.state==='rec'){endRec();TR.state='play'}snapUndo();t.notes=[];SONG.sel=i;if(!hasNotes()){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}record(true)}
+function rerecord(i){const t=SONG.tracks[i];if(!t)return;if(t.rec||!KEYS.includes(t.set))return msg(t.rec?'The recording comes from Panyard':'Play this part on its own pans in Panyard');if(TR.state==='rec'){endRec();TR.state='play'}snapUndo();t.notes=[];SONG.sel=i;if(!hasNotes()){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}record(true)}
 function snapTo(q){const t=selTrack();if(!t||!t.notes.length)return msg('Pick a track with notes first');snapUndo();const seen=new Set();
   t.notes=t.notes.map(n=>{let b=Math.round(n.b/q)*q;if(SONG.L&&b>=SONG.L)b-=SONG.L;return {...n,b}}).filter(n=>{const k=n.id+'@'+n.b;if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.b-b.b);
   saveSong();msg(t.name+': snapped to '+(q===.5?'½':'¼')+' beats')}
@@ -403,7 +409,7 @@ const rr=(g,x,y,w,hh,r,fill,stroke)=>{g.beginPath();g.roundRect(x,y,w,hh,r);if(f
 function btn(p,id,x,y,w,hh,label,opt={}){const g=p.g;rr(g,x,y,w,hh,14,opt.on?(opt.oncol||'#f6ba45'):'#2a323a',opt.on?null:'#3d4852');
   g.fillStyle=opt.on?'#15110a':(opt.dim?'#77838d':'#eef2f4');g.font='700 '+(opt.fs||34)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(label,x+w/2,y+hh/2+2);
   p.hits.push({id,x,y,w,h:hh,...(opt.drag?{drag:opt.drag}:{})})}
-const shortSet=k=>({tenor:'Tenor',guitar:'Guitar',dsec:'Double 2nd',kit:'Drums'})[k]||k;
+const shortSet=k=>({tenor:'Tenor',guitar:'Guitar',dsec:'Double 2nd',kit:'Drums',rec:'Recording',six:'Six Bass',fcello:'Four Cello',tcello:'Three Cello',seven:'Seven Bass',dten:'Double Tenor'})[k]||k;
 function statusLine(){if(MSG)return MSG;const t=selTrack();
   if(TR.state==='rec'){const lin=TR.run?beatAt(ac.currentTime):0;return lin<0?'Count-in '+Math.ceil(-lin)+'…':'● Recording '+TR.rec.name+' · bar '+(Math.floor(posOf(Math.max(0,lin))/4)+1)}
   if(TR.state==='play')return '▶ Playing'+(SONG.loop.on?' the loop, bars '+(SONG.loop.s+1)+'–'+SONG.loop.e:'');
@@ -436,7 +442,8 @@ function drawScreen(){const p=scr,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.
     g.font='22px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.fillText(shortSet(t.set)+(t.mute?' · muted':t.solo?' · solo':'')+' · '+t.notes.length+' notes',32,y+lh*.72);
     p.hits.push({id:'lane:'+i,x:10,y,w:TX0-24,h:lh});
     if(sel){g.fillStyle='rgba(255,255,255,.04)';g.fillRect(TX0,y,TX1-TX0,lh)}
-    const hz=t.set==='kit'?KROWS.map(gm=>NOTE['drum:'+gm].hz):SETS[t.set].drums.flatMap(d=>d.notes.map(q=>q.hz)),lo=Math.log(Math.min(...hz)),hi=Math.log(Math.max(...hz));
+    if(t.rec){g.fillStyle=audible(t)?'rgba(159,176,184,.35)':'rgba(85,96,106,.3)';g.fillRect(bx(Math.max(0,-t.rec.origin/spb())),y+lh*.3,bx(Math.min(LB,(t.rec.dur-t.rec.origin)/spb()))-bx(Math.max(0,-t.rec.origin/spb())),lh*.4);return}
+    const hz=t.set==='kit'?KROWS.map(gm=>NOTE['drum:'+gm].hz):SETS[t.set]?SETS[t.set].drums.flatMap(d=>d.notes.map(q=>q.hz)):t.notes.map(q=>(NOTE[q.id]||{hz:200}).hz).concat([100,1000]),lo=Math.log(Math.min(...hz)),hi=Math.log(Math.max(...hz));
     g.fillStyle=audible(t)?t.col:'#55606a';
     for(const q of t.notes){const N=NOTE[q.id];if(!N)continue;const fy=(Math.log(N.hz)-lo)/Math.max(.01,hi-lo);g.globalAlpha=.45+.55*q.v;g.fillRect(bx(q.b),y+lh-10-fy*(lh-22),Math.max(6,bx(q.b+.25)-bx(q.b)),8)}g.globalAlpha=1});
   if(n<MAXT){const y=y1+6+n*lh;btn(p,'add',10,y+3,TX0-24,Math.min(lh-6,80),'+ New track',{fs:28})}
@@ -496,6 +503,87 @@ function studioFrame(dt){if(msgT>0){msgT-=dt;if(msgT<=0){MSG='';dirty=true}}
   // the playhead
   const LB=scr.LB||4;let pos=0;if(TR.state!=='idle'&&TR.run&&ac){const lin=beatAt(ac.currentTime);pos=lin<0?0:(SONG.L?posOf(lin):lin)}
   head2.visible=TR.state!=='idle';head2.position.x=-.5+(TX0+(TX1-TX0)*Math.min(pos,LB)/LB)/1600;head2.position.y=-.07}
+
+
+/* ---------- your songs from Panyard's Google Drive backup ----------
+   Off the headset (Google's sign-in can't open inside VR): ☁ My songs signs in to the same hidden Drive folder Panyard
+   backs up to (drive.appdata, Panyard's own sign-in key), reads panyard-backup.json and lists your songs. Picking one
+   brings its Studio pan and drum tracks, My part and its recording into the VR studio (↶ Undo goes back). Beats tracks
+   and mic takes stay in Panyard. The recording is kept in IndexedDB panyard-vr / rec. */
+const GD={CID:'329654647792-ft0t5cce8l86f2t01k67d1mjovta8p8u.apps.googleusercontent.com',SCOPE:'https://www.googleapis.com/auth/drive.appdata',
+  D:'https://www.googleapis.com/drive/v3/files',tok:null,man:null};
+function gis(){if(window.google&&google.accounts&&google.accounts.oauth2)return Promise.resolve();
+  return GD._gis||(GD._gis=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=()=>res();s.onerror=()=>{GD._gis=null;rej(Error('offline'))};document.head.appendChild(s)}))}
+async function gdAuth(){await gis();return new Promise((res,rej)=>{const tc=google.accounts.oauth2.initTokenClient({client_id:GD.CID,scope:GD.SCOPE,
+  callback:r=>r&&r.access_token?res(GD.tok=r.access_token):rej(Error(r&&r.error||'denied')),error_callback:e=>rej(Error(e&&e.type||'closed'))});tc.requestAccessToken({prompt:''})})}
+async function gdApi(url){const r=await fetch(url,{headers:{Authorization:'Bearer '+GD.tok}});if(r.status===401){GD.tok=null;throw Error('expired')}if(!r.ok)throw Error('drive '+r.status);return r}
+const gdFile=id=>gdApi(GD.D+'/'+id+'?alt=media');
+// the backup's own packing: {$o:{…}} objects, {$b:fingerprint} files kept beside it in Drive
+async function gdDec(v){if(Array.isArray(v)){const o=[];for(const x of v)o.push(await gdDec(x));return o}
+  if(v&&typeof v==='object'){if('$b' in v){const id=GD.man.blobs&&GD.man.blobs[v.$b];return id?(await gdFile(id)).blob():null}
+    if('$o' in v){const o={};for(const k of Object.keys(v.$o))o[k]=await gdDec(v.$o[k]);return o}
+    if('$d' in v)return v.$d;if('$ab' in v||'$ta' in v)return null}
+  return v}
+async function gdList(){if(!GD.tok)await gdAuth();
+  const l=await (await gdApi(GD.D+'?spaces=appDataFolder&pageSize=10&fields=files(id,name,modifiedTime)&q='+encodeURIComponent("name='panyard-backup.json'"))).json();
+  if(!l.files||!l.files.length)throw Error('nobackup');
+  GD.man=JSON.parse(await (await gdFile(l.files[0].id)).text());if(GD.man.format!=='panyard-cloud')throw Error('format');
+  let ps={};try{ps=JSON.parse(GD.man.ls['pan-songs']||'{}')||{}}catch{}
+  return (ps.list||[]).map(s=>({id:s.id,title:s.title||'Untitled song',rec:!!s.rec,active:s.id===ps.active}))}
+// a pan note from a set the VR pans don't have (the basses, the cellos): its pitch from its name, so it still plays
+const midiOfName=n=>{const m=/^([A-G])([#b]?)(\d)$/.exec(n||'');return m?12*(+m[3]+1)+{C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0):69};
+function ensureNote(id,set){if(NOTE[id])return NOTE[id];if(id.startsWith('drum:'))return null;
+  const mm=+(id.split(':')[1]);NOTE[id]={id,set:set||id.split(':')[0],hz:+(440*Math.pow(2,((Number.isFinite(mm)?mm+(set==='fcello'||id.startsWith('fcello:')?12:0):69)-69)/12)).toFixed(2)};return NOTE[id]}
+async function moreSounds(ids){if(!man||!ac)return 0;let n=0;
+  await Promise.all([...new Set(ids)].filter(id=>!buf[id]&&man.files[id]).map(async id=>{try{buf[id]=await ac.decodeAudioData(await (await fetch(SOUNDS+man.files[id])).arrayBuffer());n++}catch{}}));
+  const kit=[...new Set(ids.filter(i=>i.startsWith('drum:')).flatMap(i=>(DK[+i.slice(5)]||{f:[]}).f))].filter(f=>!dbuf[f]);
+  await Promise.all(kit.map(async f=>{try{dbuf[f]=await ac.decodeAudioData(await (await fetch(DRUMDIR+f)).arrayBuffer())}catch{}}));return n}
+/* the recording: kept on the headset, played from bar 1 in time with the song like Studio does */
+const idbVR=()=>new Promise((res,rej)=>{const r=indexedDB.open('panyard-vr',1);r.onupgradeneeded=()=>r.result.createObjectStore('rec');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function recPut(k,blob){const d=await idbVR();return new Promise((res,rej)=>{const t=d.transaction('rec','readwrite');t.objectStore('rec').put(blob,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function recGet(k){const d=await idbVR();return new Promise((res,rej)=>{const r=d.transaction('rec').objectStore('rec').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+let RECBUF=null,RECKEY='';const recSrcs=[];
+async function recLoad(){const t=SONG.tracks.find(x=>x.rec);if(!t){RECBUF=null;RECKEY='';return}if(RECKEY===t.rec.key&&RECBUF)return;
+  try{const b=await recGet(t.rec.key);audio();RECBUF=b?await ac.decodeAudioData(await b.arrayBuffer()):null;RECKEY=t.rec.key}catch(e){console.warn('rec',e);RECBUF=null}}
+function recStop(){while(recSrcs.length){const s=recSrcs.pop();try{s.stop()}catch{}}}
+// from tick(): a cycle (the song, or the loop) starting inside this window starts the recording at that cycle's place
+function recSchedule(cs,A,W){const t=SONG.tracks.find(x=>x.rec);if(!t||!RECBUF||!audible(t))return;
+  const at=TR.t0+cs*spb(),off=t.rec.origin+A*spb(),src=ac.createBufferSource();src.buffer=RECBUF;src.connect(chan(t).g);
+  const d=off<0?-off:0;src.start(Math.max(ac.currentTime,at+d),Math.max(0,off));src.stop(at+W*spb());recSrcs.push(src);if(recSrcs.length>8)recSrcs.shift()}
+async function gdImport(id){const M=GD.man;let ps={};try{ps=JSON.parse(M.ls['pan-songs']||'{}')||{}}catch{}
+  const meta=(ps.list||[]).find(s=>s.id===id)||{};let data={},blob=null;
+  if(id===ps.active){try{data=JSON.parse(M.ls['pan-notes-v2']||'{}')||{}}catch{}const a=M.idb.audio?await gdDec(M.idb.audio):null;blob=a&&a.blob||null}
+  else{const st=M.idb['song:'+id]?await gdDec(M.idb['song:'+id]):null;data=(st&&st.data)||{};blob=st&&st.audio&&st.audio.blob||null}
+  const studio=M.idb['studio:'+id]?await gdDec(M.idb['studio:'+id]):null;
+  const G=data.grid&&Number.isFinite(+data.grid.bpm)?data.grid:null,bpmV=Math.round(G?+G.bpm:(studio&&+studio.bpm)||100),sp=60/bpmV;
+  let o=G?+G.offset||0:0;while(o>1e-6)o-=sp*4;
+  const tracks=[];let skipped=0;const add=(name,set,notes)=>{if(notes.length)tracks.push({id:uid(),name,set,vol:1,pan:0,mute:false,solo:false,col:COLORS[tracks.length%COLORS.length],notes})};
+  for(const t of (studio&&studio.tracks)||[]){
+    if(t.type==='pan')add(t.name||setName(t.panSet),t.panSet,(t.notes||[]).filter(n=>n&&n.p&&Number.isFinite(+n.t)&&!n.roll).map(n=>{ensureNote(n.p,t.panSet);return {id:n.p,v:+(+n.v||.9).toFixed(2),b:+(+n.t).toFixed(3)}}));
+    else if(t.type==='drums')add(t.name||'Drums','kit',(t.notes||[]).filter(n=>n&&Number.isFinite(+n.t)&&DK[+n.p]).map(n=>({id:'drum:'+(+n.p),v:+(+n.v||.9).toFixed(2),b:+(+n.t).toFixed(3)})));
+    else if(t.type==='beats'||t.type==='audio')skipped++}
+  // My part: the song's written notes, in seconds of the recording
+  const ps2=data.panSet||'guitar',part=[];for(const c of data.cues||[])for(const s of c.steps||[]){ensureNote(s,ps2);const b=(+c.start-o)/sp;if(b>=0)part.push({id:s,v:.9,b:+b.toFixed(3)})}
+  part.sort((a,b)=>a.b-b.b);add('My part',ps2,part);
+  let recT=null,dur=0;
+  if(blob){const key='rec-'+id;await recPut(key,blob);audio();try{const ab=await ac.decodeAudioData(await blob.arrayBuffer());dur=ab.duration;RECBUF=ab;RECKEY=key}catch{RECBUF=null}
+    recT={id:uid(),name:'Recording',set:'rec',vol:.85,pan:0,mute:false,solo:false,col:'#9fb0b8',notes:[],rec:{key,origin:+o.toFixed(4),dur:+dur.toFixed(2)}}}
+  const all=[...(recT?[recT]:[]),...tracks].slice(0,MAXT);
+  const maxB=Math.max(0,...all.flatMap(t=>t.notes.map(n=>n.b)),dur?(dur-o)/sp:0);
+  if(TR.state!=='idle')stopAll();snapUndo();
+  SONG={bpm:bpmV,L:Math.max(4,Math.ceil((maxB-.01)/4)*4),loop:{on:false,s:0,e:1},sel:all.findIndex(t=>!t.rec),click:false,tracks:all,title:meta.title||data.title||'My song'};
+  if(SONG.sel<0)SONG.sel=0;saveSong();mixAll();await moreSounds(all.flatMap(t=>t.notes.map(n=>n.id)));
+  const fs=all.find(t=>!t.rec&&KEYS.includes(t.set));if(fs)useSet(fs.set);
+  dirty=true;return {tracks:tracks.length,rec:!!recT,skipped,title:SONG.title}}
+// the list off the headset
+function gdUI(){const box=$('gdBox');
+  $('gdGo').onclick=async()=>{box.innerHTML='<p>Opening Google…</p>';audio();
+    try{const songs=await gdList();if(!songs.length){box.innerHTML='<p>No songs in your backup yet.</p>';return}
+      box.innerHTML='<p>Pick a song to bring into the VR studio:</p><div class="gdl">'+songs.map(s=>'<button data-gd="'+s.id+'">'+s.title.replace(/[<&>]/g,'')+(s.rec?' <small>🎵</small>':'')+'</button>').join('')+'</div>';
+      box.querySelectorAll('[data-gd]').forEach(b=>b.onclick=async()=>{b.disabled=true;box.querySelector('p').textContent='Bringing in '+b.textContent+'…';
+        try{const r=await gdImport(b.dataset.gd);box.querySelector('p').textContent='Ready: '+r.title+', '+r.tracks+(r.tracks===1?' track':' tracks')+(r.rec?' and its recording':'')+'.'+(r.skipped?' ('+r.skipped+' beats or mic tracks stay in Panyard.)':'')+' It’s on the studio table.'}
+        catch(e){console.warn(e);box.querySelector('p').textContent='That song couldn’t come in: '+(e.message||e)}finally{b.disabled=false}})}
+    catch(e){box.innerHTML='<p>'+({nobackup:'No Panyard backup in this Google Drive yet. In Panyard: Settings → Backup → Back up to Google Drive.',offline:'Couldn’t reach Google. Check the internet.',closed:'Google sign-in was closed.'}[e.message]||'Couldn’t open your Google Drive ('+(e.message||e)+').')+'</p>'}}}
 
 /* ---------- moving the pans to you ---------- */
 const head=new THREE.Vector3(),fwd=new THREE.Vector3();
@@ -557,7 +645,7 @@ async function enter(mode){
   catch(e){console.warn(e);$('status').textContent='The headset didn’t start: '+(e.message||e)}
 }
 $('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immersive-ar');
-loadSong();renderSeg();applyLook();
+loadSong();renderSeg();applyLook();gdUI();
 (async()=>{
   const xr=navigator.xr;let vr=false,ar=false;
   if(xr){try{vr=await xr.isSessionSupported('immersive-vr')}catch{}try{ar=await xr.isSessionSupported('immersive-ar')}catch{}}
@@ -568,7 +656,7 @@ loadSong();renderSeg();applyLook();
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,act,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
+const VR=window.VR={hits:[],clicks:0,act,gdList,gdImport,recPlaying:()=>recSrcs.length,undo:()=>undo(),rec:()=>RECBUF?RECBUF.duration:0,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
   hitDrum(gm,speed,edge){const p=KITP.find(q=>q.gm===gm),s={src:null},dt=1/72,step=(speed||2.5)*dt;let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(edge?p.r*.9:0,.012+k*step,0);p.g.localToWorld(w);out=trackKit(s,w,dt)||out}return out},table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
   dragTable(dx,dy,dz){const w=new THREE.Vector3(0,.1,0);table.localToWorld(w);const s=w.clone();if(!nearTable(s))return false;tableGrab(s);w.add(new THREE.Vector3(dx,dy,dz));tableMove(w);tableDrop();return true},tableReset,
   surf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;return {centre:+surf(d,x,z).toFixed(4),bowl:+bowl(Math.hypot(x,z),d.D).toFixed(4),depth:d.D}},grooveAt(id,dx){const d=drumOf(id),n=d.notes.find(x=>x.id===id);return +offAt(d,(n.x-d.cx)*d.S+dx,(n.y-d.cy)*d.S).toFixed(4)},song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
