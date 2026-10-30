@@ -1,7 +1,7 @@
 import os,sys
 import numpy as np
 from playwright.sync_api import sync_playwright
-# Panyard VR: the band's tenor in a headset's browser. Every note's place on the 3D pan finds that note, the band's
+# Panyard VR: the band's tenor and double guitar in a headset's browser, in Chrome or a Vincy Mas look. Every note's place on the 3D pan finds that note, the band's
 # recordings load (A 441), a stick swung down through a note plays it (harder swing = louder), a stick that stays
 # down doesn't play again until it lifts, and off the headset a tap on a note plays it.
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,11 +24,11 @@ with sync_playwright() as p:
     ctx=b.new_context(viewport={'width':892,'height':600},device_scale_factor=1);ctx.add_init_script(REC)
     pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)));pg.on('console',lambda m:m.type=='error' and errs.append(m.text))
     pg.route('https://pan.test/**',route)
-    pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=29",timeout=60000)
-    check(pg.evaluate("VR.ready()")==29,'the band\'s 29 tenor notes are loaded')
+    pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=49",timeout=60000)
+    check(pg.evaluate("VR.ready()")==49,'the band\'s 29 tenor and 20 guitar notes are loaded')
     check('Ready' in pg.inner_text('#status'),'it says the sounds are ready: '+pg.inner_text('#status'))
     ids=pg.evaluate("VR.notes()");bad=[i for i in ids if pg.evaluate(f"VR.noteAt('{i}')")!=i]
-    check(len(ids)==29 and not bad,f'every note\'s place on the pan finds that note {bad}')
+    check(len(ids)==29 and not bad,f'every tenor note\'s place on the pan finds that note {bad}')
     pg.screenshot(path=D+'1-page.png')
     r1,x1=grab(pg,"VR.swing('tenor:60',3.2)")
     check(r1=='tenor:60' and abs(x1).max()>.05,f'a full swing down through low C plays it (peak {abs(x1).max():.2f})')
@@ -45,8 +45,22 @@ with sync_playwright() as p:
     pg.evaluate("document.getElementById('hud').hidden=true");xy=pg.evaluate("VR.screenOf('tenor:72')")
     pg.mouse.click(*xy);pg.wait_for_timeout(300)
     check(pg.evaluate("VR.hits.length")>n0+1,f'a tap on the pan plays a note {pg.evaluate("VR.hits.slice(-1)")}')
+    # the Double Guitar: two pans, every note found, a swing on each pan plays
+    pg.evaluate("VR.set('guitar')");pg.wait_for_timeout(300)
+    gids=pg.evaluate("VR.notes()");gbad=[i for i in gids if pg.evaluate(f"VR.noteAt('{i}')")!=i]
+    check(pg.evaluate("VR.state().drums")==2 and len(gids)==20 and not gbad,f'the Double Guitar has two pans, and every note\'s place finds that note {gbad}')
+    r3,x3=grab(pg,"VR.swing('d-low',3)");r4,x4=grab(pg,"VR.swing('cs-inner',3)")
+    check(r3=='d-low' and r4=='cs-inner' and abs(x3).max()>.05 and abs(x4).max()>.05,f'a swing plays the E/C pan\'s low D and the B/F pan\'s inner C# ({abs(x3).max():.2f}, {abs(x4).max():.2f})')
+    pg.evaluate("VR.look('gems')");pg.wait_for_timeout(300)
+    check(pg.evaluate("VR.state().look")=='gems','the Vincy Mas look goes on')
     pg.set_viewport_size({'width':1200,'height':800});pg.wait_for_timeout(300);pg.evaluate("VR.demo()");pg.wait_for_timeout(600)
-    pg.screenshot(path=D+'2-pan.png')
+    pg.screenshot(path=D+'2-guitar-gems.png')
+    pg.evaluate("VR.set('tenor');VR.look('gren')");pg.wait_for_timeout(500);pg.screenshot(path=D+'3-tenor-gren.png')
+    pg.evaluate("VR.set('guitar');VR.look('flag')");pg.wait_for_timeout(500);pg.screenshot(path=D+'4-guitar-flag.png')
+    pg.evaluate("VR.camera.position.set(0,1.75,1.3);VR.camera.lookAt(0,1.05,-1.2)");pg.wait_for_timeout(400);pg.screenshot(path=D+'4b-flag-wide.png')
+    pg.evaluate("VR.camera.position.set(0,1.62,.12);VR.camera.lookAt(0,.86,-.5)")
+    pg.evaluate("VR.set('tenor');VR.look('chrome')");pg.wait_for_timeout(500);pg.screenshot(path=D+'5-tenor-chrome.png')
+    pg.evaluate("VR.nextSet();VR.nextLook()");check(pg.evaluate("[VR.state().set,VR.state().look]")==['guitar','gems'],'B / Y and a thumbstick press switch the pans and the look')
     check(not errs,'no errors '+str(errs[:3]))
     b.close()
 print('FAILED: '+str(len(fails)) if fails else 'all passed')
