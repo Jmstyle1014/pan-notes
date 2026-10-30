@@ -338,7 +338,7 @@ function mixAll(){if(ac)for(const t of SONG.tracks){const c=chan(t);c.g.gain.set
 
 /* the clock: clicks, the song's tracks, the loop */
 const TR={run:false,t0:0,next:0,cursor:0,state:'idle',rec:null};   // state: idle, play, rec
-const spb=()=>60/SONG.bpm,beatAt=t=>(t-TR.t0)/spb();
+const spb=()=>60/(SONG.bpm*speedOf()),spb0=()=>60/SONG.bpm,beatAt=t=>(t-TR.t0)/spb();
 function region(){const L=SONG.L;if(SONG.loop.on&&L){const s=Math.min(SONG.loop.s*4,L-4),e=Math.min(Math.max(SONG.loop.e*4,s+4),L);return [s,e]}return [0,L]}
 const posOf=lin=>{const [A,B]=region();return B>A?A+(((lin%(B-A))+(B-A))%(B-A)):lin};
 function startClock(countIn){audio();const now=ac.currentTime;TR.t0=now+.08+(countIn?4*spb():0);TR.next=countIn?-4:0;TR.cursor=0;TR.run=true}
@@ -352,7 +352,7 @@ function tick(){
   if(TR.state!=='idle'&&W>0){const hb=beatAt(hor);
     for(let c=Math.floor(Math.max(0,TR.cursor)/W);c<=Math.floor(hb/W);c++){if(c*W>=TR.cursor&&c*W<hb)recSchedule(c*W,A,W)}
     for(let c=Math.floor(Math.max(0,TR.cursor)/W);c<=Math.floor(hb/W);c++)for(const tr of SONG.tracks){if(!audible(tr)||tr.rec)continue;
-      for(const n of tr.notes){if(n.b<A||n.b>=B)continue;const lin=c*W+(n.b-A);if(lin>=TR.cursor&&lin<hb&&lin>=0)strike(n.id,n.v,TR.t0+lin*spb(),tr)}}
+      for(const n of tr.notes){if(n.b<A||n.b>=B)continue;const lin=c*W+(swung(n.b)-A);if(lin>=TR.cursor&&lin<hb&&lin>=0)strike(n.id,n.v,TR.t0+lin*spb(),tr)}}
     TR.cursor=hb}
 }
 setInterval(tick,25);
@@ -435,18 +435,23 @@ function drawScreen(){const p=scr,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.
   g.fillStyle='#c9d3da';g.font='700 26px system-ui,sans-serif';g.fillText('Bars',16,y0+34);btn(p,'barsless',90,y0+2,70,48,'−',{fs:30});btn(p,'barsmore',196,y0+2,70,48,'+',{fs:30});
   g.fillStyle='#f6ba45';g.textAlign='center';g.fillText(String((SONG.L||0)/4),178,y0+28);
   // the lanes
-  const n=SONG.tracks.length,rows=n+(n<MAXT?1:0),lh=Math.min(110,(p.H-y1-8)/Math.max(1,rows));
+  const n=SONG.tracks.length,rows=n+(n<MAXT?1:0),EY=p.H-142,lh=Math.min(100,(EY-y1-10)/Math.max(1,rows));const sn=selNote();
   SONG.tracks.forEach((t,i)=>{const y=y1+6+i*lh,sel=i===SONG.sel;
     rr(g,10,y+3,TX0-24,lh-6,12,sel?'#26313b':'#161c22',sel?t.col:null);g.fillStyle=t.col;g.fillRect(10,y+3,10,lh-6);
     g.fillStyle=audible(t)?'#eef2f4':'#77838d';g.textAlign='left';g.font='700 28px system-ui,sans-serif';g.fillText(t.name.slice(0,14),32,y+lh*.38);
     g.font='22px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.fillText(shortSet(t.set)+(t.mute?' · muted':t.solo?' · solo':'')+' · '+t.notes.length+' notes',32,y+lh*.72);
     p.hits.push({id:'lane:'+i,x:10,y,w:TX0-24,h:lh});
     if(sel){g.fillStyle='rgba(255,255,255,.04)';g.fillRect(TX0,y,TX1-TX0,lh)}
-    if(t.rec){g.fillStyle=audible(t)?'rgba(159,176,184,.35)':'rgba(85,96,106,.3)';g.fillRect(bx(Math.max(0,-t.rec.origin/spb())),y+lh*.3,bx(Math.min(LB,(t.rec.dur-t.rec.origin)/spb()))-bx(Math.max(0,-t.rec.origin/spb())),lh*.4);return}
+    if(t.rec){g.fillStyle=audible(t)?'rgba(159,176,184,.35)':'rgba(85,96,106,.3)';g.fillRect(bx(Math.max(0,-t.rec.origin/spb0())),y+lh*.3,bx(Math.min(LB,(t.rec.dur-t.rec.origin)/spb0()))-bx(Math.max(0,-t.rec.origin/spb0())),lh*.4);return}
     const hz=t.set==='kit'?KROWS.map(gm=>NOTE['drum:'+gm].hz):SETS[t.set]?SETS[t.set].drums.flatMap(d=>d.notes.map(q=>q.hz)):t.notes.map(q=>(NOTE[q.id]||{hz:200}).hz).concat([100,1000]),lo=Math.log(Math.min(...hz)),hi=Math.log(Math.max(...hz));
     g.fillStyle=audible(t)?t.col:'#55606a';
-    for(const q of t.notes){const N=NOTE[q.id];if(!N)continue;const fy=(Math.log(N.hz)-lo)/Math.max(.01,hi-lo);g.globalAlpha=.45+.55*q.v;g.fillRect(bx(q.b),y+lh-10-fy*(lh-22),Math.max(6,bx(q.b+.25)-bx(q.b)),8)}g.globalAlpha=1});
+    for(const q of t.notes){const N=NOTE[q.id];if(!N)continue;const fy=(Math.log(N.hz)-lo)/Math.max(.01,hi-lo),nx=bx(q.b),ny=y+lh-10-fy*(lh-22),nw=Math.max(6,bx(q.b+.25)-bx(q.b));g.globalAlpha=.45+.55*q.v;g.fillRect(nx,ny,nw,8);
+      if(sn&&sn.n===q){g.globalAlpha=1;g.strokeStyle='#ffffff';g.lineWidth=3;g.strokeRect(nx-4,ny-4,nw+8,16)}
+      // point at a note to pick it; drag it along to move it (¼ beats)
+      p.hits.push({id:'note',x:nx-6,y:ny-12,w:Math.max(nw,10)+12,h:32,drag:(px,py,first)=>{if(first){NSEL={t:t.id,n:q};SONG.sel=i;strike(q.id,q.v);return}
+        const b=Math.max(0,Math.round((px-TX0)/(TX1-TX0)*LB*4)/4);q.b=SONG.L?Math.min(b,SONG.L-.25):b;t.notes.sort((u,v)=>u.b-v.b)}})}g.globalAlpha=1});
   if(n<MAXT){const y=y1+6+n*lh;btn(p,'add',10,y+3,TX0-24,Math.min(lh-6,80),'+ New track',{fs:28})}
+  g.fillStyle='#141a20';g.fillRect(0,EY-6,p.W,p.H-EY+6);drawEdit(p,g,EY);
   p.LB=LB;p.tex.needsUpdate=true}
 function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRect(0,0,p.W,p.H);const SW=200;
   SONG.tracks.forEach((t,i)=>{const x=i*SW,sel=i===SONG.sel;g.fillStyle=sel?'#222b33':'#181d22';g.fillRect(x+4,4,SW-8,p.H-8);g.fillStyle=t.col;g.fillRect(x+4,4,SW-8,10);
@@ -469,7 +474,65 @@ function act(id){const [k,a]=id.split(':'),i=+a;
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
     barsless:()=>bars(-1),barsmore:()=>bars(1),add:addTrack,
     lane:()=>select(i),m:()=>{snapUndo();SONG.tracks[i].mute=!SONG.tracks[i].mute;saveSong();mixAll()},s:()=>{snapUndo();SONG.tracks[i].solo=!SONG.tracks[i].solo;saveSong();mixAll()},
-    re:()=>rerecord(i),del:()=>delTrack(i)}[k]||(()=>{}))();dirty=true}
+    re:()=>rerecord(i),del:()=>delTrack(i),
+    swing:cycleSwing,speed:cycleSpeed,tdo:()=>transpose(-12),td1:()=>transpose(-1),tu1:()=>transpose(1),tuo:()=>transpose(12),
+    bcopy:()=>barsOp('copy'),bleft:()=>barsOp('left'),bright:()=>barsOp('right'),bdel:()=>barsOp('del'),
+    nleft:()=>noteMove(-.25),nright:()=>noteMove(.25),nup:()=>noteStep(1),ndown:()=>noteStep(-1),nsoft:()=>noteVel(-.15),nloud:()=>noteVel(.15),ndel:noteDel,nclose:()=>{NSEL=null}}[k]||(()=>{}))();dirty=true}
+
+/* ---------- editing (the screen's two bottom rows) ----------
+   A note: point at it on its lane (drag to move it, ¼ beat steps), then ◀ ▶ move, ▲ ▼ the next note up or down on its
+   pans, Softer / Louder, 🗑. Bars: the gold bars on the ruler (drag across them) are copied in after themselves, moved a
+   bar earlier or later, or taken out, on every track. The selected track: transposed by a semitone or an octave (each note
+   to the note of that pitch on its pans; drums stay). Swing (off, light, heavy) and practice speed (1, ¾, ½) are how it
+   plays, not the notes; the recording only plays at full speed. */
+let NSEL=null;   // {t: track id, n: the note}
+const selNote=()=>{if(!NSEL)return null;const t=SONG.tracks.find(x=>x.id===NSEL.t);return t&&t.notes.includes(NSEL.n)?{t,n:NSEL.n}:null};
+const SWINGS=[[.5,'Off'],[.58,'Light'],[.66,'Heavy']],SPEEDS=[1,.75,.5];
+const swingOf=()=>+SONG.swing||.5,speedOf=()=>SPEEDS.includes(+SONG.speed)?+SONG.speed:1;
+// a beat as heard: the off-beat eighth pushed later by the swing
+function swung(b){const sw=swingOf();if(sw===.5)return b;const i=Math.floor(b),f=b-i;return i+(f<.5?f/.5*sw:sw+(f-.5)/.5*(1-sw))}
+function noteMove(d){const s=selNote();if(!s)return;snapUndo();s.n.b=Math.max(0,+(s.n.b+d).toFixed(3));if(SONG.L&&s.n.b>=SONG.L)s.n.b=+(SONG.L-.25).toFixed(3);s.t.notes.sort((a,b)=>a.b-b.b);saveSong();dirty=true}
+function setNotes(set){if(set==='kit')return KROWS.map(g=>'drum:'+g);return SETS[set]?SETS[set].drums.flatMap(d=>d.notes.map(n=>n.id)):Object.keys(NOTE).filter(i=>NOTE[i].set===set)}
+const byPitch=set=>setNotes(set).filter(i=>NOTE[i]).sort((a,b)=>NOTE[a].hz-NOTE[b].hz);
+// the note on these pans nearest a pitch (within a quarter tone), or none
+function pitchTo(set,hz){let best=null,bd=1e9;for(const i of setNotes(set)){const N=NOTE[i];if(!N)continue;const d=Math.abs(1200*Math.log2(N.hz/hz));if(d<bd){bd=d;best=i}}return bd<50?best:null}
+function noteStep(d){const s=selNote();if(!s)return;const list=s.t.set==='kit'?KROWS.map(g=>'drum:'+g):byPitch(s.t.set),i=list.indexOf(s.n.id);
+  if(i<0||!list[i+d])return msg(d>0?'That’s the top of these pans':'That’s the bottom of these pans');snapUndo();s.n.id=list[i+d];strike(s.n.id,s.n.v);saveSong();dirty=true}
+function noteVel(d){const s=selNote();if(!s)return;snapUndo();s.n.v=+Math.max(.1,Math.min(1,s.n.v+d)).toFixed(2);strike(s.n.id,s.n.v);saveSong();dirty=true}
+function noteDel(){const s=selNote();if(!s)return;snapUndo();s.t.notes.splice(s.t.notes.indexOf(s.n),1);NSEL=null;saveSong();msg('Note deleted (↶ Undo brings it back)')}
+function transpose(semi){const t=selTrack();if(!t||t.rec||t.set==='kit'||!t.notes.length)return msg('Pick a pan track with notes first');
+  snapUndo();let lost=0;const k=Math.pow(2,semi/12);
+  t.notes=t.notes.filter(n=>{const N=NOTE[n.id];const to=N&&pitchTo(t.set,N.hz*k);if(!to){lost++;return false}n.id=to;return true});
+  saveSong();msg(t.name+' '+(semi>0?'up ':'down ')+(Math.abs(semi)===12?'an octave':'a semitone')+(lost?' · '+lost+' note'+(lost>1?'s':'')+' had no place on the pans':''))}
+const selBars=()=>{if(!SONG.L)return null;const s=Math.max(0,Math.min(SONG.loop.s,SONG.L/4-1)),e=Math.max(s+1,Math.min(SONG.loop.e,SONG.L/4));return [s*4,e*4]};
+function barsOp(op){const r=selBars();if(!r)return msg('Record something first');const [A,B]=r,W=B-A,L=SONG.L;if(TR.state==='rec')return msg('Stop recording first');
+  if(op==='del'&&W>=L)return msg('That’s the whole song');
+  snapUndo();
+  for(const t of SONG.tracks){if(t.rec)continue;const inS=t.notes.filter(n=>n.b>=A&&n.b<B);
+    if(op==='copy'){t.notes.forEach(n=>{if(n.b>=B)n.b=+(n.b+W).toFixed(3)});t.notes.push(...inS.map(n=>({...n,b:+(n.b+W).toFixed(3)})))}
+    else if(op==='del'){t.notes=t.notes.filter(n=>!(n.b>=A&&n.b<B));t.notes.forEach(n=>{if(n.b>=B)n.b=+(n.b-W).toFixed(3)})}
+    else{const d=op==='left'?-4:4,P=op==='left'?A-4:B;if(P<0||P+4>L)continue;   // swap the bars with the bar next to them
+      t.notes.forEach(n=>{if(n.b>=A&&n.b<B)n.b=+(n.b+d).toFixed(3);else if(n.b>=P&&n.b<P+4)n.b=+(n.b+(op==='left'?W:-W)).toFixed(3)})}
+    t.notes.sort((a,b)=>a.b-b.b)}
+  const nb=(B-A)/4;
+  if(op==='copy'){SONG.L=L+W;SONG.loop.s+=nb;SONG.loop.e+=nb;msg('Copied: bars '+(A/4+1)+'–'+B/4+' play again straight after')}
+  else if(op==='del'){SONG.L=L-W;SONG.loop.e=Math.min(SONG.loop.s+1,SONG.L/4);SONG.loop.on=false;msg('Bars taken out (↶ Undo puts them back)')}
+  else{const d=op==='left'?-1:1;if((op==='left'&&A===0)||(op==='right'&&B>=L))return msg('Nowhere further to move');SONG.loop.s+=d;SONG.loop.e+=d;msg('Moved a bar '+(op==='left'?'earlier':'later'))}
+  saveSong();dirty=true}
+function cycleSwing(){const i=SWINGS.findIndex(s=>s[0]===swingOf());SONG.swing=SWINGS[(i+1)%SWINGS.length][0];saveSong();msg('Swing: '+SWINGS.find(s=>s[0]===SONG.swing)[1])}
+function cycleSpeed(){const b=TR.run&&ac?beatAt(ac.currentTime):0,i=SPEEDS.indexOf(speedOf());SONG.speed=SPEEDS[(i+1)%SPEEDS.length];if(TR.run)TR.t0=ac.currentTime-b*spb();
+  if(SONG.speed<1)recStop();saveSong();msg(SONG.speed===1?'Full speed':'Practising at '+(SONG.speed===.75?'¾':'½')+' speed'+(SONG.tracks.some(t=>t.rec)?' (the recording waits for full speed)':''))}
+function drawEdit(p,g,y){const s=selNote(),t=selTrack(),r=selBars();let x=16;const B=(id,w,l,o)=>{btn(p,id,x,y,w,58,l,{fs:24,...o});x+=w+8};
+  g.fillStyle='#77838d';g.font='700 20px system-ui,sans-serif';g.textAlign='left';
+  B('swing',140,'Swing: '+SWINGS.find(q=>q[0]===swingOf())[1],{on:swingOf()!==.5});B('speed',120,'Speed '+({1:'1×',.75:'¾',.5:'½'})[speedOf()],{on:speedOf()!==1});x+=14;
+  const tp=t&&!t.rec&&t.set!=='kit';B('tdo',84,'−8va',{dim:!tp});B('td1',60,'−1',{dim:!tp});B('tu1',60,'+1',{dim:!tp});B('tuo',84,'+8va',{dim:!tp});x+=14;
+  B('bcopy',150,'⧉ Copy bars',{dim:!r});B('bleft',110,'◀ Move',{dim:!r});B('bright',110,'Move ▶',{dim:!r});B('bdel',150,'✕ Bars',{dim:!r});
+  x=16;y+=68;
+  g.textAlign='left';
+  if(s){g.fillStyle='#f6ba45';g.font='700 26px system-ui,sans-serif';g.fillText(((NOTE[s.n.id]||{}).label||s.n.id.split(':').pop())+' · beat '+(Math.floor(s.n.b/4)+1)+'.'+(Math.floor(s.n.b%4)+1)+(s.n.b%1?'+':'')+' · '+Math.round(s.n.v*100)+'%',x,y+36);x+=330;
+    B('nleft',64,'◀');B('nright',64,'▶');B('nup',64,'▲');B('ndown',64,'▼');B('nsoft',110,'Softer');B('nloud',110,'Louder');B('ndel',100,'🗑');B('nclose',64,'✕')}
+  else{g.fillStyle='#77838d';g.font='24px system-ui,sans-serif';g.fillText('Point at a note on its lane to move it, change it or delete it. Drag across the bar numbers to pick bars.',x,y+36)}}
+
 /* pointing: a controller's beam, or the mouse off the headset */
 let grab=null;
 function uiFind(p,uv){const x=uv.x*p.W,y=(1-uv.y)*p.H;return {x,y,hit:[...p.hits].reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)}}
@@ -547,8 +610,8 @@ async function recLoad(){const t=SONG.tracks.find(x=>x.rec);if(!t){RECBUF=null;R
   try{const b=await recGet(t.rec.key);audio();RECBUF=b?await ac.decodeAudioData(await b.arrayBuffer()):null;RECKEY=t.rec.key}catch(e){console.warn('rec',e);RECBUF=null}}
 function recStop(){while(recSrcs.length){const s=recSrcs.pop();try{s.stop()}catch{}}}
 // from tick(): a cycle (the song, or the loop) starting inside this window starts the recording at that cycle's place
-function recSchedule(cs,A,W){const t=SONG.tracks.find(x=>x.rec);if(!t||!RECBUF||!audible(t))return;
-  const at=TR.t0+cs*spb(),off=t.rec.origin+A*spb(),src=ac.createBufferSource();src.buffer=RECBUF;src.connect(chan(t).g);
+function recSchedule(cs,A,W){const t=SONG.tracks.find(x=>x.rec);if(!t||!RECBUF||!audible(t)||speedOf()<1)return;
+  const at=TR.t0+cs*spb(),off=t.rec.origin+A*spb0(),src=ac.createBufferSource();src.buffer=RECBUF;src.connect(chan(t).g);
   const d=off<0?-off:0;src.start(Math.max(ac.currentTime,at+d),Math.max(0,off));src.stop(at+W*spb());recSrcs.push(src);if(recSrcs.length>8)recSrcs.shift()}
 async function gdImport(id){const M=GD.man;let ps={};try{ps=JSON.parse(M.ls['pan-songs']||'{}')||{}}catch{}
   const meta=(ps.list||[]).find(s=>s.id===id)||{};let data={},blob=null;
@@ -656,7 +719,7 @@ loadSong();renderSeg();applyLook();gdUI();
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,act,gdList,gdImport,recPlaying:()=>recSrcs.length,undo:()=>undo(),rec:()=>RECBUF?RECBUF.duration:0,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
+const VR=window.VR={hits:[],clicks:0,act,nsel:()=>{const q=selNote();return q?{t:q.t.name,id:q.n.id,b:q.n.b,v:q.n.v}:null},pickNote(ti,ni){const t=SONG.tracks[ti];NSEL={t:t.id,n:t.notes[ni]};SONG.sel=ti;dirty=true},gdList,gdImport,recPlaying:()=>recSrcs.length,undo:()=>undo(),rec:()=>RECBUF?RECBUF.duration:0,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
   hitDrum(gm,speed,edge){const p=KITP.find(q=>q.gm===gm),s={src:null},dt=1/72,step=(speed||2.5)*dt;let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(edge?p.r*.9:0,.012+k*step,0);p.g.localToWorld(w);out=trackKit(s,w,dt)||out}return out},table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
   dragTable(dx,dy,dz){const w=new THREE.Vector3(0,.1,0);table.localToWorld(w);const s=w.clone();if(!nearTable(s))return false;tableGrab(s);w.add(new THREE.Vector3(dx,dy,dz));tableMove(w);tableDrop();return true},tableReset,
   surf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;return {centre:+surf(d,x,z).toFixed(4),bowl:+bowl(Math.hypot(x,z),d.D).toFixed(4),depth:d.D}},grooveAt(id,dx){const d=drumOf(id),n=d.notes.find(x=>x.id===id);return +offAt(d,(n.x-d.cx)*d.S+dx,(n.y-d.cy)*d.S).toFixed(4)},song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,

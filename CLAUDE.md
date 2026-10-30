@@ -241,5 +241,12 @@ upright count is low because a checklist pushes the pans below the play bar ther
   played from bar 1 by `recSchedule`, offset by Studio's `origin()`); beats tracks and mic takes stay in Panyard.
   Six bass and four cello notes play from the band's sounds (`moreSounds`, `PANSET.six/fcello` hum and tone); ↶ Undo
   goes back. Test with `tvrdrive` (a pretend Google and Drive).
+  **Editing** (the screen's two bottom rows, `drawEdit`; Studio's tools): a note picked on its lane (`NSEL`, its hit box
+  drags it in ¼ beats) moves ◀ ▶, steps ▲ ▼ to the next note on its pans (`byPitch`), Softer / Louder, 🗑; the ruler's gold
+  bars (`selBars`, the loop) are copied in after themselves, moved a bar either way (swapped with the next bar) or taken
+  out, on every track (`barsOp`); the selected pan track transposes ±1 / ±12 (`pitchTo` the nearest note on its pans,
+  notes with no place dropped). `SONG.swing` (.5 / .58 / .66) moves off-beats when played (`swung()`, not the notes);
+  `SONG.speed` (1, ¾, ½) slows the clock (`spb()`; `spb0()` is the song's own) and the recording waits for full speed.
+  Test with `tvredit`.
   Test with `tvr` (`VR.swing`, `VR.hitDrum`, `VR.kick`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
