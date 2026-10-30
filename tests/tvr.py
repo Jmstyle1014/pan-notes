@@ -30,6 +30,10 @@ with sync_playwright() as p:
     ids=pg.evaluate("VR.notes()");bad=[i for i in ids if pg.evaluate(f"VR.noteAt('{i}')")!=i]
     check(len(ids)==29 and not bad,f'every tenor note\'s place on the pan finds that note {bad}')
     pg.screenshot(path=D+'1-page.png')
+    # the pans in 3D: a tenor's bowl sunk about 7½ in, a groove sunk round each note, the note domed a little
+    sv=pg.evaluate("VR.surf('tenor:60')");check(abs(sv['depth']-.19)<1e-6,f'the tenor\'s bowl is sunk 19 cm {sv}')
+    mid=pg.evaluate("VR.grooveAt('tenor:72',0)");edge=min(pg.evaluate(f"VR.grooveAt('tenor:72',{d})") for d in [.028,.03,.032,.034,.036,-.028,-.03,-.032,-.034,-.036])
+    check(mid>.002 and edge<-.002,f'a note is domed in the middle ({mid*1000:.1f} mm) and the groove round it sinks ({edge*1000:.1f} mm)')
     r1,x1=grab(pg,"VR.swing('tenor:60',3.2)")
     check(r1=='tenor:60' and abs(x1).max()>.05,f'a full swing down through low C plays it (peak {abs(x1).max():.2f})')
     r2,x2=grab(pg,"VR.swing('tenor:76',.6)")
@@ -115,9 +119,14 @@ with sync_playwright() as p:
     pg.evaluate("VR.press('screen','undo')");check(pg.evaluate("VR.song().tracks.length")==2,'↶ Undo brings it back')
     pg.evaluate("VR.press('desk','re:1')");check(pg.evaluate("VR.tr().state")=='rec' and not pg.evaluate("VR.song().tracks[1].notes"),'↻ Rec empties track 2 and records it again')
     pg.evaluate("VR.press('screen','play')");check(pg.evaluate("VR.tr().state")=='idle','■ Stop')
+    # the table: squeeze a grip on it and move it; it stays where you put it
+    t0=pg.evaluate("VR.table()");check(pg.evaluate("VR.dragTable(.2,.05,-.15)"),'a grip squeezed on the table grabs it')
+    t1=pg.evaluate("VR.table()");check(abs(t1[0]-t0[0]-.2)<.01 and abs(t1[2]-t0[2]+.15)<.01 and abs(t1[1]-t0[1]-.05)<.01,f'moving the hand moves the table with it {t0} → {t1}')
     # everything is kept for next time
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000)
     sg=pg.evaluate("VR.song()");check(len(sg['tracks'])==2 and sg['tracks'][0]['notes'],'the tracks are kept for next time')
+    check(pg.evaluate("VR.table()")==t1,'the table stays where you put it')
+    pg.evaluate("VR.tableReset()");check(pg.evaluate("VR.table()")==t0,'and it can go back to its place')
     # the beam: a real click on the screen's Click button (mouse off the headset) goes through the same pointer
     pg.evaluate("document.getElementById('hud').hidden=true;VR.view('table')");pg.wait_for_timeout(400)
     xy=pg.evaluate("VR.screenOfPanel('screen','click')");pg.mouse.click(*xy);pg.wait_for_timeout(200)

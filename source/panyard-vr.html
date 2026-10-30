@@ -31,7 +31,7 @@ canvas{display:block}
   <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="guitar">Double Guitar</button><button data-set="dsec">Double Second</button></div>
   <div class="lab">Look</div>
   <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
-  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
+  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Squeeze a grip</b> on the studio table to move it. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
   <div class="lab">Off the headset, look at</div>
   <div class="seg" id="viewSeg"><button data-view="pans" aria-pressed="true">The pans</button><button data-view="table">The studio table</button></div>
   <p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p>
@@ -46,15 +46,17 @@ import {RoomEnvironment} from './lib/RoomEnvironment.js';
 const SETS=/*SETS*/{};
 const SOUNDS='../band/band-sounds/';
 const A=441;                       // Panyard Band's tuning
-const RS=0.285,DEPTH=0.11;         // a 22.5 in drum: surface radius in metres, how deep the bowl sinks
+const RS=0.285;                    // a 22.5 in drum: the playing surface's radius in metres
+const GROOVE=.005,DOME=.006;       // each note: the groove round it sinks 5 mm, its middle rises up to 6 mm (smaller notes less)
 const SURF=0.27;                   // where the drawing's playing surface edge lands, in metres
-const h=r=>-DEPTH*Math.max(0,1-(r/RS)**2);   // the bowl's height at a distance from the centre
+const bowl=(r,D)=>-D*Math.max(0,1-(r/RS)**2);   // the bowl's height at a distance from the centre, D deep
 const $=id=>document.getElementById(id);
 // each set: its skirt (inches), its barrel's hum (343 / 4(L + 0.3·22.5 in)), its suggested tone, where its drums stand
 const PANSET={
-  tenor:{skirt:6,tone:[420,-2,5000,2],place:[[0,0]]},
-  guitar:{skirt:16,tone:null,place:[[-.33,.2],[.33,-.2]]},   // the E/C pan on the left, B/F on the right, both turned a little to you
-  dsec:{skirt:9,tone:[330,-1,4200,1],place:[[-.33,.2],[.33,-.2]]},   // the C pan on the left, C♯ on the right
+  // depth: how far the bowl is sunk (a tenor about 7½ in, a double second 6½, a guitar 5½; the higher the pan, the deeper)
+  tenor:{skirt:6,depth:.19,tone:[420,-2,5000,2],place:[[0,0]]},
+  guitar:{skirt:16,depth:.14,tone:null,place:[[-.33,.2],[.33,-.2]]},   // the E/C pan on the left, B/F on the right, both turned a little to you
+  dsec:{skirt:9,depth:.165,tone:[330,-1,4200,1],place:[[-.33,.2],[.33,-.2]]},   // the C pan on the left, C♯ on the right
 };
 for(const k in PANSET){const L=PANSET[k].skirt*.0254;PANSET[k].body=Math.round(343/(4*(L+.3*22.5*.0254)))}
 // the looks: Chrome, and the three Vincy Mas backgrounds (as in Panyard): skirt stops, rim, a struck note, the sky, the floor
@@ -145,16 +147,27 @@ function surfaceTexture(d){
     for(const n of d.notes){g.fillStyle=/inner|centre/.test(n.pos)?'#d6dbe1':/middle/.test(n.pos)?'#dfe3e8':'#e8ebef';g.fill(n.p2);g.lineWidth=d.r*.016;g.strokeStyle='#7d858e';g.stroke(n.p2);g.lineWidth=d.r*.005;g.strokeStyle='#fbfcfd';g.stroke(n.p2)}
     g.fillStyle='#232a31';g.textAlign='center';g.textBaseline='middle';
     for(const n of d.notes){g.font='700 '+Math.round(n.fs*.9)+'px system-ui,sans-serif';g.fillText(n.label,n.x,n.y)}})}
+// the notes in 3D: a groove sunk round each note and the note itself domed a little, from the drawing of its shape
+const HM=512;
+function heightMap(d){const c=document.createElement('canvas');c.width=c.height=HM;const g=c.getContext('2d',{willReadFrequently:true}),k=d.S/RS*HM/2;
+  const layer=bl=>{g.setTransform(1,0,0,1,0,0);g.filter='none';g.fillStyle='#000';g.fillRect(0,0,HM,HM);g.filter='blur('+bl+'px)';
+    g.setTransform(k,0,0,k,HM/2-d.cx*k,HM/2-d.cy*k);g.fillStyle='#fff';for(const n of d.notes)g.fill(n.p2);g.filter='none';return g.getImageData(0,0,HM,HM).data};
+  const a=layer(1.4),b=layer(10),off=new Float32Array(HM*HM);
+  for(let i=0;i<HM*HM;i++){const A=a[i*4]/255,B=b[i*4]/255;off[i]=-GROOVE*(1-A)+DOME*B*B}
+  return off}
+function offAt(d,x,z){const fx=Math.max(0,Math.min(HM-1.001,HM/2+x/RS*HM/2)),fy=Math.max(0,Math.min(HM-1.001,HM/2+z/RS*HM/2)),ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,o=d.off,i=iy*HM+ix;
+  return (o[i]*(1-tx)+o[i+1]*tx)*(1-ty)+(o[i+HM]*(1-tx)+o[i+HM+1]*tx)*ty}
+const surf=(d,x,z)=>{const r=Math.hypot(x,z);return r<RS?bowl(r,d.D)+offAt(d,x,z):0};
 function skirtTex(stops){return canvasTex(512,8,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,w,0);stops.forEach((c,i)=>gr.addColorStop(i/(stops.length-1),c));g.fillStyle=gr;g.fillRect(0,0,w,hh)})}
 function buildPans(){
   for(const d of drums){rig.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
-  const set=SETS[setKey],P=PANSET[setKey],L=LOOKS[lookKey],SK=P.skirt*.0254;
+  const set=SETS[setKey],P=PANSET[setKey],L=LOOKS[lookKey],SK=Math.max(P.skirt*.0254,P.depth+.02);
   const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
   drums=set.drums.map((dd,i)=>{
-    const d={...dd,S:SURF/dd.r,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};
+    const d={...dd,S:SURF/dd.r,D:P.depth,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};d.off=heightMap(d);
     const g=new THREE.Group();g.rotation.order='YXZ';g.position.x=P.place[i][0];g.rotation.y=P.place[i][1];g.rotation.x=.2;rig.add(g);d.g=g;
-    const geo=new THREE.RingGeometry(.0005,RS,160,56);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
-    for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,h(Math.hypot(x,z)))}geo.computeVertexNormals();
+    const geo=new THREE.RingGeometry(.0005,RS,256,110);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
+    for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,surf(d,x,z))}geo.computeVertexNormals();
     d.dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:surfaceTexture(d),metalness:.55,roughness:.4,envMapIntensity:.7,side:THREE.DoubleSide}));g.add(d.dish);
     const skMat=L.skirt?new THREE.MeshStandardMaterial({map:skirtTex(L.skirt),metalness:.7,roughness:.3,side:THREE.DoubleSide}):chromeMat();
     const sk=new THREE.Mesh(new THREE.CylinderGeometry(RS+.012,RS+.012,SK,96,1,true),skMat);sk.position.y=-SK/2;g.add(sk);
@@ -165,7 +178,7 @@ function buildPans(){
     for(const n of d.notes){const pe=document.createElementNS('http://www.w3.org/2000/svg','path');pe.setAttribute('d',n.path);SV.appendChild(pe);
       const len=pe.getTotalLength(),pts=[];for(let q=0;q<64;q++){const pt=pe.getPointAtLength(len*q/64);pts.push(new THREE.Vector2((pt.x-d.cx)*d.S,(pt.y-d.cy)*d.S))}
       const ng=new THREE.ShapeGeometry(new THREE.Shape(pts),1),np=ng.attributes.position;
-      for(let q=0;q<np.count;q++){const x=np.getX(q),z=np.getY(q);np.setXYZ(q,x,h(Math.hypot(x,z))+.0035,z)}
+      for(let q=0;q<np.count;q++){const x=np.getX(q),z=np.getY(q);np.setXYZ(q,x,surf(d,x,z)+DOME+.003,z)}
       n.glow=new THREE.Mesh(ng,new THREE.MeshBasicMaterial({color:L.hit,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));n.glow.visible=false;g.add(n.glow)}
     // the stand: a pole down to the floor (it follows the pan), and three feet
     const st=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1,16),chromeMat());st.add(pole);
@@ -203,7 +216,7 @@ function noteAt(d,x,z){const xs=x/d.S+d.cx,ys=z/d.S+d.cy;for(const n of d.notes)
 function track(s,world,dt){
   // the drum the tip is over (the nearest centre)
   let best=null;for(const d of drums){local.copy(world);d.g.worldToLocal(local);const r=Math.hypot(local.x,local.z);if(!best||r<best.r)best={d,r,x:local.x,y:local.y,z:local.z}}
-  if(!best)return null;const {d,r}=best,dd=best.y-(r<RS?h(r):0)-.012;   // the tip's height above the steel (its radius taken off)
+  if(!best)return null;const {d,r}=best,dd=best.y-surf(d,best.x,best.z)-.012;   // the tip's height above the steel (its radius taken off)
   const prev=s.prev&&s.prev.d===d?s.prev:null;s.prev={d,x:best.x,y:best.y,z:best.z,dd};
   if(dd>.012)s.armed=true;                                               // lifted off: ready for the next hit
   if(!prev||!s.armed||r>RS||!(prev.dd>0&&dd<=0))return null;
@@ -299,7 +312,17 @@ const desk=uiPanel(.92,.37,1600,640);desk.m.rotation.x=-Math.PI/2+.5;desk.m.posi
 const scr=uiPanel(1.0,.5625,1600,900);scr.m.position.set(0,.52,-.24);scr.m.rotation.x=-.08;table.add(scr.m);
 const head2=new THREE.Mesh(new THREE.PlaneGeometry(.004,.42),new THREE.MeshBasicMaterial({color:'#ffffff'}));head2.position.z=.002;scr.m.add(head2);
 const PANELS=[desk,scr];
-function placeTable(){const half=PANSET[setKey].place.length>1?.63:.3,x=-(half+.62),z=.3;table.position.set(x,0,z);table.rotation.y=Math.atan2(-x,.48-z)}
+function placeTable(){const half=PANSET[setKey].place.length>1?.63:.3;let x=-(half+.62),y=0,z=.3;
+  try{const t=JSON.parse(LS('table')||'null');if(t&&Number.isFinite(t.x)){x=t.x;y=t.y;z=t.z}}catch{}setTable(x,y,z)}
+// it always turns to face where you stand (about half a metre behind the pans)
+function setTable(x,y,z){table.position.set(x,Math.max(-.45,Math.min(.5,y)),z);table.rotation.y=Math.atan2(-x,.48-z)}
+/* grab the table: squeeze a grip while that controller's beam is on the table (or the controller is close to it), move, let go */
+let tgrab=null;const tw=new THREE.Vector3();
+function nearTable(world){tw.copy(world);table.worldToLocal(tw);return Math.abs(tw.x)<.6&&tw.y>-1.1&&tw.y<.9&&Math.abs(tw.z)<.45}
+function tableGrab(world){tw.copy(world);rig.worldToLocal(tw);tgrab={p:tw.clone(),t:table.position.clone()}}
+function tableMove(world){if(!tgrab)return;tw.copy(world);rig.worldToLocal(tw);setTable(tgrab.t.x+tw.x-tgrab.p.x,tgrab.t.y+tw.y-tgrab.p.y,tgrab.t.z+tw.z-tgrab.p.z)}
+function tableDrop(){if(!tgrab)return;tgrab=null;LSset('table',JSON.stringify({x:+table.position.x.toFixed(3),y:+table.position.y.toFixed(3),z:+table.position.z.toFixed(3)}))}
+function tableReset(){try{localStorage.removeItem('panyard-vr-table')}catch{}placeTable()}
 let dirty=true;
 const rr=(g,x,y,w,hh,r,fill,stroke)=>{g.beginPath();g.roundRect(x,y,w,hh,r);if(fill){g.fillStyle=fill;g.fill()}if(stroke){g.strokeStyle=stroke;g.lineWidth=3;g.stroke()}};
 function btn(p,id,x,y,w,hh,label,opt={}){const g=p.g;rr(g,x,y,w,hh,14,opt.on?(opt.oncol||'#f6ba45'):'#2a323a',opt.on?null:'#3d4852');
@@ -375,15 +398,21 @@ const beams=[0,1].map(i=>{const c=renderer.xr.getController(i);scene.add(c);
   const line=new THREE.Mesh(new THREE.CylinderGeometry(.0015,.0015,1,6),new THREE.MeshBasicMaterial({color:'#bfe6ff',transparent:true,opacity:.7}));line.rotation.x=Math.PI/2;
   const lg=new THREE.Group();lg.add(line);c.add(lg);lg.visible=false;
   const dot=new THREE.Mesh(new THREE.SphereGeometry(.008,10,8),new THREE.MeshBasicMaterial({color:'#ffffff'}));dot.visible=false;scene.add(dot);
-  const b={c,lg,line,dot,src:null,down:false};c.addEventListener('connected',e=>{b.src=e.data});c.addEventListener('disconnected',()=>{b.src=null;lg.visible=dot.visible=false});return b});
+  const b={c,lg,line,dot,src:null,down:false,sq:false,grab:false};c.addEventListener('connected',e=>{b.src=e.data});c.addEventListener('disconnected',()=>{b.src=null;lg.visible=dot.visible=false});return b});
 const bRay=new THREE.Raycaster(),bm=new THREE.Matrix4();
 function beamFrame(){for(const b of beams){if(!b.src){continue}
   bm.identity().extractRotation(b.c.matrixWorld);bRay.ray.origin.setFromMatrixPosition(b.c.matrixWorld);bRay.ray.direction.set(0,0,-1).applyMatrix4(bm);
   const hit=bRay.intersectObjects(PANELS.map(p=>p.m))[0],gp=b.src.gamepad,trig=!!(gp&&gp.buttons[0]&&gp.buttons[0].pressed);
   if(hit&&hit.distance<3){b.lg.visible=true;b.line.scale.y=hit.distance;b.line.position.z=-hit.distance/2;b.dot.visible=true;b.dot.position.copy(hit.point);
-    const p=PANELS.find(q=>q.m===hit.object);if(trig&&!b.down){if(uiDown(p,hit.uv))try{gp.hapticActuators[0].pulse(.3,15)}catch{}}else if(trig)uiMove(p,hit.uv)}
+    const p=PANELS.find(q=>q.m===hit.object);if(b.grab){}else if(trig&&!b.down){if(uiDown(p,hit.uv))try{gp.hapticActuators[0].pulse(.3,15)}catch{}}else if(trig)uiMove(p,hit.uv)}
   else{b.lg.visible=b.dot.visible=false}
-  if(!trig&&b.down)uiUp();b.down=trig}}
+  if(!trig&&b.down)uiUp();b.down=trig;
+  // the grip: grab the table
+  const sq=!!(gp&&gp.buttons[1]&&gp.buttons[1].pressed);b.c.getWorldPosition(tw);const cw=tw.clone();
+  if(sq&&!b.sq&&!tgrab&&((hit&&hit.distance<3)||nearTable(cw))){b.grab=true;tableGrab(cw);try{gp.hapticActuators[0].pulse(.4,30)}catch{}}
+  else if(sq&&b.grab)tableMove(cw);
+  else if(!sq&&b.grab){b.grab=false;tableDrop()}
+  b.sq=sq}}
 let statT=0,lastStat='';
 function studioFrame(dt){if(msgT>0){msgT-=dt;if(msgT<=0){MSG='';dirty=true}}
   statT+=dt;if(statT>.2){statT=0;const s=statusLine()+TR.state;if(s!==lastStat){lastStat=s;dirty=true}}
@@ -463,7 +492,9 @@ loadSong();renderSeg();applyLook();
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,act,song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
+const VR=window.VR={hits:[],clicks:0,act,table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
+  dragTable(dx,dy,dz){const w=new THREE.Vector3(0,.1,0);table.localToWorld(w);const s=w.clone();if(!nearTable(s))return false;tableGrab(s);w.add(new THREE.Vector3(dx,dy,dz));tableMove(w);tableDrop();return true},tableReset,
+  surf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;return {centre:+surf(d,x,z).toFixed(4),bowl:+bowl(Math.hypot(x,z),d.D).toFixed(4),depth:d.D}},grooveAt(id,dx){const d=drumOf(id),n=d.notes.find(x=>x.id===id);return +offAt(d,(n.x-d.cx)*d.S+dx,(n.y-d.cy)*d.S).toFixed(4)},song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
   // a press (and a drag) on the desk or the screen at a spot in its own pixels, as the pointer beam does
   press(panel,id,fx,fy){const p=panel==='desk'?desk:scr;if(dirty){dirty=false;drawScreen();drawDesk()}const b=p.hits.find(q=>q.id===id);if(!b)return false;const uv=(x,y)=>({x:x/p.W,y:1-y/p.H});
     uiDown(p,uv(b.x+b.w*(fx??.5),b.y+b.h*(fy??.5)));return true},
@@ -474,9 +505,9 @@ const VR=window.VR={hits:[],clicks:0,act,song:()=>SONG,tr:()=>({state:TR.state,r
   ready:()=>Object.keys(buf).length,strike,
   notes:()=>drums.flatMap(d=>d.notes.map(n=>n.id)),
   noteAt(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),m=noteAt(d,(n.x-d.cx)*d.S,(n.y-d.cy)*d.S);return m&&m.id},
-  swing(id,speed){const d=drumOf(id),n=d.notes.find(x=>x.id===id),s=makeStick(),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,y=h(Math.hypot(x,z));const dt=1/72,step=speed*dt;
+  swing(id,speed){const d=drumOf(id),n=d.notes.find(x=>x.id===id),s=makeStick(),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,y=surf(d,x,z);const dt=1/72,step=speed*dt;
     let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(x,y+.012+k*step,z);d.g.localToWorld(w);out=track(s,w,dt)||out}return out},
-  screenOf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,w=new THREE.Vector3(x,h(Math.hypot(x,z)),z);d.g.localToWorld(w);w.project(camera);return [(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight]},
+  screenOf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,w=new THREE.Vector3(x,surf(d,x,z),z);d.g.localToWorld(w);w.project(camera);return [(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight]},
   // two sticks held over the pans, for a picture off the headset
   demo(){[[-.16,.16,-.1,-.25],[.17,.11,.02,.2]].forEach(([x,y,z,yaw])=>{const s=makeStick(),g=new THREE.Group();g.add(s.piv);const w=new THREE.Vector3(x,y,z);rig.localToWorld(w);g.position.copy(w);g.position.z+=.25;g.rotation.set(.75,yaw,0);scene.add(g)})},
   set:useSet,look:k=>{lookKey=k;applyLook()},state:()=>({set:setKey,look:lookKey,drums:drums.length}),nextSet,nextLook,
