@@ -157,7 +157,8 @@ function heightMap(d){const c=document.createElement('canvas');c.width=c.height=
   return off}
 function offAt(d,x,z){const fx=Math.max(0,Math.min(HM-1.001,HM/2+x/RS*HM/2)),fy=Math.max(0,Math.min(HM-1.001,HM/2+z/RS*HM/2)),ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,o=d.off,i=iy*HM+ix;
   return (o[i]*(1-tx)+o[i+1]*tx)*(1-ty)+(o[i+HM]*(1-tx)+o[i+HM+1]*tx)*ty}
-const surf=(d,x,z)=>{const r=Math.hypot(x,z);return r<RS?bowl(r,d.D)+offAt(d,x,z):0};
+// the grooves fade out over the last 2 cm before the rim, so the bowl meets it cleanly
+const surf=(d,x,z)=>{const r=Math.hypot(x,z);return r<RS?bowl(r,d.D)+offAt(d,x,z)*Math.min(1,(RS-r)/.02):0};
 function skirtTex(stops){return canvasTex(512,8,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,w,0);stops.forEach((c,i)=>gr.addColorStop(i/(stops.length-1),c));g.fillStyle=gr;g.fillRect(0,0,w,hh)})}
 function buildPans(){
   for(const d of drums){rig.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
