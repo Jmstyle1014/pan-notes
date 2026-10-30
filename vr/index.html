@@ -292,10 +292,10 @@ function toggleLoop(){if(!SONG.L)return msg('Record something first, then loop a
 const table=new THREE.Group();rig.add(table);
 {const wood=new THREE.MeshStandardMaterial({color:'#3a2a1e',roughness:.7}),top=new THREE.Mesh(new THREE.BoxGeometry(1.0,.04,.5),wood);top.position.y=-.06;table.add(top);
   for(const [x,z] of [[-.46,-.21],[.46,-.21],[-.46,.21],[.46,.21]]){const l=new THREE.Mesh(new THREE.BoxGeometry(.04,1,.04),wood);l.position.set(x,-.58,z);table.add(l)}
-  const post=new THREE.Mesh(new THREE.BoxGeometry(.05,.5,.05),new THREE.MeshStandardMaterial({color:'#20252b'}));post.position.set(0,.2,-.22);table.add(post)}
+  const post=new THREE.Mesh(new THREE.BoxGeometry(.05,.5,.05),new THREE.MeshStandardMaterial({color:'#20252b'}));post.position.set(0,.2,-.3);table.add(post)}
 function uiPanel(w,h,W,H){const c=document.createElement('canvas');c.width=W;c.height=H;const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;
   const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex}));return {c,g:c.getContext('2d'),tex,m,W,H,hits:[]}}
-const desk=uiPanel(.92,.37,1600,640);desk.m.rotation.x=-Math.PI/2+.42;desk.m.position.set(0,-.02,.02);table.add(desk.m);
+const desk=uiPanel(.92,.37,1600,640);desk.m.rotation.x=-Math.PI/2+.5;desk.m.position.set(0,.045,.04);table.add(desk.m);
 const scr=uiPanel(1.0,.5625,1600,900);scr.m.position.set(0,.52,-.24);scr.m.rotation.x=-.08;table.add(scr.m);
 const head2=new THREE.Mesh(new THREE.PlaneGeometry(.004,.42),new THREE.MeshBasicMaterial({color:'#ffffff'}));head2.position.z=.002;scr.m.add(head2);
 const PANELS=[desk,scr];
