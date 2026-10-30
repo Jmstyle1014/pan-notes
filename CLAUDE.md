@@ -229,5 +229,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   round every note and domes it up to 6 mm (smaller notes less); `surf(d,x,z)` is the playing surface everywhere (the
   dish, the glows, the hit test). **Grab the table:** squeeze a grip with the beam on it (or the hand near it) and move;
   it turns to face you and is kept in localStorage `panyard-vr-table` (rig-local x, y, z).
-  Test with `tvr` (`VR.swing`, `VR.press`/`VR.drag` on the desk or screen).
+  **Drum kit** (set `'kit'`, after the pans in `KEYS`; `kitG` replaces the pans): `KITP` places snare, hi-hat, high/mid/floor
+  tom, crash, ride, the iron and the engine room's bass drum (GM 35, the kick lower and longer, on its side facing you);
+  a stick crossing a head plays it (`trackKit`; near the edge: rimshot 37, open hat 46, muted iron 80), a trigger
+  (beam off the table) is the kick (`kickNow`). Sounds are Panyard's `../panyard/drums/` (`kit.json`); notes are
+  `drum:<GM>` (`strikeDrum`), so the studio records and plays them; kit lanes are drawn by `KROWS`.
+  Test with `tvr` (`VR.swing`, `VR.hitDrum`, `VR.kick`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
