@@ -58,30 +58,71 @@ with sync_playwright() as p:
     r5,x5=grab(pg,"VR.swing('dsec:60',3)");r6,x6=grab(pg,"VR.swing('dsec:61',3)")
     check(r5=='dsec:60' and r6=='dsec:61' and abs(x5).max()>.05 and abs(x6).max()>.05,f'a swing plays the C pan\'s C and the C♯ pan\'s C♯ ({abs(x5).max():.2f}, {abs(x6).max():.2f})')
     pg.screenshot(path=D+'2b-dsec.png')
-    # the metronome: the Click pad, hit with a stick
-    pg.evaluate("VR.met.bpm=200");c0=pg.evaluate("VR.clicks")
-    check(pg.evaluate("VR.hitPad('click')")=='click','hitting the Click pad with a stick presses it')
-    pg.wait_for_timeout(1300);c1=pg.evaluate("VR.clicks")
-    check(c1-c0>=3 and pg.evaluate("VR.met.on"),f'the metronome clicks ({c1-c0} clicks in 1.3 s at 200)')
-    pg.evaluate("VR.pad('click')");pg.wait_for_timeout(400);c2=pg.evaluate("VR.clicks");pg.wait_for_timeout(600)
-    check(pg.evaluate("VR.clicks")==c2,'Click again stops it')
-    pg.evaluate("VR.pad('fast')");check(pg.evaluate("VR.met.bpm")==204,'+ makes it faster')
-    pg.evaluate("VR.met.bpm=200")
-    # recording: a bar to count in, three notes, ● again, and it plays them back
-    pg.evaluate("VR.pad('clear');VR.pad('rec')");pg.wait_for_timeout(1350)
-    check(pg.evaluate("VR.tr().state")=='rec' and pg.evaluate("VR.tr().beat")>=0,'● Rec counts in a bar, then records')
+    # the studio table: point and pull the trigger (here: the same press at a spot on the desk or the screen)
+    pg.evaluate("VR.act('click')");pg.evaluate("VR.song().bpm=200");c0=pg.evaluate("VR.clicks");pg.wait_for_timeout(1300)
+    check(pg.evaluate("VR.clicks")-c0>=3 and pg.evaluate("VR.song().click"),'Click on the screen starts the metronome')
+    check(pg.evaluate("VR.press('screen','click')") and not pg.evaluate("VR.song().click"),'pressing Click on the screen again stops it')
+    check(pg.evaluate("VR.press('screen','fast')") and pg.evaluate("VR.song().bpm")==204,'+ makes it faster');pg.evaluate("VR.song().bpm=200")
+    # track 1 on the Double Second: a bar to count in, three notes, ● again
+    pg.evaluate("VR.press('screen','rec')");pg.wait_for_timeout(1350)
+    check(pg.evaluate("VR.tr().state")=='rec' and pg.evaluate("VR.song().tracks.length")==1,'● Rec makes a first track and counts in a bar, then records')
     for nid in ['dsec:60','dsec:64','dsec:67']:
-        pg.evaluate(f"VR.swing('{nid}',2.5)");pg.wait_for_timeout(300)
-    pg.evaluate("VR.pad('rec')");tk=pg.evaluate("VR.take()")
-    check([n['id'] for n in tk['n']]==['dsec:60','dsec:64','dsec:67'] and tk['L']%4==0 and tk['L']>max(n['b'] for n in tk['n']),f'the take has the three notes, rounded up to whole bars {tk}')
+        pg.evaluate(f"VR.swing('{nid}',2.5)");pg.wait_for_timeout(250)
+    pg.evaluate("VR.press('screen','rec')");sg=pg.evaluate("VR.song()");t1=sg['tracks'][0]
+    check([n['id'] for n in t1['notes']]==['dsec:60','dsec:64','dsec:67'] and sg['L']%4==0 and sg['L']>max(n['b'] for n in t1['notes']),f'track 1 has the three notes, rounded up to whole bars (L {sg["L"]})')
     h0=pg.evaluate("VR.hits.length");pg.wait_for_timeout(2600)
-    back=[h['id'] for h in pg.evaluate("VR.hits").__getitem__(slice(h0,None)) if h['p']]
-    check(back[:3]==['dsec:60','dsec:64','dsec:67'],f'● again stops, and it plays the take back on a loop {back[:6]}')
-    pg.screenshot(path=D+'2c-recording.png')
-    pg.evaluate("VR.pad('play')");check(pg.evaluate("VR.tr().state")=='idle','▶ / ■ stops it')
+    back=[h['id'] for h in pg.evaluate("VR.hits")[h0:] if h['p']]
+    check(back[:3]==['dsec:60','dsec:64','dsec:67'],f'● again stops recording and the track plays back on a loop {back[:6]}')
+    pg.evaluate("VR.press('screen','play')");check(pg.evaluate("VR.tr().state")=='idle','■ Stop stops it')
+    # track 2 on the tenor, while track 1 plays along
+    check(pg.evaluate("VR.press('desk','add')") and pg.evaluate("VR.song().tracks.length")==2,'+ Track adds a second track')
+    pg.evaluate("VR.set('tenor')");pg.evaluate("VR.song().tracks[1].set='tenor';VR.song().tracks[1].name='Tenor'")
+    pg.evaluate("VR.press('screen','rec')");pg.wait_for_timeout(1300)
+    h1=pg.evaluate("VR.hits.length")
+    for nid in ['tenor:72','tenor:76']:
+        pg.evaluate(f"VR.swing('{nid}',2.5)");pg.wait_for_timeout(300)
+    pg.wait_for_timeout(500);pg.evaluate("VR.press('screen','rec')")
+    sg=pg.evaluate("VR.song()");heard=[h['id'] for h in pg.evaluate("VR.hits")[h1:] if h['p']]
+    check([n['id'] for n in sg['tracks'][1]['notes']]==['tenor:72','tenor:76'] and sg['tracks'][0]['notes'] and any(i.startswith('dsec') for i in heard),f'track 2 records the tenor while track 1 plays along {heard[:4]}')
+    pg.screenshot(path=D+'3a-studio-play.png')
+    # the desk: mute, solo, a fader, left / right
+    pg.evaluate("VR.press('desk','m:0')");check(pg.evaluate("VR.song().tracks[0].mute"),'M mutes track 1')
+    h2=pg.evaluate("VR.hits.length");pg.wait_for_timeout(2600);heard=[h['id'] for h in pg.evaluate("VR.hits")[h2:] if h['p']]
+    check(heard and not any(i.startswith('dsec') for i in heard),f'a muted track isn\'t heard {heard[:4]}')
+    pg.evaluate("VR.press('desk','m:0');VR.press('desk','s:0')");h3=pg.evaluate("VR.hits.length");pg.wait_for_timeout(2600);heard=[h['id'] for h in pg.evaluate("VR.hits")[h3:] if h['p']]
+    check(heard and all(i.startswith('dsec') for i in heard),f'S (solo) plays only track 1 {heard[:4]}')
+    pg.evaluate("VR.press('desk','s:0')")
+    pg.evaluate("VR.drag('desk','vol:1',.5,.9,.5,.6)");v=pg.evaluate("VR.song().tracks[1].vol")
+    check(.1<v<.95,f'dragging track 2\'s fader down turns it down ({v:.2f})')
+    pg.evaluate("VR.drag('desk','pan:1',.5,.5,.1,.5)");pn=pg.evaluate("VR.song().tracks[1].pan")
+    check(pn<-.5,f'dragging its left/right knob moves it left ({pn:.2f})')
+    # snap to the beat, undo
+    pg.evaluate("VR.press('screen','lane:1')");before=[n['b'] for n in pg.evaluate("VR.song().tracks[1].notes")]
+    pg.evaluate("VR.press('screen','snap2')");after=[n['b'] for n in pg.evaluate("VR.song().tracks[1].notes")]
+    check(all(abs(b*2-round(b*2))<1e-6 for b in after),f'Snap ½ puts track 2\'s notes on half beats {before} → {after}')
+    pg.evaluate("VR.press('screen','undo')");check([n['b'] for n in pg.evaluate("VR.song().tracks[1].notes")]==before,'↶ Undo puts them back')
+    # loop a bar: drag along the ruler
+    L=pg.evaluate("VR.song().L")
+    if L>=8:
+        pg.evaluate(f"VR.drag('screen','ruler',{(4.5)/L},.5,{(4.5)/L},.5)")
+        lp=pg.evaluate("VR.song().loop");check(lp['on'] and lp['s']==1 and lp['e']==2,f'dragging on the ruler loops bar 2 {lp}')
+    else:
+        pg.evaluate("VR.press('screen','loop')");lp=pg.evaluate("VR.song().loop");check(lp['on'],f'⟲ Loop turns on a loop {lp}')
+    pg.evaluate("VR.view('table')");pg.wait_for_timeout(500);pg.screenshot(path=D+'3b-studio-table.png')
+    pg.evaluate("VR.press('screen','play')")
+    # delete a track, undo brings it back, ↻ records a track again
+    pg.evaluate("VR.press('desk','del:1')");check(pg.evaluate("VR.song().tracks.length")==1,'✕ deletes track 2')
+    pg.evaluate("VR.press('screen','undo')");check(pg.evaluate("VR.song().tracks.length")==2,'↶ Undo brings it back')
+    pg.evaluate("VR.press('desk','re:1')");check(pg.evaluate("VR.tr().state")=='rec' and not pg.evaluate("VR.song().tracks[1].notes"),'↻ Rec empties track 2 and records it again')
+    pg.evaluate("VR.press('screen','play')");check(pg.evaluate("VR.tr().state")=='idle','■ Stop')
+    # everything is kept for next time
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000)
-    check(pg.evaluate("VR.state().set")=='dsec' and len(pg.evaluate("VR.take()")['n'])==3,'the take is kept for next time')
-    pg.evaluate("VR.pad('clear')");check(not pg.evaluate("VR.take()")['n'],'✕ Clear empties it')
+    sg=pg.evaluate("VR.song()");check(len(sg['tracks'])==2 and sg['tracks'][0]['notes'],'the tracks are kept for next time')
+    # the beam: a real click on the screen's Click button (mouse off the headset) goes through the same pointer
+    pg.evaluate("document.getElementById('hud').hidden=true;VR.view('table')");pg.wait_for_timeout(400)
+    xy=pg.evaluate("VR.screenOfPanel('screen','click')");pg.mouse.click(*xy);pg.wait_for_timeout(200)
+    check(pg.evaluate("VR.song().click"),'pointing at Click on the screen and pressing works')
+    pg.evaluate("VR.act('click');VR.view('pans')")
     pg.evaluate("document.getElementById('hud').hidden=true")
     pg.evaluate("VR.look('gems')");pg.wait_for_timeout(300)
     check(pg.evaluate("VR.state().look")=='gems','the Vincy Mas look goes on')

@@ -214,9 +214,15 @@ upright count is low because a checklist pushes the pans below the play bar ther
   my room" is passthrough (immersive-ar). B / Y switches pans, a thumbstick press the look (`LOOKS`: Chrome and the three
   Vincy Mas backgrounds' skirt, rim and hit colours, a sky, a floor and the SVG flag); both are kept in localStorage
   `panyard-vr-set` / `-look`. Sets: tenor, Double Guitar, Double Second (`fromSet` in make_vr.py gives each note to the
-  nearest drum). **Pads** on a tray to the left (`PADS`, `trackPad`, hit like notes): Click (metronome), − / + (4 BPM),
-  ● Rec, ▶ / ■, ✕ Clear. One clock `TR` (beat 0 = take start, count-in beats −4…−1, `tick()` schedules clicks and the
-  take 0.12 s ahead); a take is notes in beats (`TAKE {L, n:[{id,v,b}]}`, looped, ● while playing adds on top), kept per
-  set in localStorage `panyard-vr-take-<set>`; tempo `panyard-vr-bpm`. Off the headset a tap plays a note (or a pad).
-  Test with `tvr` (`VR.swing`, `VR.hitPad`, `VR.pad`).
+  nearest drum). **The studio table** on your left (`table`, placed by `placeTable()`): a mixing desk (`desk`, a strip per
+  track: M, S, left/right, fader 0–125%, ↻ Rec, ✕, + Track) and a track screen (`scr`: ▶/■, ● Rec, Click, tempo, Snap ½ / ¼,
+  ↶ Undo, ⟲ Loop, Bars − / +, a ruler you drag across to loop bars, a lane per track), both canvas panels (`uiPanel`, hit
+  boxes in `p.hits`). Each controller's beam + trigger (`beamFrame`, `uiDown/Move/Up`), or the mouse off the headset, presses
+  them; the sticks still play. `SONG` (localStorage `panyard-vr-song`): bpm, length `L` in beats, loop bars, selected track,
+  click, up to 8 tracks `{name, set, vol, pan, mute, solo, col, notes:[{id, v, b}]}`; each plays through its own gain and
+  panner (`chan`, `mixAll`). One clock `TR` (beat 0 = start, count-in −4…−1; `tick()` schedules clicks and every audible
+  track 0.12 s ahead, looping the song or the loop); ● Rec records the selected track (or a new one, on its pans) while
+  the others play, ● again stops, and the first take sets `L` (whole bars). `UNDO` holds earlier songs. Old per-set takes
+  (`panyard-vr-take-<set>`) become the first tracks.
+  Test with `tvr` (`VR.swing`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
