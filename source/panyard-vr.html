@@ -29,7 +29,7 @@ canvas{display:block}
   <h1>Panyard VR</h1>
   <p>The band's pans, with your controllers as sticks. Hit harder for a louder note.</p>
   <div class="lab">Pans</div>
-  <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="guitar">Double Guitar</button><button data-set="dsec">Double Second</button><button data-set="kit">Drum kit</button></div>
+  <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="dten">Double Tenor</button><button data-set="dsec">Double Second</button><button data-set="guitar">Double Guitar</button><button data-set="fcello">Four Cello</button><button data-set="tcello">Three Cello</button><button data-set="six">Six Bass</button><button data-set="seven">Seven Bass</button><button data-set="kit">Drum kit</button></div>
   <div class="lab">Look</div>
   <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
   <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Squeeze a grip</b> on the studio table to move it. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
@@ -60,7 +60,11 @@ const PANSET={
   // depth: how far the bowl is sunk (a tenor about 7½ in, a double second 6½, a guitar 5½; the higher the pan, the deeper)
   tenor:{skirt:6,depth:.19,tone:[420,-2,5000,2],place:[[0,0]]},
   guitar:{skirt:16,depth:.14,tone:null,place:[[-.33,.2],[.33,-.2]]},   // the E/C pan on the left, B/F on the right, both turned a little to you
-  six:{skirt:34,tone:[140,4,2400,-3]},fcello:{skirt:18,tone:[220,1,3200,-1]},   // heard in songs from Panyard, not played here
+  dten:{skirt:7,depth:.19,tone:[360,-1,4500,2],place:[[-.33,.2],[.33,-.2]]},   // the B♭ pan on the left, A on the right
+  // the cellos and basses stand round you as the app draws them (placed by arc(): you're inside the basses' arch);
+  // their bowls are shallower and lie flatter
+  fcello:{skirt:18,depth:.12,tilt:.14,tone:[220,1,3200,-1],front:.04},tcello:{skirt:18,depth:.12,tilt:.14,tone:[220,1,3200,-1],front:.04},
+  six:{skirt:34,depth:.075,tilt:.08,tone:[140,4,2400,-3],front:.48},seven:{skirt:34,depth:.075,tilt:.08,tone:[140,4,2400,-3],front:.48},
   dsec:{skirt:9,depth:.165,tone:[330,-1,4200,1],place:[[-.33,.2],[.33,-.2]]},   // the C pan on the left, C♯ on the right
 };
 for(const k in PANSET){const L=PANSET[k].skirt*.0254;PANSET[k].body=Math.round(343/(4*(L+.3*22.5*.0254)))}
@@ -100,12 +104,19 @@ async function loadSounds(){
   return n>0;
 }
 const voices=new Map();
+// a note nobody recorded (the double tenor, three cello, seven bass) plays the nearest recorded note of the pans the band
+// borrows from (the sounds file's borrow list), retuned to its own pitch, as Panyard Band does
+const BORROW={};
+function borrowOf(id){if(buf[id])return {id,shift:0};if(BORROW[id]!==undefined)return BORROW[id];const n=NOTE[id];if(!n||!man)return null;
+  const from=(man.borrow||{})[n.set],cand=Object.keys(buf).filter(k=>NOTE[k]&&(!from||from==='*'||NOTE[k].set===from));let best=null,bd=1e9;
+  for(const k of cand){const d=Math.abs(Math.log2(NOTE[k].hz/n.hz));if(d<bd){bd=d;best=k}}
+  return BORROW[id]=best&&bd<.6?{id:best,shift:1200*Math.log2(n.hz/NOTE[best].hz)}:null}
 function strike(id,v,at,tr){
   if(id.startsWith('drum:'))return strikeDrum(id,v,at,tr);
   const fromTake=!!tr;
-  const b=buf[id],n=NOTE[id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
-  const T=(man&&man.tune&&man.tune[id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set]||{body:150,tone:null};
-  const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440);
+  const n=NOTE[id],bw=borrowOf(id),b=bw&&buf[bw.id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
+  const T=(man&&man.tune&&man.tune[bw.id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set]||{body:150,tone:null};
+  const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440)+bw.shift;
   const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
   pk('peaking',P.body,3.3,2.2);pk('peaking',P.body*3,1.5,2.2);              // drum body hum, from the skirt's length
   if(P.tone){pk('lowshelf',P.tone[0],P.tone[1]);pk('highshelf',P.tone[2],P.tone[3])}   // the pan's suggested tone
@@ -167,6 +178,12 @@ function offAt(d,x,z){const fx=Math.max(0,Math.min(HM-1.001,HM/2+x/RS*HM/2)),fy=
   return (o[i]*(1-tx)+o[i+1]*tx)*(1-ty)+(o[i+HM]*(1-tx)+o[i+HM+1]*tx)*ty}
 // the grooves fade out over the last 2 cm before the rim, so the bowl meets it cleanly
 const surf=(d,x,z)=>{const r=Math.hypot(x,z);return r<RS?bowl(r,d.D)+offAt(d,x,z)*Math.min(1,(RS-r)/.02):0};
+// where each drum stands: one or two from PANSET.place; more from the app's drawing, spread so neighbours don't touch,
+// with you standing at z ≈ +0.48 and each drum turned to face you
+function placeOf(i){const P=PANSET[setKey],ds=SETS[setKey].drums;if(P.place)return [P.place[i][0],P.place[i][1],0];
+  let md=1e9;for(let a=0;a<ds.length;a++)for(let b=a+1;b<ds.length;b++)md=Math.min(md,Math.hypot(ds[a].cx-ds[b].cx,ds[a].cy-ds[b].cy));
+  const sc=.64/md,mx=ds.reduce((t,d)=>t+d.cx,0)/ds.length,my=Math.max(...ds.map(d=>d.cy)),x=(ds[i].cx-mx)*sc,z=P.front-(my-ds[i].cy)*sc;
+  return [x,Math.atan2(-x,.48-z+.0001),z]}
 function skirtTex(stops){return canvasTex(512,8,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,w,0);stops.forEach((c,i)=>gr.addColorStop(i/(stops.length-1),c));g.fillStyle=gr;g.fillRect(0,0,w,hh)})}
 function buildPans(){
   for(const d of drums){rig.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
@@ -175,7 +192,7 @@ function buildPans(){
   const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
   drums=set.drums.map((dd,i)=>{
     const d={...dd,S:SURF/dd.r,D:P.depth,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};d.off=heightMap(d);
-    const g=new THREE.Group();g.rotation.order='YXZ';g.position.x=P.place[i][0];g.rotation.y=P.place[i][1];g.rotation.x=.2;rig.add(g);d.g=g;
+    const g=new THREE.Group();g.rotation.order='YXZ';const pl=placeOf(i);g.position.set(pl[0],0,pl[2]);g.rotation.y=pl[1];g.rotation.x=P.tilt||.2;rig.add(g);d.g=g;
     const geo=new THREE.RingGeometry(.0005,RS,256,110);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
     for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,surf(d,x,z))}geo.computeVertexNormals();
     d.dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:surfaceTexture(d),metalness:.55,roughness:.4,envMapIntensity:.7,side:THREE.DoubleSide}));g.add(d.dish);
@@ -210,14 +227,43 @@ function signFor(){return canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.8
   g.fillStyle=LOOKS[lookKey].flag?LOOKS[lookKey].hit:'#f6ba45';g.font='700 56px system-ui,sans-serif';g.fillText('Panyard VR · '+setName(setKey),40,84);g.fillStyle='#dfe7ec';g.font='34px system-ui,sans-serif';
   g.fillText('A / X: pans to you    Thumbstick: higher, lower',40,152);g.fillText(setKey==='kit'?'Trigger: kick    B / Y: other pans':'B / Y: other pans    Press a stick: next look',40,206)})}
 
-/* ---------- the sticks: one on each controller, a rubber tip at the end ---------- */
-const STICK=.32;
-function makeStick(){const piv=new THREE.Group();piv.rotation.x=-.6;   // held like a pan stick: pointing forward and a little down
-  const wood=new THREE.Mesh(new THREE.CylinderGeometry(.0055,.0065,STICK,12),new THREE.MeshStandardMaterial({color:'#c79a5b',roughness:.6}));wood.rotation.x=Math.PI/2;wood.position.z=-STICK/2;piv.add(wood);
-  const tip=new THREE.Mesh(new THREE.SphereGeometry(.016,20,14),new THREE.MeshStandardMaterial({color:'#2b2b2e',roughness:.85}));tip.scale.set(1,1,1.25);tip.position.z=-STICK;piv.add(tip);
-  return {piv,tip,prev:null,armed:true,src:null}}
-const sticks=[0,1].map(i=>{const grip=renderer.xr.getControllerGrip(i),s=makeStick();grip.add(s.piv);scene.add(grip);
+/* ---------- the sticks: each pan's own (the photo the owner sent), held like a pan stick ----------
+   Basses: blue rubber balls; cellos: thick black rubber; guitar: tan; double second and tenor: thin, red. A drum kit gets
+   wooden drumsticks. Held in the fist with the stick pointing forward and a touch down (the butt just behind the hand). */
+const STICKS={
+  tenor:{len:.2,r:.0048,tip:'#c8102e',tr:.0075,tl:.022},dten:{len:.2,r:.0048,tip:'#c8102e',tr:.0075,tl:.022},
+  dsec:{len:.215,r:.0052,tip:'#c8102e',tr:.0082,tl:.024},guitar:{len:.23,r:.0058,tip:'#b98a52',tr:.0095,tl:.026},
+  fcello:{len:.25,r:.0062,tip:'#18191b',tr:.0115,tl:.028},tcello:{len:.25,r:.0062,tip:'#18191b',tr:.0115,tl:.028},
+  six:{len:.29,r:.0065,ball:.034,tip:'#3f6fd8'},seven:{len:.29,r:.0065,ball:.034,tip:'#3f6fd8'},
+  kit:{len:.38,r:.0068,tip:'#d9b98a',tr:.0068,tl:.012,wood:1}};
+const STICK_TILT=-.22;   // radians: pointing forward and a touch down, as in the hand
+const woodMat=new THREE.MeshStandardMaterial({color:'#d8b27a',roughness:.55});
+function makeStick(kind){const k=STICKS[kind||setKey]||STICKS.tenor,piv=new THREE.Group();piv.rotation.x=STICK_TILT;
+  const L=k.len,butt=.035;   // a little of the stick is behind the hand
+  const wood=new THREE.Mesh(new THREE.CylinderGeometry(k.r,k.r*1.08,L+butt,12),woodMat);wood.rotation.x=Math.PI/2;wood.position.z=-(L-butt)/2;piv.add(wood);
+  let tip,R;
+  if(k.ball){R=k.ball;tip=new THREE.Mesh(new THREE.SphereGeometry(R,24,16),new THREE.MeshStandardMaterial({color:k.tip,roughness:.75}));tip.position.z=-L-R*.8;piv.add(tip)}
+  else{R=k.tr;const mat=new THREE.MeshStandardMaterial({color:k.tip,roughness:k.wood?.5:.85});
+    const sl=new THREE.Mesh(new THREE.CylinderGeometry(R,R,k.tl,16),mat);sl.rotation.x=Math.PI/2;sl.position.z=-L+k.tl/2;piv.add(sl);
+    tip=new THREE.Mesh(new THREE.SphereGeometry(R,16,10),mat);tip.position.z=-L;piv.add(tip)}
+  return {piv,tip,R,prev:null,armed:true,src:null,reb:0,kind:kind||setKey}}
+const sticks=[0,1].map(i=>{const grip=renderer.xr.getControllerGrip(i),s=makeStick();grip.add(s.piv);scene.add(grip);s.grip=grip;
   grip.addEventListener('connected',e=>{s.src=e.data});grip.addEventListener('disconnected',()=>{s.src=null;s.prev=null});return s});
+// the pans changed: each hand gets that pan's sticks
+function restick(){for(const s of sticks){if(s.kind===setKey)continue;const n=makeStick();s.grip.remove(s.piv);s.piv.traverse(o=>{if(o.geometry)o.geometry.dispose()});
+  Object.assign(s,{piv:n.piv,tip:n.tip,R:n.R,kind:n.kind});s.grip.add(s.piv)}}
+/* the bounce: the stick never goes into the steel (it bends back from the hand to rest on it), and after a hit it flicks
+   up and comes back, as a stick does off a pan. The hit itself is found from where the hand really took the stick. */
+const bw=new THREE.Vector3(),bl=new THREE.Vector3();
+function sinkOf(s){s.tip.getWorldPosition(bw);let deep=0;
+  for(const d of drums){bl.copy(bw);d.g.worldToLocal(bl);const r=Math.hypot(bl.x,bl.z);if(r<RS+.01){const k=surf(d,bl.x,bl.z)+s.R-bl.y;if(k>deep&&k<.25)deep=k}}
+  if(kitG.visible)for(const p of KITP){bl.copy(bw);p.g.worldToLocal(bl);if(Math.hypot(bl.x,bl.z)<p.r+.01){const k=s.R-bl.y;if(k>deep&&k<.12)deep=k}}
+  return deep}
+function bounce(s,dt){s.reb=Math.max(0,s.reb-dt*5);const base=STICK_TILT+s.reb;   // the flick: up straight after the hit, back down over a fifth of a second
+  s.piv.rotation.x=base;s.piv.updateMatrixWorld(true);if(sinkOf(s)<=0)return 0;
+  let lo=0,hi=1.4;for(let i=0;i<8;i++){const m=(lo+hi)/2;s.piv.rotation.x=base+m;s.piv.updateMatrixWorld(true);if(sinkOf(s)>0)lo=m;else hi=m}
+  s.piv.rotation.x=base+hi;s.piv.updateMatrixWorld(true);return hi}
+function kickBack(s,v){s.reb=s.rebMax=.18+.3*v}
 
 /* ---------- a hit: the stick's tip crossing down through a bowl over a note ---------- */
 const local=new THREE.Vector3();
@@ -286,7 +332,7 @@ function trackKit(s,world,dt){if(!kitG.visible)return null;s.kp=s.kp||{};let out
     s.kp[p.gm]={x:local.x,y:local.y,z:local.z,dd,arm:prev?(prev.arm||dd>.012):true};
     if(!prev||!prev.arm||r>p.r+.01||!(prev.dd>0&&dd<=0)){continue}
     s.kp[p.gm].arm=false;const sp=Math.hypot(local.x-prev.x,local.y-prev.y,local.z-prev.z)/Math.max(dt,1e-3),v=Math.max(.12,Math.min(1,sp/3.2));
-    const gm=p.edge&&r>p.r*(p.gm===42?.62:.82)?p.edge:p.gm;strikeDrum('drum:'+gm,v);out=gm;
+    const gm=p.edge&&r>p.r*(p.gm===42?.62:.82)?p.edge:p.gm;strikeDrum('drum:'+gm,v);out=gm;kickBack(s,v);
     try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}}
   return out}
 function kickNow(v){audio();return strikeDrum('drum:36',v==null?.9:v)}
@@ -303,7 +349,7 @@ function track(s,world,dt){
   const sp=Math.hypot(best.x-prev.x,best.y-prev.y,best.z-prev.z)/Math.max(dt,1e-3);
   const n=noteAt(d,best.x,best.z);s.armed=false;if(!n)return null;
   const v=Math.max(.12,Math.min(1,sp/3.2));                              // about 3 m/s is a full stroke
-  strike(n.id,v);n.lit=1;
+  strike(n.id,v);n.lit=1;kickBack(s,v);
   try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}
   return n.id;
 }
@@ -393,7 +439,7 @@ const desk=uiPanel(.92,.37,1600,640);desk.m.rotation.x=-Math.PI/2+.5;desk.m.posi
 const scr=uiPanel(1.0,.5625,1600,900);scr.m.position.set(0,.52,-.24);scr.m.rotation.x=-.08;table.add(scr.m);
 const head2=new THREE.Mesh(new THREE.PlaneGeometry(.004,.42),new THREE.MeshBasicMaterial({color:'#ffffff'}));head2.position.z=.002;scr.m.add(head2);
 const PANELS=[desk,scr];
-function placeTable(){const half=setKey==='kit'?.6:PANSET[setKey].place.length>1?.63:.3;let x=-(half+.62),y=0,z=.3;
+function placeTable(){const half=setKey==='kit'?.6:PANSET[setKey].place?(PANSET[setKey].place.length>1?.63:.3):Math.max(...SETS[setKey].drums.map((d,i)=>Math.abs(placeOf(i)[0])))+.3;let x=-(half+.62),y=0,z=.3;
   try{const t=JSON.parse(LS('table')||'null');if(t&&Number.isFinite(t.x)){x=t.x;y=t.y;z=t.z}}catch{}setTable(x,y,z)}
 // it always turns to face where you stand (about half a metre behind the pans)
 function setTable(x,y,z){table.position.set(x,Math.max(-.45,Math.min(.5,y)),z);table.rotation.y=Math.atan2(-x,.48-z)}
@@ -651,12 +697,12 @@ function gdUI(){const box=$('gdBox');
 /* ---------- moving the pans to you ---------- */
 const head=new THREE.Vector3(),fwd=new THREE.Vector3();
 function bringPan(){const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
-  if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='tenor'?.48:setKey==='kit'?.45:.5;
+  if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='tenor'?.48:setKey==='kit'?.45:PANSET[setKey]&&!PANSET[setKey].place?.48:.5;
   rig.position.set(head.x+fwd.x*dist,Math.max(.55,head.y-.66),head.z+fwd.z*dist);rig.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
 let placed=false;const pressed=new Map();
 const edge=(key,on)=>{const was=pressed.get(key);pressed.set(key,on);return on&&!was};
 function nextSet(){useSet(KEYS[(KEYS.indexOf(setKey)+1)%KEYS.length])}
-function useSet(k){setKey=k;LSset('set',setKey);buildPans();renderSeg();dirty=true}
+function useSet(k){setKey=k;LSset('set',setKey);buildPans();restick();renderSeg();dirty=true}
 function nextLook(){const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+1)%ks.length];LSset('look',lookKey);applyLook()}
 
 /* ---------- each frame ---------- */
@@ -665,7 +711,7 @@ renderer.setAnimationLoop((now,frame)=>{
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(renderer.xr.isPresenting){
     if(!placed&&frame){placed=true;bringPan()}
-    for(const s of sticks){if(!s.src){s.prev=null;continue}s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackKit(s,tipW,dt);
+    for(const s of sticks){if(!s.src){s.prev=null;continue}s.piv.rotation.x=STICK_TILT;s.piv.updateMatrixWorld(true);s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackKit(s,tipW,dt);bounce(s,dt);
       const gp=s.src.gamepad;if(!gp)continue;const hd=s.src.handedness,B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
       if(edge(hd+'a',B(4)))bringPan();
       if(edge(hd+'b',B(5)))nextSet();
@@ -719,7 +765,14 @@ loadSong();renderSeg();applyLook();gdUI();
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,act,nsel:()=>{const q=selNote();return q?{t:q.t.name,id:q.n.id,b:q.n.b,v:q.n.v}:null},pickNote(ti,ni){const t=SONG.tracks[ti];NSEL={t:t.id,n:t.notes[ni]};SONG.sel=ti;dirty=true},gdList,gdImport,recPlaying:()=>recSrcs.length,undo:()=>undo(),rec:()=>RECBUF?RECBUF.duration:0,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
+const VR=window.VR={hits:[],clicks:0,act,THREE,scene,mk:k=>makeStick(k),borrow:id=>borrowOf(id),sticks:()=>sticks.map(s=>s.kind),
+  // a hand coming down through a note: the stick's eye-tip stays on the steel, the hit still plays, then it flicks up
+  pushStick(id,depth){const d=drumOf(id),n=d.notes.find(x=>x.id===id),s=makeStick(),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;
+    s.grip=new THREE.Group();s.grip.add(s.piv);scene.add(s.grip);const out=[];for(let k=0;k<=8;k++){const yy=surf(d,x,z)+s.R+.06-k*(.06+depth)/8;
+      const w=new THREE.Vector3(x,yy,z);d.g.localToWorld(w);s.piv.rotation.x=STICK_TILT;s.grip.position.set(0,0,0);s.grip.quaternion.identity();s.grip.updateMatrixWorld(true);
+      const t0=new THREE.Vector3();s.tip.getWorldPosition(t0);s.grip.position.copy(w).sub(t0);s.grip.updateMatrixWorld(true);
+      s.tip.getWorldPosition(tipW);const hit=track(s,tipW,1/72);bounce(s,1/72);const e=new THREE.Vector3();s.tip.getWorldPosition(e);const l=e.clone();d.g.worldToLocal(l);
+      out.push({hit,below:+((surf(d,l.x,l.z)+s.R-l.y)*1000).toFixed(1),bend:+s.piv.rotation.x.toFixed(3)})}scene.remove(s.grip);return out},nsel:()=>{const q=selNote();return q?{t:q.t.name,id:q.n.id,b:q.n.b,v:q.n.v}:null},pickNote(ti,ni){const t=SONG.tracks[ti];NSEL={t:t.id,n:t.notes[ni]};SONG.sel=ti;dirty=true},gdList,gdImport,recPlaying:()=>recSrcs.length,undo:()=>undo(),rec:()=>RECBUF?RECBUF.duration:0,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
   hitDrum(gm,speed,edge){const p=KITP.find(q=>q.gm===gm),s={src:null},dt=1/72,step=(speed||2.5)*dt;let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(edge?p.r*.9:0,.012+k*step,0);p.g.localToWorld(w);out=trackKit(s,w,dt)||out}return out},table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
   dragTable(dx,dy,dz){const w=new THREE.Vector3(0,.1,0);table.localToWorld(w);const s=w.clone();if(!nearTable(s))return false;tableGrab(s);w.add(new THREE.Vector3(dx,dy,dz));tableMove(w);tableDrop();return true},tableReset,
   surf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;return {centre:+surf(d,x,z).toFixed(4),bowl:+bowl(Math.hypot(x,z),d.D).toFixed(4),depth:d.D}},grooveAt(id,dx){const d=drumOf(id),n=d.notes.find(x=>x.id===id);return +offAt(d,(n.x-d.cx)*d.S+dx,(n.y-d.cy)*d.S).toFixed(4)},song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
