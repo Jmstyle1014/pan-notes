@@ -28,10 +28,10 @@ canvas{display:block}
   <h1>Panyard VR</h1>
   <p>The band's pans, with your controllers as sticks. Hit harder for a louder note.</p>
   <div class="lab">Pans</div>
-  <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="guitar">Double Guitar</button><button data-set="dsec">Double Second</button></div>
+  <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="guitar">Double Guitar</button><button data-set="dsec">Double Second</button><button data-set="kit">Drum kit</button></div>
   <div class="lab">Look</div>
   <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
-  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Squeeze a grip</b> on the studio table to move it. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
+  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Squeeze a grip</b> on the studio table to move it. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
   <div class="lab">Off the headset, look at</div>
   <div class="seg" id="viewSeg"><button data-view="pans" aria-pressed="true">The pans</button><button data-view="table">The studio table</button></div>
   <p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p>
@@ -67,9 +67,10 @@ const LOOKS={
   flag:{skirt:['#5a4200','#c79a00','#fff2a0','#f2c400','#a37d00','#ffe066','#3d2c00'],rim:'#fcd116',hit:'#fcd116',sky:['#1a1a1a','#050505'],floor:'#1c1a14',flag:true},
 };
 const LS=k=>{try{return localStorage.getItem('panyard-vr-'+k)}catch{return null}},LSset=(k,v)=>{try{localStorage.setItem('panyard-vr-'+k,v)}catch{}};
-let setKey=SETS[LS('set')]?LS('set'):'tenor',lookKey=LOOKS[LS('look')]?LS('look'):'chrome';
+let setKey=SETS[LS('set')]||LS('set')==='kit'?LS('set'):'tenor',lookKey=LOOKS[LS('look')]?LS('look'):'chrome';
 const ALL=Object.entries(SETS).flatMap(([k,s])=>s.drums.flatMap(d=>d.notes.map(n=>(n.set=k,n))));
 const NOTE=Object.fromEntries(ALL.map(n=>[n.id,n]));
+const setName=k=>k==='kit'?'Drum kit':(SETS[k]||{}).name||k,KEYS=[...Object.keys(SETS),'kit'];
 
 /* ---------- sound: the band's recordings, as Panyard Band plays them (A 441, drum body hum, suggested tone) ---------- */
 let ac=null,master=null,man=null;const buf={};
@@ -89,11 +90,13 @@ async function loadSounds(){
   try{man=await (await fetch(SOUNDS+'manifest.json',{cache:'no-cache'})).json()}catch{$('status').textContent='The pan sounds couldn’t be fetched. Check the internet and open this page again.';return false}
   audio();let n=0;const ids=ALL.map(f=>f.id).filter(id=>man.files[id]);
   await Promise.all(ids.map(async id=>{try{const r=await fetch(SOUNDS+man.files[id]);buf[id]=await ac.decodeAudioData(await r.arrayBuffer());$('status').textContent='Getting the band’s pan sounds ready… '+(++n)+' of '+ids.length}catch(e){console.warn(id,e)}}));
-  $('status').textContent=n?'Ready: '+n+' notes from the band’s pans.':'The pan sounds couldn’t be read on this browser.';
+  const nd=await loadDrums();
+  $('status').textContent=n?'Ready: '+n+' notes from the band’s pans'+(nd?' and the drum kit.':'.'):'The pan sounds couldn’t be read on this browser.';
   return n>0;
 }
 const voices=new Map();
 function strike(id,v,at,tr){
+  if(id.startsWith('drum:'))return strikeDrum(id,v,at,tr);
   const fromTake=!!tr;
   const b=buf[id],n=NOTE[id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
   const T=(man&&man.tune&&man.tune[id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set];
@@ -162,6 +165,7 @@ const surf=(d,x,z)=>{const r=Math.hypot(x,z);return r<RS?bowl(r,d.D)+offAt(d,x,z
 function skirtTex(stops){return canvasTex(512,8,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,w,0);stops.forEach((c,i)=>gr.addColorStop(i/(stops.length-1),c));g.fillStyle=gr;g.fillRect(0,0,w,hh)})}
 function buildPans(){
   for(const d of drums){rig.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+  kitG.visible=setKey==='kit';if(setKey==='kit'){drums=[];if(sign.material.map)sign.material.map.dispose();sign.material.map=signFor();sign.material.needsUpdate=true;placeTable();return}
   const set=SETS[setKey],P=PANSET[setKey],L=LOOKS[lookKey],SK=Math.max(P.skirt*.0254,P.depth+.02);
   const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
   drums=set.drums.map((dd,i)=>{
@@ -198,8 +202,8 @@ function applyLook(){const L=LOOKS[lookKey];
 // a sign behind the pans
 const sign=new THREE.Mesh(new THREE.PlaneGeometry(.8,.2),new THREE.MeshBasicMaterial({transparent:true}));sign.position.set(0,.55,-.6);sign.rotation.x=-.2;rig.add(sign);
 function signFor(){return canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.82)';g.beginPath();g.roundRect(0,0,1024,256,40);g.fill();
-  g.fillStyle=LOOKS[lookKey].flag?LOOKS[lookKey].hit:'#f6ba45';g.font='700 56px system-ui,sans-serif';g.fillText('Panyard VR · '+SETS[setKey].name,40,84);g.fillStyle='#dfe7ec';g.font='34px system-ui,sans-serif';
-  g.fillText('A / X: pans to you    Thumbstick: higher, lower',40,152);g.fillText('B / Y: other pans    Press a stick: next look',40,206)})}
+  g.fillStyle=LOOKS[lookKey].flag?LOOKS[lookKey].hit:'#f6ba45';g.font='700 56px system-ui,sans-serif';g.fillText('Panyard VR · '+setName(setKey),40,84);g.fillStyle='#dfe7ec';g.font='34px system-ui,sans-serif';
+  g.fillText('A / X: pans to you    Thumbstick: higher, lower',40,152);g.fillText(setKey==='kit'?'Trigger: kick    B / Y: other pans':'B / Y: other pans    Press a stick: next look',40,206)})}
 
 /* ---------- the sticks: one on each controller, a rubber tip at the end ---------- */
 const STICK=.32;
@@ -212,6 +216,76 @@ const sticks=[0,1].map(i=>{const grip=renderer.xr.getControllerGrip(i),s=makeSti
 
 /* ---------- a hit: the stick's tip crossing down through a bowl over a note ---------- */
 const local=new THREE.Vector3();
+/* ---------- the drum kit (and the engine room's bass drum): Panyard's own drum sounds (../panyard/drums/) ----------
+   Hit a drum's head or a cymbal with a stick; pull a trigger for the kick (the pedal); the big bass drum standing on
+   the right is hit on its head with a stick. Near the edge, the snare gives a rimshot, the hi-hat opens, the iron rings
+   muted. Notes are 'drum:<GM number>' so the studio records and plays them like pan notes. */
+const DRUMDIR='../panyard/drums/';
+const KITP=[   // where each piece stands (rig-local, you stand at z ≈ +0.45), its size and tilt towards you
+  {gm:38,name:'Snare',x:-.1,y:-.06,z:.1,r:.17,tilt:.18,h:.14,edge:37},
+  {gm:42,name:'Hi-hat',x:-.44,y:.06,z:.1,r:.18,tilt:.08,cym:1,edge:46},
+  {gm:48,name:'High tom',x:-.14,y:.1,z:-.15,r:.13,tilt:.45,h:.18},
+  {gm:45,name:'Mid tom',x:.15,y:.1,z:-.15,r:.14,tilt:.45,h:.2},
+  {gm:41,name:'Floor tom',x:.36,y:-.12,z:.1,r:.2,tilt:.1,h:.36},
+  {gm:49,name:'Crash',x:-.46,y:.36,z:-.2,r:.22,tilt:.3,cym:1},
+  {gm:51,name:'Ride',x:.52,y:.26,z:-.1,r:.25,tilt:.25,cym:1},
+  {gm:81,name:'Iron',x:.62,y:.02,z:.24,r:.075,tilt:.25,iron:1,edge:80},
+  {gm:35,name:'Bass drum',x:.98,y:.02,z:.32,r:.33,h:.42,stand:1}];   // the engine room's bass drum, on its side, its head to you
+const KROWS=[49,51,42,46,38,37,48,45,41,81,80,36,35];   // the screen's lane order, top to bottom
+const DNAME={36:'Kick',35:'Bass drum',37:'Rimshot',46:'Open hat',80:'Iron (muted)'};KITP.forEach(p=>DNAME[p.gm]=DNAME[p.gm]||p.name);
+for(const gm of KROWS)NOTE['drum:'+gm]={id:'drum:'+gm,set:'kit',label:DNAME[gm],hz:100+KROWS.length-KROWS.indexOf(gm)};
+let DK={};const dbuf={};
+async function loadDrums(){try{DK=await (await fetch(DRUMDIR+'kit.json',{cache:'no-cache'})).json()}catch{return 0}
+  DK[35]={f:DK[36].f,lv:1.25,rate:.6};DK[41]={f:DK[45].f,lv:.9,rate:.78};   // the bass drum: the kick, lower and longer; the floor tom below the mid tom
+  const files=[...new Set(KROWS.flatMap(g=>(DK[g]||{f:[]}).f))];let n=0;
+  await Promise.all(files.map(async f=>{try{dbuf[f]=await ac.decodeAudioData(await (await fetch(DRUMDIR+f)).arrayBuffer());n++}catch(e){console.warn(f,e)}}));return n}
+const drumRR={},dvoice={};
+function strikeDrum(id,v,at,tr){const gm=+id.slice(5),K=DK[gm];if(!ac||!K)return false;
+  const fs=K.f.filter(f=>dbuf[f]);if(!fs.length)return false;if(ac.state==='suspended')ac.resume();
+  const i=drumRR[gm]=((drumRR[gm]||0)+1)%fs.length,b=dbuf[fs[i]],t=Math.max(at||0,ac.currentTime+.002);
+  const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.playbackRate.value=K.rate||1;g.gain.value=(K.lv||1)*(.15+.85*v*v);
+  src.connect(g);g.connect(tr&&chan(tr)?chan(tr).g:master);src.start(t);
+  // a closed hi-hat (or a foot on it) stops the open one ringing
+  if(gm===42&&dvoice[46]&&dvoice[46].end>t){try{dvoice[46].g.gain.setTargetAtTime(0,t,.01);dvoice[46].src.stop(t+.06)}catch{}}
+  dvoice[gm]={src,g,end:t+b.duration/(K.rate||1)};
+  const lit=()=>{const p=KITP.find(q=>q.gm===gm||q.edge===gm);if(p)p.lit=1;if(gm===36)kick.lit=1};
+  if(tr)setTimeout(lit,Math.max(0,(t-ac.currentTime)*1000));else{lit();recHit(id,v,t)}
+  VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0});return true}
+// the pieces
+const kitG=new THREE.Group();kitG.visible=false;rig.add(kitG);
+const headTex=canvasTex(256,256,(g)=>{const gr=g.createRadialGradient(128,128,10,128,128,128);gr.addColorStop(0,'#f4f0e6');gr.addColorStop(1,'#d9d2c2');g.fillStyle=gr;g.fillRect(0,0,256,256);g.strokeStyle='rgba(0,0,0,.08)';g.lineWidth=3;g.beginPath();g.arc(128,128,30,0,7);g.stroke()});
+const shellMat=new THREE.MeshStandardMaterial({color:'#7a1f2b',metalness:.4,roughness:.35});
+const brass=new THREE.MeshStandardMaterial({color:'#d9b25a',metalness:1,roughness:.25,side:THREE.DoubleSide});
+for(const p of KITP){const g=new THREE.Group();g.rotation.order='YXZ';g.position.set(p.x,p.y,p.z);
+  if(p.stand){g.rotation.set(Math.PI/2,Math.atan2(-p.x,.45-p.z),0,'YXZ')}else g.rotation.set(p.tilt,Math.atan2(-p.x,.6-p.z)*.5,0);kitG.add(g);p.g=g;
+  let head;
+  if(p.cym||p.iron){const hh=p.iron?.05:.006;head=new THREE.Mesh(new THREE.CylinderGeometry(p.r*(p.iron?.85:1),p.r,hh,48),p.iron?new THREE.MeshStandardMaterial({color:'#6b6f75',metalness:.9,roughness:.45}):brass.clone());head.position.y=-hh/2;g.add(head);
+    if(p.gm===42){const bot=head.clone();bot.position.y=-.02;g.add(bot)}}
+  else{head=new THREE.Mesh(new THREE.CylinderGeometry(p.r,p.r,.004,48),new THREE.MeshStandardMaterial({map:headTex,roughness:.8}));head.position.y=-.002;g.add(head);
+    const sh=new THREE.Mesh(new THREE.CylinderGeometry(p.r+.006,p.r+.006,p.h,48,1,true),p.stand?new THREE.MeshStandardMaterial({color:'#1d3b6e',metalness:.3,roughness:.4,side:THREE.DoubleSide}):shellMat);sh.position.y=-p.h/2-.003;g.add(sh);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(p.r+.006,.006,8,48),chromeMat());rim.rotation.x=Math.PI/2;g.add(rim)}
+  p.mat=head.material;p.mat.emissive=new THREE.Color(LOOKS.chrome.hit);p.mat.emissiveIntensity=0;p.lit=0;
+  // a stand down to the floor
+  const st=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,1,10),chromeMat());st.userData.p=p;kitG.add(st);p.st=st}
+// the kick drum, played with a trigger
+const kick={lit:0};{const g=new THREE.Group();g.position.set(0,-.5,-.18);g.rotation.x=Math.PI/2;kitG.add(g);
+  const head=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.004,48),new THREE.MeshStandardMaterial({map:headTex,roughness:.8}));head.position.y=.18;g.add(head);
+  const sh=new THREE.Mesh(new THREE.CylinderGeometry(.275,.275,.36,48,1,true),shellMat);g.add(sh);kick.mat=head.material;kick.mat.emissive=new THREE.Color(LOOKS.chrome.hit);kick.mat.emissiveIntensity=0}
+const kp=new THREE.Vector3();
+function kitFrame(dt){for(const p of KITP){p.mat.emissiveIntensity=p.lit*.5;p.lit=Math.max(0,p.lit-dt*4);
+    kp.set(0,p.stand?-p.r:-(p.h||.02),0);p.g.localToWorld(kp);kitG.worldToLocal(kp);const top=kp.y+rig.position.y;p.st.visible=kitG.visible&&top>.05;
+    p.st.scale.y=Math.max(.02,top);p.st.position.set(kp.x,kp.y-top/2,kp.z)}
+  kick.mat.emissiveIntensity=kick.lit*.5;kick.lit=Math.max(0,kick.lit-dt*4)}
+function trackKit(s,world,dt){if(!kitG.visible)return null;s.kp=s.kp||{};let out=null;
+  for(const p of KITP){local.copy(world);p.g.worldToLocal(local);const r=Math.hypot(local.x,local.z),dd=local.y-.012,prev=s.kp[p.gm];
+    s.kp[p.gm]={x:local.x,y:local.y,z:local.z,dd,arm:prev?(prev.arm||dd>.012):true};
+    if(!prev||!prev.arm||r>p.r+.01||!(prev.dd>0&&dd<=0)){continue}
+    s.kp[p.gm].arm=false;const sp=Math.hypot(local.x-prev.x,local.y-prev.y,local.z-prev.z)/Math.max(dt,1e-3),v=Math.max(.12,Math.min(1,sp/3.2));
+    const gm=p.edge&&r>p.r*(p.gm===42?.62:.82)?p.edge:p.gm;strikeDrum('drum:'+gm,v);out=gm;
+    try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}}
+  return out}
+function kickNow(v){audio();return strikeDrum('drum:36',v==null?.9:v)}
+
 function noteAt(d,x,z){const xs=x/d.S+d.cx,ys=z/d.S+d.cy;for(const n of d.notes)if(hitCtx.isPointInPath(n.p2,xs,ys))return n;
   hitCtx.lineWidth=d.r*.036;for(const n of d.notes)if(hitCtx.isPointInStroke(n.p2,xs,ys))return n;return null}   // a hair onto the groove still counts
 function track(s,world,dt){
@@ -238,12 +312,12 @@ let SONG;
 let uidN=0;const uid=()=>Date.now().toString(36)+(uidN++);
 const COLORS=['#f6ba45','#5ad1ff','#7ee08a','#ff8a80','#c49bff','#ffd166','#4fd1c5','#ff9f43'],MAXT=8;
 function newTrack(set,notes){const same=SONG.tracks.filter(t=>t.set===set).length;
-  return {id:uid(),name:SETS[set].name+(same?' '+(same+1):''),set,vol:1,pan:0,mute:false,solo:false,col:COLORS[SONG.tracks.length%COLORS.length],notes:notes||[]}}
+  return {id:uid(),name:setName(set)+(same?' '+(same+1):''),set,vol:1,pan:0,mute:false,solo:false,col:COLORS[SONG.tracks.length%COLORS.length],notes:notes||[]}}
 function loadSong(){try{SONG=JSON.parse(LS('song')||'null')}catch{SONG=null}
   if(!SONG||!Array.isArray(SONG.tracks)){SONG={bpm:Math.max(40,Math.min(220,+LS('bpm')||100)),L:0,loop:{on:false,s:0,e:1},sel:0,click:false,tracks:[]};
     // takes from before the studio become its first tracks
     for(const k of Object.keys(SETS)){try{const t=JSON.parse(LS('take-'+k)||'null');if(t&&t.n&&t.n.length){SONG.tracks.push(newTrack(k,t.n));SONG.L=Math.max(SONG.L,t.L||0)}}catch{}}}
-  SONG.tracks=SONG.tracks.filter(t=>t&&SETS[t.set]&&Array.isArray(t.notes)).slice(0,MAXT);SONG.loop=SONG.loop||{on:false,s:0,e:1}}
+  SONG.tracks=SONG.tracks.filter(t=>t&&(SETS[t.set]||t.set==='kit')&&Array.isArray(t.notes)).slice(0,MAXT);SONG.loop=SONG.loop||{on:false,s:0,e:1}}
 const saveSong=()=>LSset('song',JSON.stringify(SONG));
 const selTrack=()=>SONG.tracks[SONG.sel]||null;
 // undo: the song as it was before each change
@@ -313,7 +387,7 @@ const desk=uiPanel(.92,.37,1600,640);desk.m.rotation.x=-Math.PI/2+.5;desk.m.posi
 const scr=uiPanel(1.0,.5625,1600,900);scr.m.position.set(0,.52,-.24);scr.m.rotation.x=-.08;table.add(scr.m);
 const head2=new THREE.Mesh(new THREE.PlaneGeometry(.004,.42),new THREE.MeshBasicMaterial({color:'#ffffff'}));head2.position.z=.002;scr.m.add(head2);
 const PANELS=[desk,scr];
-function placeTable(){const half=PANSET[setKey].place.length>1?.63:.3;let x=-(half+.62),y=0,z=.3;
+function placeTable(){const half=setKey==='kit'?.6:PANSET[setKey].place.length>1?.63:.3;let x=-(half+.62),y=0,z=.3;
   try{const t=JSON.parse(LS('table')||'null');if(t&&Number.isFinite(t.x)){x=t.x;y=t.y;z=t.z}}catch{}setTable(x,y,z)}
 // it always turns to face where you stand (about half a metre behind the pans)
 function setTable(x,y,z){table.position.set(x,Math.max(-.45,Math.min(.5,y)),z);table.rotation.y=Math.atan2(-x,.48-z)}
@@ -329,7 +403,7 @@ const rr=(g,x,y,w,hh,r,fill,stroke)=>{g.beginPath();g.roundRect(x,y,w,hh,r);if(f
 function btn(p,id,x,y,w,hh,label,opt={}){const g=p.g;rr(g,x,y,w,hh,14,opt.on?(opt.oncol||'#f6ba45'):'#2a323a',opt.on?null:'#3d4852');
   g.fillStyle=opt.on?'#15110a':(opt.dim?'#77838d':'#eef2f4');g.font='700 '+(opt.fs||34)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(label,x+w/2,y+hh/2+2);
   p.hits.push({id,x,y,w,h:hh,...(opt.drag?{drag:opt.drag}:{})})}
-const shortSet=k=>({tenor:'Tenor',guitar:'Guitar',dsec:'Double 2nd'})[k]||k;
+const shortSet=k=>({tenor:'Tenor',guitar:'Guitar',dsec:'Double 2nd',kit:'Drums'})[k]||k;
 function statusLine(){if(MSG)return MSG;const t=selTrack();
   if(TR.state==='rec'){const lin=TR.run?beatAt(ac.currentTime):0;return lin<0?'Count-in '+Math.ceil(-lin)+'…':'● Recording '+TR.rec.name+' · bar '+(Math.floor(posOf(Math.max(0,lin))/4)+1)}
   if(TR.state==='play')return '▶ Playing'+(SONG.loop.on?' the loop, bars '+(SONG.loop.s+1)+'–'+SONG.loop.e:'');
@@ -362,7 +436,7 @@ function drawScreen(){const p=scr,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.
     g.font='22px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.fillText(shortSet(t.set)+(t.mute?' · muted':t.solo?' · solo':'')+' · '+t.notes.length+' notes',32,y+lh*.72);
     p.hits.push({id:'lane:'+i,x:10,y,w:TX0-24,h:lh});
     if(sel){g.fillStyle='rgba(255,255,255,.04)';g.fillRect(TX0,y,TX1-TX0,lh)}
-    const hz=SETS[t.set].drums.flatMap(d=>d.notes.map(q=>q.hz)),lo=Math.log(Math.min(...hz)),hi=Math.log(Math.max(...hz));
+    const hz=t.set==='kit'?KROWS.map(gm=>NOTE['drum:'+gm].hz):SETS[t.set].drums.flatMap(d=>d.notes.map(q=>q.hz)),lo=Math.log(Math.min(...hz)),hi=Math.log(Math.max(...hz));
     g.fillStyle=audible(t)?t.col:'#55606a';
     for(const q of t.notes){const N=NOTE[q.id];if(!N)continue;const fy=(Math.log(N.hz)-lo)/Math.max(.01,hi-lo);g.globalAlpha=.45+.55*q.v;g.fillRect(bx(q.b),y+lh-10-fy*(lh-22),Math.max(6,bx(q.b+.25)-bx(q.b)),8)}g.globalAlpha=1});
   if(n<MAXT){const y=y1+6+n*lh;btn(p,'add',10,y+3,TX0-24,Math.min(lh-6,80),'+ New track',{fs:28})}
@@ -407,6 +481,7 @@ function beamFrame(){for(const b of beams){if(!b.src){continue}
   if(hit&&hit.distance<3){b.lg.visible=true;b.line.scale.y=hit.distance;b.line.position.z=-hit.distance/2;b.dot.visible=true;b.dot.position.copy(hit.point);
     const p=PANELS.find(q=>q.m===hit.object);if(b.grab){}else if(trig&&!b.down){if(uiDown(p,hit.uv))try{gp.hapticActuators[0].pulse(.3,15)}catch{}}else if(trig)uiMove(p,hit.uv)}
   else{b.lg.visible=b.dot.visible=false}
+  if(trig&&!b.down&&!(hit&&hit.distance<3)&&!b.grab){const val=gp.buttons[0].value;kickNow(Math.max(.55,val||.9));try{gp.hapticActuators[0].pulse(.5,25)}catch{}}
   if(!trig&&b.down)uiUp();b.down=trig;
   // the grip: grab the table
   const sq=!!(gp&&gp.buttons[1]&&gp.buttons[1].pressed);b.c.getWorldPosition(tw);const cw=tw.clone();
@@ -425,11 +500,11 @@ function studioFrame(dt){if(msgT>0){msgT-=dt;if(msgT<=0){MSG='';dirty=true}}
 /* ---------- moving the pans to you ---------- */
 const head=new THREE.Vector3(),fwd=new THREE.Vector3();
 function bringPan(){const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
-  if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='tenor'?.48:.5;
+  if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='tenor'?.48:setKey==='kit'?.45:.5;
   rig.position.set(head.x+fwd.x*dist,Math.max(.55,head.y-.66),head.z+fwd.z*dist);rig.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
 let placed=false;const pressed=new Map();
 const edge=(key,on)=>{const was=pressed.get(key);pressed.set(key,on);return on&&!was};
-function nextSet(){const ks=Object.keys(SETS);useSet(ks[(ks.indexOf(setKey)+1)%ks.length])}
+function nextSet(){useSet(KEYS[(KEYS.indexOf(setKey)+1)%KEYS.length])}
 function useSet(k){setKey=k;LSset('set',setKey);buildPans();renderSeg();dirty=true}
 function nextLook(){const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+1)%ks.length];LSset('look',lookKey);applyLook()}
 
@@ -439,7 +514,7 @@ renderer.setAnimationLoop((now,frame)=>{
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(renderer.xr.isPresenting){
     if(!placed&&frame){placed=true;bringPan()}
-    for(const s of sticks){if(!s.src){s.prev=null;continue}s.tip.getWorldPosition(tipW);track(s,tipW,dt);
+    for(const s of sticks){if(!s.src){s.prev=null;continue}s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackKit(s,tipW,dt);
       const gp=s.src.gamepad;if(!gp)continue;const hd=s.src.handedness,B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
       if(edge(hd+'a',B(4)))bringPan();
       if(edge(hd+'b',B(5)))nextSet();
@@ -448,7 +523,7 @@ renderer.setAnimationLoop((now,frame)=>{
   }
   for(const d of drums)for(const n of d.notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.6*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
   if(renderer.xr.isPresenting)beamFrame();
-  tick();studioFrame(dt);standFollow();renderer.render(scene,camera);
+  tick();studioFrame(dt);kitFrame(dt);standFollow();renderer.render(scene,camera);
 });
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
@@ -493,7 +568,8 @@ loadSong();renderSeg();applyLook();
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,act,table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
+const VR=window.VR={hits:[],clicks:0,act,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
+  hitDrum(gm,speed,edge){const p=KITP.find(q=>q.gm===gm),s={src:null},dt=1/72,step=(speed||2.5)*dt;let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(edge?p.r*.9:0,.012+k*step,0);p.g.localToWorld(w);out=trackKit(s,w,dt)||out}return out},table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
   dragTable(dx,dy,dz){const w=new THREE.Vector3(0,.1,0);table.localToWorld(w);const s=w.clone();if(!nearTable(s))return false;tableGrab(s);w.add(new THREE.Vector3(dx,dy,dz));tableMove(w);tableDrop();return true},tableReset,
   surf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;return {centre:+surf(d,x,z).toFixed(4),bowl:+bowl(Math.hypot(x,z),d.D).toFixed(4),depth:d.D}},grooveAt(id,dx){const d=drumOf(id),n=d.notes.find(x=>x.id===id);return +offAt(d,(n.x-d.cx)*d.S+dx,(n.y-d.cy)*d.S).toFixed(4)},song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
   // a press (and a drag) on the desk or the screen at a spot in its own pixels, as the pointer beam does

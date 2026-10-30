@@ -24,7 +24,7 @@ with sync_playwright() as p:
     ctx=b.new_context(viewport={'width':892,'height':600},device_scale_factor=1);ctx.add_init_script(REC)
     pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)));pg.on('console',lambda m:m.type=='error' and errs.append(m.text))
     pg.route('https://pan.test/**',route)
-    pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000)
+    pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=79&&VR.drums()>0",timeout=60000)
     check(pg.evaluate("VR.ready()")==79,'the band\'s 29 tenor, 20 guitar and 30 double second notes are loaded')
     check('Ready' in pg.inner_text('#status'),'it says the sounds are ready: '+pg.inner_text('#status'))
     ids=pg.evaluate("VR.notes()");bad=[i for i in ids if pg.evaluate(f"VR.noteAt('{i}')")!=i]
@@ -62,6 +62,17 @@ with sync_playwright() as p:
     r5,x5=grab(pg,"VR.swing('dsec:60',3)");r6,x6=grab(pg,"VR.swing('dsec:61',3)")
     check(r5=='dsec:60' and r6=='dsec:61' and abs(x5).max()>.05 and abs(x6).max()>.05,f'a swing plays the C pan\'s C and the C♯ pan\'s C♯ ({abs(x5).max():.2f}, {abs(x6).max():.2f})')
     pg.screenshot(path=D+'2b-dsec.png')
+    # the drum kit: every piece plays when a stick comes down on it, the edge of some gives another sound, a trigger kicks
+    pg.evaluate("VR.set('kit')");pg.wait_for_timeout(300)
+    check(pg.evaluate("VR.drums()")>=15,f'the drum sounds are loaded ({pg.evaluate("VR.drums()")} files)')
+    got={gm:pg.evaluate(f"VR.hitDrum({gm},2.5)") for gm in [38,42,48,45,41,49,51,81,35]}
+    check(all(got[g]==g for g in got),f'each drum and cymbal plays when hit {got}')
+    edges=[pg.evaluate(f"VR.hitDrum({gm},2.5,true)") for gm in [38,42,81]]
+    check(edges==[37,46,80],f'the snare\'s edge is a rimshot, the hi-hat\'s edge opens, the iron\'s edge is muted {edges}')
+    rk,xk=grab(pg,"VR.kick(.9)");check(rk and abs(xk).max()>.05 and abs(xk).max()<1,f'the trigger kicks the kick drum (peak {abs(xk).max():.2f})')
+    rb,xb=grab(pg,"VR.hitDrum(35,3)");check(rb==35 and abs(xb).max()>.05,f'the engine room bass drum booms (peak {abs(xb).max():.2f})')
+    pg.evaluate("document.getElementById('hud').hidden=true;VR.camera.position.set(.15,1.65,.75);VR.camera.lookAt(.1,.8,-.3)");pg.wait_for_timeout(600);pg.screenshot(path=D+'6-kit.png')
+    pg.evaluate("document.getElementById('hud').hidden=false;VR.camera.position.set(0,1.62,.12);VR.camera.lookAt(0,.86,-.5);VR.set('dsec')")
     # the studio table: point and pull the trigger (here: the same press at a spot on the desk or the screen)
     pg.evaluate("VR.act('click')");pg.evaluate("VR.song().bpm=200");c0=pg.evaluate("VR.clicks");pg.wait_for_timeout(1300)
     check(pg.evaluate("VR.clicks")-c0>=3 and pg.evaluate("VR.song().click"),'Click on the screen starts the metronome')
@@ -123,7 +134,7 @@ with sync_playwright() as p:
     t0=pg.evaluate("VR.table()");check(pg.evaluate("VR.dragTable(.2,.05,-.15)"),'a grip squeezed on the table grabs it')
     t1=pg.evaluate("VR.table()");check(abs(t1[0]-t0[0]-.2)<.01 and abs(t1[2]-t0[2]+.15)<.01 and abs(t1[1]-t0[1]-.05)<.01,f'moving the hand moves the table with it {t0} → {t1}')
     # everything is kept for next time
-    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000)
+    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79&&VR.drums()>0",timeout=60000)
     sg=pg.evaluate("VR.song()");check(len(sg['tracks'])==2 and sg['tracks'][0]['notes'],'the tracks are kept for next time')
     check(pg.evaluate("VR.table()")==t1,'the table stays where you put it')
     pg.evaluate("VR.tableReset()");check(pg.evaluate("VR.table()")==t0,'and it can go back to its place')
