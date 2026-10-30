@@ -90,8 +90,8 @@ with sync_playwright() as p:
     check(back[:3]==['dsec:60','dsec:64','dsec:67'],f'● again stops recording and the track plays back on a loop {back[:6]}')
     pg.evaluate("VR.press('screen','play')");check(pg.evaluate("VR.tr().state")=='idle','■ Stop stops it')
     # track 2 on the tenor, while track 1 plays along
-    check(pg.evaluate("VR.press('desk','add')") and pg.evaluate("VR.song().tracks.length")==2,'+ Track adds a second track')
-    pg.evaluate("VR.set('tenor')");pg.evaluate("VR.song().tracks[1].set='tenor';VR.song().tracks[1].name='Tenor'")
+    check(pg.evaluate("VR.press('desk','add')") and pg.evaluate("VR.press('screen','pick:tenor')") and pg.evaluate("VR.song().tracks.length")==2,'+ Track asks which pans, and adds a Tenor track')
+    check(pg.evaluate("VR.state().set")=='tenor' and pg.evaluate("VR.song().tracks[1].set")=='tenor','the tenor comes out in front of you for it')
     pg.evaluate("VR.press('screen','rec')");pg.wait_for_timeout(1300)
     h1=pg.evaluate("VR.hits.length")
     for nid in ['tenor:72','tenor:76']:
