@@ -31,7 +31,9 @@ canvas{display:block}
   <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="guitar">Double Guitar</button><button data-set="dsec">Double Second</button></div>
   <div class="lab">Look</div>
   <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
-  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. The <b>pads on your left</b>: metronome, faster or slower, record, play back, clear.</p>
+  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look. On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
+  <div class="lab">Off the headset, look at</div>
+  <div class="seg" id="viewSeg"><button data-view="pans" aria-pressed="true">The pans</button><button data-view="table">The studio table</button></div>
   <p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p>
   <div class="btns"><button id="goRoom" class="go" hidden>Play in my room</button><button id="goVR" hidden>Enter VR</button></div>
   <p id="noxr" hidden>Open this page in your headset's browser to play in VR. Here you can tap the notes with the mouse or your finger.</p>
@@ -89,7 +91,8 @@ async function loadSounds(){
   return n>0;
 }
 const voices=new Map();
-function strike(id,v,at,fromTake){
+function strike(id,v,at,tr){
+  const fromTake=!!tr;
   const b=buf[id],n=NOTE[id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
   const T=(man&&man.tune&&man.tune[id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set];
   const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440);
@@ -97,7 +100,7 @@ function strike(id,v,at,fromTake){
   pk('peaking',P.body,3.3,2.2);pk('peaking',P.body*3,1.5,2.2);              // drum body hum, from the skirt's length
   if(P.tone){pk('lowshelf',P.tone[0],P.tone[1]);pk('highshelf',P.tone[2],P.tone[3])}   // the pan's suggested tone
   if(v<.9){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=.5;lp.frequency.value=Math.min(18000,n.hz*(3+30*v*v));nodes.push(lp)}   // a soft hit is darker
-  src.connect(g);g.connect(nodes[0]);for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);nodes[nodes.length-1].connect(master);
+  src.connect(g);g.connect(nodes[0]);for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);nodes[nodes.length-1].connect(tr&&chan(tr)?chan(tr).g:master);
   const a=Math.pow(10,(+T.db||0)/20)*(.18+.82*v*v),start=Math.min(+T.start||0,b.duration-.05),len=b.duration-start,fade=Math.min(len*.5,+T.fade||.3);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.003);g.gain.setValueAtTime(a,t+len-fade);g.gain.linearRampToValueAtTime(0,t+len);
   src.start(t,start);src.stop(t+len+.02);
@@ -171,7 +174,7 @@ function buildPans(){
     return d});
   SV.remove();
   if(sign.material.map)sign.material.map.dispose();sign.material.map=signFor();sign.material.needsUpdate=true;
-  placeTray();
+  placeTable();
 }
 function standFollow(){for(const d of drums){const b=new THREE.Vector3(0,-d.SK,0);d.g.localToWorld(b);const top=Math.max(.02,b.y);d.pole.scale.y=top;d.pole.position.set(b.x,top/2,b.z);d.feet.position.set(b.x,0,b.z);d.stand.visible=b.y>.08}}
 function applyLook(){const L=LOOKS[lookKey];
@@ -212,79 +215,182 @@ function track(s,world,dt){
   return n.id;
 }
 
-/* ---------- the metronome and the recorder ----------
-   One clock (TR): beat 0 is where a take starts; a count-in is beats -4 … -1. A take is the notes you hit, in beats
-   (so a faster or slower tempo plays it back at that tempo), L beats long, looped; ● again while it plays adds on top.
-   Each set keeps its own take (localStorage panyard-vr-take-<set>). */
-const MET={on:false,bpm:Math.max(40,Math.min(220,+LS('bpm')||100))};
-let TAKE={L:0,n:[]};
-function loadTake(){try{const x=JSON.parse(LS('take-'+setKey)||'null');TAKE=x&&Array.isArray(x.n)?x:{L:0,n:[]}}catch{TAKE={L:0,n:[]}}}
-const saveTake=()=>LSset('take-'+setKey,JSON.stringify(TAKE));
-const TR={run:false,t0:0,next:0,cursor:0,state:'idle'};   // state: idle, rec (a new take), play, over (adding on top)
-const spb=()=>60/MET.bpm,beatAt=t=>(t-TR.t0)/spb();
+/* ---------- the studio: tracks recorded one at a time, a mixing desk and a track screen on a table to your left ----------
+   SONG (localStorage panyard-vr-song): tempo, length L in beats, a loop (bars s … e), the selected track, the click and the
+   tracks {id, name, set, vol, pan, mute, solo, col, notes:[{id, v, b}]} (b in beats, so a new tempo plays them at that
+   tempo). One clock TR: beat 0 is where playing starts, a count-in is beats −4 … −1, and the song (or the loop) repeats.
+   Point a controller at the desk or the screen and pull the trigger to press a button or move a fader. */
+let SONG;
+let uidN=0;const uid=()=>Date.now().toString(36)+(uidN++);
+const COLORS=['#f6ba45','#5ad1ff','#7ee08a','#ff8a80','#c49bff','#ffd166','#4fd1c5','#ff9f43'],MAXT=8;
+function newTrack(set,notes){const same=SONG.tracks.filter(t=>t.set===set).length;
+  return {id:uid(),name:SETS[set].name+(same?' '+(same+1):''),set,vol:1,pan:0,mute:false,solo:false,col:COLORS[SONG.tracks.length%COLORS.length],notes:notes||[]}}
+function loadSong(){try{SONG=JSON.parse(LS('song')||'null')}catch{SONG=null}
+  if(!SONG||!Array.isArray(SONG.tracks)){SONG={bpm:Math.max(40,Math.min(220,+LS('bpm')||100)),L:0,loop:{on:false,s:0,e:1},sel:0,click:false,tracks:[]};
+    // takes from before the studio become its first tracks
+    for(const k of Object.keys(SETS)){try{const t=JSON.parse(LS('take-'+k)||'null');if(t&&t.n&&t.n.length){SONG.tracks.push(newTrack(k,t.n));SONG.L=Math.max(SONG.L,t.L||0)}}catch{}}}
+  SONG.tracks=SONG.tracks.filter(t=>t&&SETS[t.set]&&Array.isArray(t.notes)).slice(0,MAXT);SONG.loop=SONG.loop||{on:false,s:0,e:1}}
+const saveSong=()=>LSset('song',JSON.stringify(SONG));
+const selTrack=()=>SONG.tracks[SONG.sel]||null;
+// undo: the song as it was before each change
+const UNDO=[];function snapUndo(){UNDO.push(JSON.stringify(SONG));if(UNDO.length>40)UNDO.shift()}
+function undo(){if(TR.state==='rec')return msg('Stop recording first');if(!UNDO.length)return msg('Nothing to undo');SONG=JSON.parse(UNDO.pop());saveSong();mixAll();msg('Undone')}
+let MSG='',msgT=0;function msg(s){MSG=s;msgT=2.5;dirty=true}
+
+/* each track's channel: volume, left/right, mute and solo */
+const CH=new Map();
+function chan(t){let c=CH.get(t.id);if(!c&&ac){const g=ac.createGain(),p=ac.createStereoPanner();g.connect(p);p.connect(master);c={g,p};CH.set(t.id,c)}return c}
+const audible=t=>!t.mute&&(!SONG.tracks.some(x=>x.solo)||t.solo);
+function mixAll(){if(ac)for(const t of SONG.tracks){const c=chan(t);c.g.gain.setTargetAtTime(audible(t)?t.vol:0,ac.currentTime,.02);c.p.pan.setTargetAtTime(t.pan,ac.currentTime,.02)}dirty=true}
+
+/* the clock: clicks, the song's tracks, the loop */
+const TR={run:false,t0:0,next:0,cursor:0,state:'idle',rec:null};   // state: idle, play, rec
+const spb=()=>60/SONG.bpm,beatAt=t=>(t-TR.t0)/spb();
+function region(){const L=SONG.L;if(SONG.loop.on&&L){const s=Math.min(SONG.loop.s*4,L-4),e=Math.min(Math.max(SONG.loop.e*4,s+4),L);return [s,e]}return [0,L]}
+const posOf=lin=>{const [A,B]=region();return B>A?A+(((lin%(B-A))+(B-A))%(B-A)):lin};
 function startClock(countIn){audio();const now=ac.currentTime;TR.t0=now+.08+(countIn?4*spb():0);TR.next=countIn?-4:0;TR.cursor=0;TR.run=true}
 function click(t,acc){const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=acc?1760:1320;
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(acc?.32:.2,t+.002);g.gain.exponentialRampToValueAtTime(.001,t+.05);
-  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4000;o.connect(lp);lp.connect(g);g.connect(master);o.start(t);o.stop(t+.06);
-  VR.clicks++;setTimeout(()=>{const p=PADS.find(x=>x.k==='click');if(p)p.lit=acc?1:.6},Math.max(0,(t-ac.currentTime)*1000))}
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4000;o.connect(lp);lp.connect(g);g.connect(master);o.start(t);o.stop(t+.06);VR.clicks++}
 function tick(){
   if(!ac||!TR.run)return;const now=ac.currentTime,hor=now+.12;
-  while(TR.t0+TR.next*spb()<hor){const b=TR.next,t=TR.t0+b*spb();if(MET.on||b<0||TR.state==='rec')click(t,((b%4)+4)%4===0);TR.next++}
-  if((TR.state==='play'||TR.state==='over')&&TAKE.L&&TAKE.n.length){const hb=beatAt(hor),L=TAKE.L;
-    for(let c=Math.floor(Math.max(0,TR.cursor)/L);c<=Math.floor(hb/L);c++)for(const n of TAKE.n){const pos=c*L+n.b;if(pos>=TR.cursor&&pos<hb&&pos>=0)strike(n.id,n.v,TR.t0+pos*spb(),true)}
+  while(TR.t0+TR.next*spb()<hor){const b=TR.next,t=TR.t0+b*spb();if(SONG.click||b<0||TR.state==='rec')click(t,((b%4)+4)%4===0);TR.next++}
+  const [A,B]=region(),W=B-A;
+  if(TR.state!=='idle'&&W>0){const hb=beatAt(hor);
+    for(let c=Math.floor(Math.max(0,TR.cursor)/W);c<=Math.floor(hb/W);c++)for(const tr of SONG.tracks){if(!audible(tr))continue;
+      for(const n of tr.notes){if(n.b<A||n.b>=B)continue;const lin=c*W+(n.b-A);if(lin>=TR.cursor&&lin<hb&&lin>=0)strike(n.id,n.v,TR.t0+lin*spb(),tr)}}
     TR.cursor=hb}
 }
 setInterval(tick,25);
-function recHit(id,v,t){if(TR.state!=='rec'&&TR.state!=='over')return;let b=beatAt(t);if(b<-.5)return;b=Math.max(0,b);
-  if(TR.state==='over'&&TAKE.L)b%=TAKE.L;TAKE.n.push({id,v:+v.toFixed(2),b:+b.toFixed(3)})}
-function endRec(){const b=beatAt(ac.currentTime);TAKE.L=Math.max(4,Math.ceil((Math.max(b,...TAKE.n.map(n=>n.b+.25))-.5)/4)*4);saveTake()}
-function stopTake(){if(TR.state==='rec')endRec();else if(TR.state==='over')saveTake();TR.state='idle';if(!MET.on)TR.run=false}
-function press(k){
-  audio();if(ac.state==='suspended')ac.resume();
-  const p=PADS.find(x=>x.k===k);if(p)p.lit=1;
-  if(k==='click'){MET.on=!MET.on;if(MET.on&&!TR.run)startClock(false);if(!MET.on&&TR.state==='idle')TR.run=false}
-  else if(k==='slow'||k==='fast'){const b=TR.run?beatAt(ac.currentTime):0;MET.bpm=Math.max(40,Math.min(220,MET.bpm+(k==='fast'?4:-4)));LSset('bpm',MET.bpm);if(TR.run){TR.t0=ac.currentTime-b*spb()}}
-  else if(k==='rec'){
-    if(TR.state==='idle'){const fresh=!TAKE.n.length;if(fresh)TAKE={L:0,n:[]};startClock(true);TR.state=fresh?'rec':'over';TR.cursor=0}
-    else if(TR.state==='rec'){endRec();TR.state='play';TR.cursor=beatAt(ac.currentTime+.12)}
-    else if(TR.state==='play')TR.state='over';
-    else if(TR.state==='over'){saveTake();TR.state='play'}}
-  else if(k==='play'){
-    if(TR.state==='idle'){if(TAKE.n.length){startClock(false);TR.state='play'}}
-    else{stopTake();if(MET.on&&!TR.run)startClock(false)}}
-  else if(k==='clear'){if(TR.state!=='idle'){TR.state='idle';if(!MET.on)TR.run=false}TAKE={L:0,n:[]};saveTake()}
-  drawStatus(true);
-}
-/* the pads: a little tray on your left, hit like the notes */
-const PAD_R=.042,tray=new THREE.Group();tray.rotation.order='YXZ';rig.add(tray);
-const PADS=[['click','Click'],['slow','−'],['fast','+'],['rec','● Rec'],['play','▶ / ■'],['clear','✕ Clear']].map(([k,label],i)=>{
-  const top=canvasTex(256,256,(g,w)=>{g.fillStyle='#2a3138';g.beginPath();g.arc(128,128,126,0,7);g.fill();g.fillStyle='#f3f5f7';g.textAlign='center';g.textBaseline='middle';g.font='700 '+(label.length>3?52:110)+'px system-ui,sans-serif';g.fillText(label,128,132)});top.center.set(.5,.5);top.rotation=Math.PI/2;
-  const mat=new THREE.MeshStandardMaterial({map:top,roughness:.7,emissive:new THREE.Color('#ffffff'),emissiveIntensity:0});
-  const m=new THREE.Mesh(new THREE.CylinderGeometry(PAD_R,PAD_R,.02,40),[new THREE.MeshStandardMaterial({color:'#1b1f24',roughness:.8}),mat,mat]);
-  m.position.set((i%3-1)*.1,.01,(Math.floor(i/3)-.5)*.1);tray.add(m);return {k,label,m,mat,lit:0,x:m.position.x,z:m.position.z}});
-{const board=new THREE.Mesh(new THREE.BoxGeometry(.34,.016,.23),new THREE.MeshStandardMaterial({color:'#0f1317',roughness:.9}));board.position.y=-.008;tray.add(board)}
-const status=new THREE.Mesh(new THREE.PlaneGeometry(.34,.085),new THREE.MeshBasicMaterial({transparent:true}));status.position.set(0,.09,-.15);status.rotation.x=-.35;tray.add(status);
-let statusTxt='';
-function statusLine(){const L=TAKE.L/4;
-  if(TR.state==='rec'){const b=TR.run?beatAt(ac.currentTime):0;return b<0?'Count-in '+Math.ceil(-b)+'…':'● Recording · bar '+(Math.floor(b/4)+1)}
-  if(TR.state==='over')return '● Adding on top · '+L+(L>1?' bars':' bar');
-  if(TR.state==='play')return '▶ Playing back · '+L+(L>1?' bars':' bar');
-  return TAKE.n.length?'Your take: '+L+(L>1?' bars':' bar')+'. ▶ to hear it':'● Rec: a bar to count in, then play';}
-function drawStatus(force){const txt='♩ '+MET.bpm+(MET.on?'  · click on':'')+'|'+statusLine();if(!force&&txt===statusTxt)return;statusTxt=txt;
-  const [a,b]=txt.split('|');if(status.material.map)status.material.map.dispose();
-  status.material.map=canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.88)';g.beginPath();g.roundRect(0,0,1024,256,36);g.fill();
-    g.fillStyle='#f6ba45';g.font='700 76px system-ui,sans-serif';g.fillText(a,36,100);g.fillStyle=TR.state==='rec'||TR.state==='over'?'#ff8a80':'#dfe7ec';g.font='54px system-ui,sans-serif';g.fillText(b,36,196)});
-  status.material.needsUpdate=true}
-let statusT=0;
-function padFrame(dt){statusT+=dt;if(statusT>.2){statusT=0;drawStatus()}
-  for(const p of PADS){const on=(p.k==='rec'&&(TR.state==='rec'||TR.state==='over'))||(p.k==='play'&&TR.state==='play')||(p.k==='click'&&MET.on);
-    p.mat.emissive.set(p.k==='rec'?'#ff3b30':p.k==='play'?'#34c759':'#ffd166');p.mat.emissiveIntensity=Math.max(on?.35:0,p.lit*.8);p.lit=Math.max(0,p.lit-dt*4)}}
-function placeTray(){const half=PANSET[setKey].place.length>1?.63:.3;tray.position.set(-(half+.2),0,.16);tray.rotation.set(.12,.55,0)}
-const padLocal=new THREE.Vector3();
-function trackPad(s,world){padLocal.copy(world);tray.worldToLocal(padLocal);const dd=padLocal.y-.02-.016;
-  const prev=s.pp;s.pp=dd;if(dd>.012)s.parm=true;if(prev==null||!s.parm||!(prev>0&&dd<=0))return null;
-  const p=PADS.find(q=>Math.hypot(padLocal.x-q.x,padLocal.z-q.z)<PAD_R+.008);if(!p)return null;s.parm=false;press(p.k);
-  try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.5,30)}catch{}return p.k}
+function recHit(id,v,t){if(TR.state!=='rec'||!TR.rec)return;const lin=beatAt(t);if(lin<-.5)return;
+  const b=SONG.L?posOf(Math.max(0,lin)):Math.max(0,lin);TR.rec.notes.push({id,v:+v.toFixed(2),b:+b.toFixed(3)});dirty=true}
+function endRec(){if(!SONG.L){const lin=beatAt(ac.currentTime),mx=Math.max(lin,...TR.rec.notes.map(n=>n.b+.25));SONG.L=Math.max(4,Math.ceil((mx-.5)/4)*4)}
+  TR.rec.notes.sort((a,b)=>a.b-b.b);TR.rec=null;saveSong()}
+function stopAll(){if(TR.state==='rec')endRec();TR.state='idle';TR.run=SONG.click;if(TR.run)startClock(false);dirty=true}
+const hasNotes=()=>SONG.tracks.some(t=>t.notes.length);
+function play(){audio();if(TR.state!=='idle')return stopAll();if(!hasNotes())return msg('Nothing recorded yet: pick a track and press ● Rec');startClock(false);TR.state='play';dirty=true}
+function record(noUndo){audio();if(ac.state==='suspended')ac.resume();
+  if(TR.state==='rec'){endRec();TR.state='play';TR.cursor=beatAt(ac.currentTime+.12);dirty=true;return}
+  let t=selTrack();if(!t){if(SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');snapUndo();t=newTrack(setKey);SONG.tracks.push(t);SONG.sel=SONG.tracks.length-1;mixAll()}else if(!noUndo)snapUndo();
+  if(t.set!==setKey)useSet(t.set);
+  TR.rec=t;if(TR.state==='play'){TR.state='rec'}else{startClock(true);TR.state='rec'}dirty=true}
+function select(i){if(!SONG.tracks[i])return;SONG.sel=i;const t=SONG.tracks[i];if(TR.state!=='rec'&&t.set!==setKey)useSet(t.set);saveSong();dirty=true}
+function addTrack(){if(SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');snapUndo();SONG.tracks.push(newTrack(setKey));SONG.sel=SONG.tracks.length-1;saveSong();mixAll()}
+function delTrack(i){const t=SONG.tracks[i];if(!t)return;if(TR.rec===t){TR.rec=null;TR.state='play'}snapUndo();SONG.tracks.splice(i,1);SONG.sel=Math.max(0,Math.min(SONG.sel,SONG.tracks.length-1));
+  if(!SONG.tracks.length){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}saveSong();mixAll();msg('Deleted '+t.name+' (↶ Undo brings it back)')}
+function rerecord(i){const t=SONG.tracks[i];if(!t)return;if(TR.state==='rec'){endRec();TR.state='play'}snapUndo();t.notes=[];SONG.sel=i;if(!hasNotes()){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}record(true)}
+function snapTo(q){const t=selTrack();if(!t||!t.notes.length)return msg('Pick a track with notes first');snapUndo();const seen=new Set();
+  t.notes=t.notes.map(n=>{let b=Math.round(n.b/q)*q;if(SONG.L&&b>=SONG.L)b-=SONG.L;return {...n,b}}).filter(n=>{const k=n.id+'@'+n.b;if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.b-b.b);
+  saveSong();msg(t.name+': snapped to '+(q===.5?'½':'¼')+' beats')}
+function tempo(d){const b=TR.run?beatAt(ac.currentTime):0;SONG.bpm=Math.max(40,Math.min(220,SONG.bpm+d));if(TR.run)TR.t0=ac.currentTime-b*spb();saveSong();dirty=true}
+function bars(d){if(TR.state==='rec')return;snapUndo();SONG.L=Math.max(4,(SONG.L||4)+d*4);if(SONG.loop.e*4>SONG.L)SONG.loop.e=SONG.L/4;if(SONG.loop.s>=SONG.loop.e)SONG.loop.s=Math.max(0,SONG.loop.e-1);saveSong();dirty=true}
+function toggleClick(){SONG.click=!SONG.click;if(SONG.click&&!TR.run)startClock(false);if(!SONG.click&&TR.state==='idle')TR.run=false;saveSong();dirty=true}
+function toggleLoop(){if(!SONG.L)return msg('Record something first, then loop a part of it');SONG.loop.on=!SONG.loop.on;
+  if(SONG.loop.e<=SONG.loop.s||SONG.loop.e*4>SONG.L){SONG.loop.s=0;SONG.loop.e=Math.min(2,SONG.L/4)}saveSong();dirty=true}
+
+/* the table, the desk and the screen */
+const table=new THREE.Group();rig.add(table);
+{const wood=new THREE.MeshStandardMaterial({color:'#3a2a1e',roughness:.7}),top=new THREE.Mesh(new THREE.BoxGeometry(1.0,.04,.5),wood);top.position.y=-.06;table.add(top);
+  for(const [x,z] of [[-.46,-.21],[.46,-.21],[-.46,.21],[.46,.21]]){const l=new THREE.Mesh(new THREE.BoxGeometry(.04,1,.04),wood);l.position.set(x,-.58,z);table.add(l)}
+  const post=new THREE.Mesh(new THREE.BoxGeometry(.05,.5,.05),new THREE.MeshStandardMaterial({color:'#20252b'}));post.position.set(0,.2,-.22);table.add(post)}
+function uiPanel(w,h,W,H){const c=document.createElement('canvas');c.width=W;c.height=H;const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex}));return {c,g:c.getContext('2d'),tex,m,W,H,hits:[]}}
+const desk=uiPanel(.92,.37,1600,640);desk.m.rotation.x=-Math.PI/2+.42;desk.m.position.set(0,-.02,.02);table.add(desk.m);
+const scr=uiPanel(1.0,.5625,1600,900);scr.m.position.set(0,.52,-.24);scr.m.rotation.x=-.08;table.add(scr.m);
+const head2=new THREE.Mesh(new THREE.PlaneGeometry(.004,.42),new THREE.MeshBasicMaterial({color:'#ffffff'}));head2.position.z=.002;scr.m.add(head2);
+const PANELS=[desk,scr];
+function placeTable(){const half=PANSET[setKey].place.length>1?.63:.3,x=-(half+.62),z=.3;table.position.set(x,0,z);table.rotation.y=Math.atan2(-x,.48-z)}
+let dirty=true;
+const rr=(g,x,y,w,hh,r,fill,stroke)=>{g.beginPath();g.roundRect(x,y,w,hh,r);if(fill){g.fillStyle=fill;g.fill()}if(stroke){g.strokeStyle=stroke;g.lineWidth=3;g.stroke()}};
+function btn(p,id,x,y,w,hh,label,opt={}){const g=p.g;rr(g,x,y,w,hh,14,opt.on?(opt.oncol||'#f6ba45'):'#2a323a',opt.on?null:'#3d4852');
+  g.fillStyle=opt.on?'#15110a':(opt.dim?'#77838d':'#eef2f4');g.font='700 '+(opt.fs||34)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(label,x+w/2,y+hh/2+2);
+  p.hits.push({id,x,y,w,h:hh,...(opt.drag?{drag:opt.drag}:{})})}
+const shortSet=k=>({tenor:'Tenor',guitar:'Guitar',dsec:'Double 2nd'})[k]||k;
+function statusLine(){if(MSG)return MSG;const t=selTrack();
+  if(TR.state==='rec'){const lin=TR.run?beatAt(ac.currentTime):0;return lin<0?'Count-in '+Math.ceil(-lin)+'…':'● Recording '+TR.rec.name+' · bar '+(Math.floor(posOf(Math.max(0,lin))/4)+1)}
+  if(TR.state==='play')return '▶ Playing'+(SONG.loop.on?' the loop, bars '+(SONG.loop.s+1)+'–'+SONG.loop.e:'');
+  if(!SONG.tracks.length)return 'Press ● Rec to record your first track (a bar to count in)';
+  return t?'Selected: '+t.name+' ('+shortSet(t.set)+'). ● Rec adds to it, ↻ records it again':'Pick a track';}
+const TX0=280,TX1=1580;
+function songBeats(){return Math.max(SONG.L||0,4,...SONG.tracks.flatMap(t=>t.notes.map(n=>Math.ceil((n.b+.01)/4)*4)))}
+function drawScreen(){const p=scr,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.fillStyle='#0d1216';g.fillRect(0,0,p.W,p.H);
+  const st=TR.state;let x=16;const B=(id,w,l,o)=>{btn(p,id,x,14,w,84,l,o);x+=w+12};
+  B('play',150,st==='idle'?'▶ Play':'■ Stop',{on:st==='play',oncol:'#34c759'});B('rec',150,'● Rec',{on:st==='rec',oncol:'#ff453a'});
+  B('click',130,'Click',{on:SONG.click});B('slow',70,'−');g.fillStyle='#f6ba45';g.font='700 40px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('♩ '+SONG.bpm,x+60,58);x+=132;B('fast',70,'+');
+  B('snap2',130,'Snap ½',{fs:30});B('snap4',130,'Snap ¼',{fs:30});B('undo',130,'↶ Undo',{fs:30});B('loop',130,'⟲ Loop',{on:SONG.loop.on,fs:30});
+  g.fillStyle=st==='rec'?'#ff8a80':'#c9d3da';g.font='32px system-ui,sans-serif';g.textAlign='left';g.fillText(statusLine(),20,136);
+  // the ruler: bars, the song's end, the loop (drag across bars to set it)
+  const LB=songBeats(),bx=b=>TX0+(TX1-TX0)*b/LB,y0=170,y1=222;
+  g.fillStyle='#1a2128';g.fillRect(TX0,y0,TX1-TX0,y1-y0);
+  if(SONG.L&&SONG.loop.on){g.fillStyle='rgba(246,186,69,.35)';g.fillRect(bx(SONG.loop.s*4),y0,bx(SONG.loop.e*4)-bx(SONG.loop.s*4),y1-y0)}
+  g.fillStyle='#c9d3da';g.font='26px system-ui,sans-serif';g.textAlign='left';
+  for(let b=0;b<LB;b+=4){g.fillText(String(b/4+1),bx(b)+6,y0+28);g.fillStyle='#3d4852';g.fillRect(bx(b),y0,2,p.H-y0);g.fillStyle='#c9d3da'}
+  if(SONG.L){g.fillStyle='#f6ba45';g.fillRect(bx(SONG.L)-2,y0,4,p.H-y0)}
+  p.hits.push({id:'ruler',x:TX0,y:y0,w:TX1-TX0,h:y1-y0,drag:(px,py,first)=>{if(!SONG.L)return;const bar=Math.max(0,Math.min(SONG.L/4-1,Math.floor((px-TX0)/(TX1-TX0)*LB/4)));
+    if(first){p.ls=bar;SONG.loop.s=bar;SONG.loop.e=bar+1}else{SONG.loop.s=Math.min(p.ls,bar);SONG.loop.e=Math.max(p.ls,bar)+1}SONG.loop.on=true;dirty=true}});
+  g.fillStyle='#c9d3da';g.font='700 26px system-ui,sans-serif';g.fillText('Bars',16,y0+34);btn(p,'barsless',90,y0+2,70,48,'−',{fs:30});btn(p,'barsmore',196,y0+2,70,48,'+',{fs:30});
+  g.fillStyle='#f6ba45';g.textAlign='center';g.fillText(String((SONG.L||0)/4),178,y0+28);
+  // the lanes
+  const n=SONG.tracks.length,rows=n+(n<MAXT?1:0),lh=Math.min(110,(p.H-y1-8)/Math.max(1,rows));
+  SONG.tracks.forEach((t,i)=>{const y=y1+6+i*lh,sel=i===SONG.sel;
+    rr(g,10,y+3,TX0-24,lh-6,12,sel?'#26313b':'#161c22',sel?t.col:null);g.fillStyle=t.col;g.fillRect(10,y+3,10,lh-6);
+    g.fillStyle=audible(t)?'#eef2f4':'#77838d';g.textAlign='left';g.font='700 28px system-ui,sans-serif';g.fillText(t.name.slice(0,14),32,y+lh*.38);
+    g.font='22px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.fillText(shortSet(t.set)+(t.mute?' · muted':t.solo?' · solo':'')+' · '+t.notes.length+' notes',32,y+lh*.72);
+    p.hits.push({id:'lane:'+i,x:10,y,w:TX0-24,h:lh});
+    if(sel){g.fillStyle='rgba(255,255,255,.04)';g.fillRect(TX0,y,TX1-TX0,lh)}
+    const hz=SETS[t.set].drums.flatMap(d=>d.notes.map(q=>q.hz)),lo=Math.log(Math.min(...hz)),hi=Math.log(Math.max(...hz));
+    g.fillStyle=audible(t)?t.col:'#55606a';
+    for(const q of t.notes){const N=NOTE[q.id];if(!N)continue;const fy=(Math.log(N.hz)-lo)/Math.max(.01,hi-lo);g.globalAlpha=.45+.55*q.v;g.fillRect(bx(q.b),y+lh-10-fy*(lh-22),Math.max(6,bx(q.b+.25)-bx(q.b)),8)}g.globalAlpha=1});
+  if(n<MAXT){const y=y1+6+n*lh;btn(p,'add',10,y+3,TX0-24,Math.min(lh-6,80),'+ New track',{fs:28})}
+  p.LB=LB;p.tex.needsUpdate=true}
+function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRect(0,0,p.W,p.H);const SW=200;
+  SONG.tracks.forEach((t,i)=>{const x=i*SW,sel=i===SONG.sel;g.fillStyle=sel?'#222b33':'#181d22';g.fillRect(x+4,4,SW-8,p.H-8);g.fillStyle=t.col;g.fillRect(x+4,4,SW-8,10);
+    g.fillStyle='#eef2f4';g.textAlign='center';g.font='700 26px system-ui,sans-serif';g.fillText(t.name.slice(0,12),x+SW/2,44);g.font='20px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.fillText(shortSet(t.set),x+SW/2,70);
+    p.hits.push({id:'lane:'+i,x:x+4,y:14,w:SW-8,h:68});
+    btn(p,'m:'+i,x+14,88,80,56,'M',{on:t.mute,oncol:'#ff9f43'});btn(p,'s:'+i,x+106,88,80,56,'S',{on:t.solo,oncol:'#5ad1ff'});
+    // left / right: drag along the bar
+    const px0=x+24,px1=x+SW-24,py=176;g.fillStyle='#2a323a';g.fillRect(px0,py-4,px1-px0,8);g.fillStyle='#eef2f4';g.beginPath();g.arc(px0+(px1-px0)*(t.pan+1)/2,py,14,0,7);g.fill();
+    g.fillStyle='#77838d';g.font='18px system-ui,sans-serif';g.fillText('L',px0-10,py+30);g.fillText('R',px1+10,py+30);
+    p.hits.push({id:'pan:'+i,x:x+4,y:py-26,w:SW-8,h:52,drag:(px)=>{t.pan=Math.max(-1,Math.min(1,((px-px0)/(px1-px0))*2-1));if(Math.abs(t.pan)<.06)t.pan=0;mixAll()}});
+    // the fader
+    const fy0=230,fy1=520,fx=x+SW/2;g.fillStyle='#0b0e11';rr(g,fx-8,fy0,16,fy1-fy0,8,'#0b0e11');
+    const fy=fy1-(fy1-fy0)*t.vol/1.25;g.fillStyle='#3d4852';g.fillRect(fx-50,fy1-(fy1-fy0)/1.25-1,100,2);
+    rr(g,fx-44,fy-18,88,36,8,sel?t.col:'#c9d3da');g.fillStyle='#15110a';g.font='700 20px system-ui,sans-serif';g.fillText(Math.round(t.vol*100)+'%',fx,fy+1);
+    p.hits.push({id:'vol:'+i,x:x+4,y:fy0-24,w:SW-8,h:fy1-fy0+48,drag:(px,py2)=>{t.vol=Math.max(0,Math.min(1.25,(fy1-py2)/(fy1-fy0)*1.25));if(Math.abs(t.vol-1)<.04)t.vol=1;mixAll()}});
+    btn(p,'re:'+i,x+14,560,96,60,'↻ Rec',{fs:24});btn(p,'del:'+i,x+120,560,66,60,'✕',{fs:28})});
+  if(SONG.tracks.length<MAXT){const x=SONG.tracks.length*SW;btn(p,'add',x+14,240,SW-28,120,'+ Track',{fs:30})}
+  p.tex.needsUpdate=true}
+function act(id){const [k,a]=id.split(':'),i=+a;
+  ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
+    barsless:()=>bars(-1),barsmore:()=>bars(1),add:addTrack,
+    lane:()=>select(i),m:()=>{snapUndo();SONG.tracks[i].mute=!SONG.tracks[i].mute;saveSong();mixAll()},s:()=>{snapUndo();SONG.tracks[i].solo=!SONG.tracks[i].solo;saveSong();mixAll()},
+    re:()=>rerecord(i),del:()=>delTrack(i)}[k]||(()=>{}))();dirty=true}
+/* pointing: a controller's beam, or the mouse off the headset */
+let grab=null;
+function uiFind(p,uv){const x=uv.x*p.W,y=(1-uv.y)*p.H;return {x,y,hit:[...p.hits].reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)}}
+function uiDown(p,uv){const f=uiFind(p,uv);if(!f.hit)return false;audio();if(f.hit.drag){snapUndo();grab={p,hit:f.hit};f.hit.drag(f.x,f.y,true);dirty=true}else act(f.hit.id);return true}
+function uiMove(p,uv){if(!grab||grab.p!==p)return;const f=uiFind(p,uv);grab.hit.drag(f.x,f.y,false);dirty=true}
+function uiUp(){if(grab){grab=null;saveSong();dirty=true}}
+const beams=[0,1].map(i=>{const c=renderer.xr.getController(i);scene.add(c);
+  const line=new THREE.Mesh(new THREE.CylinderGeometry(.0015,.0015,1,6),new THREE.MeshBasicMaterial({color:'#bfe6ff',transparent:true,opacity:.7}));line.rotation.x=Math.PI/2;
+  const lg=new THREE.Group();lg.add(line);c.add(lg);lg.visible=false;
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(.008,10,8),new THREE.MeshBasicMaterial({color:'#ffffff'}));dot.visible=false;scene.add(dot);
+  const b={c,lg,line,dot,src:null,down:false};c.addEventListener('connected',e=>{b.src=e.data});c.addEventListener('disconnected',()=>{b.src=null;lg.visible=dot.visible=false});return b});
+const bRay=new THREE.Raycaster(),bm=new THREE.Matrix4();
+function beamFrame(){for(const b of beams){if(!b.src){continue}
+  bm.identity().extractRotation(b.c.matrixWorld);bRay.ray.origin.setFromMatrixPosition(b.c.matrixWorld);bRay.ray.direction.set(0,0,-1).applyMatrix4(bm);
+  const hit=bRay.intersectObjects(PANELS.map(p=>p.m))[0],gp=b.src.gamepad,trig=!!(gp&&gp.buttons[0]&&gp.buttons[0].pressed);
+  if(hit&&hit.distance<3){b.lg.visible=true;b.line.scale.y=hit.distance;b.line.position.z=-hit.distance/2;b.dot.visible=true;b.dot.position.copy(hit.point);
+    const p=PANELS.find(q=>q.m===hit.object);if(trig&&!b.down){if(uiDown(p,hit.uv))try{gp.hapticActuators[0].pulse(.3,15)}catch{}}else if(trig)uiMove(p,hit.uv)}
+  else{b.lg.visible=b.dot.visible=false}
+  if(!trig&&b.down)uiUp();b.down=trig}}
+let statT=0,lastStat='';
+function studioFrame(dt){if(msgT>0){msgT-=dt;if(msgT<=0){MSG='';dirty=true}}
+  statT+=dt;if(statT>.2){statT=0;const s=statusLine()+TR.state;if(s!==lastStat){lastStat=s;dirty=true}}
+  if(dirty){dirty=false;drawScreen();drawDesk()}
+  // the playhead
+  const LB=scr.LB||4;let pos=0;if(TR.state!=='idle'&&TR.run&&ac){const lin=beatAt(ac.currentTime);pos=lin<0?0:(SONG.L?posOf(lin):lin)}
+  head2.visible=TR.state!=='idle';head2.position.x=-.5+(TX0+(TX1-TX0)*Math.min(pos,LB)/LB)/1600;head2.position.y=-.07}
 
 /* ---------- moving the pans to you ---------- */
 const head=new THREE.Vector3(),fwd=new THREE.Vector3();
@@ -294,7 +400,7 @@ function bringPan(){const cam=renderer.xr.isPresenting?renderer.xr.getCamera():c
 let placed=false;const pressed=new Map();
 const edge=(key,on)=>{const was=pressed.get(key);pressed.set(key,on);return on&&!was};
 function nextSet(){const ks=Object.keys(SETS);useSet(ks[(ks.indexOf(setKey)+1)%ks.length])}
-function useSet(k){setKey=k;LSset('set',setKey);stopTake();loadTake();buildPans();renderSeg()}
+function useSet(k){setKey=k;LSset('set',setKey);buildPans();renderSeg();dirty=true}
 function nextLook(){const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+1)%ks.length];LSset('look',lookKey);applyLook()}
 
 /* ---------- each frame ---------- */
@@ -303,7 +409,7 @@ renderer.setAnimationLoop((now,frame)=>{
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(renderer.xr.isPresenting){
     if(!placed&&frame){placed=true;bringPan()}
-    for(const s of sticks){if(!s.src){s.prev=null;continue}s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackPad(s,tipW);
+    for(const s of sticks){if(!s.src){s.prev=null;continue}s.tip.getWorldPosition(tipW);track(s,tipW,dt);
       const gp=s.src.gamepad;if(!gp)continue;const hd=s.src.handedness,B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
       if(edge(hd+'a',B(4)))bringPan();
       if(edge(hd+'b',B(5)))nextSet();
@@ -311,15 +417,24 @@ renderer.setAnimationLoop((now,frame)=>{
       const y=gp.axes[3]||0;if(Math.abs(y)>.25)rig.position.y=Math.max(.45,Math.min(1.5,rig.position.y-y*dt*.35))}
   }
   for(const d of drums)for(const n of d.notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.6*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
-  tick();padFrame(dt);standFollow();renderer.render(scene,camera);
+  if(renderer.xr.isPresenting)beamFrame();
+  tick();studioFrame(dt);standFollow();renderer.render(scene,camera);
 });
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
 /* ---------- off the headset: tap the notes ---------- */
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown',e=>{audio();mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mouse,camera);
-  {const ph=ray.intersectObjects(PADS.map(p=>p.m))[0];if(ph){press(PADS.find(p=>p.m===ph.object).k);return}}
+  {const ph=ray.intersectObjects(PANELS.map(p=>p.m))[0];if(ph){mouseP=PANELS.find(p=>p.m===ph.object);uiDown(mouseP,ph.uv);return}}
   for(const d of drums){const hit=ray.intersectObject(d.dish)[0];if(!hit)continue;local.copy(hit.point);d.g.worldToLocal(local);const n=noteAt(d,local.x,local.z);if(n){strike(n.id,.8);n.lit=1}return}});
+
+let mouseP=null;
+renderer.domElement.addEventListener('pointermove',e=>{if(!grab||!mouseP)return;mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mouse,camera);const ph=ray.intersectObject(mouseP.m)[0];if(ph)uiMove(mouseP,ph.uv)});
+addEventListener('pointerup',()=>{uiUp();mouseP=null});
+// off the headset: look at the pans or at the studio table
+function view(k){if(k==='table'){const w=new THREE.Vector3(0,.2,0);table.localToWorld(w);const f=new THREE.Vector3(0,.25,1.15);table.localToWorld(f);camera.position.copy(f);camera.lookAt(w)}
+  else{camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5)}document.querySelectorAll('#viewSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===k)))}
+document.querySelectorAll('#viewSeg button').forEach(b=>b.onclick=()=>view(b.dataset.view));
 
 /* ---------- the pickers ---------- */
 function renderSeg(){document.querySelectorAll('#setSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.set===setKey)))}
@@ -337,7 +452,7 @@ async function enter(mode){
   catch(e){console.warn(e);$('status').textContent='The headset didn’t start: '+(e.message||e)}
 }
 $('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immersive-ar');
-loadTake();renderSeg();applyLook();drawStatus(true);
+loadSong();renderSeg();applyLook();
 (async()=>{
   const xr=navigator.xr;let vr=false,ar=false;
   if(xr){try{vr=await xr.isSessionSupported('immersive-vr')}catch{}try{ar=await xr.isSessionSupported('immersive-ar')}catch{}}
@@ -348,8 +463,15 @@ loadTake();renderSeg();applyLook();drawStatus(true);
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,pad:k=>press(k),met:MET,take:()=>TAKE,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),
-  hitPad(k){const p=PADS.find(q=>q.k===k),s={pp:null,parm:true},w=new THREE.Vector3();let out=null;for(let i=3;i>=-2;i--){w.set(p.x,.036+i*.02,p.z);tray.localToWorld(w);out=trackPad(s,w)||out}return out},ready:()=>Object.keys(buf).length,strike,
+const VR=window.VR={hits:[],clicks:0,act,song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
+  // a press (and a drag) on the desk or the screen at a spot in its own pixels, as the pointer beam does
+  press(panel,id,fx,fy){const p=panel==='desk'?desk:scr;if(dirty){dirty=false;drawScreen();drawDesk()}const b=p.hits.find(q=>q.id===id);if(!b)return false;const uv=(x,y)=>({x:x/p.W,y:1-y/p.H});
+    uiDown(p,uv(b.x+b.w*(fx??.5),b.y+b.h*(fy??.5)));return true},
+  drag(panel,id,fx0,fy0,fx1,fy1){const p=panel==='desk'?desk:scr;if(dirty){dirty=false;drawScreen();drawDesk()}const b=p.hits.find(q=>q.id===id);if(!b)return false;const uv=(x,y)=>({x:x/p.W,y:1-y/p.H});
+    uiDown(p,uv(b.x+b.w*fx0,b.y+b.h*fy0));uiMove(p,uv(b.x+b.w*fx1,b.y+b.h*fy1));uiUp();return true},
+  screenOfPanel(panel,id){const p=panel==='desk'?desk:scr;const b=p.hits.find(q=>q.id===id);const w=new THREE.Vector3((b.x+b.w/2)/p.W-.5,.5-(b.y+b.h/2)/p.H,0);
+    w.x*=p.m.geometry.parameters.width;w.y*=p.m.geometry.parameters.height;p.m.localToWorld(w);w.project(camera);return [(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight]},
+  ready:()=>Object.keys(buf).length,strike,
   notes:()=>drums.flatMap(d=>d.notes.map(n=>n.id)),
   noteAt(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),m=noteAt(d,(n.x-d.cx)*d.S,(n.y-d.cy)*d.S);return m&&m.id},
   swing(id,speed){const d=drumOf(id),n=d.notes.find(x=>x.id===id),s=makeStick(),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,y=h(Math.hypot(x,z));const dt=1/72,step=speed*dt;
