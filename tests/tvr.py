@@ -25,7 +25,7 @@ with sync_playwright() as p:
     pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)));pg.on('console',lambda m:m.type=='error' and errs.append(m.text))
     pg.route('https://pan.test/**',route)
     pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=79&&VR.drums()>0",timeout=60000)
-    check(pg.evaluate("VR.ready()")==79,'the band\'s 29 tenor, 20 guitar and 30 double second notes are loaded')
+    check(pg.evaluate("VR.ready()")==125,'all the band\'s 125 recorded notes are loaded')
     check('Ready' in pg.inner_text('#status'),'it says the sounds are ready: '+pg.inner_text('#status'))
     ids=pg.evaluate("VR.notes()");bad=[i for i in ids if pg.evaluate(f"VR.noteAt('{i}')")!=i]
     check(len(ids)==29 and not bad,f'every tenor note\'s place on the pan finds that note {bad}')
@@ -153,7 +153,7 @@ with sync_playwright() as p:
     pg.evaluate("VR.camera.position.set(0,1.75,1.3);VR.camera.lookAt(0,1.05,-1.2)");pg.wait_for_timeout(400);pg.screenshot(path=D+'4b-flag-wide.png')
     pg.evaluate("VR.camera.position.set(0,1.62,.12);VR.camera.lookAt(0,.86,-.5)")
     pg.evaluate("VR.set('tenor');VR.look('chrome')");pg.wait_for_timeout(500);pg.screenshot(path=D+'5-tenor-chrome.png')
-    pg.evaluate("VR.nextSet();VR.nextLook()");check(pg.evaluate("[VR.state().set,VR.state().look]")==['guitar','gems'],'B / Y and a thumbstick press switch the pans and the look')
+    pg.evaluate("VR.nextSet();VR.nextLook()");check(pg.evaluate("[VR.state().set,VR.state().look]")==['dten','gems'],'B / Y and a thumbstick press switch the pans (tenor → double tenor) and the look')
     check(not errs,'no errors '+str(errs[:3]))
     b.close()
 print('FAILED: '+str(len(fails)) if fails else 'all passed')
