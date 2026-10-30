@@ -224,5 +224,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   track 0.12 s ahead, looping the song or the loop); ● Rec records the selected track (or a new one, on its pans) while
   the others play, ● again stops, and the first take sets `L` (whole bars). `UNDO` holds earlier songs. Old per-set takes
   (`panyard-vr-take-<set>`) become the first tracks.
+  **The pans in 3D:** each set's bowl is sunk `PANSET[k].depth` (tenor 19 cm ≈ 7½ in, double second 16.5, guitar 14; the
+  skirt is at least that long), and `heightMap(d)` (each drum's notes blurred twice on a 512² canvas) sinks a 5 mm groove
+  round every note and domes it up to 6 mm (smaller notes less); `surf(d,x,z)` is the playing surface everywhere (the
+  dish, the glows, the hit test). **Grab the table:** squeeze a grip with the beam on it (or the hand near it) and move;
+  it turns to face you and is kept in localStorage `panyard-vr-table` (rig-local x, y, z).
   Test with `tvr` (`VR.swing`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
