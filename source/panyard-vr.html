@@ -4,19 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Panyard VR</title>
-<meta name="description" content="Play the band's tenor pan in VR with your controllers as sticks.">
+<meta name="description" content="Play the band's pans in VR with your controllers as sticks.">
 <style>
 :root{--bg:#0b1117;--text:#eef2f4;--muted:#9fb0b8;--gold:#f6ba45;--card:rgb(14 22 28/.86);--line:rgb(255 255 255/.14)}
-@media (prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#0b1117}}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
 canvas{display:block}
-#hud{position:fixed;left:16px;right:16px;bottom:16px;max-width:520px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 18px;backdrop-filter:blur(8px)}
+#hud{position:fixed;left:16px;right:16px;bottom:16px;max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 18px;backdrop-filter:blur(8px);max-height:calc(100vh - 32px);overflow:auto;box-sizing:border-box}
 #hud h1{margin:0 0 4px;font-size:22px}#hud p{margin:6px 0;color:var(--muted)}
 #hud b{color:var(--text)}
-.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.lab{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:110px;min-height:46px;border-radius:12px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px;font-weight:600}
+.seg button[aria-pressed=true]{border-color:var(--gold);background:rgb(246 186 69/.18)}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .btns button{flex:1;min-width:150px;min-height:52px;border-radius:14px;border:1px solid var(--line);background:rgb(255 255 255/.08);color:var(--text);font-size:17px;font-weight:600}
 .btns button.go{background:var(--gold);color:#1a1205;border-color:var(--gold)}
-.btns button[disabled]{opacity:.45}
 #status{font-size:14px}
 </style>
 <script type="importmap">{"imports":{"three":"./lib/three.module.min.js"}}</script>
@@ -24,8 +26,12 @@ canvas{display:block}
 <body>
 <div id="hud">
   <h1>Panyard VR</h1>
-  <p>The band's tenor, with your controllers as sticks. Hit harder for a louder note.</p>
-  <p>In VR: <b>A</b> or <b>X</b> brings the pan in front of you. <b>Thumbstick</b> up or down moves it higher or lower.</p>
+  <p>The band's pans, with your controllers as sticks. Hit harder for a louder note.</p>
+  <div class="lab">Pans</div>
+  <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="guitar">Double Guitar</button></div>
+  <div class="lab">Look</div>
+  <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
+  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the next look.</p>
   <p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p>
   <div class="btns"><button id="goRoom" class="go" hidden>Play in my room</button><button id="goVR" hidden>Enter VR</button></div>
   <p id="noxr" hidden>Open this page in your headset's browser to play in VR. Here you can tap the notes with the mouse or your finger.</p>
@@ -34,16 +40,33 @@ canvas{display:block}
 import * as THREE from 'three';
 import {RoomEnvironment} from './lib/RoomEnvironment.js';
 
-/* ---------- the tenor: its notes as drawn in Panyard (1000 × 1000 units, playing surface radius 445) ---------- */
-const TENOR=/*TENOR*/[];
+/* ---------- the pans, as drawn in Panyard: each drum's notes in its own drawing (centre cx, cy; playing surface radius r) ---------- */
+const SETS=/*SETS*/{};
 const SOUNDS='../band/band-sounds/';
 const A=441;                       // Panyard Band's tuning
-const RS=0.285,DEPTH=0.11;         // 22.5 in drum: surface radius in metres, how deep the bowl sinks
-const S=0.27/445;                  // drawing units → metres
+const RS=0.285,DEPTH=0.11;         // a 22.5 in drum: surface radius in metres, how deep the bowl sinks
+const SURF=0.27;                   // where the drawing's playing surface edge lands, in metres
 const h=r=>-DEPTH*Math.max(0,1-(r/RS)**2);   // the bowl's height at a distance from the centre
 const $=id=>document.getElementById(id);
+// each set: its skirt (inches), its barrel's hum (343 / 4(L + 0.3·22.5 in)), its suggested tone, where its drums stand
+const PANSET={
+  tenor:{skirt:6,tone:[420,-2,5000,2],place:[[0,0]]},
+  guitar:{skirt:16,tone:null,place:[[-.33,.2],[.33,-.2]]},   // the E/C pan on the left, B/F on the right, both turned a little to you
+};
+for(const k in PANSET){const L=PANSET[k].skirt*.0254;PANSET[k].body=Math.round(343/(4*(L+.3*22.5*.0254)))}
+// the looks: Chrome, and the three Vincy Mas backgrounds (as in Panyard): skirt stops, rim, a struck note, the sky, the floor
+const LOOKS={
+  chrome:{skirt:null,rim:'#e9edf1',hit:'#ffcf5a',sky:['#0b1117','#0b1117'],floor:'#2a2622',flag:false},
+  gems:{skirt:['#013a22','#007a4a','#5fe3a6','#00a565','#006b40','#2ed88a','#012b19'],rim:'#009e60',hit:'#00c46f',sky:['#06223a','#03080d'],floor:'#0b2a1d',flag:true},
+  gren:{skirt:['#00163d','#0047ab','#6fb6ff','#0a5fd0','#003a8c','#3d93f0','#001233'],rim:'#0047ab',hit:'#2fd6e0',sky:['#4fe3e0','#02254f'],floor:'#e9d7a4',flag:true},
+  flag:{skirt:['#5a4200','#c79a00','#fff2a0','#f2c400','#a37d00','#ffe066','#3d2c00'],rim:'#fcd116',hit:'#fcd116',sky:['#1a1a1a','#050505'],floor:'#1c1a14',flag:true},
+};
+const LS=k=>{try{return localStorage.getItem('panyard-vr-'+k)}catch{return null}},LSset=(k,v)=>{try{localStorage.setItem('panyard-vr-'+k,v)}catch{}};
+let setKey=SETS[LS('set')]?LS('set'):'tenor',lookKey=LOOKS[LS('look')]?LS('look'):'chrome';
+const ALL=Object.entries(SETS).flatMap(([k,s])=>s.drums.flatMap(d=>d.notes.map(n=>(n.set=k,n))));
+const NOTE=Object.fromEntries(ALL.map(n=>[n.id,n]));
 
-/* ---------- sound: the band's recordings, as Panyard Band plays them (A 441, drum body hum, suggested tenor tone) ---------- */
+/* ---------- sound: the band's recordings, as Panyard Band plays them (A 441, drum body hum, suggested tone) ---------- */
 let ac=null,master=null,man=null;const buf={};
 function audio(){
   if(ac)return ac;ac=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
@@ -59,20 +82,20 @@ function audio(){
 }
 async function loadSounds(){
   try{man=await (await fetch(SOUNDS+'manifest.json',{cache:'no-cache'})).json()}catch{$('status').textContent='The pan sounds couldn’t be fetched. Check the internet and open this page again.';return false}
-  audio();let n=0;const ids=TENOR.map(f=>f.id).filter(id=>man.files[id]);
+  audio();let n=0;const ids=ALL.map(f=>f.id).filter(id=>man.files[id]);
   await Promise.all(ids.map(async id=>{try{const r=await fetch(SOUNDS+man.files[id]);buf[id]=await ac.decodeAudioData(await r.arrayBuffer());$('status').textContent='Getting the band’s pan sounds ready… '+(++n)+' of '+ids.length}catch(e){console.warn(id,e)}}));
-  $('status').textContent=n?'Ready: '+n+' tenor notes from the band’s pans.':'The pan sounds couldn’t be read on this browser.';
+  $('status').textContent=n?'Ready: '+n+' notes from the band’s pans.':'The pan sounds couldn’t be read on this browser.';
   return n>0;
 }
 const voices=new Map();
 function strike(id,v){
-  const b=buf[id];if(!ac||!b)return false;if(ac.state==='suspended')ac.resume();
-  const T=(man&&man.tune&&man.tune[id])||{},t=ac.currentTime+.002,f=TENOR.find(x=>x.id===id).hz;
+  const b=buf[id],n=NOTE[id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
+  const T=(man&&man.tune&&man.tune[id])||{},t=ac.currentTime+.002,P=PANSET[n.set];
   const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440);
   const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
-  pk('peaking',265,3.3,2.2);pk('peaking',795,1.5,2.2);   // drum body hum: a tenor's 6 in skirt
-  pk('lowshelf',420,-2);pk('highshelf',5000,2);          // suggested tone for a tenor
-  if(v<.9){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=.5;lp.frequency.value=Math.min(18000,f*(3+30*v*v));nodes.push(lp)}   // a soft hit is darker
+  pk('peaking',P.body,3.3,2.2);pk('peaking',P.body*3,1.5,2.2);              // drum body hum, from the skirt's length
+  if(P.tone){pk('lowshelf',P.tone[0],P.tone[1]);pk('highshelf',P.tone[2],P.tone[3])}   // the pan's suggested tone
+  if(v<.9){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=.5;lp.frequency.value=Math.min(18000,n.hz*(3+30*v*v));nodes.push(lp)}   // a soft hit is darker
   src.connect(g);g.connect(nodes[0]);for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);nodes[nodes.length-1].connect(master);
   const a=Math.pow(10,(+T.db||0)/20)*(.18+.82*v*v),start=Math.min(+T.start||0,b.duration-.05),len=b.duration-start,fade=Math.min(len*.5,+T.fade||.3);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.003);g.gain.setValueAtTime(a,t+len-fade);g.gain.linearRampToValueAtTime(0,t+len);
@@ -88,57 +111,74 @@ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);
 renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
 document.body.prepend(renderer.domElement);
-const scene=new THREE.Scene();const BG=new THREE.Color('#0b1117');scene.background=BG;
+const scene=new THREE.Scene();
 const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;
-const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.02,50);camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.02,60);camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5);
 scene.add(new THREE.HemisphereLight('#dfe8ff','#20160c',.7));
 const sun=new THREE.DirectionalLight('#fff3dd',1.6);sun.position.set(.6,3,1.2);scene.add(sun);
-// the yard floor
-const floor=new THREE.Mesh(new THREE.CircleGeometry(4,64),new THREE.MeshStandardMaterial({color:'#2a2622',roughness:.95}));floor.rotation.x=-Math.PI/2;scene.add(floor);
-const env=[floor];
+const canvasTex=(w,hh,draw)=>{const c=document.createElement('canvas');c.width=w;c.height=hh;draw(c.getContext('2d'),w,hh);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t};
+// the surroundings: a sky, a floor, and for Vincy Mas the flag of St. Vincent and the Grenadines behind the pans
+const sky=new THREE.Mesh(new THREE.SphereGeometry(30,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,depthWrite:false}));scene.add(sky);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(6,64),new THREE.MeshStandardMaterial({roughness:.95}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const flag=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.6),new THREE.MeshBasicMaterial({map:canvasTex(1200,800,(g,w,hh)=>{
+  g.fillStyle='#0047ab';g.fillRect(0,0,w/4,hh);g.fillStyle='#fcd116';g.fillRect(w/4,0,w/2,hh);g.fillStyle='#009e60';g.fillRect(w*3/4,0,w/4,hh);
+  // the three green diamonds in a V (the gems of the Antilles)
+  const gem=(x,y)=>{g.beginPath();g.moveTo(x,y-110);g.lineTo(x+62,y);g.lineTo(x,y+110);g.lineTo(x-62,y);g.closePath();g.fill()};g.fillStyle='#009e60';gem(w/2-124,hh/2-70);gem(w/2+124,hh/2-70);gem(w/2,hh/2+130)})}));
+flag.position.set(0,1.75,-2.6);scene.add(flag);
+const env=[sky,floor,flag];
 
-// the pan
-const pan=new THREE.Group();pan.rotation.order='YXZ';pan.position.set(0,.9,-.5);pan.rotation.x=.2;scene.add(pan);
-const notes=TENOR.map(f=>({...f,p2:new Path2D(f.path)}));
+const rig=new THREE.Group();rig.position.set(0,.9,-.5);scene.add(rig);
 const hitCtx=document.createElement('canvas').getContext('2d');
+const chromeMat=()=>new THREE.MeshStandardMaterial({color:'#e9edf1',metalness:1,roughness:.16});
+let drums=[];
 // the playing surface: chrome with the notes' grooves and names drawn on, mapped flat from above
-function surfaceTexture(){
-  const W=2048,c=document.createElement('canvas');c.width=c.height=W;const g=c.getContext('2d');
-  const k=S/RS*W/2;g.fillStyle='#d9dde2';g.fillRect(0,0,W,W);
-  g.setTransform(k,0,0,k,W/2-500*k,W/2-500*k);
-  const rg=g.createRadialGradient(500,500,40,500,500,470);rg.addColorStop(0,'#c9ced4');rg.addColorStop(1,'#eef1f4');g.fillStyle=rg;g.beginPath();g.arc(500,500,470,0,7);g.fill();
-  for(const n of notes){g.fillStyle=n.pos==='outer'?'#e8ebef':n.pos==='middle'?'#dfe3e8':'#d6dbe1';g.fill(n.p2);g.lineWidth=7;g.strokeStyle='#7d858e';g.stroke(n.p2);g.lineWidth=2;g.strokeStyle='#fbfcfd';g.stroke(n.p2)}
-  g.fillStyle='#232a31';g.textAlign='center';g.textBaseline='middle';
-  for(const n of notes){g.font='700 '+Math.round(n.fs*.9)+'px system-ui,sans-serif';g.fillText(n.label,n.x,n.y)}
-  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;
+function surfaceTexture(d){
+  const W=2048,k=d.S/RS*W/2;return canvasTex(W,W,(g)=>{
+    g.fillStyle='#d9dde2';g.fillRect(0,0,W,W);g.setTransform(k,0,0,k,W/2-d.cx*k,W/2-d.cy*k);
+    const rg=g.createRadialGradient(d.cx,d.cy,d.r*.1,d.cx,d.cy,d.r*1.05);rg.addColorStop(0,'#c9ced4');rg.addColorStop(1,'#eef1f4');g.fillStyle=rg;g.beginPath();g.arc(d.cx,d.cy,d.r*1.06,0,7);g.fill();
+    for(const n of d.notes){g.fillStyle=/inner|centre/.test(n.pos)?'#d6dbe1':/middle/.test(n.pos)?'#dfe3e8':'#e8ebef';g.fill(n.p2);g.lineWidth=d.r*.016;g.strokeStyle='#7d858e';g.stroke(n.p2);g.lineWidth=d.r*.005;g.strokeStyle='#fbfcfd';g.stroke(n.p2)}
+    g.fillStyle='#232a31';g.textAlign='center';g.textBaseline='middle';
+    for(const n of d.notes){g.font='700 '+Math.round(n.fs*.9)+'px system-ui,sans-serif';g.fillText(n.label,n.x,n.y)}})}
+function skirtTex(stops){return canvasTex(512,8,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,w,0);stops.forEach((c,i)=>gr.addColorStop(i/(stops.length-1),c));g.fillStyle=gr;g.fillRect(0,0,w,hh)})}
+function buildPans(){
+  for(const d of drums){rig.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+  const set=SETS[setKey],P=PANSET[setKey],L=LOOKS[lookKey],SK=P.skirt*.0254;
+  const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
+  drums=set.drums.map((dd,i)=>{
+    const d={...dd,S:SURF/dd.r,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};
+    const g=new THREE.Group();g.rotation.order='YXZ';g.position.x=P.place[i][0];g.rotation.y=P.place[i][1];g.rotation.x=.2;rig.add(g);d.g=g;
+    const geo=new THREE.RingGeometry(.0005,RS,160,56);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
+    for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,h(Math.hypot(x,z)))}geo.computeVertexNormals();
+    d.dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:surfaceTexture(d),metalness:.55,roughness:.4,envMapIntensity:.7,side:THREE.DoubleSide}));g.add(d.dish);
+    const skMat=L.skirt?new THREE.MeshStandardMaterial({map:skirtTex(L.skirt),metalness:.7,roughness:.3,side:THREE.DoubleSide}):chromeMat();
+    const sk=new THREE.Mesh(new THREE.CylinderGeometry(RS+.012,RS+.012,SK,96,1,true),skMat);sk.position.y=-SK/2;g.add(sk);
+    const rimMat=new THREE.MeshStandardMaterial({color:L.rim,metalness:1,roughness:.18});
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(RS+.012,.009,12,96),rimMat);rim.rotation.x=Math.PI/2;g.add(rim);
+    const bot=rim.clone();bot.position.y=-SK;g.add(bot);
+    // each note's glow when it's hit: its shape from the drawing, laid on the bowl
+    for(const n of d.notes){const pe=document.createElementNS('http://www.w3.org/2000/svg','path');pe.setAttribute('d',n.path);SV.appendChild(pe);
+      const len=pe.getTotalLength(),pts=[];for(let q=0;q<64;q++){const pt=pe.getPointAtLength(len*q/64);pts.push(new THREE.Vector2((pt.x-d.cx)*d.S,(pt.y-d.cy)*d.S))}
+      const ng=new THREE.ShapeGeometry(new THREE.Shape(pts),1),np=ng.attributes.position;
+      for(let q=0;q<np.count;q++){const x=np.getX(q),z=np.getY(q);np.setXYZ(q,x,h(Math.hypot(x,z))+.0035,z)}
+      n.glow=new THREE.Mesh(ng,new THREE.MeshBasicMaterial({color:L.hit,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));n.glow.visible=false;g.add(n.glow)}
+    // the stand: a pole down to the floor (it follows the pan), and three feet
+    const st=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1,16),chromeMat());st.add(pole);
+    const feet=new THREE.Group();for(let q=0;q<3;q++){const l=new THREE.Mesh(new THREE.CylinderGeometry(.009,.009,.36,10),chromeMat());l.position.set(Math.sin(q*2.094)*.15,.06,Math.cos(q*2.094)*.15);l.rotation.set(Math.cos(q*2.094)*1.1,0,-Math.sin(q*2.094)*1.1);feet.add(l)}st.add(feet);
+    scene.add(st);d.stand=st;d.pole=pole;d.feet=feet;d.SK=SK;
+    return d});
+  SV.remove();
+  if(sign.material.map)sign.material.map.dispose();sign.material.map=signFor();sign.material.needsUpdate=true;
 }
-{const geo=new THREE.RingGeometry(.0005,RS,160,56);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
-  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i);p.setY(i,h(Math.hypot(x,z)))}geo.computeVertexNormals();
-  const dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:surfaceTexture(),metalness:.55,roughness:.4,envMapIntensity:.7,side:THREE.DoubleSide}));pan.add(dish)}
-const chrome=new THREE.MeshStandardMaterial({color:'#e9edf1',metalness:1,roughness:.16});
-{const sk=new THREE.Mesh(new THREE.CylinderGeometry(RS+.012,RS+.012,.16,96,1,true),chrome);sk.position.y=-.08;pan.add(sk);
-  const rim=new THREE.Mesh(new THREE.TorusGeometry(RS+.012,.009,12,96),chrome);rim.rotation.x=Math.PI/2;pan.add(rim)}
-// each note's glow when it's hit: its shape from the drawing, laid on the bowl
-const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
-for(const n of notes){
-  const pe=document.createElementNS('http://www.w3.org/2000/svg','path');pe.setAttribute('d',n.path);SV.appendChild(pe);
-  const L=pe.getTotalLength(),pts=[];for(let i=0;i<64;i++){const q=pe.getPointAtLength(L*i/64);pts.push(new THREE.Vector2((q.x-500)*S,(q.y-500)*S))}
-  const geo=new THREE.ShapeGeometry(new THREE.Shape(pts),1),p=geo.attributes.position;
-  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getY(i);p.setXYZ(i,x,h(Math.hypot(x,z))+.0035,z)}
-  n.glow=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:'#ffcf5a',transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
-  n.glow.visible=false;pan.add(n.glow);n.lit=0;
-}
-SV.remove();
-// the stand: a pole down to the floor (it follows the pan)
-const pole=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1,16),chrome);scene.add(pole);
-const feet=new THREE.Group();for(let i=0;i<3;i++){const l=new THREE.Mesh(new THREE.CylinderGeometry(.009,.009,.36,10),chrome);l.position.set(Math.sin(i*2.094)*.15,.06,Math.cos(i*2.094)*.15);l.rotation.set(Math.cos(i*2.094)*1.1,0,-Math.sin(i*2.094)*1.1);feet.add(l)}scene.add(feet);
-function standFollow(){const b=new THREE.Vector3(0,-.16,0);pan.localToWorld(b);pole.scale.y=Math.max(.05,b.y);pole.position.set(b.x,b.y/2,b.z);feet.position.set(b.x,0,b.z)}
-// a sign behind the pan
-{const c=document.createElement('canvas');c.width=1024;c.height=256;const g=c.getContext('2d');g.fillStyle='rgba(12,18,24,.82)';g.beginPath();g.roundRect(0,0,1024,256,40);g.fill();
-  g.fillStyle='#f6ba45';g.font='700 64px system-ui,sans-serif';g.fillText('Panyard VR · Tenor',44,96);g.fillStyle='#dfe7ec';g.font='38px system-ui,sans-serif';
-  g.fillText('A / X: bring the pan to you',44,160);g.fillText('Thumbstick: higher or lower',44,214);
-  const tx=new THREE.CanvasTexture(c);tx.colorSpace=THREE.SRGBColorSpace;const sign=new THREE.Mesh(new THREE.PlaneGeometry(.8,.2),new THREE.MeshBasicMaterial({map:tx,transparent:true}));
-  sign.position.set(0,.55,-.55);sign.rotation.x=-.2;pan.add(sign)}
+function standFollow(){for(const d of drums){const b=new THREE.Vector3(0,-d.SK,0);d.g.localToWorld(b);const top=Math.max(.02,b.y);d.pole.scale.y=top;d.pole.position.set(b.x,top/2,b.z);d.feet.position.set(b.x,0,b.z);d.stand.visible=b.y>.08}}
+function applyLook(){const L=LOOKS[lookKey];
+  if(sky.material.map)sky.material.map.dispose();sky.material.map=canvasTex(4,256,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,0,hh);gr.addColorStop(0,L.sky[0]);gr.addColorStop(.5,L.sky[1]);gr.addColorStop(1,L.sky[1]);g.fillStyle=gr;g.fillRect(0,0,w,hh)});sky.material.needsUpdate=true;
+  floor.material.color.set(L.floor);flag.visible=L.flag&&!inRoom;buildPans();
+  document.querySelectorAll('#lookSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.look===lookKey)))}
+// a sign behind the pans
+const sign=new THREE.Mesh(new THREE.PlaneGeometry(.8,.2),new THREE.MeshBasicMaterial({transparent:true}));sign.position.set(0,.55,-.6);sign.rotation.x=-.2;rig.add(sign);
+function signFor(){return canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.82)';g.beginPath();g.roundRect(0,0,1024,256,40);g.fill();
+  g.fillStyle=LOOKS[lookKey].flag?LOOKS[lookKey].hit:'#f6ba45';g.font='700 56px system-ui,sans-serif';g.fillText('Panyard VR · '+SETS[setKey].name,40,84);g.fillStyle='#dfe7ec';g.font='34px system-ui,sans-serif';
+  g.fillText('A / X: pans to you    Thumbstick: higher, lower',40,152);g.fillText('B / Y: other pans    Press a stick: next look',40,206)})}
 
 /* ---------- the sticks: one on each controller, a rubber tip at the end ---------- */
 const STICK=.32;
@@ -149,29 +189,34 @@ function makeStick(){const piv=new THREE.Group();piv.rotation.x=-.6;   // held l
 const sticks=[0,1].map(i=>{const grip=renderer.xr.getControllerGrip(i),s=makeStick();grip.add(s.piv);scene.add(grip);
   grip.addEventListener('connected',e=>{s.src=e.data});grip.addEventListener('disconnected',()=>{s.src=null;s.prev=null});return s});
 
-/* ---------- a hit: the stick's tip crossing down through the bowl over a note ---------- */
+/* ---------- a hit: the stick's tip crossing down through a bowl over a note ---------- */
 const local=new THREE.Vector3();
-function noteAt(x,z){const xs=x/S+500,ys=z/S+500;for(const n of notes)if(hitCtx.isPointInPath(n.p2,xs,ys))return n;
-  hitCtx.lineWidth=16;for(const n of notes)if(hitCtx.isPointInStroke(n.p2,xs,ys))return n;return null}   // a hair onto the groove still counts
+function noteAt(d,x,z){const xs=x/d.S+d.cx,ys=z/d.S+d.cy;for(const n of d.notes)if(hitCtx.isPointInPath(n.p2,xs,ys))return n;
+  hitCtx.lineWidth=d.r*.036;for(const n of d.notes)if(hitCtx.isPointInStroke(n.p2,xs,ys))return n;return null}   // a hair onto the groove still counts
 function track(s,world,dt){
-  local.copy(world);pan.worldToLocal(local);
-  const r=Math.hypot(local.x,local.z),d=local.y-(r<RS?h(r):0)-.012;   // the tip's height above the steel (its radius taken off)
-  const prev=s.prev;s.prev={x:local.x,y:local.y,z:local.z,d};
-  if(d>.012)s.armed=true;                                               // lifted off: ready for the next hit
-  if(!prev||!s.armed||r>RS||!(prev.d>0&&d<=0))return null;
-  const sp=Math.hypot(local.x-prev.x,local.y-prev.y,local.z-prev.z)/Math.max(dt,1e-3);
-  const n=noteAt(local.x,local.z);s.armed=false;if(!n)return null;
-  const v=Math.max(.12,Math.min(1,sp/3.2));                             // about 3 m/s is a full stroke
+  // the drum the tip is over (the nearest centre)
+  let best=null;for(const d of drums){local.copy(world);d.g.worldToLocal(local);const r=Math.hypot(local.x,local.z);if(!best||r<best.r)best={d,r,x:local.x,y:local.y,z:local.z}}
+  if(!best)return null;const {d,r}=best,dd=best.y-(r<RS?h(r):0)-.012;   // the tip's height above the steel (its radius taken off)
+  const prev=s.prev&&s.prev.d===d?s.prev:null;s.prev={d,x:best.x,y:best.y,z:best.z,dd};
+  if(dd>.012)s.armed=true;                                               // lifted off: ready for the next hit
+  if(!prev||!s.armed||r>RS||!(prev.dd>0&&dd<=0))return null;
+  const sp=Math.hypot(best.x-prev.x,best.y-prev.y,best.z-prev.z)/Math.max(dt,1e-3);
+  const n=noteAt(d,best.x,best.z);s.armed=false;if(!n)return null;
+  const v=Math.max(.12,Math.min(1,sp/3.2));                              // about 3 m/s is a full stroke
   strike(n.id,v);n.lit=1;
   try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}
   return n.id;
 }
 
-/* ---------- moving the pan to you ---------- */
+/* ---------- moving the pans to you ---------- */
 const head=new THREE.Vector3(),fwd=new THREE.Vector3();
 function bringPan(){const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
-  if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();pan.position.set(head.x+fwd.x*.48,Math.max(.55,head.y-.66),head.z+fwd.z*.48);pan.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
+  if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='guitar'?.5:.48;
+  rig.position.set(head.x+fwd.x*dist,Math.max(.55,head.y-.66),head.z+fwd.z*dist);rig.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
 let placed=false;const pressed=new Map();
+const edge=(key,on)=>{const was=pressed.get(key);pressed.set(key,on);return on&&!was};
+function nextSet(){setKey=setKey==='tenor'?'guitar':'tenor';LSset('set',setKey);buildPans();renderSeg()}
+function nextLook(){const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+1)%ks.length];LSset('look',lookKey);applyLook()}
 
 /* ---------- each frame ---------- */
 let last=performance.now();const tipW=new THREE.Vector3();
@@ -180,11 +225,13 @@ renderer.setAnimationLoop((now,frame)=>{
   if(renderer.xr.isPresenting){
     if(!placed&&frame){placed=true;bringPan()}
     for(const s of sticks){if(!s.src){s.prev=null;continue}s.tip.getWorldPosition(tipW);track(s,tipW,dt);
-      const gp=s.src.gamepad;if(!gp)continue;const key=s.src.handedness;
-      const ab=gp.buttons[4]&&gp.buttons[4].pressed;if(ab&&!pressed.get(key))bringPan();pressed.set(key,ab);
-      const y=gp.axes[3]||0;if(Math.abs(y)>.25)pan.position.y=Math.max(.45,Math.min(1.5,pan.position.y-y*dt*.35))}
+      const gp=s.src.gamepad;if(!gp)continue;const hd=s.src.handedness,B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
+      if(edge(hd+'a',B(4)))bringPan();
+      if(edge(hd+'b',B(5)))nextSet();
+      if(edge(hd+'s',B(3)))nextLook();
+      const y=gp.axes[3]||0;if(Math.abs(y)>.25)rig.position.y=Math.max(.45,Math.min(1.5,rig.position.y-y*dt*.35))}
   }
-  for(const n of notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.55*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
+  for(const d of drums)for(const n of d.notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.6*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
   standFollow();renderer.render(scene,camera);
 });
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
@@ -192,18 +239,25 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 /* ---------- off the headset: tap the notes ---------- */
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown',e=>{audio();mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mouse,camera);
-  const hit=ray.intersectObject(pan.children[0])[0];if(!hit)return;local.copy(hit.point);pan.worldToLocal(local);const n=noteAt(local.x,local.z);if(n){strike(n.id,.8);n.lit=1}});
+  for(const d of drums){const hit=ray.intersectObject(d.dish)[0];if(!hit)continue;local.copy(hit.point);d.g.worldToLocal(local);const n=noteAt(d,local.x,local.z);if(n){strike(n.id,.8);n.lit=1}return}});
+
+/* ---------- the pickers ---------- */
+function renderSeg(){document.querySelectorAll('#setSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.set===setKey)))}
+document.querySelectorAll('#setSeg button').forEach(b=>b.onclick=()=>{setKey=b.dataset.set;LSset('set',setKey);buildPans();renderSeg()});
+document.querySelectorAll('#lookSeg button').forEach(b=>b.onclick=()=>{lookKey=b.dataset.look;LSset('look',lookKey);applyLook()});
 
 /* ---------- going into VR (or into your own room, with the headset's cameras) ---------- */
+let inRoom=false;
 async function enter(mode){
   audio();if(ac.state==='suspended')await ac.resume();
   try{const sess=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','bounded-floor']});
-    const room=mode==='immersive-ar';scene.background=room?null:BG;env.forEach(o=>o.visible=!room);
+    inRoom=mode==='immersive-ar';sky.visible=floor.visible=!inRoom;flag.visible=!inRoom&&LOOKS[lookKey].flag;
     renderer.xr.setReferenceSpaceType('local-floor');await renderer.xr.setSession(sess);placed=false;$('hud').hidden=true;
-    sess.addEventListener('end',()=>{$('hud').hidden=false;scene.background=BG;env.forEach(o=>o.visible=true)})}
+    sess.addEventListener('end',()=>{inRoom=false;$('hud').hidden=false;sky.visible=floor.visible=true;applyLook()})}
   catch(e){console.warn(e);$('status').textContent='The headset didn’t start: '+(e.message||e)}
 }
 $('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immersive-ar');
+renderSeg();applyLook();
 (async()=>{
   const xr=navigator.xr;let vr=false,ar=false;
   if(xr){try{vr=await xr.isSessionSupported('immersive-vr')}catch{}try{ar=await xr.isSessionSupported('immersive-ar')}catch{}}
@@ -213,14 +267,17 @@ $('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immer
 })();
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
-const VR=window.VR={hits:[],notes:()=>notes.map(n=>n.id),ready:()=>Object.keys(buf).length,strike,noteAt:(id)=>{const n=notes.find(x=>x.id===id);const m=noteAt((n.x-500)*S,(n.y-500)*S);return m&&m.id},
-  swing(id,speed){const n=notes.find(x=>x.id===id),s=makeStick(),x=(n.x-500)*S,z=(n.y-500)*S,y=h(Math.hypot(x,z));const dt=1/72,step=speed*dt;
-    let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(x,y+.012+k*step,z);pan.localToWorld(w);out=track(s,w,dt)||out}return out},
-  // two sticks held over the pan, for a picture off the headset
-  demo(){[[-.12,.16,-.1,-.25],[.13,.11,.02,.2]].forEach(([x,y,z,yaw])=>{const s=makeStick(),g=new THREE.Group();g.add(s.piv);g.position.set(x,y,z);g.rotation.set(.75,yaw,0);
-    const w=new THREE.Vector3();pan.localToWorld(w.set(x,y,z));g.position.copy(w);g.position.z+=.25;scene.add(g)})},
-  screenOf(id){const n=notes.find(x=>x.id===id),x=(n.x-500)*S,z=(n.y-500)*S,w=new THREE.Vector3(x,h(Math.hypot(x,z)),z);pan.localToWorld(w);w.project(camera);return [(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight]},
-  bring:bringPan,pan,camera};
+const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
+const VR=window.VR={hits:[],ready:()=>Object.keys(buf).length,strike,
+  notes:()=>drums.flatMap(d=>d.notes.map(n=>n.id)),
+  noteAt(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),m=noteAt(d,(n.x-d.cx)*d.S,(n.y-d.cy)*d.S);return m&&m.id},
+  swing(id,speed){const d=drumOf(id),n=d.notes.find(x=>x.id===id),s=makeStick(),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,y=h(Math.hypot(x,z));const dt=1/72,step=speed*dt;
+    let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(x,y+.012+k*step,z);d.g.localToWorld(w);out=track(s,w,dt)||out}return out},
+  screenOf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,w=new THREE.Vector3(x,h(Math.hypot(x,z)),z);d.g.localToWorld(w);w.project(camera);return [(w.x+1)/2*innerWidth,(1-w.y)/2*innerHeight]},
+  // two sticks held over the pans, for a picture off the headset
+  demo(){[[-.16,.16,-.1,-.25],[.17,.11,.02,.2]].forEach(([x,y,z,yaw])=>{const s=makeStick(),g=new THREE.Group();g.add(s.piv);const w=new THREE.Vector3(x,y,z);rig.localToWorld(w);g.position.copy(w);g.position.z+=.25;g.rotation.set(.75,yaw,0);scene.add(g)})},
+  set:k=>{setKey=k;buildPans();renderSeg()},look:k=>{lookKey=k;applyLook()},state:()=>({set:setKey,look:lookKey,drums:drums.length}),nextSet,nextLook,
+  bring:bringPan,rig,camera};
 </script>
 </body>
 </html>

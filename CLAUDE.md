@@ -204,11 +204,14 @@ upright count is low because a checklist pushes the pans below the play bar ther
   localStorage `panyard-bandtone`, wrapping `BAND.chain`: `BAND.BODY` at Drum body 6, and `STUDIO.TONE`/`SHELF`), with
   Settings switches, ▶ Hear the difference and a one-time introduction. Test with `tbandmix`.
 - **Panyard VR** (`/pan-notes/vr/`, Quest 3S browser, WebXR): `python3 source/make_vr.py` builds `vr/` from
-  `source/panyard-vr.html` (the tenor's notes put in from `pansets.js` with node) and three.js 0.160 in `source/vr-lib/`
+  `source/panyard-vr.html` (`SETS`: the tenor from `pansets.js` and the Double Guitar's `PANS`/`PITCH` from `pan-notes.html`, read with node;
+  each drum keeps its own drawing frame `cx, cy, r`; `PANSET` has each set's skirt, hum, tone and where its drums stand) and three.js 0.160 in `source/vr-lib/`
   (the CDNs are blocked here, so it's kept in the repo). The sounds are Panyard Band's (`../band/band-sounds/`, A 441, Drum
   body hum and Suggested tone baked into `strike()`). A hit is the stick tip (`makeStick`, on each controller grip)
   crossing down through the bowl (`h(r)`, pan-local) over a note (`noteAt`: canvas `isPointInPath` on the note's SVG path,
   a hair onto the groove counts); swing speed sets the strength (about 3 m/s full), a haptic pulse answers, and the stick
   must lift 12 mm before it hits again. A / X brings the pan in front of you, the thumbstick moves it up or down; "Play in
-  my room" is passthrough (immersive-ar). Off the headset a tap plays a note. Test with `tvr` (`VR.swing`).
+  my room" is passthrough (immersive-ar). B / Y switches pans, a thumbstick press the look (`LOOKS`: Chrome and the three
+  Vincy Mas backgrounds' skirt, rim and hit colours, a sky, a floor and the SVG flag); both are kept in localStorage
+  `panyard-vr-set` / `-look`. Off the headset a tap plays a note. Test with `tvr` (`VR.swing`).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
