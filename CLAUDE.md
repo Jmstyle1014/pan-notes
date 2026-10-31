@@ -256,6 +256,11 @@ upright count is low because a checklist pushes the pans below the play bar ther
   second and tenor red, kit wooden; held pointing forward and a touch down (`STICK_TILT`). **Bounce:** hits use the hand's
   real tip; then `bounce()` bends the stick back from the hand until its tip rests on the steel (`sinkOf`) and a hit
   flicks it up (`kickBack`). Test with `tvrpans` (`VR.pushStick`).
+  **Stick shapes** (after the owner's stick kit, `steelpan-sticks.mjs`, from the same photo): flat lathed rubber caps wider
+  than the wood (`capGeo`, `cr`/`ch` in `STICKS`, tenor 11 mm … cello 15 mm), the basses' oval ribbed blue heads (`ball` 41 mm,
+  a seam, `ribTex`), a rounded butt and grained beech (`woodMat`); the rubber sits on its own pivot (`s.cap`) and squashes on
+  a hit (`squash()`, after `kickBack`), the hit itself unchanged. Tenor caps red or black (page switch, localStorage
+  `panyard-vr-tenorcap`). Test with `tvrsticks`.
   **Just play:** 🗋 New song (an ↶ Undo away) and "Put the table away" sit on the screen's bottom row when no note is
   picked; `showTable()` hides the table, stops the music and the click (localStorage `panyard-vr-studio`); holding A / X
   a second (a tap still brings the pans) or the page's Studio table switch brings it back. The trigger only kicks on the
@@ -282,4 +287,19 @@ upright count is low because a checklist pushes the pans below the play bar ther
   (`[{id, title, at, song}]`, newest first); `SONG.sid` is the saved song it came from, so 💾 Save updates it and ＋ Save as
   new adds one (`freeTitle`: Song 1, Song 2…). Open (`openMine`, an ↶ Undo away), 🗑 (press twice), and off the headset
   rename, ⬇ a file (`format:'panyard-vr-song'`) and Open a song file (a new song). Test with `tvrlift`.
+  **The pan yard** (the default; menu/page "Where you play": Pan yard / One pan, localStorage `panyard-vr-yard`): every pan
+  set in the song (plus where you are, and pans you went to, `SHOWN`) is a **station** (`STN`: `{key, g, lift, drums, bus,
+  label}`, `buildStation`/`dropStation`/`syncStations`) round a circle under the galvanize (`shed`; `YANG` degrees from the
+  front, radius `YR` 4 m), each `g` turned so you stand outside it (`spotOf`: 0.5 m behind) facing the middle. One pan is a
+  single station whose `g` is the old `rig`. `drums` holds every station's drums (hits, bounce, rim grabs, lift all work per
+  drum; `d.st`, `d.set`, `d.i`); `setKey` is the station you're at (`arrive()`: its sticks, its track selected, the table and
+  sign moved to it by `hereStation`). Moving: `PL` (x, z, yaw) is applied as an offset reference space (`applyPlayer`,
+  `baseRef` from `enter()`); thumbstick forward aims an arc (`aimFrom`, `landing` snaps to a station's spot), let go to
+  teleport; left/right snap turns 45°; walking near a station (`walkCheck`) arrives too; B/Y and the menu's ◀ ▶ go to the
+  next station. ● Rec records the track for the pans you're at, and only their notes (`recHit`). **Surround:** each station
+  has an HRTF `PannerNode` bus (`busOf`/`placeBus`), tracks route there (`chan`, `routeAll`), the listener follows your head
+  (`listen`); Even mix (`EVEN`, localStorage `panyard-vr-even`, on) is rolloff 0.3, off is 1. 🗋 New song asks which pans
+  (`PICK='song'`, `PSEL`, Put them out → `pansOut`); `songChanged()` re-syncs after undo, delete, open, Drive import.
+  **Kids mode** (`KIDS`, localStorage `panyard-vr-kids`): the yard with `KIDSETS`, no table, a simple menu. Test with `tvryard`
+  (the older VR tests pin One pan with `panyard-vr-yard` = 0).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

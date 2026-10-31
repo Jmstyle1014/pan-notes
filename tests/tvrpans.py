@@ -18,6 +18,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required','--use-gl=swiftshader','--enable-unsafe-swiftshader'])
     pg=b.new_page(viewport={'width':1100,'height':760});errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.route('https://pan.test/**',route)
+    pg.add_init_script("try{localStorage.setItem('panyard-vr-yard','0')}catch(e){}")  # these test the one-pan layout (tvryard tests the yard)
     pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=125&&VR.drums()>0",timeout=90000)
     check(pg.evaluate("VR.ready()")==125,'all the band\'s 125 recorded notes are loaded')
     pg.evaluate("document.getElementById('hud').hidden=true")

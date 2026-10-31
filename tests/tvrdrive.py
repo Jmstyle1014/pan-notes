@@ -36,6 +36,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required','--use-gl=swiftshader','--enable-unsafe-swiftshader'])
     pg=b.new_page(viewport={'width':900,'height':700});errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.route('**/*',route)
+    pg.add_init_script("try{localStorage.setItem('panyard-vr-yard','0')}catch(e){}")  # these test the one-pan layout (tvryard tests the yard)
     pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=79&&VR.drums()>0",timeout=60000)
     pg.click('#gdGo');pg.wait_for_selector('[data-gd]',timeout=15000)
     names=pg.eval_on_selector_all('[data-gd]','b=>b.map(x=>x.textContent)')

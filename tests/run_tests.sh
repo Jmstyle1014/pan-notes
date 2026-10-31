@@ -11,7 +11,7 @@ mkdir -p "$WORK/rt" "$WORK/pass" "$WORK/lk" && cp -r "$HERE/fixtures/." "$WORK/"
 cd "$WORK"
 # name and the arguments it takes
 ALL=(
-  "tlooks" "tcloud" "tpass" "tguide" "rt" "tfloat" "ttw" "tband" "ttt" "tfirst" "tscreens" "tnotes" "tarrange" "tshare" "trot" "tyard" "tstageside" "tsafeopen" "tnewpans" "tcovers" "tbody" "treal" "tgrid" "tpart" "tmerge" "tstagepans" "ttone" "tvincy" "tphone" "tsteel" "tsteelfit" "tsteeltrack" "tbandapp" "tbandmix" "tvr" "tvrdrive" "tvredit" "tvrpans" "tvrlift" "tgb" "tgame" "tlook" "trole" "tparts" "tkit" "tmodes" "tlite"
+  "tlooks" "tcloud" "tpass" "tguide" "rt" "tfloat" "ttw" "tband" "ttt" "tfirst" "tscreens" "tnotes" "tarrange" "tshare" "trot" "tyard" "tstageside" "tsafeopen" "tnewpans" "tcovers" "tbody" "treal" "tgrid" "tpart" "tmerge" "tstagepans" "ttone" "tvincy" "tphone" "tsteel" "tsteelfit" "tsteeltrack" "tbandapp" "tbandmix" "tvr" "tvrdrive" "tvredit" "tvrpans" "tvrlift" "tvryard" "tvrsticks" "tgb" "tgame" "tlook" "trole" "tparts" "tkit" "tmodes" "tlite"
   "tbackup $APP" "twb $APP" "tmetro $APP" "tsets $APP pq" "ttune $APP" "tstage $APP pq guitar,tenor"
   "tspk" "ttapload $APP 6" "tlate $APP"
 )
