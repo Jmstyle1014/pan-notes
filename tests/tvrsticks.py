@@ -32,6 +32,15 @@ with sync_playwright() as p:
     pg.evaluate("VR.set('tenor')");pg.click('#capSeg [data-cap=black]');check(pg.evaluate("localStorage.getItem('panyard-vr-tenorcap')")=='black','Tenor caps: black is kept')
     pg.click('#capSeg [data-cap=red]')
     pg.evaluate("document.getElementById('hud').hidden=true;VR.lineup()");pg.wait_for_timeout(700);pg.screenshot(path=D+'sticks.png')
+    # notes to the rim: the outer notes come within about 1.4 cm of the rim (half the drawing's gap), and still play
+    pg.evaluate("VR.lineup&&VR.scene.remove(VR.scene.getObjectByName('lineup'));VR.set('tenor');VR.view('pans');VR.camera.position.set(0,1.45,-.12);VR.camera.lookAt(0,.9,-.5)")
+    g1=pg.evaluate("VR.rimGap()");pg.wait_for_timeout(600);pg.screenshot(path=D+'notes-close.png')
+    pg.evaluate("VR.setFill(false);VR.camera.position.set(0,1.45,-.12);VR.camera.lookAt(0,.9,-.5)");g0=pg.evaluate("VR.rimGap()");pg.wait_for_timeout(600);pg.screenshot(path=D+'notes-as-drawn.png')
+    check(g0[0]>2.5 and 1.2<g1[0]<1.5,f'tenor: the gap to the rim goes from {g0[0]} cm to {g1[0]} cm')
+    pg.evaluate("VR.setFill(true)");ids=pg.evaluate("VR.notes()");bad=[i for i in ids if pg.evaluate(f"VR.swing('{i}',2.5)")!=i or pg.evaluate(f"VR.noteAt('{i}')")!=i]
+    check(not bad,f'every tenor note is still found where it\'s drawn and plays ({len(ids)} notes, bad {bad})')
+    for k in ['dsec','guitar']:
+        pg.evaluate(f"VR.set('{k}')");g=pg.evaluate("VR.rimGap()");check(all(1.2<x<1.5 for x in g),f'{k}: its drums too {g}')
     check(not errs,'no page errors '+str(errs[:3]))
     b.close()
 print('PASS' if not fails else 'FAILED: '+'; '.join(fails));sys.exit(1 if fails else 0)

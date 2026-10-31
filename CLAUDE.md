@@ -261,6 +261,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   a seam, `ribTex`), a rounded butt and grained beech (`woodMat`); the rubber sits on its own pivot (`s.cap`) and squashes on
   a hit (`squash()`, after `kickBack`), the hit itself unchanged. Tenor caps red or black (page switch, localStorage
   `panyard-vr-tenorcap`). Test with `tvrsticks`.
+  **Notes to the rim** (page switch, localStorage `panyard-vr-notefill`, on): each drum's notes scale out until the outermost
+  sits `FILLTO` (1.35 cm) from the rim, half the drawings' gap (tenor 2.7 cm); `outerOf()` measures the paths, `d.S` takes the
+  larger scale, so hits, grooves and glows all follow. Off: `SURF` as drawn. Test in `tvrsticks` (`VR.rimGap`).
   **Just play:** 🗋 New song (an ↶ Undo away) and "Put the table away" sit on the screen's bottom row when no note is
   picked; `showTable()` hides the table, stops the music and the click (localStorage `panyard-vr-studio`); holding A / X
   a second (a tap still brings the pans) or the page's Studio table switch brings it back. The trigger only kicks on the
