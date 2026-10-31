@@ -944,7 +944,7 @@ const head=new THREE.Vector3(),fwd=new THREE.Vector3();
 function bringPan(){if(inYard())return goTo(STN.has(setKey)?setKey:[...STN.keys()][0]);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
   if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='tenor'?.48:setKey==='kit'?.45:PANSET[setKey]&&!PANSET[setKey].place?.48:.5;
   rig.position.set(head.x+fwd.x*dist,Math.max(.55,head.y-.66),head.z+fwd.z*dist);rig.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
-let placed=false;const pressed=new Map();
+let placed=false,placeN=0;const pressed=new Map();
 const edge=(key,on)=>{const was=pressed.get(key);pressed.set(key,on);return on&&!was};
 function nextSet(d){d=d||1;if(inYard()){const ks=[...STN.keys()].sort((a,b)=>YANG[a]-YANG[b]),i=ks.indexOf(setKey);return goTo(ks[(i+d+ks.length)%ks.length])}
   useSet(KEYS[(KEYS.indexOf(setKey)+d+KEYS.length)%KEYS.length])}
@@ -970,7 +970,7 @@ function headNow(){if(!renderer.xr.isPresenting&&inYard())return {p:new THREE.Ve
 // put your head at (x, z), facing yaw (or as you are)
 function teleport(x,z,yaw){if(!renderer.xr.isPresenting){PL.x=x;PL.z=z;if(yaw!=null)PL.yaw=yaw;applyPlayer();return}
   const h=headNow(),Y=yaw==null?PL.yaw:PL.yaw+(yaw-h.yaw),room=h.p.clone().sub(new THREE.Vector3(PL.x,0,PL.z)).applyAxisAngle(UPV,-PL.yaw);room.y=0;
-  const t=new THREE.Vector3(x,0,z).sub(room.applyAxisAngle(UPV,Y));PL.x=t.x;PL.z=t.z;PL.yaw=Y;applyPlayer()}
+  const t=new THREE.Vector3(x,0,z).sub(room.applyAxisAngle(UPV,Y));PL.x=t.x;PL.z=t.z;PL.yaw=Y;walkHold=performance.now()+400;applyPlayer()}
 function snapTurn(dir){const h=headNow();teleport(h.p.x,h.p.z,h.yaw+dir*Math.PI/4)}
 // a station's spot: half a metre behind its pans (outside the circle), facing them
 function spotOf(st){const p=new THREE.Vector3(0,0,.5);st.g.localToWorld(p);return {x:p.x,z:p.z,yaw:st.g.rotation.y}}
@@ -979,7 +979,8 @@ function arrive(k,quiet){if(!STN.has(k))return;const was=setKey;setKey=k;LSset('
   if(!KIDS&&TR.state!=='rec'){const i=SONG.tracks.findIndex(t=>!t.rec&&t.set===k);if(i>=0)SONG.sel=i}
   if(was!==k&&!quiet)msg(setName(k)+(KIDS?'':' · ● Rec records here'));dirty=true}
 // walking: the station whose spot (or pans) you're nearest, within a metre or so, is where you are
-function walkCheck(p){if(!inYard())return;let best=null,bd=1e9;for(const st of STN.values()){const sp=spotOf(st),d=Math.hypot(p.x-sp.x,p.z-sp.z);if(d<bd){bd=d;best=st}}
+let walkHold=0;   // just after a jump, the headset still reports the old place for a frame or two
+function walkCheck(p){if(!inYard()||performance.now()<walkHold)return;let best=null,bd=1e9;for(const st of STN.values()){const sp=spotOf(st),d=Math.hypot(p.x-sp.x,p.z-sp.z);if(d<bd){bd=d;best=st}}
   if(best&&bd<1.1&&best.key!==setKey)arrive(best.key)}
 // the arc: from the controller, thrown at 6.5 m/s, falling; where it lands (snapped to a station when near one)
 const arcLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({length:40},()=>new THREE.Vector3())),new THREE.LineBasicMaterial({color:'#7ee08a'}));arcLine.visible=false;arcLine.frustumCulled=false;scene.add(arcLine);
@@ -1003,7 +1004,7 @@ let last=performance.now();const tipW=new THREE.Vector3();
 renderer.setAnimationLoop((now,frame)=>{
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(renderer.xr.isPresenting){
-    if(!placed&&frame){placed=true;bringPan()}
+    if(!placed&&frame&&++placeN>5){placed=true;bringPan()}   // a few frames in, so the headset knows where your head is
     for(const s of sticks){if(!s.src){s.prev=null;continue}s.piv.rotation.x=STICK_TILT;s.piv.updateMatrixWorld(true);s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackKit(s,tipW,dt);bounce(s,dt);
       const gp=s.src.gamepad;if(!gp)continue;const hd=s.src.handedness,B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
       {const a=B(4),k=hd+'a',t0=pressed.get(k+'t');if(a&&!t0){pressed.set(k+'t',now);pressed.set(k+'l',false)}
@@ -1056,7 +1057,7 @@ async function enter(mode){
   audio();if(ac.state==='suspended')await ac.resume();
   try{const sess=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','bounded-floor']});
     inRoom=mode==='immersive-ar';sky.visible=floor.visible=!inRoom;flag.visible=!inRoom&&LOOKS[lookKey].flag;
-    renderer.xr.setReferenceSpaceType('local-floor');renderer.xr.setReferenceSpace(null);await renderer.xr.setSession(sess);baseRef=renderer.xr.getReferenceSpace();placed=false;$('hud').hidden=true;shed.visible=inYard()&&!inRoom;
+    renderer.xr.setReferenceSpaceType('local-floor');renderer.xr.setReferenceSpace(null);await renderer.xr.setSession(sess);baseRef=renderer.xr.getReferenceSpace();placed=false;placeN=0;$('hud').hidden=true;shed.visible=inYard()&&!inRoom;
     sess.addEventListener('end',()=>{baseRef=null;renderer.xr.setReferenceSpace(null);inRoom=false;$('hud').hidden=false;sky.visible=floor.visible=true;applyLook()})}
   catch(e){console.warn(e);$('status').textContent='The headset didn’t start: '+(e.message||e)}
 }
