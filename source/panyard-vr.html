@@ -44,6 +44,7 @@ canvas{display:block}
   <div class="seg" id="optSeg"><button data-opt="hum">Drum body hum</button><button data-opt="tone">Bass &amp; treble for each pan</button></div>
   <div class="lab">Sticks</div>
   <div class="seg" id="lenSeg"><button data-len="short">Short</button><button data-len="medium">Medium</button><button data-len="long">Long</button></div>
+  <div class="seg" id="capSeg" style="margin-top:8px"><button data-cap="red">Tenor caps: red</button><button data-cap="black">Tenor caps: black</button></div>
   <div class="lab">Studio table</div>
   <div class="seg" id="studioSeg"><button data-st="on">Out</button><button data-st="off">Put away (just play)</button></div>
   <div class="lab">Off the headset, look at</div>
@@ -291,29 +292,46 @@ function signFor(){return canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.8
 /* ---------- the sticks: each pan's own (the photo the owner sent), held like a pan stick ----------
    Basses: blue rubber balls; cellos: thick black rubber; guitar: tan; double second and tenor: thin, red. A drum kit gets
    wooden drumsticks. Held in the fist with the stick pointing forward and a touch down (the butt just behind the hand). */
+/* the shapes follow the owner's stick kit (steelpan-sticks.mjs, made from the same photo): flat rubber caps wider than
+   the stick with a rounded shoulder, turned on a lathe; the basses' oval blue heads with a seam round the middle and fine
+   ribs; a rounded butt; and the rubber squashing a little when it hits (the hit itself is unchanged). len: how much shows
+   past the hand; r: the wood; cr, ch: the cap's radius and height (or ball: the oval's radius). */
+let TENORCAP=LS('tenorcap')==='black'?'black':'red';   // the photo has tenor sticks with red and with black caps
 const STICKS={
-  tenor:{len:.145,r:.0048,tip:'#c8102e',tr:.0075,tl:.022},dten:{len:.145,r:.0048,tip:'#c8102e',tr:.0075,tl:.022},
-  dsec:{len:.155,r:.0052,tip:'#c8102e',tr:.0082,tl:.024},guitar:{len:.165,r:.0058,tip:'#b98a52',tr:.0095,tl:.026},
-  fcello:{len:.18,r:.0062,tip:'#18191b',tr:.0115,tl:.028},tcello:{len:.18,r:.0062,tip:'#18191b',tr:.0115,tl:.028},
-  six:{len:.22,r:.0065,ball:.034,tip:'#3f6fd8'},seven:{len:.22,r:.0065,ball:.034,tip:'#3f6fd8'},
-  kit:{len:.32,r:.0068,tip:'#d9b98a',tr:.0068,tl:.012,wood:1}};
+  tenor:{len:.145,r:.0065,tip:'#d63752',cr:.011,ch:.015},dten:{len:.145,r:.0065,tip:'#d63752',cr:.011,ch:.015},
+  dsec:{len:.155,r:.007,tip:'#d63752',cr:.012,ch:.016},guitar:{len:.165,r:.0075,tip:'#b67c43',cr:.013,ch:.02},
+  fcello:{len:.18,r:.0075,tip:'#161b20',cr:.015,ch:.025},tcello:{len:.18,r:.0075,tip:'#161b20',cr:.015,ch:.025},
+  six:{len:.22,r:.008,ball:.041,tip:'#368dd2'},seven:{len:.22,r:.008,ball:.041,tip:'#368dd2'},
+  kit:{len:.32,r:.0068,tip:'#d9b98a',cr:.0068,ch:.012,wood:1}};
 const STICK_TILT=-.22;
 const STICKLEN={short:.8,medium:1,long:1.2};let stickLen=STICKLEN[LS('sticklen')]?LS('sticklen'):'medium';   // radians: pointing forward and a touch down, as in the hand
-const woodMat=new THREE.MeshStandardMaterial({color:'#d8b27a',roughness:.55});
-function makeStick(kind){const k=STICKS[kind||setKey]||STICKS.tenor,piv=new THREE.Group();piv.rotation.x=STICK_TILT;
+// the wood: pale beech with a faint grain along the stick
+const woodMat=new THREE.MeshStandardMaterial({color:'#f2d6ab',roughness:.62,map:canvasTex(32,256,(g,w,hh)=>{g.fillStyle='#f4e2c4';g.fillRect(0,0,w,hh);
+  for(let k=0;k<14;k++){g.strokeStyle='rgba(150,105,55,'+(.05+Math.random()*.1)+')';g.lineWidth=.6+Math.random()*1.4;const x=Math.random()*w;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+3,hh*.3,x-3,hh*.7,x+1,hh);g.stroke()}})});
+// the bass heads' fine ribs, as in the photo
+const ribTex=canvasTex(256,64,(g,w,hh)=>{g.fillStyle='#fff';g.fillRect(0,0,w,hh);for(let x=0;x<w;x+=4){g.fillStyle='rgba(0,0,0,.16)';g.fillRect(x,0,1.6,hh)}});
+ribTex.wrapS=THREE.RepeatWrapping;ribTex.repeat.set(3,1);
+function capGeo(r,h){return new THREE.LatheGeometry([new THREE.Vector2(0,-h/2),new THREE.Vector2(r*.92,-h/2),new THREE.Vector2(r,-h*.4),new THREE.Vector2(r,h*.36),
+  new THREE.Vector2(r*.96,h*.48),new THREE.Vector2(r*.84,h/2),new THREE.Vector2(0,h/2)],28)}
+function makeStick(kind){kind=kind||setKey;const k=STICKS[kind]||STICKS.tenor,piv=new THREE.Group();piv.rotation.x=STICK_TILT;
+  const col=(kind==='tenor'||kind==='dten')&&TENORCAP==='black'?'#171b22':k.tip;
   const L=k.len*STICKLEN[stickLen],butt=.02;   // how much shows past the hand (a touch is behind it)
-  const wood=new THREE.Mesh(new THREE.CylinderGeometry(k.r,k.r*1.08,L+butt,12),woodMat);wood.rotation.x=Math.PI/2;wood.position.z=-(L-butt)/2;piv.add(wood);
-  let tip,R;
-  if(k.ball){R=k.ball;tip=new THREE.Mesh(new THREE.SphereGeometry(R,24,16),new THREE.MeshStandardMaterial({color:k.tip,roughness:.75}));tip.position.z=-L-R*.8;piv.add(tip)}
-  else{R=k.tr;const mat=new THREE.MeshStandardMaterial({color:k.tip,roughness:k.wood?.5:.85});
-    const sl=new THREE.Mesh(new THREE.CylinderGeometry(R,R,k.tl,16),mat);sl.rotation.x=Math.PI/2;sl.position.z=-L+k.tl/2;piv.add(sl);
-    tip=new THREE.Mesh(new THREE.SphereGeometry(R,16,10),mat);tip.position.z=-L;piv.add(tip)}
-  return {piv,tip,R,prev:null,armed:true,src:null,reb:0,kind:kind||setKey}}
+  const wood=new THREE.Mesh(new THREE.CylinderGeometry(k.r,k.r*1.04,L+butt,16),woodMat);wood.rotation.x=Math.PI/2;wood.position.z=-(L-butt)/2;piv.add(wood);
+  const end=new THREE.Mesh(new THREE.SphereGeometry(k.r*1.04,14,8),woodMat);end.scale.y=.55;end.rotation.x=Math.PI/2;end.position.z=butt;piv.add(end);   // the rounded butt
+  // the rubber: on its own pivot at the stick's end, so it can squash along the stick when it hits
+  const cap=new THREE.Group();cap.rotation.x=-Math.PI/2;cap.position.z=-L;piv.add(cap);let tip,R;
+  if(k.ball){R=k.ball;const mat=new THREE.MeshStandardMaterial({color:col,roughness:.85,map:ribTex});
+    const ball=new THREE.Mesh(new THREE.SphereGeometry(1,32,20),mat);ball.scale.set(R,R*1.02,R);ball.position.y=R*.8;cap.add(ball);
+    const seam=new THREE.Mesh(new THREE.TorusGeometry(R*1.004,.0007,6,48),new THREE.MeshStandardMaterial({color:col,roughness:.9}));seam.rotation.x=Math.PI/2;seam.position.y=R*.8;cap.add(seam);
+    tip=new THREE.Object3D();tip.position.z=-L-R*.8;piv.add(tip)}
+  else{R=k.cr;const mat=new THREE.MeshStandardMaterial({color:col,roughness:k.wood?.5:.9});const head=new THREE.Mesh(capGeo(k.cr,k.ch),mat);head.position.y=k.ch*.5-k.ch*.35;cap.add(head);
+    tip=new THREE.Object3D();tip.position.z=-L-k.ch*.15;piv.add(tip)}
+  return {piv,tip,R,cap,prev:null,armed:true,src:null,reb:0,sq:1,kind}}
 const sticks=[0,1].map(i=>{const grip=renderer.xr.getControllerGrip(i),s=makeStick();grip.add(s.piv);scene.add(grip);s.grip=grip;
   grip.addEventListener('connected',e=>{s.src=e.data});grip.addEventListener('disconnected',()=>{s.src=null;s.prev=null});return s});
 // the pans changed: each hand gets that pan's sticks
 function restick(force){for(const s of sticks){if(s.kind===setKey&&!force)continue;const n=makeStick();s.grip.remove(s.piv);s.piv.traverse(o=>{if(o.geometry)o.geometry.dispose()});
-  Object.assign(s,{piv:n.piv,tip:n.tip,R:n.R,kind:n.kind});s.grip.add(s.piv)}}
+  Object.assign(s,{piv:n.piv,tip:n.tip,R:n.R,cap:n.cap,sq:1,kind:n.kind});s.grip.add(s.piv)}}
 /* the bounce: the stick never goes into the steel (it bends back from the hand to rest on it), and after a hit it flicks
    up and comes back, as a stick does off a pan. The hit itself is found from where the hand really took the stick. */
 const bw=new THREE.Vector3(),bl=new THREE.Vector3();
@@ -325,7 +343,9 @@ function bounce(s,dt){s.reb=Math.max(0,s.reb-dt*5);const base=STICK_TILT+s.reb; 
   s.piv.rotation.x=base;s.piv.updateMatrixWorld(true);if(sinkOf(s)<=0)return 0;
   let lo=0,hi=1.4;for(let i=0;i<8;i++){const m=(lo+hi)/2;s.piv.rotation.x=base+m;s.piv.updateMatrixWorld(true);if(sinkOf(s)>0)lo=m;else hi=m}
   s.piv.rotation.x=base+hi;s.piv.updateMatrixWorld(true);return hi}
-function kickBack(s,v){s.reb=s.rebMax=.18+.3*v}
+function kickBack(s,v){s.reb=s.rebMax=.18+.3*v;s.sq=0;s.sqA=Math.max(.15,Math.min(1,v))*(STICKS[s.kind]&&STICKS[s.kind].ball?.13:.08)}
+function squash(s,dt){if(!s.cap||s.sq>=1)return;s.sq=Math.min(1,s.sq+dt/.115);const t=s.sq,c=t<.28?Math.sin(t/.28*Math.PI/2):t<.8?Math.cos((t-.28)/.52*Math.PI/2):-.1*Math.sin((t-.8)/.2*Math.PI);
+  const y=1-s.sqA*c;s.cap.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));if(t>=1)s.cap.scale.set(1,1,1)}
 
 /* ---------- a hit: the stick's tip crossing down through a bowl over a note ---------- */
 const local=new THREE.Vector3();
@@ -1005,7 +1025,7 @@ renderer.setAnimationLoop((now,frame)=>{
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(renderer.xr.isPresenting){
     if(!placed&&frame&&++placeN>5){placed=true;bringPan()}   // a few frames in, so the headset knows where your head is
-    for(const s of sticks){if(!s.src){s.prev=null;continue}s.piv.rotation.x=STICK_TILT;s.piv.updateMatrixWorld(true);s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackKit(s,tipW,dt);bounce(s,dt);
+    for(const s of sticks){if(!s.src){s.prev=null;continue}s.piv.rotation.x=STICK_TILT;s.piv.updateMatrixWorld(true);s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackKit(s,tipW,dt);bounce(s,dt);squash(s,dt);
       const gp=s.src.gamepad;if(!gp)continue;const hd=s.src.handedness,B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
       {const a=B(4),k=hd+'a',t0=pressed.get(k+'t');if(a&&!t0){pressed.set(k+'t',now);pressed.set(k+'l',false)}
         else if(a&&t0&&!pressed.get(k+'l')&&now-t0>800){pressed.set(k+'l',true);if(!KIDS)showTable(!tableOn);try{gp.hapticActuators[0].pulse(.6,60)}catch{}}
@@ -1067,7 +1087,8 @@ document.querySelectorAll('#whereSeg button').forEach(b=>b.onclick=()=>setYard(b
 $('mineFile').onclick=()=>$('mineIn').click();
 $('mineIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const x=await openFile(f);$('status').textContent='Opened '+x.title+'.'}catch(err){$('status').textContent='That file couldn’t open: '+(err.message||err)}};
 showTable(tableOn);document.querySelectorAll('#optSeg [data-opt]').forEach(b=>{b.setAttribute('aria-pressed',String(OPT[b.dataset.opt]));b.onclick=()=>setOpt(b.dataset.opt,!OPT[b.dataset.opt])});
-const lenUI=()=>document.querySelectorAll('#lenSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.len===stickLen)));lenUI();
+const lenUI=()=>{document.querySelectorAll('#lenSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.len===stickLen)));document.querySelectorAll('#capSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cap===TENORCAP)))};lenUI();
+document.querySelectorAll('#capSeg button').forEach(b=>b.onclick=()=>{TENORCAP=b.dataset.cap;LSset('tenorcap',TENORCAP);restick(true);lenUI()});
 document.querySelectorAll('#lenSeg button').forEach(b=>b.onclick=()=>{stickLen=b.dataset.len;LSset('sticklen',stickLen);restick(true);lenUI()});document.querySelectorAll('#studioSeg button').forEach(b=>b.onclick=()=>showTable(b.dataset.st==='on'));
 (async()=>{
   const xr=navigator.xr;let vr=false,ar=false;
@@ -1110,6 +1131,13 @@ const VR=window.VR={hits:[],clicks:0,act,menu:on=>menuOpen(on),menuOn:()=>menu.m
   demo(){[[-.16,.16,-.1,-.25],[.17,.11,.02,.2]].forEach(([x,y,z,yaw])=>{const s=makeStick(),g=new THREE.Group();g.add(s.piv);const w=new THREE.Vector3(x,y,z);rig.localToWorld(w);g.position.copy(w);g.position.z+=.25;g.rotation.set(.75,yaw,0);scene.add(g)})},
   set:useSet,look:k=>{lookKey=k;applyLook()},state:()=>({set:setKey,look:lookKey,drums:drums.length}),nextSet,nextLook,
   bring:bringPan,rig,camera,
+  // every stick laid side by side in front of the camera, as in the owner's photo (left to right), for a picture
+  lineup(){const g=new THREE.Group();g.name='lineup';scene.add(g);const kinds=['six','fcello','guitar','dsec','tenor','tenor'];let x=-.33;
+    kinds.forEach((k,i)=>{const was=TENORCAP;if(i===5)TENORCAP=TENORCAP==='red'?'black':'red';for(let j=0;j<2;j++){const st=makeStick(k);st.piv.rotation.set(Math.PI/2,0,0);st.piv.position.set(x,0,0);g.add(st.piv);x+=STICKS[k].ball?.09:.045}TENORCAP=was;x+=.02});
+    g.position.set(0,1.7,-.2);g.rotation.x=-.5;camera.position.set(0,1.95,.38);camera.lookAt(0,1.72,-.22);return kinds.length*2},
+  stickShape(k){const s=makeStick(k);let lathe=0,oval=0;s.piv.traverse(o=>{if(o.geometry&&o.geometry.type==='LatheGeometry')lathe++;if(o.geometry&&o.geometry.type==='SphereGeometry'&&o.scale.x>.02&&o.scale.x<.2)oval++});return {R:s.R,lathe,oval}},
+  squashOf(k){const s=makeStick(k);kickBack(s,1);let lo=1;for(let i=0;i<20;i++){squash(s,1/72);lo=Math.min(lo,s.cap.scale.y)}return {lo:+lo.toFixed(3),end:s.cap.scale.toArray().map(v=>+v.toFixed(4))}},
+  tenorCap:c=>{TENORCAP=c;restick(true)},
   // both hands on the rims (drum i's left edge, drum j's right edge) lift the pans: moved by (dx, dy, dz) and the wrists
   // tilted by `tilt` (radians, the pans' near edge coming up to you); false if a hand isn't on a rim
   yard:setYard,kids:setKids,even:setEven,inYard,stations:()=>[...STN.values()].map(st=>{const c=new THREE.Vector3();st.g.getWorldPosition(c);return {k:st.key,drums:st.drums.length,at:[+c.x.toFixed(2),+c.z.toFixed(2)]}}),
