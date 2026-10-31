@@ -420,7 +420,18 @@ function record(noUndo){audio();if(ac.state==='suspended')ac.resume();
   if(t.set!==setKey&&KEYS.includes(t.set))useSet(t.set);
   TR.rec=t;if(TR.state==='play'){TR.state='rec'}else{startClock(true);TR.state='rec'}dirty=true}
 function select(i){if(!SONG.tracks[i])return;SONG.sel=i;const t=SONG.tracks[i];if(TR.state!=='rec'&&t.set!==setKey&&KEYS.includes(t.set))useSet(t.set);saveSong();dirty=true}
-function addTrack(){if(SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');snapUndo();SONG.tracks.push(newTrack(setKey));SONG.sel=SONG.tracks.length-1;saveSong();mixAll()}
+function addTrack(set){if(SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');set=KEYS.includes(set)?set:setKey;snapUndo();SONG.tracks.push(newTrack(set));SONG.sel=SONG.tracks.length-1;
+  if(set!==setKey&&TR.state!=='rec')useSet(set);saveSong();mixAll()}
+/* which pans: + Track (or a track's pan name on the desk) opens a chooser on the screen; an empty track can change its pans */
+let PICK=null;   // 'new', or the index of the track whose pans are changing
+function pickFor(w){if(w!=='new'){const t=SONG.tracks[w];if(!t||t.rec)return;if(t.notes.length)return msg(t.name+' already has notes on its pans: add a new track for other pans')}
+  if(w==='new'&&SONG.tracks.length>=MAXT)return msg('Eight tracks is the most');PICK=w;dirty=true}
+function picked(set){const w=PICK;PICK=null;if(w==='new')return addTrack(set);const t=SONG.tracks[w];if(!t)return;snapUndo();t.set=set;
+  t.name=setName(set)+(SONG.tracks.filter(x=>x!==t&&x.set===set).length?' '+(SONG.tracks.filter(x=>x.set===set).length):'');SONG.sel=w;if(TR.state!=='rec')useSet(set);saveSong();dirty=true}
+function drawPick(p,g){const x0=280,y0=170,w=1300,h=560;g.fillStyle='rgba(8,12,16,.94)';g.fillRect(x0,y0,w,h);g.strokeStyle='#f6ba45';g.lineWidth=3;g.strokeRect(x0,y0,w,h);
+  g.fillStyle='#f6ba45';g.font='700 38px system-ui,sans-serif';g.textAlign='left';g.fillText(PICK==='new'?'Which pans for the new track?':'Which pans for '+SONG.tracks[PICK].name+'?',x0+30,y0+58);
+  KEYS.forEach((k,i)=>btn(p,'pick:'+k,x0+30+(i%3)*415,y0+95+Math.floor(i/3)*130,395,110,setName(k),{fs:34,on:k===setKey}));
+  btn(p,'pickx',x0+w-200,y0+20,170,60,'Cancel',{fs:28})}
 function delTrack(i){const t=SONG.tracks[i];if(!t)return;if(TR.rec===t){TR.rec=null;TR.state='play'}snapUndo();SONG.tracks.splice(i,1);SONG.sel=Math.max(0,Math.min(SONG.sel,SONG.tracks.length-1));
   if(!SONG.tracks.length){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}saveSong();mixAll();msg('Deleted '+t.name+' (↶ Undo brings it back)')}
 function rerecord(i){const t=SONG.tracks[i];if(!t)return;if(t.rec||!KEYS.includes(t.set))return msg(t.rec?'The recording comes from Panyard':'Play this part on its own pans in Panyard');if(TR.state==='rec'){endRec();TR.state='play'}snapUndo();t.notes=[];SONG.sel=i;if(!hasNotes()){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}record(true)}
@@ -503,11 +514,12 @@ function drawScreen(){const p=scr,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.
         const b=Math.max(0,Math.round((px-TX0)/(TX1-TX0)*LB*4)/4);q.b=SONG.L?Math.min(b,SONG.L-.25):b;t.notes.sort((u,v)=>u.b-v.b)}})}g.globalAlpha=1});
   if(n<MAXT){const y=y1+6+n*lh;btn(p,'add',10,y+3,TX0-24,Math.min(lh-6,80),'+ New track',{fs:28})}
   g.fillStyle='#141a20';g.fillRect(0,EY-6,p.W,p.H-EY+6);drawEdit(p,g,EY);
+  if(PICK!==null){p.hits=[];drawPick(p,g)}
   p.LB=LB;p.tex.needsUpdate=true}
 function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRect(0,0,p.W,p.H);const SW=200;
   SONG.tracks.forEach((t,i)=>{const x=i*SW,sel=i===SONG.sel;g.fillStyle=sel?'#222b33':'#181d22';g.fillRect(x+4,4,SW-8,p.H-8);g.fillStyle=t.col;g.fillRect(x+4,4,SW-8,10);
-    g.fillStyle='#eef2f4';g.textAlign='center';g.font='700 26px system-ui,sans-serif';g.fillText(t.name.slice(0,12),x+SW/2,44);g.font='20px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.fillText(shortSet(t.set),x+SW/2,70);
-    p.hits.push({id:'lane:'+i,x:x+4,y:14,w:SW-8,h:68});
+    g.fillStyle='#eef2f4';g.textAlign='center';g.font='700 26px system-ui,sans-serif';g.fillText(t.name.slice(0,12),x+SW/2,44);g.font='20px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.fillText(shortSet(t.set)+(t.notes.length||t.rec?'':' ▾'),x+SW/2,70);
+    p.hits.push({id:'lane:'+i,x:x+4,y:14,w:SW-8,h:44});p.hits.push({id:'setof:'+i,x:x+4,y:52,w:SW-8,h:30});
     btn(p,'m:'+i,x+14,88,80,56,'M',{on:t.mute,oncol:'#ff9f43'});btn(p,'s:'+i,x+106,88,80,56,'S',{on:t.solo,oncol:'#5ad1ff'});
     // left / right: drag along the bar
     const px0=x+24,px1=x+SW-24,py=176;g.fillStyle='#2a323a';g.fillRect(px0,py-4,px1-px0,8);g.fillStyle='#eef2f4';g.beginPath();g.arc(px0+(px1-px0)*(t.pan+1)/2,py,14,0,7);g.fill();
@@ -523,7 +535,7 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
   p.tex.needsUpdate=true}
 function act(id){const [k,a]=id.split(':'),i=+a;
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
-    barsless:()=>bars(-1),barsmore:()=>bars(1),add:addTrack,
+    barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
     lane:()=>select(i),m:()=>{snapUndo();SONG.tracks[i].mute=!SONG.tracks[i].mute;saveSong();mixAll()},s:()=>{snapUndo();SONG.tracks[i].solo=!SONG.tracks[i].solo;saveSong();mixAll()},
     re:()=>rerecord(i),del:()=>delTrack(i),
     swing:cycleSwing,speed:cycleSpeed,tdo:()=>transpose(-12),td1:()=>transpose(-1),tu1:()=>transpose(1),tuo:()=>transpose(12),

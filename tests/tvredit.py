@@ -56,6 +56,11 @@ with sync_playwright() as p:
     check('tenor:62' in hs,'with swing on the off-beat note still plays')
     pg.evaluate("VR.act('speed')");check(pg.evaluate("VR.song().speed")==.75 and pg.evaluate("VR.song().bpm")==120,'Speed ¾ slows the practice, the song stays at ♩ 120')
     pg.screenshot(path=D+'2-edit-rows.png')
+    # + Track asks which pans; an empty track's pans can change, one with notes can't
+    pg.evaluate("VR.act('add')");check(pg.evaluate("VR.press('screen','pick:six')") and pg.evaluate("VR.song().tracks[2].set")=='six' and pg.evaluate("VR.state().set")=='six','+ Track → Six Bass: a six bass track, and the basses come out')
+    pg.evaluate("VR.act('setof:2')");pg.evaluate("VR.press('screen','pick:guitar')");check(pg.evaluate("VR.song().tracks[2].set")=='guitar' and pg.evaluate("VR.state().set")=='guitar','an empty track\'s pans can be changed from the desk')
+    pg.evaluate("VR.act('setof:0')");check(not pg.evaluate("VR.press('screen','pick:six')") and pg.evaluate("VR.song().tracks[0].set")=='tenor','a track with notes keeps its pans')
+    pg.evaluate("VR.act('add')");pg.evaluate("VR.view('table');document.getElementById('hud').hidden=true");pg.wait_for_timeout(500);pg.screenshot(path=D+'3-pick.png');pg.evaluate("VR.act('pickx');VR.act('del:2')")
     # a new song, then Undo; putting the table away stops the music, bringing it back
     pg.evaluate("VR.act('play')");pg.evaluate("VR.act('newsong')");sg=pg.evaluate("VR.song()")
     check(not sg['tracks'] and pg.evaluate("VR.tr().state")=='idle','🗋 New song stops and starts an empty song')

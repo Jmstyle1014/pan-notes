@@ -265,5 +265,8 @@ upright count is low because a checklist pushes the pans below the play bar ther
   squeezed with the hand at a drum's rim (`drumAtRim`: near the edge, never over the notes) moves that drum
   (`panGrab/Move/Drop`), turned to face you, kept per set in localStorage `panyard-vr-drums`; ↺ Pans back (screen's
   bottom row) clears it.
+  **Which pans:** + Track (desk or screen) opens a chooser on the screen (`PICK`, `drawPick`: all of `KEYS`); the new track
+  takes those pans and they come out in front of you (`addTrack(set)`). A desk strip's pan name (▾, `setof:i`) changes an
+  empty track's pans; a track with notes keeps its own.
   Test with `tvr` (`VR.swing`, `VR.hitDrum`, `VR.kick`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
