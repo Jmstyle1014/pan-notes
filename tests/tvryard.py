@@ -79,6 +79,17 @@ with sync_playwright() as p:
     pg.evaluate("VR.undo()");check(set(ST())=={'tenor','guitar','six'},'↶ Undo brings the old song\'s pans back')
     # + Track brings new pans out and takes you there
     pg.evaluate("VR.act('add');VR.act('pick:seven')");check('seven' in ST() and pg.evaluate("VR.player()")['at']=='seven','+ Track: the new pans come out and you go to them')
+    # pull a section closer: point at the basses from the tenor, hold the trigger, aim near you
+    pg.evaluate("VR.goTo('tenor')");far=ST()['six']['at']
+    check(pg.evaluate("VR.dragSection('six',1.4,-2.2)"),'pointing at the basses and holding the trigger grabs them')
+    near=ST()['six']['at'];pl=pg.evaluate("VR.player()")
+    d0=math.hypot(far[0]-pl['x'],far[1]-pl['z']);d1=math.hypot(near[0]-pl['x'],near[1]-pl['z'])
+    check(abs(near[0]-1.4)<.05 and abs(near[1]+2.2)<.05 and d1<d0/2,f'they slide over to where you aim, much closer ({d0:.1f} m → {d1:.1f} m)')
+    six=[t for t in pg.evaluate("VR.spatial()") if t['set']=='six'][0];check(abs(six['x']-1.4)<.05 and abs(six['z']+2.2)<.05,'and their sound comes from there')
+    check(not pg.evaluate("VR.dragSection('tenor',0,0)"),'the pans you\'re at don\'t slide (lift them with both hands)')
+    pg.evaluate("VR.view('yard')");pg.wait_for_timeout(600);pg.screenshot(path=D+'7-pulled-closer.png');pg.evaluate("VR.view('pans')")
+    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=90000);check(abs(ST()['six']['at'][0]-1.4)<.05,'they stay there when the page opens again')
+    pg.evaluate("VR.yardBack()");check(ST()['six']['at']==far,'↺ Yard back puts them back on the circle')
     # kids mode
     pg.evaluate("VR.kids(true)");check(set(ST())=={'tenor','dsec','guitar','fcello','six','kit'} and not pg.evaluate("VR.tableOn()") or set(ST())=={'tenor','dsec','guitar','fcello','six','kit'},'kids mode: a band of pans out')
     check(pg.evaluate("VR.menuHits()").count('mkids')==1 and 'msongs' not in pg.evaluate("VR.menuHits()"),'its menu is the simple one')
