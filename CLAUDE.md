@@ -268,5 +268,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   **Which pans:** + Track (desk or screen) opens a chooser on the screen (`PICK`, `drawPick`: all of `KEYS`); the new track
   takes those pans and they come out in front of you (`addTrack(set)`). A desk strip's pan name (▾, `setof:i`) changes an
   empty track's pans; a track with notes keeps its own.
+  **The menu** (a thumbstick press; the Quest keeps ☰ for itself): `menu`, a canvas panel put in front of you
+  (`menuOpen`, `drawMenu`, beam + trigger like the table; `panelLive` keeps the table out of reach while it's open): pans
+  and look ◀ ▶, Drum body hum and Bass & treble (`OPT.hum`/`OPT.tone`, on unless switched off, localStorage
+  `panyard-vr-hum`/`-tone`, also on the page's Sound switches; `strike()` adds the hum peaks and the pan's shelves only when
+  on), sticks, the table, Bring the pans to me, Leave VR. Looks moved here from the thumbstick press.
   Test with `tvr` (`VR.swing`, `VR.hitDrum`, `VR.kick`, `VR.press`/`VR.drag` on the desk or screen).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
