@@ -274,4 +274,12 @@ upright count is low because a checklist pushes the pans below the play bar ther
   `panyard-vr-hum`/`-tone`, also on the page's Sound switches; `strike()` adds the hum peaks and the pan's shelves only when
   on), sticks, the table, Bring the pans to me, Leave VR. Looks moved here from the thumbstick press.
   Test with `tvr` (`VR.swing`, `VR.hitDrum`, `VR.kick`, `VR.press`/`VR.drag` on the desk or screen).
+  **Lift the pans** (both grips, a hand on a rim each, `liftGrab/Move/Drop`): the drums sit in a `lift` group inside `rig`;
+  the hands' frame (`handFrame`: the middle between them, the line between them, the wrists' up) moves, turns and tilts it,
+  so you can tilt the pans up to you instead of looking down. Kept per set in localStorage `panyard-vr-lift` (x, y, z and a
+  quaternion, rig frame); ↺ Pans back (screen or menu) clears it with the single-pan moves (`panGrab` works in `lift`'s frame).
+  **My songs** (menu → 💾 My songs, `drawSongs`; the page's Saved in VR list): `SONGS` in localStorage `panyard-vr-songs`
+  (`[{id, title, at, song}]`, newest first); `SONG.sid` is the saved song it came from, so 💾 Save updates it and ＋ Save as
+  new adds one (`freeTitle`: Song 1, Song 2…). Open (`openMine`, an ↶ Undo away), 🗑 (press twice), and off the headset
+  rename, ⬇ a file (`format:'panyard-vr-song'`) and Open a song file (a new song). Test with `tvrlift`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
