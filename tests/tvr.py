@@ -24,6 +24,7 @@ with sync_playwright() as p:
     ctx=b.new_context(viewport={'width':892,'height':600},device_scale_factor=1);ctx.add_init_script(REC)
     pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)));pg.on('console',lambda m:m.type=='error' and errs.append(m.text))
     pg.route('https://pan.test/**',route)
+    pg.add_init_script("try{localStorage.setItem('panyard-vr-yard','0')}catch(e){}")  # these test the one-pan layout (tvryard tests the yard)
     pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=79&&VR.drums()>0",timeout=60000)
     check(pg.evaluate("VR.ready()")==125,'all the band\'s 125 recorded notes are loaded')
     check('Ready' in pg.inner_text('#status'),'it says the sounds are ready: '+pg.inner_text('#status'))
