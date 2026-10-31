@@ -300,6 +300,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   has an HRTF `PannerNode` bus (`busOf`/`placeBus`), tracks route there (`chan`, `routeAll`), the listener follows your head
   (`listen`); Even mix (`EVEN`, localStorage `panyard-vr-even`, on) is rolloff 0.3, off is 1. 🗋 New song asks which pans
   (`PICK='song'`, `PSEL`, Put them out → `pansOut`); `songChanged()` re-syncs after undo, delete, open, Drive import.
+  **Pull a section closer:** a beam on another station (its invisible cylinder `st.hit`, the beam turns gold) + trigger drags it
+  along the floor (`stationHit`, `stGrab/stMove/stDrop` on the 0.9 m plane, `placeStation` keeps it turned to the middle and
+  moves its sound); kept per set in localStorage `panyard-vr-yardpos`; menu ↺ Yard back (`yardBack`) puts all back on the circle.
   **Kids mode** (`KIDS`, localStorage `panyard-vr-kids`): the yard with `KIDSETS`, no table, a simple menu. Test with `tvryard`
   (the older VR tests pin One pan with `panyard-vr-yard` = 0).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
