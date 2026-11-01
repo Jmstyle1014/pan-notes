@@ -19,9 +19,10 @@ function noteEnvelope(gp,a,t,len,fade,T){
 }
 // the same player as before, with Tone in the path and Ring in the volume, plus this song's band sound (BAND) and how hard you hit (FEEL)
 const holdAt=(p,t)=>{if(p.cancelAndHoldAtTime)p.cancelAndHoldAtTime(t);else{p.cancelScheduledValues(t);p.setValueAtTime(p.value,t)}};
-playSample=function(id,vel,light,shift,key){
-  const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
-  const t=ac.currentTime+0.003,T=BAND.tune(tuneOf(id)),vin=Math.min(1,vel||1);
+// pk: a studio sound pack's layer for this note ({b, T}, panyard-packs.js) in place of your recording
+playSample=function(id,vel,light,shift,key,pk){
+  const ac=panCtx(),b=pk?pk.b:SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
+  const t=ac.currentTime+0.003,T=BAND.tune(pk?pk.T:tuneOf(id)),vin=Math.min(1,vel||1);
   // a borrowed note plays faster or slower, so it also lasts shorter or longer
   const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=(end-start)/Math.pow(2,shift/1200),v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
   const det=T.cents+refCents()+shift+BAND.cents(id),ch=BAND.chain(ac,T,id,vin,t,light);

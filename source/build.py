@@ -138,6 +138,9 @@ self.addEventListener('fetch',e=>{{
     const net=fetch(e.request.url,{{cache:'no-cache',credentials:'same-origin'}}).then(r=>{{if(r.ok){{const cp=r.clone();caches.open(CACHE).then(c=>c.put('./',cp))}}return r}});
     e.waitUntil(net.catch(()=>{{}}));
     e.respondWith(caches.match('./').then(saved=>saved?Promise.race([net.catch(()=>saved),new Promise(ok=>setTimeout(()=>ok(saved),1500))]):net));return}}
+  // a studio sound pack (../packs/): kept once fetched in its own cache, which app updates leave alone, so it works offline
+  if(/\\/packs\\/[^/]+\\/[^/]+\\.flac$/.test(new URL(e.request.url).pathname)){{e.respondWith(caches.open('sound-packs').then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(res=>{{if(res.ok)c.put(e.request,res.clone());return res}}))));return}}
+  if(/\\/packs\\/[^/]+\\/pack\\.json$/.test(new URL(e.request.url).pathname)){{e.respondWith(fetch(e.request).then(res=>{{if(res.ok){{const cp=res.clone();caches.open('sound-packs').then(c=>c.put(e.request.url,cp))}}return res}}).catch(()=>caches.open('sound-packs').then(c=>c.match(e.request.url))));return}}
   // an extra drum kit's sounds: kept once fetched, so a kit you've used works offline
   e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{{if(res.ok&&/\\/drums\\/[^/]+\\//.test(new URL(e.request.url).pathname)){{const cp=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cp))}}return res}})));
 }});
