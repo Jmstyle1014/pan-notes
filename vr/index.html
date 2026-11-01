@@ -159,7 +159,7 @@ function strike(id,v,at,tr){
   // the same note hit again: the older ring is damped quickly, like a real pan
   const p=voices.get(id);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
   voices.set(id,{src,g,end:t+len});
-  if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else recHit(id,v,t);
+  if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t)}
   VR.hits.push({id,v:+v.toFixed(2),p:fromTake?1:0});return true;
 }
 function light(id){for(const d of drums)for(const n of d.notes)if(n.id===id)n.lit=1}
@@ -448,7 +448,7 @@ function strikeDrum(id,v,at,tr){const gm=+id.slice(5),K=DK[gm];if(!ac||!K)return
   if(gm===42&&dvoice[46]&&dvoice[46].end>t){try{dvoice[46].g.gain.setTargetAtTime(0,t,.01);dvoice[46].src.stop(t+.06)}catch{}}
   dvoice[gm]={src,g,end:t+b.duration/(K.rate||1)};
   const lit=()=>{const p=KITP.find(q=>q.gm===gm||q.edge===gm);if(p)p.lit=1;if(gm===36)kick.lit=1};
-  if(tr)setTimeout(lit,Math.max(0,(t-ac.currentTime)*1000));else{lit();recHit(id,v,t)}
+  if(tr)setTimeout(lit,Math.max(0,(t-ac.currentTime)*1000));else{lit();recHit(id,v,t);learnHit(id,t)}
   VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0});return true}
 // the pieces
 const kitG=new THREE.Group();kitG.visible=false;rig.add(kitG);
@@ -471,7 +471,7 @@ const kick={lit:0};{const g=new THREE.Group();g.position.set(0,-.5,-.18);g.rotat
   const head=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.004,48),new THREE.MeshStandardMaterial({map:headTex,roughness:.8}));head.position.y=.18;g.add(head);
   const sh=new THREE.Mesh(new THREE.CylinderGeometry(.275,.275,.36,48,1,true),shellMat);g.add(sh);kick.mat=head.material;kick.mat.emissive=new THREE.Color(LOOKS.chrome.hit);kick.mat.emissiveIntensity=0}
 const kp=new THREE.Vector3();
-function kitFrame(dt){for(const p of KITP){p.mat.emissiveIntensity=p.lit*.5;p.lit=Math.max(0,p.lit-dt*4);
+function kitFrame(dt){for(const p of KITP){p.mat.emissiveIntensity=Math.max(p.lit*.5,(p.cue||0)*.45);p.cue=0;p.lit=Math.max(0,p.lit-dt*4);
     kp.set(0,p.stand?-p.r:-(p.h||.02),0);p.g.localToWorld(kp);const top=kp.y;kitG.worldToLocal(kp);p.st.visible=kitG.visible&&top>.05;
     p.st.scale.y=Math.max(.02,top);p.st.position.set(kp.x,kp.y-top/2,kp.z)}
   kick.mat.emissiveIntensity=kick.lit*.5;kick.lit=Math.max(0,kick.lit-dt*4)}
@@ -584,7 +584,7 @@ function listen(){if(!ac||!inYard())return;const cam=renderer.xr.isPresenting?re
   if(L.positionX){L.positionX.value=LP.x;L.positionY.value=LP.y;L.positionZ.value=LP.z;L.forwardX.value=LF.x;L.forwardY.value=LF.y;L.forwardZ.value=LF.z;L.upX.value=LUp.x;L.upY.value=LUp.y;L.upZ.value=LUp.z}
   else{L.setPosition(LP.x,LP.y,LP.z);L.setOrientation(LF.x,LF.y,LF.z,LUp.x,LUp.y,LUp.z)}}
 function setEven(on){EVEN=on;LSset('even',on?'1':'0');for(const st of STN.values())placeBus(st);dirty=true;yardUI()}
-const audible=t=>!t.mute&&(!SONG.tracks.some(x=>x.solo)||t.solo);
+const audible=t=>t.id!==LEARN.id&&!t.mute&&(!SONG.tracks.some(x=>x.solo)||t.solo);   // the part you're learning is yours to play
 function mixAll(){if(ac)for(const t of SONG.tracks){const c=chan(t);c.g.gain.setTargetAtTime(audible(t)?t.vol:0,ac.currentTime,.02);c.p.pan.setTargetAtTime(t.pan,ac.currentTime,.02)}dirty=true}
 
 /* the clock: clicks, the song's tracks, the loop */
@@ -613,8 +613,8 @@ function endRec(){if(!SONG.L){const lin=beatAt(ac.currentTime),mx=Math.max(lin,.
   TR.rec.notes.sort((a,b)=>a.b-b.b);TR.rec=null;saveSong()}
 function stopAll(){recStop();if(TR.state==='rec')endRec();TR.state='idle';TR.run=SONG.click;if(TR.run)startClock(false);dirty=true}
 const hasNotes=()=>SONG.tracks.some(t=>t.notes.length);
-function play(){audio();if(TR.state!=='idle')return stopAll();if(!hasNotes())return msg('Nothing recorded yet: pick a track and press ● Rec');startClock(false);TR.state='play';dirty=true}
-function record(noUndo){audio();if(ac.state==='suspended')ac.resume();
+function play(){audio();if(LEARN.id)return learnStop();if(TR.state!=='idle')return stopAll();if(!hasNotes())return msg('Nothing recorded yet: pick a track and press ● Rec');startClock(false);TR.state='play';dirty=true}
+function record(noUndo){audio();if(ac.state==='suspended')ac.resume();if(LEARN.id)learnStop();
   if(TR.state==='rec'){endRec();TR.state='play';TR.cursor=beatAt(ac.currentTime+.12);dirty=true;return}
   let t=selTrack();if(t&&(t.rec||!KEYS.includes(t.set)))t=null;
   if(inYard()&&(!t||t.set!==setKey)){const i=SONG.tracks.findIndex(x=>!x.rec&&x.set===setKey);t=i<0?null:SONG.tracks[i];if(t)SONG.sel=i}   // the yard: the pans you're at
@@ -668,7 +668,8 @@ const tst=uiPanel(.5,.09,1000,180);tst.m.material.transparent=true;tst.m.visible
 function toast(t){const g=tst.g;g.clearRect(0,0,1000,180);g.fillStyle='rgba(12,18,24,.88)';g.beginPath();g.roundRect(0,0,1000,180,40);g.fill();g.fillStyle='#f6ba45';g.font='700 46px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
   let f=46;while(g.measureText(t).width>940&&f>26){f-=2;g.font='700 '+f+'px system-ui,sans-serif'}g.fillText(t,500,92);tst.tex.needsUpdate=true;tstT=2.6;tst.m.visible=true;VR.toasts.push(t)}
 function toastFrame(dt){if(tstT<=0)return;tstT-=dt;const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera,hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);
-  tst.m.position.copy(hp).addScaledVector(f,.7);tst.m.position.y-=.18;tst.m.lookAt(hp);tst.m.material.opacity=Math.min(1,tstT*2);if(tstT<=0)tst.m.visible=false}
+  // at eye height in front of you, never over the pans you're looking down at
+  f.y=0;if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();tst.m.position.copy(hp).addScaledVector(f,.8);tst.m.position.y+=.1;tst.m.lookAt(hp);tst.m.material.opacity=Math.min(1,tstT*2);if(tstT<=0)tst.m.visible=false}
 /* the welcome guide: the first time you put the headset on (localStorage panyard-vr-welcomed), a few pages in front of you
    (Next / Back / Skip); the menu's ❓ Guide shows it again. Kids mode has a shorter one. */
 const guide=uiPanel(.9,.675,1200,900);guide.m.visible=false;scene.add(guide.m);let GPAGE=0;
@@ -761,6 +762,7 @@ function btn(p,id,x,y,w,hh,label,opt={}){const g=p.g;rr(g,x,y,w,hh,14,opt.on?(op
   p.hits.push({id,x,y,w,h:hh,...(opt.drag?{drag:opt.drag}:{})})}
 const shortSet=k=>({tenor:'Tenor',guitar:'Guitar',dsec:'Double 2nd',kit:'Drums',rec:'Recording',six:'Six Bass',fcello:'Four Cello',tcello:'Three Cello',seven:'Seven Bass',dten:'Double Tenor'})[k]||k;
 function statusLine(){if(MSG)return MSG;const t=selTrack();
+  if(LEARN.id){const lt=learnTrack(),lin=TR.run&&ac?beatAt(ac.currentTime):0;return lin<0?'🎓 Count-in '+Math.ceil(-lin)+'… the glowing notes are yours':'🎓 Playing along: '+(lt?lt.name:'')+' · '+LEARN.ok+' on time · '+LEARN.miss+' missed'}
   if(TR.state==='rec'){const lin=TR.run?beatAt(ac.currentTime):0;return lin<0?'Count-in '+Math.ceil(-lin)+'…':'● Recording '+TR.rec.name+' · bar '+(Math.floor(posOf(Math.max(0,lin))/4)+1)}
   if(TR.state==='play')return '▶ Playing'+(SONG.loop.on?' the loop, bars '+(SONG.loop.s+1)+'–'+SONG.loop.e:'');
   if(!SONG.tracks.length)return 'Press ● Rec to record your first track (a bar to count in)';
@@ -771,7 +773,7 @@ function drawScreen(){const p=scr,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.
   const st=TR.state;let x=16;const B=(id,w,l,o)=>{btn(p,id,x,14,w,84,l,o);x+=w+12};
   B('play',150,st==='idle'?'▶ Play':'■ Stop',{on:st==='play',oncol:'#34c759'});B('rec',150,'● Rec',{on:st==='rec',oncol:'#ff453a'});
   B('click',130,'Click',{on:SONG.click});B('slow',70,'−');g.fillStyle='#f6ba45';g.font='700 40px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('♩ '+SONG.bpm,x+60,58);x+=132;B('fast',70,'+');
-  B('snap2',130,'Snap ½',{fs:30});B('snap4',130,'Snap ¼',{fs:30});B('undo',130,'↶ Undo',{fs:30});B('loop',130,'⟲ Loop',{on:SONG.loop.on,fs:30});
+  B('snap2',112,'Snap ½',{fs:27});B('snap4',112,'Snap ¼',{fs:27});B('undo',118,'↶ Undo',{fs:27});B('loop',118,'⟲ Loop',{on:SONG.loop.on,fs:27});B('learn',150,'🎓 Learn',{on:!!LEARN.id,oncol:'#4fd1c5',fs:28});
   g.fillStyle=st==='rec'?'#ff8a80':'#c9d3da';g.font='32px system-ui,sans-serif';g.textAlign='left';g.fillText(statusLine(),20,136);
   // the ruler: bars, the song's end, the loop (drag across bars to set it)
   const LB=songBeats(),bx=b=>TX0+(TX1-TX0)*b/LB,y0=170,y1=222;
@@ -823,7 +825,7 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
   p.tex.needsUpdate=true}
 function act(id){const [k,a]=id.split(':'),i=+a;
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
-    barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),pickgo:pansOut,setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
+    barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),pickgo:pansOut,learn:()=>learn(),setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
     mclose:()=>menuOpen(false),gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{if(a==='one')setYard(false);else setLayout(a);drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
@@ -975,6 +977,57 @@ function beamFrame(){for(const b of beams){if(!b.src){continue}
   if(lgrab&&beams[0].lift&&beams[1].lift&&liftMove(hpos(beams[0]),hpos(beams[1]),hrot(beams[0]),hrot(beams[1]))===false)for(const x of beams)bump(x.src&&x.src.gamepad)}
 let bumpT=0;function bump(gp){const t=performance.now();if(t-bumpT<120)return;bumpT=t;try{gp.hapticActuators[0].pulse(.25,12)}catch{}}
 const hpos=b=>b.c.getWorldPosition(new THREE.Vector3()),hrot=b=>b.c.getWorldQuaternion(new THREE.Quaternion());
+/* ---------- play along (🎓 Learn on the screen) ----------
+   Pick the pans whose part you want to learn (the track for the pans you're at, or the selected one) and press 🎓 Learn:
+   the song plays round you with that part silent, and its notes glow on your pans ahead of time (LEAD beats, brighter as
+   they come), white at the moment to hit. A hit within GOOD seconds of the moment counts (a green flash); a note let go by is
+   missed. Each time round the loop (or the song) a toast gives that pass's score. ■ Stop, ▶ or ● ends it. ¾ / ½ speed and the
+   loop work as ever. The drum kit's pieces glow too. */
+const LEARN={id:null,ok:0,miss:0,exp:new Map(),P:{},pass:null},LEAD=2,GOOD=.18;
+// which time round a moment (linear beats) belongs to, and that pass's tally
+const passOf=lin=>{const [A,B]=region();return B>A?Math.floor(lin/(B-A)):0},tally=lin=>LEARN.P[passOf(lin)]||(LEARN.P[passOf(lin)]={ok:0,miss:0});
+const learnTrack=()=>SONG.tracks.find(t=>t.id===LEARN.id);
+function learn(){if(LEARN.id)return learnStop();
+  const has=t=>t&&!t.rec&&t.notes.length,here=SONG.tracks.find(x=>has(x)&&x.set===setKey),t=here||(has(selTrack())?selTrack():null);
+  if(!t)return msg('Play along needs a part: stand at pans whose track has notes (or bring a song in)');
+  if(t.set!==setKey&&KEYS.includes(t.set))useSet(t.set);
+  if(TR.state!=='idle')stopAll();audio();if(ac.state==='suspended')ac.resume();
+  Object.assign(LEARN,{id:t.id,ok:0,miss:0,P:{},pass:null,cur:0});LEARN.exp.clear();mixAll();startClock(true);TR.state='play';
+  toast('🎓 Play along: the glowing notes on your pans are yours');dirty=true}
+function learnStop(){const was=LEARN.id;LEARN.id=null;LEARN.exp.clear();clearCues();if(TR.state!=='idle')stopAll();mixAll();
+  if(was&&LEARN.ok+LEARN.miss)toast('🎓 '+LEARN.ok+' of '+(LEARN.ok+LEARN.miss)+' notes on time');dirty=true}
+// the next times (linear beats) each of the part's notes comes round, from `from` to `to`
+function upcoming(t,from,to){const [A,B]=region(),W=B-A,out=[];if(W<=0)return out;
+  for(const n of t.notes){if(n.b<A||n.b>=B)continue;const sb=swung(n.b)-A;for(let k=Math.max(0,Math.ceil((from-sb)/W));k*W+sb<=to;k++)out.push({id:n.id,lin:k*W+sb})}return out}
+// a live hit: the nearest waiting note of the same id, close enough to its moment
+function learnHit(id,t){const tr=learnTrack();if(!tr||!ac||!TR.run)return;const sp=spb(),lin=(t-TR.t0)/sp;let best=null;
+  for(const u of upcoming(tr,lin-GOOD/sp,lin+GOOD/sp))if(u.id===id&&(!best||Math.abs(u.lin-lin)<Math.abs(best.lin-lin)))best=u;   // straight from the part, not the frame
+  if(!best)return;const key=best.id+'@'+best.lin.toFixed(3);let e=LEARN.exp.get(key);if(!e)LEARN.exp.set(key,e={id,lin:best.lin,t:TR.t0+best.lin*sp,hit:false,miss:false});
+  if(e.hit||e.miss)return;e.hit=true;LEARN.ok++;tally(e.lin).ok++;for(const n of cueNotes(id))n.cueHit=1;dirty=true}
+const cueNotes=id=>{const out=[];for(const d of drums)if(d.set===NOTE[id]?.set)for(const n of d.notes)if(n.id===id)out.push(n);return out};
+function cueOf(n){if(!n.cue){n.cue=new THREE.Mesh(n.glow.geometry,new THREE.MeshBasicMaterial({color:'#00b3a8',transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));   // solid teal: it shows on bright chrome
+  n.cue.position.y=.0015;n.glow.parent.add(n.cue)}return n.cue}
+function clearCues(){for(const d of drums)for(const n of d.notes)if(n.cue)n.cue.visible=false}
+function learnFrame(dt){
+  for(const d of drums)for(const n of d.notes)if(n.cue){n.cueA=0;if(n.cueHit>0){n.cueHit=Math.max(0,n.cueHit-dt*2.5)}}
+  if(!LEARN.id){return}const t=learnTrack();if(!t){learnStop();return}
+  if(!ac||!TR.run||TR.state==='idle'){clearCues();return}
+  const now=beatAt(ac.currentTime),sp=spb(),tn=ac.currentTime;
+  // the notes coming round: waiting to be hit, and glowing
+  // from where the last frame got to, so no note is ever skipped however far apart the frames come
+  for(const u of upcoming(t,Math.min(LEARN.cur,now-GOOD/sp),now+LEAD)){const key=u.id+'@'+u.lin.toFixed(3);if(!LEARN.exp.has(key))LEARN.exp.set(key,{id:u.id,lin:u.lin,t:TR.t0+u.lin*sp,hit:false,miss:false});
+    const ahead=u.lin-now;if(ahead<-GOOD/sp)continue;   // gone by: no glow (it'll count as missed)
+    const f=Math.max(0,Math.min(1,1-ahead/LEAD)),a=ahead<.12?1:.1+.55*f*f;
+    if(u.id.startsWith('drum:')){const p=KITP.find(q=>q.gm===+u.id.slice(5)||q.edge===+u.id.slice(5));if(p)p.cue=Math.max(p.cue||0,a);continue}
+    for(const n of cueNotes(u.id))n.cueA=Math.max(n.cueA||0,a)}
+  LEARN.cur=Math.max(LEARN.cur,now+LEAD);
+  for(const [k,e] of LEARN.exp){if(!e.hit&&!e.miss&&tn>e.t+GOOD){e.miss=true;LEARN.miss++;tally(e.lin).miss++;dirty=true}if(tn>e.t+2)LEARN.exp.delete(k)}
+  // each time round: that pass's score
+  const pass=now>=0?passOf(now):null;
+  if(pass!==null&&LEARN.pass!==null&&pass>LEARN.pass){const p=LEARN.P[LEARN.pass];if(p&&p.ok+p.miss)toast('🎓 This time: '+p.ok+' of '+(p.ok+p.miss)+' on time')}
+  if(pass!==null)LEARN.pass=pass;
+  for(const d of drums)for(const n of d.notes){if(!n.cueA&&!n.cueHit){if(n.cue)n.cue.visible=false;continue}const c=cueOf(n);c.visible=true;
+    c.material.color.set(n.cueHit>0?'#1fbf4a':n.cueA>=1?'#00e0d0':'#00b3a8');c.material.opacity=n.cueHit>0?.85*n.cueHit:Math.min(.85,.25+.65*n.cueA)}}
 let statT=0,lastStat='';
 function studioFrame(dt){if(msgT>0){msgT-=dt;if(msgT<=0){MSG='';dirty=true}}
   statT+=dt;if(statT>.2){statT=0;const s=statusLine()+TR.state;if(s!==lastStat){lastStat=s;dirty=true}}
@@ -1146,7 +1199,7 @@ renderer.setAnimationLoop((now,frame)=>{
   }
   for(const d of drums)for(const n of d.notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.6*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
   if(renderer.xr.isPresenting)beamFrame();
-  tick();studioFrame(dt);kitFrame(dt);standFollow();listen();toastFrame(dt);renderer.render(scene,camera);
+  tick();learnFrame(dt);studioFrame(dt);kitFrame(dt);standFollow();listen();toastFrame(dt);renderer.render(scene,camera);
 });
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
@@ -1212,7 +1265,8 @@ document.querySelectorAll('#lenSeg button').forEach(b=>b.onclick=()=>{stickLen=b
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,toasts:[],guide:on=>guideOpen(on),guideOn:()=>guide.m.visible,guidePage:()=>GPAGE,lock:setLock,locked:()=>LOCK,clash:k=>+clashOf(STN.get(k)).toFixed(3),foot:k=>footOf(STN.get(k)).map(([x,z,r])=>[+x.toFixed(2),+z.toFixed(2),+r.toFixed(2)]),here:()=>hereRing.visible?[+hereRing.position.x.toFixed(2),+hereRing.position.z.toFixed(2)]:null,act,menu:on=>menuOpen(on),menuOn:()=>menu.m.visible,opts:()=>({...OPT}),stickLen:()=>{const s=makeStick();s.tip.updateMatrixWorld(true);return +(-s.tip.position.z).toFixed(3)},
+const VR=window.VR={hits:[],clicks:0,toasts:[],learn:()=>learn(),learnAt:(id,beat)=>learnHit(id,TR.t0+beat*spb()),learning:()=>({id:LEARN.id,ok:LEARN.ok,miss:LEARN.miss,P:LEARN.P,exp:[...LEARN.exp.keys()],waiting:[...LEARN.exp.values()].filter(e=>!e.hit&&!e.miss).map(e=>({id:e.id,in:+(e.t-ac.currentTime).toFixed(3)}))}),
+  cues:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>({id:n.id,a:+n.cue.material.opacity.toFixed(2),c:'#'+n.cue.material.color.getHexString()}))),now:()=>ac?ac.currentTime:0,guide:on=>guideOpen(on),guideOn:()=>guide.m.visible,guidePage:()=>GPAGE,lock:setLock,locked:()=>LOCK,clash:k=>+clashOf(STN.get(k)).toFixed(3),foot:k=>footOf(STN.get(k)).map(([x,z,r])=>[+x.toFixed(2),+z.toFixed(2),+r.toFixed(2)]),here:()=>hereRing.visible?[+hereRing.position.x.toFixed(2),+hereRing.position.z.toFixed(2)]:null,act,menu:on=>menuOpen(on),menuOn:()=>menu.m.visible,opts:()=>({...OPT}),stickLen:()=>{const s=makeStick();s.tip.updateMatrixWorld(true);return +(-s.tip.position.z).toFixed(3)},
   // a hand at a drum's rim squeezes, moves by (dx, dy, dz) and lets go; or the hand over the notes (not the rim)
   movePan(i,dx,dy,dz,overNotes){const d=drums[i],w=new THREE.Vector3(overNotes?0:RS,.02,0);d.g.localToWorld(w);const s=drumAtRim(w);if(s!==d)return false;
     panGrab(d,w);w.add(new THREE.Vector3(dx,dy,dz));panMove(w);panDrop();return true},panPos:i=>drums[i].g.position.toArray().map(v=>+v.toFixed(3)),pansBack,showTable,tableOn:()=>tableOn,THREE,scene,mk:k=>makeStick(k),borrow:id=>borrowOf(id),sticks:()=>sticks.map(s=>s.kind),
