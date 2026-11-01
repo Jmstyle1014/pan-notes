@@ -33,9 +33,9 @@ canvas{display:block}
   <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="dten">Double Tenor</button><button data-set="dsec">Double Second</button><button data-set="guitar">Double Guitar</button><button data-set="fcello">Four Cello</button><button data-set="tcello">Three Cello</button><button data-set="six">Six Bass</button><button data-set="seven">Seven Bass</button><button data-set="kit">Drum kit</button></div>
   <div class="lab">Look</div>
   <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
-  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you; <b>hold</b> it to put the studio table away or bring it back. <b>Squeeze a grip</b> on the studio table, or with your hand on a pan's rim, to move it. In the <b>pan yard</b>, every pan in your song stands round a circle: push a <b>thumbstick forward</b>, aim the arc and let go to jump to them (or just walk), and push it <b>left or right</b> to turn. To hear a section better, <b>point at it and hold the trigger</b>, then aim where it should go: it slides closer (or further away). <b>Squeeze both grips</b> with your hands on the rims to lift the pans: move, turn and tilt them towards you, so you don't have to look so far down. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the menu (pans, look, sound, sticks, the table). On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
+  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you; <b>hold</b> it to put the studio table away or bring it back. <b>Squeeze a grip</b> on the studio table, or with your hand on a pan's rim, to move it. In the <b>pan yard</b>, every pan in your song stands as on a Panorama stage (frontline in front, basses on the wings, drums at the back): push a <b>thumbstick forward</b>, aim the arc and let go to jump to them (or just walk), and push it <b>left or right</b> to turn. To hear a section better, <b>point at it and hold the trigger</b>, then aim where it should go: it slides closer (or further away). <b>Squeeze both grips</b> with your hands on the rims to lift the pans: move, turn and tilt them towards you, so you don't have to look so far down. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the menu (pans, look, sound, sticks, the table). On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
   <div class="lab">Where you play</div>
-  <div class="seg" id="whereSeg"><button data-where="yard">Pan yard (every pan in the song)</button><button data-where="one">One pan in front of you</button></div>
+  <div class="seg" id="whereSeg"><button data-where="yard">Pan yard (the whole band)</button><button data-where="one">One pan in front of you</button></div>
   <div class="lab">Even mix (the yard)</div>
   <div class="seg" id="evenSeg"><button data-even="on">On: far pans stay clear</button><button data-even="off">Off: like real life</button></div>
   <div class="lab">The pans (the yard)</div>
@@ -225,14 +225,19 @@ function placeOf(i,k){k=k||setKey;const P=PANSET[k],ds=SETS[k].drums;if(P.place)
   return [x,Math.atan2(-x,.48-z+.0001),z]}
 function skirtTex(stops){return canvasTex(512,8,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,w,0);stops.forEach((c,i)=>gr.addColorStop(i/(stops.length-1),c));g.fillStyle=gr;g.fillRect(0,0,w,hh)})}
 /* ---------- stations: where a set of pans stands ----------
-   One pan (the old way): one station, the rig in front of you. The pan yard: every pan in the song stands round a circle
-   under the galvanize (YANG: tenors at the front, basses at the back, the engine room to the side), each station its own
+   One pan (the old way): one station, the rig in front of you. The pan yard: every pan in the song stands
+   under the galvanize as on a Panorama stage (BAND: the frontline in front facing the flag, guitars and cellos behind,
+   the basses on the wings facing in, the engine room at the back), each station its own
    group (g) with its own lift, turned so you stand on the outside facing the middle; you teleport or walk between them.
    Kids mode: the yard with a fixed band (KIDSETS), no studio. drums holds every station's drums, so hitting, bouncing,
    moving and lighting work on all of them. */
 let YARD=LS('yard')!=='0',KIDS=LS('kids')==='1';
 const KIDSETS=['tenor','dsec','guitar','fcello','six','kit'];
-const YANG={tenor:0,dsec:38,dten:-38,guitar:-75,fcello:75,tcello:-115,kit:115,six:160,seven:-160},YR=4;   // degrees round from the front, and the circle's radius (m)
+// where each section stands: x (m, right as you face the front), z (m, the front is −z, where the flag hangs) and which
+// way its players face (radians: 0 = the front; the wings face the middle). The owner chose this Panorama layout.
+const BAND={tenor:[0,-2.2,0],dten:[-2.3,-2.2,0],dsec:[2.3,-2.2,0],guitar:[-1.3,-.2,0],fcello:[1.3,-.2,0],tcello:[0,1.05,0],
+  six:[-3.9,-.4,-Math.PI/2],seven:[3.9,-.4,Math.PI/2],kit:[0,2.45,0]};
+const BORDER=['dten','tenor','dsec','guitar','fcello','tcello','seven','kit','six'];   // B / Y and the menu go round in this order
 const STN=new Map(),SHOWN=new Set();
 const inYard=()=>YARD||KIDS;
 function wantKeys(){if(!inYard())return [setKey];if(KIDS)return KIDSETS.slice();
@@ -266,7 +271,7 @@ function makeDrums(k,stn,lite){
   }finally{SV.remove()}}
 function buildStation(k){const solo=!inYard();let g=rig,lf=lift;if(!solo){g=new THREE.Group();rig.add(g);lf=new THREE.Group();g.add(lf)}
   const st={key:k,g,lift:lf,solo,drums:[]};
-  if(!solo){const a=YANG[k]*Math.PI/180,sv=YPOS[k];if(Array.isArray(sv)&&sv.length===2&&sv.every(Number.isFinite))placeStation(st,sv[0],sv[1]);else{g.position.set(Math.sin(a)*YR,.9,-Math.cos(a)*YR);g.rotation.set(0,Math.atan2(Math.sin(a),-Math.cos(a)),0)}
+  if(!solo){const [bx,bz,by]=BAND[k],sv=YPOS[k];g.rotation.set(0,by,0);if(Array.isArray(sv)&&sv.length===2&&sv.every(Number.isFinite))placeStation(st,sv[0],sv[1]);else placeStation(st,bx,bz)
 
     st.label=new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(512,128,(c)=>{c.fillStyle='rgba(12,18,24,.8)';c.beginPath();c.roundRect(0,0,512,128,30);c.fill();
       c.fillStyle='#f6ba45';c.font='700 58px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(setName(k),256,66)}),depthWrite:false}));
@@ -277,9 +282,9 @@ function buildStation(k){const solo=!inYard();let g=rig,lf=lift;if(!solo){g=new 
   applyLift(st);return st}
 /* pull a section closer (or push it away): point a controller's beam at another station's pans, hold the trigger and
    aim where it should go; it slides along the floor, stays turned to the yard's middle, and its sound comes from there.
-   Kept per set (localStorage panyard-vr-yardpos: set → [x, z]); ↺ Yard back puts every section back on the circle. */
+   Kept per set (localStorage panyard-vr-yardpos: set → [x, z]); ↺ Yard back puts every section back in its place. */
 let YPOS={};try{YPOS=JSON.parse(LS('yardpos')||'{}')||{}}catch{}
-function placeStation(st,x,z){const r=Math.hypot(x,z);if(r>6.3){x*=6.3/r;z*=6.3/r}st.g.position.set(x,.9,z);if(Math.hypot(x,z)>.05)st.g.rotation.set(0,Math.atan2(x,z),0);st.g.updateMatrixWorld(true);placeBus(st)}
+function placeStation(st,x,z){const r=Math.hypot(x,z);if(r>6.3){x*=6.3/r;z*=6.3/r}st.g.position.set(x,.9,z);st.g.updateMatrixWorld(true);placeBus(st)}   // it keeps facing the way its section faces
 const SPL=new THREE.Plane(new THREE.Vector3(0,1,0),-.9),SPP=new THREE.Vector3();
 function stationHit(ray){const ts=[...STN.values()].filter(st=>st.hit&&st.key!==setKey).map(st=>st.hit);if(!ts.length)return null;const h=ray.intersectObjects(ts,false)[0];return h?{st:h.object.userData.st,point:h.point,distance:h.distance}:null}
 function stGrab(st,ray){if(!ray.intersectPlane(SPL,SPP))SPP.copy(st.g.position);return {st,off:st.g.position.clone().sub(SPP)}}
@@ -305,8 +310,8 @@ let LOCK=LS('lock')!=='0';
 function setLock(on){LOCK=on;LSset('lock',on?'1':'0');toast(on?'🔒 The pans are locked in place':'🔓 Unlocked: move the pans, then lock them again');dirty=true;if(menu.m.visible)drawMenu();lockUI()}
 function lockUI(){document.querySelectorAll('#lockSeg button').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.lock==='on')===LOCK)))}
 function stDrop(dr){const p=dr.st.g.position;YPOS[dr.st.key]=[+p.x.toFixed(3),+p.z.toFixed(3)];LSset('yardpos',JSON.stringify(YPOS));for(const o of STN.values())if(o.label)o.label.visible=o.key!==setKey}
-function yardBack(){YPOS={};LSset('yardpos','{}');for(const st of STN.values()){if(st.solo)continue;const a=YANG[st.key]*Math.PI/180;placeStation(st,Math.sin(a)*YR,-Math.cos(a)*YR)}
-  if(STN.has(setKey))goTo(setKey);msg('Every section is back in its place round the yard')}
+function yardBack(){YPOS={};LSset('yardpos','{}');for(const st of STN.values()){if(st.solo)continue;placeStation(st,BAND[st.key][0],BAND[st.key][1])}
+  if(STN.has(setKey))goTo(setKey);msg('Every section is back in its place')}
 function dropStation(st){for(const d of st.drums){st.lift.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map&&o.material.map!==headTex)o.material.map.dispose()})}
   if(st.bus){try{st.bus.p.disconnect()}catch{}}if(st.label){st.label.material.map.dispose();st.label.material.dispose()}
   if(kitG.parent===st.g)rig.add(kitG);if(table.parent===st.g)rig.add(table);if(sign.parent===st.g)rig.add(sign);if(!st.solo)rig.remove(st.g)}
@@ -660,7 +665,7 @@ function toastFrame(dt){if(tstT<=0)return;tstT-=dt;const cam=renderer.xr.isPrese
 const guide=uiPanel(.9,.675,1200,900);guide.m.visible=false;scene.add(guide.m);let GPAGE=0;
 const GUIDE={
   grown:[
-    ['👋','Welcome to Panyard VR',['You\'re standing at your pans in the yard.','The rest of the band stands round you, each section','at its own spot. This guide takes a minute.']],
+    ['👋','Welcome to Panyard VR',['You\'re standing at your pans in the yard.','The band is set up round you as on a Panorama stage:','frontline in front, basses on the wings, drums at the back.']],
     ['🥢','Play',['Hold the controllers like pan sticks.','Hit the notes from above: swing harder for louder.','A note glows when you hit it. Rest the stick and it won\'t repeat.']],
     ['🦘','Move round the yard',['Push a thumbstick forward, aim the arc, let go: you jump.','Aim at a section and the circle turns gold: you land','at its pans. Push left or right to turn. Or just walk.']],
     ['☰','The menu',['Press a thumbstick in (click it) for the menu:','pans, looks, sticks, sound, your songs, kids mode,','the lock, and this guide again.']],
@@ -702,7 +707,7 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
   const yd=inYard();
   row(105,yd?'Go to pans':'Pans',yd?'the pans in this song':'');pick(100,'mset',setName(setKey),60);
   row(180,'Look');pick(175,'mlook',LOOKN[lookKey],60);
-  row(255,'Where you play',yd?'every pan in the song, round the yard':'one pan in front of you');btn(p,'mwhere:yard',580,250,280,60,'Pan yard',{on:yd,fs:28});btn(p,'mwhere:one',880,250,280,60,'One pan',{on:!yd,fs:28});
+  row(255,'Where you play',yd?'every pan in the song, as on a Panorama stage':'one pan in front of you');btn(p,'mwhere:yard',580,250,280,60,'Pan yard',{on:yd,fs:28});btn(p,'mwhere:one',880,250,280,60,'One pan',{on:!yd,fs:28});
   row(330,'Even mix','far pans stay clear; walk up and they get louder');btn(p,'meven',880,325,280,60,EVEN?'On':'Off',{on:EVEN,fs:30});
   row(405,'Drum body hum','the air in the barrel hums, from its skirt length');btn(p,'mhum',880,400,280,60,OPT.hum?'On':'Off',{on:OPT.hum,fs:30});
   row(480,'Bass & treble for each pan','basses fuller, tenors brighter');btn(p,'mtone',880,475,280,60,OPT.tone?'On':'Off',{on:OPT.tone,fs:30});
@@ -1057,7 +1062,7 @@ function bringPan(){if(inYard())return goTo(STN.has(setKey)?setKey:[...STN.keys(
   rig.position.set(head.x+fwd.x*dist,Math.max(.55,head.y-.66),head.z+fwd.z*dist);rig.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
 let placed=false,placeN=0;const pressed=new Map();
 const edge=(key,on)=>{const was=pressed.get(key);pressed.set(key,on);return on&&!was};
-function nextSet(d){d=d||1;if(inYard()){const ks=[...STN.keys()].sort((a,b)=>YANG[a]-YANG[b]),i=ks.indexOf(setKey);return goTo(ks[(i+d+ks.length)%ks.length])}
+function nextSet(d){d=d||1;if(inYard()){const ks=[...STN.keys()].sort((a,b)=>BORDER.indexOf(a)-BORDER.indexOf(b)),i=ks.indexOf(setKey);return goTo(ks[(i+d+ks.length)%ks.length])}
   useSet(KEYS[(KEYS.indexOf(setKey)+d+KEYS.length)%KEYS.length])}
 // other pans: one pan swaps them; in the yard you go to them (they come out if they weren't)
 function useSet(k){if(inYard()){if(KIDS&&!KIDSETS.includes(k))return;if(!STN.has(k)){SHOWN.add(k);setKey=k;syncStations()}return goTo(k)}

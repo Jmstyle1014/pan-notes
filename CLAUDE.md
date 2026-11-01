@@ -296,8 +296,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   rename, ⬇ a file (`format:'panyard-vr-song'`) and Open a song file (a new song). Test with `tvrlift`.
   **The pan yard** (the default; menu/page "Where you play": Pan yard / One pan, localStorage `panyard-vr-yard`): every pan
   set in the song (plus where you are, and pans you went to, `SHOWN`) is a **station** (`STN`: `{key, g, lift, drums, bus,
-  label}`, `buildStation`/`dropStation`/`syncStations`) round a circle under the galvanize (`shed`; `YANG` degrees from the
-  front, radius `YR` 4 m), each `g` turned so you stand outside it (`spotOf`: 0.5 m behind) facing the middle. One pan is a
+  label}`, `buildStation`/`dropStation`/`syncStations`) under the galvanize (`shed`), set out as on a Panorama stage (the
+  owner's choice; `BAND`: [x, z, facing], the front is −z by the flag: frontline row at z −2.2, guitar/four cello behind, three
+  cello behind them, six/seven bass on the left/right wings facing in, the kit at the back; `BORDER` is B/Y's order), each
+  `g` turned the way its section faces, you standing 0.5 m behind its pans (`spotOf`). One pan is a
   single station whose `g` is the old `rig`. `drums` holds every station's drums (hits, bounce, rim grabs, lift all work per
   drum; `d.st`, `d.set`, `d.i`); `setKey` is the station you're at (`arrive()`: its sticks, its track selected, the table and
   sign moved to it by `hereStation`). Moving: `PL` (x, z, yaw) is applied as an offset reference space (`applyPlayer`,
@@ -308,8 +310,7 @@ upright count is low because a checklist pushes the pans below the play bar ther
   (`listen`); Even mix (`EVEN`, localStorage `panyard-vr-even`, on) is rolloff 0.3, off is 1. 🗋 New song asks which pans
   (`PICK='song'`, `PSEL`, Put them out → `pansOut`); `songChanged()` re-syncs after undo, delete, open, Drive import.
   **Pull a section closer:** a beam on another station (its invisible cylinder `st.hit`, the beam turns gold) + trigger drags it
-  along the floor (`stationHit`, `stGrab/stMove/stDrop` on the 0.9 m plane, `placeStation` keeps it turned to the middle and
-  moves its sound); kept per set in localStorage `panyard-vr-yardpos`; menu ↺ Yard back (`yardBack`) puts all back on the circle.
+  along the floor (`stationHit`, `stGrab/stMove/stDrop` on the 0.9 m plane, `placeStation` moves it and its sound); kept per set in localStorage `panyard-vr-yardpos`; menu ↺ Yard back (`yardBack`) puts all back in their `BAND` places. Dragging keeps a section's facing.
   **The barrier** (`clashOf`/`footOf`, `GAP` 8 cm): footprints are each station's drums, the kit's pieces and its player's
   spot; a pull (`stMove`), one-pan move (`panMove`) or lift (`liftMove`) that would make the worst overlap bigger is undone
   that frame (a buzz, `bump`). **The lock** (`LOCK`, localStorage `panyard-vr-lock`, on): the grips and the beam leave the

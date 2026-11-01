@@ -39,7 +39,7 @@ with sync_playwright() as p:
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000);check(pg.evaluate("VR.drumWorld(0)")==w1,'and after the page opens again')
     pg.evaluate("VR.pansBack()");check(pg.evaluate("VR.lifted()")=={'p':[0,0,0],'q':[0,0,0,1]} and pg.evaluate("VR.drumWorld(0)")==w0,'↺ Pans back levels them again')
     pg.evaluate("VR.set('six')");p0=pg.evaluate("VR.panPos(2)");ps=[pg.evaluate(f"VR.panPos({i})") for i in range(6)]
-    nb=min((q for i,q in enumerate(ps) if i!=2),key=lambda q:math.hypot(q[0]-p0[0],q[2]-p0[2]));ux,uz=p0[0]-nb[0],p0[2]-nb[2];n=math.hypot(ux,uz)   # away from its neighbour
+    cx=sum(q[0] for q in ps)/6;cz=sum(q[2] for q in ps)/6;ux,uz=p0[0]-cx,p0[2]-cz;n=math.hypot(ux,uz)   # outward, away from the arch's middle
     check(pg.evaluate(f"VR.movePan(2,{ux/n*.15},0,{uz/n*.15})") and pg.evaluate("VR.panPos(2)")!=p0,'one hand on a rim still moves just that pan')
     pg.evaluate("VR.pansBack();VR.set('tenor')")
     # my songs

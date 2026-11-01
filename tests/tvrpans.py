@@ -48,10 +48,10 @@ with sync_playwright() as p:
     # move one pan by its rim; the notes don't grab it; it stays; ↺ Pans back
     pg.evaluate("VR.set('six')");p0=pg.evaluate("VR.panPos(2)")
     check(not pg.evaluate("VR.movePan(2,.2,0,.1,true)"),'a hand over the notes doesn\'t grab the pan (playing never moves it)')
-    # away from its nearest neighbour (the barrier stops pans running into each other)
+    # outward (the barrier stops pans running into each other)
     import math
     ps=[pg.evaluate(f"VR.panPos({i})") for i in range(6)];nb=min((q for i,q in enumerate(ps) if i!=2),key=lambda q:math.hypot(q[0]-p0[0],q[2]-p0[2]))
-    ux,uz=p0[0]-nb[0],p0[2]-nb[2];n=math.hypot(ux,uz);ux,uz=ux/n*.2,uz/n*.2
+    cx=sum(q[0] for q in ps)/6;cz=sum(q[2] for q in ps)/6;ux,uz=p0[0]-cx,p0[2]-cz;n=math.hypot(ux,uz);ux,uz=ux/n*.2,uz/n*.2   # outward, away from the arch's middle
     check(pg.evaluate(f"VR.movePan(2,{ux},.05,{uz})"),'a grip squeezed at a pan\'s rim grabs it')
     p1=pg.evaluate("VR.panPos(2)");check(abs(p1[0]-p0[0]-ux)<.01 and abs(p1[2]-p0[2]-uz)<.01 and abs(p1[1]-p0[1]-.05)<.01 and pg.evaluate("VR.panPos(1)")!=p1,f'that one pan moves with the hand {p0} → {p1}')
     pg.evaluate(f"VR.movePan(2,{nb[0]-p1[0]},0,{nb[2]-p1[2]})");p2=pg.evaluate("VR.panPos(2)")

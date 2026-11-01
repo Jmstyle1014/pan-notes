@@ -27,12 +27,11 @@ with sync_playwright() as p:
     ST=lambda:{s['k']:s for s in pg.evaluate("VR.stations()")}
     # the yard is the way it opens
     st=ST();check(pg.evaluate("VR.inYard()") and set(st)=={'tenor','guitar','six'},f'the song\'s pans all stand in the yard {sorted(st)}')
-    r=[math.hypot(*s['at']) for s in st.values()];check(all(abs(x-4)<.05 for x in r),'round a circle')
-    check(st['tenor']['at'][1]<-3 and st['six']['at'][1]>2.5,'tenors at the front, basses at the back')
-    pl=pg.evaluate("VR.player()");check(pl['at']=='tenor' and abs(math.hypot(pl['x'],pl['z'])-4.5)<.05,f'you start at the tenor, behind it, facing in {pl}')
+    check(st['tenor']['at']==[0,-2.2] and st['guitar']['at'][1]>st['tenor']['at'][1]+1.5 and st['six']['at'][0]<-3,f'as on a Panorama stage: tenor at the front, guitar behind, six bass on the left wing {st}')
+    pl=pg.evaluate("VR.player()");check(pl['at']=='tenor' and abs(pl['x'])<.01 and abs(pl['z']+1.7)<.01 and abs(pl['yaw'])<.01,f'you start at the tenor, behind it, facing the front {pl}')
     pg.evaluate("document.getElementById('hud').hidden=true;VR.view('yard')");pg.wait_for_timeout(700);pg.screenshot(path=D+'1-yard.png')
     # teleport
-    l=pg.evaluate("VR.land(1.37,3.76)");check(l['k']=='six' and l['ok'],'the arc landing on the basses snaps to their spot')
+    l=pg.evaluate("VR.land(-3.9,-.4)");check(l['k']=='six' and l['ok'],'the arc landing on the basses snaps to their spot')
     l=pg.evaluate("VR.land(0,0)");check(l['k'] is None and l['ok'],'the middle of the yard is a free spot')
     l=pg.evaluate("VR.land(0,7.6)");check(not l['ok'],'past the floor isn\'t')
     # an arc thrown from the tenor spot towards the guitars
@@ -57,12 +56,12 @@ with sync_playwright() as p:
     check(not bad,f'notes on every station play themselves ({len(ids)} notes, bad {bad[:4]})')
     # surround
     sp=pg.evaluate("VR.spatial()")
-    ok=all(t['spatial'] and abs(math.hypot(t['x'],t['z'])-4)<.05 for t in sp)
+    S2=ST();ok=all(t['spatial'] and abs(t['x']-S2[t['set']]['at'][0])<.05 and abs(t['z']-S2[t['set']]['at'][1])<.05 for t in sp)
     check(ok,f'each track sounds from where its pans stand {sp}')
     check(all(t['roll']==.3 for t in sp),'Even mix is on: far pans fade only a little')
     pg.evaluate("VR.even(false)");check(all(t['roll']==1 for t in pg.evaluate("VR.spatial()")),'Even mix off: like real life');pg.evaluate("VR.even(true)")
     e=pg.evaluate("VR.goTo('six');VR.ear()");six=ST()['six']['at']
-    check(math.hypot(e['x']-six[0],e['z']-six[1])<1 and e['fx']*(-six[0])+e['fz']*(-six[1])>0,f'your ears are at the basses, facing into the yard {e}')
+    check(math.hypot(e['x']-six[0],e['z']-six[1])<1 and e['fx']>.5,f'your ears are at the basses on the wing, facing in {e}')
     # recording goes to the pans you're at
     pg.evaluate("VR.goTo('six');VR.act('rec')");pg.wait_for_timeout(2600)
     six_id=[i for i in ids if i.startswith('six:')][0];ten_id='tenor:62'
@@ -81,21 +80,21 @@ with sync_playwright() as p:
     pg.evaluate("VR.act('add');VR.act('pick:seven')");check('seven' in ST() and pg.evaluate("VR.player()")['at']=='seven','+ Track: the new pans come out and you go to them')
     # pull a section closer: point at the basses from the tenor, hold the trigger, aim near you
     pg.evaluate("VR.goTo('tenor')");far=ST()['six']['at']
-    check(pg.evaluate("VR.dragSection('six',1.4,-2.2)"),'pointing at the basses and holding the trigger grabs them')
+    check(pg.evaluate("VR.dragSection('six',-2.9,-2.4)"),'pointing at the basses and holding the trigger grabs them')
     near=ST()['six']['at'];pl=pg.evaluate("VR.player()")
     d0=math.hypot(far[0]-pl['x'],far[1]-pl['z']);d1=math.hypot(near[0]-pl['x'],near[1]-pl['z'])
-    check(abs(near[0]-1.4)<.05 and abs(near[1]+2.2)<.05 and d1<d0/2,f'they slide over to where you aim, much closer ({d0:.1f} m → {d1:.1f} m)')
-    six=[t for t in pg.evaluate("VR.spatial()") if t['set']=='six'][0];check(abs(six['x']-1.4)<.05 and abs(six['z']+2.2)<.05,'and their sound comes from there')
+    check(abs(near[0]+2.9)<.05 and abs(near[1]+2.4)<.05 and d1<d0-.8,f'they slide over to where you aim, much closer ({d0:.1f} m → {d1:.1f} m)')
+    six=[t for t in pg.evaluate("VR.spatial()") if t['set']=='six'][0];check(abs(six['x']+2.9)<.05 and abs(six['z']+2.4)<.05,'and their sound comes from there')
     check(not pg.evaluate("VR.dragSection('tenor',0,0)"),'the pans you\'re at don\'t slide (lift them with both hands)')
     pg.evaluate("VR.view('yard')");pg.wait_for_timeout(600);pg.screenshot(path=D+'7-pulled-closer.png');pg.evaluate("VR.view('pans')")
-    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=90000);check(abs(ST()['six']['at'][0]-1.4)<.05,'they stay there when the page opens again')
-    pg.evaluate("VR.yardBack()");check(ST()['six']['at']==far,'↺ Yard back puts them back on the circle')
+    pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=90000);check(abs(ST()['six']['at'][0]+2.9)<.05,'they stay there when the page opens again')
+    pg.evaluate("VR.yardBack()");check(ST()['six']['at']==far,'↺ Yard back puts them back in their place')
     # the barrier: a section pulled onto another stops before they touch
     pg.evaluate("VR.goTo('guitar')");t0=ST()['tenor']['at']
     pg.evaluate(f"VR.dragSection('six',{t0[0]},{t0[1]+.3})");six=ST()['six']['at']
     check(pg.evaluate("VR.clash('six')")<=0 and pg.evaluate("VR.clash('tenor')")<=0 and math.hypot(six[0]-t0[0],six[1]-t0[1])>1.2,f'pulling the basses onto the tenor stops before they touch ({six})')
     pg.evaluate("VR.yardBack()")
-    check(all(pg.evaluate(f"VR.clash('{k}')")<=0 for k in ST()),'no two sections overlap round the yard')
+    check(all(pg.evaluate(f"VR.clash('{k}')")<=0 for k in ST()),'no two sections overlap')
     # where you are: a gold ring at your spot
     pg.evaluate("VR.goTo('six')");h=pg.evaluate("VR.here()");pl=pg.evaluate("VR.player()")
     check(h and abs(h[0]-pl['x'])<.05 and abs(h[1]-pl['z'])<.05,'a gold ring marks the spot of the pans you\'re at')
