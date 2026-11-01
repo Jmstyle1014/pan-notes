@@ -111,6 +111,11 @@ with sync_playwright() as p:
     for i in range(3):pg.evaluate("VR.press('guide','gnext')")
     pg.evaluate("VR.press('guide','gnext')");check(not pg.evaluate("VR.guideOn()") and pg.evaluate("localStorage.getItem('panyard-vr-welcomed')")=='1','Let\'s play closes it, and it won\'t show by itself again')
     pg.evaluate("VR.menu(true)");check('mguide' in pg.evaluate("VR.menuHits()") and 'mlock' in pg.evaluate("VR.menuHits()"),'the menu has ❓ Guide and the lock');pg.evaluate("VR.menu(false)")
+    # Concert rows: the other layout, everyone facing the front, basses at the back; then back to Panorama
+    pg.evaluate("VR.layout('rows')");R=ST();pl=pg.evaluate("VR.player()")
+    check(R['tenor']['at']==[0,-2.3] and R['guitar']['at']==[-2.5,-.3] and R['six']['at'][1]>1.5 and R['seven']['at'][1]>1.5 and pl['at']=='tenor',f'Concert rows: frontline, then guitars, basses at the back {R}')
+    check(all(pg.evaluate(f"VR.clash('{k}')")<=0 for k in R),'no two sections overlap in rows either')
+    pg.evaluate("VR.layout('pano')");check(ST()['six']['at'][0]<-3 and pg.evaluate("localStorage.getItem('panyard-vr-layout')")=='pano','and back to Panorama')
     # kids mode
     pg.evaluate("VR.kids(true)");check(set(ST())=={'tenor','dsec','guitar','fcello','six','kit'} and not pg.evaluate("VR.tableOn()") or set(ST())=={'tenor','dsec','guitar','fcello','six','kit'},'kids mode: a band of pans out')
     check(pg.evaluate("VR.menuHits()").count('mkids')==1 and 'msongs' not in pg.evaluate("VR.menuHits()"),'its menu is the simple one')

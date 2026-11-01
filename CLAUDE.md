@@ -299,7 +299,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   label}`, `buildStation`/`dropStation`/`syncStations`) under the galvanize (`shed`), set out as on a Panorama stage (the
   owner's choice; `BAND`: [x, z, facing], the front is −z by the flag: frontline row at z −2.2, guitar/four cello behind, three
   cello behind them, six/seven bass on the left/right wings facing in, the kit at the back; `BORDER` is B/Y's order), each
-  `g` turned the way its section faces, you standing 0.5 m behind its pans (`spotOf`). One pan is a
+  `g` turned the way its section faces, you standing 0.5 m behind its pans (`spotOf`). `BAND` reads the chosen layout in
+  `LAYOUTS` (`pano`, or `rows`: Concert rows, everyone facing the front, basses and drums in the back row; `setLayout`,
+  localStorage `panyard-vr-layout`; menu Panorama / Rows / One pan); each layout keeps its own moved sections (`posKey`). One pan is a
   single station whose `g` is the old `rig`. `drums` holds every station's drums (hits, bounce, rim grabs, lift all work per
   drum; `d.st`, `d.set`, `d.i`); `setKey` is the station you're at (`arrive()`: its sticks, its track selected, the table and
   sign moved to it by `hereStation`). Moving: `PL` (x, z, yaw) is applied as an offset reference space (`applyPlayer`,
