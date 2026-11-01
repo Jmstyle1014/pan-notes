@@ -1,4 +1,4 @@
-import os,sys,json
+import os,sys,json,math
 from playwright.sync_api import sync_playwright
 # Panyard VR: both hands on the rims lift the pans (moved, turned and tilted up to you; they still play right, stay
 # put per set, and ↺ Pans back levels them); one hand on a rim still moves one pan. My songs: 💾 Save keeps the song on
@@ -38,7 +38,9 @@ with sync_playwright() as p:
     pg.evaluate("VR.set('tenor')");check(pg.evaluate("VR.drumWorld(0)")==w1,'each set stays where you lifted it')
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000);check(pg.evaluate("VR.drumWorld(0)")==w1,'and after the page opens again')
     pg.evaluate("VR.pansBack()");check(pg.evaluate("VR.lifted()")=={'p':[0,0,0],'q':[0,0,0,1]} and pg.evaluate("VR.drumWorld(0)")==w0,'↺ Pans back levels them again')
-    pg.evaluate("VR.set('six')");p0=pg.evaluate("VR.panPos(2)");check(pg.evaluate("VR.movePan(2,.2,0,.1)") and pg.evaluate("VR.panPos(2)")!=p0,'one hand on a rim still moves just that pan')
+    pg.evaluate("VR.set('six')");p0=pg.evaluate("VR.panPos(2)");ps=[pg.evaluate(f"VR.panPos({i})") for i in range(6)]
+    cx=sum(q[0] for q in ps)/6;cz=sum(q[2] for q in ps)/6;ux,uz=p0[0]-cx,p0[2]-cz;n=math.hypot(ux,uz)   # outward, away from the arch's middle
+    check(pg.evaluate(f"VR.movePan(2,{ux/n*.15},0,{uz/n*.15})") and pg.evaluate("VR.panPos(2)")!=p0,'one hand on a rim still moves just that pan')
     pg.evaluate("VR.pansBack();VR.set('tenor')")
     # my songs
     check(pg.evaluate("VR.songs()")==[],'no saved songs to start with')
