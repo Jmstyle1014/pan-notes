@@ -38,6 +38,8 @@ canvas{display:block}
   <div class="seg" id="whereSeg"><button data-where="yard">Pan yard (every pan in the song)</button><button data-where="one">One pan in front of you</button></div>
   <div class="lab">Even mix (the yard)</div>
   <div class="seg" id="evenSeg"><button data-even="on">On: far pans stay clear</button><button data-even="off">Off: like real life</button></div>
+  <div class="lab">The pans (the yard)</div>
+  <div class="seg" id="lockSeg"><button data-lock="on">🔒 Locked in place</button><button data-lock="off">🔓 Free to arrange</button></div>
   <div class="lab">Kids mode</div>
   <div class="seg" id="kidsSeg"><button data-kids="on">On: just play, no studio</button><button data-kids="off">Off</button></div>
   <div class="lab">Sound</div>
@@ -281,7 +283,27 @@ function placeStation(st,x,z){const r=Math.hypot(x,z);if(r>6.3){x*=6.3/r;z*=6.3/
 const SPL=new THREE.Plane(new THREE.Vector3(0,1,0),-.9),SPP=new THREE.Vector3();
 function stationHit(ray){const ts=[...STN.values()].filter(st=>st.hit&&st.key!==setKey).map(st=>st.hit);if(!ts.length)return null;const h=ray.intersectObjects(ts,false)[0];return h?{st:h.object.userData.st,point:h.point,distance:h.distance}:null}
 function stGrab(st,ray){if(!ray.intersectPlane(SPL,SPP))SPP.copy(st.g.position);return {st,off:st.g.position.clone().sub(SPP)}}
-function stMove(dr,ray){if(!ray.intersectPlane(SPL,SPP))return;const x=SPP.x+dr.off.x,z=SPP.z+dr.off.z;placeStation(dr.st,x,z)}
+function stMove(dr,ray){if(!ray.intersectPlane(SPL,SPP))return true;const x=SPP.x+dr.off.x,z=SPP.z+dr.off.z,p=dr.st.g.position.clone(),before=clashOf(dr.st);
+  placeStation(dr.st,x,z);if(clashOf(dr.st)>Math.max(0,before-1e-4)){placeStation(dr.st,p.x,p.z);return false}return true}
+/* the barrier: pans never run into each other. Each station's footprint is its drums (rim to rim) or the kit's pieces; a
+   move (pulling a section, moving one pan, lifting with both hands) that would make two of them, or a pan and another
+   section's standing spot, overlap (closer than GAP)
+   stops at the last place that was clear, with a buzz. Pans already too close may still move apart. */
+const GAP=.08,FW=new THREE.Vector3();
+function footOf(st){const out=[];for(const d of st.drums){d.g.getWorldPosition(FW);out.push([FW.x,FW.z,RS+.012,d])}
+  if(st.key==='kit'&&kitG.parent===st.g)for(const p of KITP){p.g.getWorldPosition(FW);out.push([FW.x,FW.z,p.stand?p.h/2+.05:p.r,null])}
+  if(!st.solo){FW.set(0,0,.5);st.g.localToWorld(FW);out.push([FW.x,FW.z,.3,null])}   // and the spot where its player stands
+  return out}
+// how far the worst overlap goes (0: clear): between this station and the others, and between its own drums
+function clashOf(st){const mine=footOf(st);let worst=0;
+  for(const o of STN.values()){if(o===st)continue;for(const [x,z,r] of footOf(o))for(const [a,b,q] of mine)worst=Math.max(worst,r+q+GAP-Math.hypot(x-a,z-b))}
+  for(let i=0;i<mine.length;i++)for(let j=i+1;j<mine.length;j++)if(mine[i][3]&&mine[j][3])worst=Math.max(worst,2*RS+.02-Math.hypot(mine[i][0]-mine[j][0],mine[i][1]-mine[j][1]))
+  return worst}
+/* the lock (on unless switched off, localStorage panyard-vr-lock): with the pans locked, the grips and the beam don't move
+   them, so playing hard never knocks one; unlock in the menu to arrange them, then lock again */
+let LOCK=LS('lock')!=='0';
+function setLock(on){LOCK=on;LSset('lock',on?'1':'0');toast(on?'🔒 The pans are locked in place':'🔓 Unlocked: move the pans, then lock them again');dirty=true;if(menu.m.visible)drawMenu();lockUI()}
+function lockUI(){document.querySelectorAll('#lockSeg button').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.lock==='on')===LOCK)))}
 function stDrop(dr){const p=dr.st.g.position;YPOS[dr.st.key]=[+p.x.toFixed(3),+p.z.toFixed(3)];LSset('yardpos',JSON.stringify(YPOS));for(const o of STN.values())if(o.label)o.label.visible=o.key!==setKey}
 function yardBack(){YPOS={};LSset('yardpos','{}');for(const st of STN.values()){if(st.solo)continue;const a=YANG[st.key]*Math.PI/180;placeStation(st,Math.sin(a)*YR,-Math.cos(a)*YR)}
   if(STN.has(setKey))goTo(setKey);msg('Every section is back in its place round the yard')}
@@ -299,6 +321,7 @@ function syncStations(all){const ks=wantKeys(),solo=!inYard();
 function buildPans(){syncStations(true)}
 // the station you're at holds the sign and the studio table; the others show their names
 function hereStation(){const st=STN.get(setKey)||[...STN.values()][0];if(!st)return;st.g.add(sign);st.g.add(table);
+  if(st.solo)hereRing.visible=false;else{const sp=spotOf(st);hereRing.position.set(sp.x,.012,sp.z);hereRing.visible=true}   // the gold ring: where you stand at these pans
   if(st.solo){sign.position.set(0,.55,-.6);sign.scale.setScalar(1)}else{sign.position.set(0,.3,-.62);sign.scale.setScalar(.7)}   // in the yard: smaller and lower, so you see across
   for(const o of STN.values())if(o.label)o.label.visible=o!==st;
   if(sign.material.map)sign.material.map.dispose();sign.material.map=signFor();sign.material.needsUpdate=true;placeTable()}
@@ -626,8 +649,39 @@ const scr=uiPanel(1.0,.5625,1600,900);scr.m.position.set(0,.52,-.24);scr.m.rotat
 const head2=new THREE.Mesh(new THREE.PlaneGeometry(.004,.42),new THREE.MeshBasicMaterial({color:'#ffffff'}));head2.position.z=.002;scr.m.add(head2);
 /* the menu: a thumbstick press (the Quest keeps its ☰ button for itself) opens it in front of you; point and pull the trigger */
 const menu=uiPanel(.9,.675,1200,900);menu.m.visible=false;scene.add(menu.m);
-const PANELS=[desk,scr,menu];
-const panelLive=p=>p===menu?menu.m.visible:tableShown()&&!menu.m.visible;
+/* a short message floating in front of you (the lock, the guide); it fades after a couple of seconds */
+const tst=uiPanel(.5,.09,1000,180);tst.m.material.transparent=true;tst.m.visible=false;tst.m.renderOrder=10;tst.m.material.depthTest=false;scene.add(tst.m);let tstT=0;
+function toast(t){const g=tst.g;g.clearRect(0,0,1000,180);g.fillStyle='rgba(12,18,24,.88)';g.beginPath();g.roundRect(0,0,1000,180,40);g.fill();g.fillStyle='#f6ba45';g.font='700 46px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
+  let f=46;while(g.measureText(t).width>940&&f>26){f-=2;g.font='700 '+f+'px system-ui,sans-serif'}g.fillText(t,500,92);tst.tex.needsUpdate=true;tstT=2.6;tst.m.visible=true;VR.toasts.push(t)}
+function toastFrame(dt){if(tstT<=0)return;tstT-=dt;const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera,hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);
+  tst.m.position.copy(hp).addScaledVector(f,.7);tst.m.position.y-=.18;tst.m.lookAt(hp);tst.m.material.opacity=Math.min(1,tstT*2);if(tstT<=0)tst.m.visible=false}
+/* the welcome guide: the first time you put the headset on (localStorage panyard-vr-welcomed), a few pages in front of you
+   (Next / Back / Skip); the menu's ❓ Guide shows it again. Kids mode has a shorter one. */
+const guide=uiPanel(.9,.675,1200,900);guide.m.visible=false;scene.add(guide.m);let GPAGE=0;
+const GUIDE={
+  grown:[
+    ['👋','Welcome to Panyard VR',['You\'re standing at your pans in the yard.','The rest of the band stands round you, each section','at its own spot. This guide takes a minute.']],
+    ['🥢','Play',['Hold the controllers like pan sticks.','Hit the notes from above: swing harder for louder.','A note glows when you hit it. Rest the stick and it won\'t repeat.']],
+    ['🦘','Move round the yard',['Push a thumbstick forward, aim the arc, let go: you jump.','Aim at a section and the circle turns gold: you land','at its pans. Push left or right to turn. Or just walk.']],
+    ['☰','The menu',['Press a thumbstick in (click it) for the menu:','pans, looks, sticks, sound, your songs, kids mode,','the lock, and this guide again.']],
+    ['⏺','Record a song',['The table beside you is the studio.','● Rec records the pans you\'re at; jump to other pans','and record them too. ▶ Play plays the band round you.']],
+    ['🔒','Arrange the band',['The pans are locked so they never move by accident.','Unlock in the menu, then: both grips on the rims lift and','tilt pans; beam + trigger pulls a section closer. Lock again.']]],
+  kids:[
+    ['👋','Welcome to the pan yard!',['These are real steelband pans.','Take the sticks and play anything you like.']],
+    ['🥢','Play',['Hit the notes from the top.','Hit harder and it gets louder!']],
+    ['🦘','Go to other pans',['Push the stick on your controller forward,','point at some pans, and let go to jump there.']]]};
+const gpages=()=>GUIDE[KIDS?'kids':'grown'];
+function guideOpen(on){guide.m.visible=on;if(on){GPAGE=0;menuOpen(false);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera,hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);f.y=0;
+    if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();guide.m.position.set(hp.x+f.x*.8,hp.y-.1,hp.z+f.z*.8);guide.m.lookAt(hp.x,hp.y-.1,hp.z);drawGuide()}else LSset('welcomed','1');dirty=true}
+function drawGuide(){const p=guide,g=p.g,pg=gpages(),[ic,ti,lines]=pg[GPAGE];p.hits=[];g.setTransform(1,0,0,1,0,0);g.fillStyle='#0d1216';g.fillRect(0,0,p.W,p.H);g.strokeStyle='#f6ba45';g.lineWidth=6;g.strokeRect(3,3,p.W-6,p.H-6);
+  g.textAlign='center';g.textBaseline='middle';g.font='150px system-ui,sans-serif';g.fillText(ic,600,190);
+  g.fillStyle='#f6ba45';g.font='700 62px system-ui,sans-serif';g.fillText(ti,600,345);g.fillStyle='#eef2f4';g.font='36px system-ui,sans-serif';lines.forEach((l,i)=>g.fillText(l,600,440+i*58));
+  pg.forEach((_,i)=>{g.fillStyle=i===GPAGE?'#f6ba45':'#3d4852';g.beginPath();g.arc(600+(i-(pg.length-1)/2)*34,660,10,0,7);g.fill()});
+  if(GPAGE>0)btn(p,'gback',40,730,240,110,'◀ Back',{fs:36});btn(p,'gskip',p.W-250,30,220,80,'Skip',{fs:32});
+  const last=GPAGE===pg.length-1;btn(p,'gnext',p.W-420,730,380,110,last?'Let\'s play! ✓':'Next ▶',{fs:40,on:true,oncol:last?'#34c759':'#f6ba45'});p.tex.needsUpdate=true}
+const hereRing=new THREE.Mesh(new THREE.RingGeometry(.26,.32,48),new THREE.MeshBasicMaterial({color:'#f6ba45',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));hereRing.rotation.x=-Math.PI/2;hereRing.visible=false;scene.add(hereRing);
+const PANELS=[desk,scr,menu,guide];
+const panelLive=p=>p===guide?guide.m.visible:p===menu?menu.m.visible&&!guide.m.visible:tableShown()&&!menu.m.visible&&!guide.m.visible;
 function menuOpen(on){menu.m.visible=on;if(on){MPAGE='main';DELARM='';const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;const hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);f.y=0;
     if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();menu.m.position.set(hp.x+f.x*.75,hp.y-.12,hp.z+f.z*.75);menu.m.lookAt(hp.x,hp.y-.12,hp.z);drawMenu()}dirty=true}
 let MPAGE='main',MSP=0,DELARM='';
@@ -642,7 +696,7 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
     row(130,'Go to');pick(120,'mset',setName(setKey),90);row(250,'Look');pick(240,'mlook',LOOKN[lookKey],90);
     row(370,'Sticks');['short','medium','long'].forEach((k,i)=>btn(p,'mlen:'+k,300+i*200,365,185,80,k[0].toUpperCase()+k.slice(1),{on:stickLen===k,fs:30}));
     btn(p,'mbring',36,490,520,100,'Back to my spot',{fs:34});btn(p,'mexit',580,490,300,100,'Leave VR',{fs:34});
-    btn(p,'mkids',36,640,520,80,'Grown-up mode (the studio)',{fs:28});
+    btn(p,'mkids',36,640,520,80,'Grown-up mode (the studio)',{fs:28});btn(p,'mguide',580,640,300,80,'❓ Guide',{fs:30});
     g.fillStyle='#9fb0b8';g.font='26px system-ui,sans-serif';g.textAlign='left';g.fillText('Push a thumbstick forward, aim, and let go to jump to other pans.',36,790);g.fillText('Push it left or right to turn. Press it to open or close this menu.',36,830);
     p.tex.needsUpdate=true;return}
   const yd=inYard();
@@ -654,8 +708,8 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
   row(480,'Bass & treble for each pan','basses fuller, tenors brighter');btn(p,'mtone',880,475,280,60,OPT.tone?'On':'Off',{on:OPT.tone,fs:30});
   row(555,'Sticks');['short','medium','long'].forEach((k,i)=>btn(p,'mlen:'+k,300+i*200,550,185,60,k[0].toUpperCase()+k.slice(1),{on:stickLen===k,fs:28}));
   row(630,'Studio table');btn(p,'mtable:1',300,625,185,60,'Out',{on:tableOn,fs:28});btn(p,'mtable:0',500,625,185,60,'Away',{on:!tableOn,fs:28});
-  btn(p,'msongs',36,705,330,66,'💾 My songs',{fs:28});btn(p,'mback',380,705,330,66,'↺ Pans back',{fs:28});btn(p,'mkids',724,705,330,66,'🧒 Kids mode',{fs:28});
-  btn(p,'mbring',36,785,400,66,yd?'Back to my spot':'Bring the pans to me',{fs:28});btn(p,'mexit',450,785,300,66,'Leave VR',{fs:28});if(yd)btn(p,'myard',764,785,300,66,'↺ Yard back',{fs:28});
+  btn(p,'msongs',36,705,260,66,'💾 My songs',{fs:27});btn(p,'mback',310,705,250,66,'↺ Pans back',{fs:27});btn(p,'mkids',574,705,250,66,'🧒 Kids mode',{fs:27});btn(p,'mguide',838,705,250,66,'❓ Guide',{fs:27});
+  btn(p,'mbring',36,785,290,66,yd?'Back to my spot':'Pans to me',{fs:27});btn(p,'mexit',340,785,200,66,'Leave VR',{fs:27});if(yd)btn(p,'myard',554,785,240,66,'↺ Yard back',{fs:27});btn(p,'mlock',808,785,280,66,LOCK?'🔒 Locked':'🔓 Unlocked',{fs:27,on:LOCK});
   g.fillStyle='#77838d';g.font='20px system-ui,sans-serif';g.textAlign='left';
   g.fillText(yd?'Stick forward: jump · left/right: turn · point at a section + trigger: pull it closer':'Both grips on the rims: lift the pans · a thumbstick press opens or closes this menu',36,876);
   p.tex.needsUpdate=true}
@@ -756,7 +810,7 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
 function act(id){const [k,a]=id.split(':'),i=+a;
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
     barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),pickgo:pansOut,setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
-    mclose:()=>menuOpen(false),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
+    mclose:()=>menuOpen(false),gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{setYard(a==='yard');drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
     mlook:()=>{const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+i+ks.length)%ks.length];LSset('look',lookKey);applyLook();drawMenu()},
@@ -838,8 +892,9 @@ let pgrab=null;const pw=new THREE.Vector3();
 function drumAtRim(world){let best=null;for(const d of drums){pw.copy(world);d.g.worldToLocal(pw);const r=Math.hypot(pw.x,pw.z);
     if(r>RS-.05&&r<RS+.09&&pw.y>-d.SK-.05&&pw.y<.12&&(!best||Math.abs(r-RS)<best.e))best={d,e:Math.abs(r-RS)}}return best&&best.d}
 function panGrab(d,world){pw.copy(world);d.st.lift.worldToLocal(pw);pgrab={d,p:pw.clone(),t:d.g.position.clone(),ry:d.g.rotation.y}}
-function panMove(world){if(!pgrab)return;pw.copy(world);pgrab.d.st.lift.worldToLocal(pw);const g=pgrab.d.g,x=pgrab.t.x+pw.x-pgrab.p.x,z=pgrab.t.z+pw.z-pgrab.p.z;
-  g.position.set(x,Math.max(-.5,Math.min(.5,pgrab.t.y+pw.y-pgrab.p.y)),z);g.rotation.y=Math.atan2(-x,.48-z+.0001)*(PANSET[pgrab.d.set].place&&PANSET[pgrab.d.set].place.length<2?0:1)}
+function panMove(world){if(!pgrab)return;pw.copy(world);pgrab.d.st.lift.worldToLocal(pw);const g=pgrab.d.g,x=pgrab.t.x+pw.x-pgrab.p.x,z=pgrab.t.z+pw.z-pgrab.p.z,st=pgrab.d.st,before=clashOf(st),wp=g.position.clone(),wr=g.rotation.y;
+  g.position.set(x,Math.max(-.5,Math.min(.5,pgrab.t.y+pw.y-pgrab.p.y)),z);g.rotation.y=Math.atan2(-x,.48-z+.0001)*(PANSET[pgrab.d.set].place&&PANSET[pgrab.d.set].place.length<2?0:1);
+  g.updateMatrixWorld(true);if(clashOf(st)>Math.max(0,before-1e-4)){g.position.copy(wp);g.rotation.y=wr;g.updateMatrixWorld(true);return false}return true}
 function panDrop(){if(!pgrab)return;const i=pgrab.d.i,k=pgrab.d.set,g=pgrab.d.g;pgrab=null;
   (DPOS[k]=DPOS[k]||{})[i]=[g.position.x,g.position.y,g.position.z].map(v=>+v.toFixed(3));LSset('drums',JSON.stringify(DPOS))}
 function pansBack(){delete DPOS[setKey];LSset('drums',JSON.stringify(DPOS));delete LIFT[setKey];LSset('lift',JSON.stringify(LIFT));const st=STN.get(setKey);if(st){dropStation(st);STN.delete(setKey)}syncStations();msg('The pans are back in their places')}
@@ -858,8 +913,9 @@ function handFrame(G,pa,pb,qa,qb){G.getWorldQuaternion(LQ).invert();const a=G.wo
   LY.copy(LU).addScaledVector(LX,-LU.dot(LX));if(LY.lengthSq()<1e-4)LY.set(0,1,0).addScaledVector(LX,-LX.y);LY.normalize();LZ.crossVectors(LX,LY);
   return new THREE.Matrix4().makeBasis(LX,LY,LZ).setPosition(a.add(b).multiplyScalar(.5))}
 function liftGrab(st,pa,pb,qa,qb){st.lift.updateMatrix();lgrab={st,inv:handFrame(st.g,pa,pb,qa,qb).invert(),L0:st.lift.matrix.clone()}}
-function liftMove(pa,pb,qa,qb){if(!lgrab)return;const L=lgrab.st.lift;handFrame(lgrab.st.g,pa,pb,qa,qb).multiply(lgrab.inv).multiply(lgrab.L0).decompose(L.position,L.quaternion,LS3);
-  L.position.set(Math.max(-2.5,Math.min(2.5,L.position.x)),Math.max(-.7,Math.min(.9,L.position.y)),Math.max(-2.5,Math.min(2.5,L.position.z)))}
+function liftMove(pa,pb,qa,qb){if(!lgrab)return;const L=lgrab.st.lift,before=clashOf(lgrab.st),wp=L.position.clone(),wq=L.quaternion.clone();handFrame(lgrab.st.g,pa,pb,qa,qb).multiply(lgrab.inv).multiply(lgrab.L0).decompose(L.position,L.quaternion,LS3);
+  L.position.set(Math.max(-2.5,Math.min(2.5,L.position.x)),Math.max(-.7,Math.min(.9,L.position.y)),Math.max(-2.5,Math.min(2.5,L.position.z)));
+  L.updateMatrixWorld(true);if(clashOf(lgrab.st)>Math.max(0,before-1e-4)){L.position.copy(wp);L.quaternion.copy(wq);L.updateMatrixWorld(true);return false}return true}
 function liftDrop(){if(!lgrab)return;const L=lgrab.st.lift;LIFT[lgrab.st.key]=[...L.position.toArray(),...L.quaternion.toArray()].map(v=>+v.toFixed(4));lgrab=null;LSset('lift',JSON.stringify(LIFT))}
 /* pointing: a controller's beam, or the mouse off the headset */
 let grab=null;
@@ -876,32 +932,34 @@ const bRay=new THREE.Raycaster(),bm=new THREE.Matrix4();
 function beamFrame(){for(const b of beams){if(!b.src){continue}
   bm.identity().extractRotation(b.c.matrixWorld);bRay.ray.origin.setFromMatrixPosition(b.c.matrixWorld);bRay.ray.direction.set(0,0,-1).applyMatrix4(bm);
   const hit=bRay.intersectObjects(PANELS.filter(panelLive).map(p=>p.m))[0],gp=b.src.gamepad,trig=!!(gp&&gp.buttons[0]&&gp.buttons[0].pressed);
-  const onPanel=hit&&hit.distance<3&&!b.drag,sh=!onPanel&&inYard()&&!b.grab?(b.drag?{st:b.drag.st,point:b.drag.st.g.getWorldPosition(new THREE.Vector3()),distance:bRay.ray.origin.distanceTo(b.drag.st.g.getWorldPosition(new THREE.Vector3()))}:stationHit(bRay)):null;
+  const onPanel=hit&&hit.distance<3&&!b.drag,sh=!onPanel&&inYard()&&!b.grab&&!LOCK?(b.drag?{st:b.drag.st,point:b.drag.st.g.getWorldPosition(new THREE.Vector3()),distance:bRay.ray.origin.distanceTo(b.drag.st.g.getWorldPosition(new THREE.Vector3()))}:stationHit(bRay)):null;
   if(onPanel){b.line.material.color.set('#bfe6ff');b.lg.visible=true;b.line.scale.y=hit.distance;b.line.position.z=-hit.distance/2;b.dot.visible=true;b.dot.position.copy(hit.point);
     const p=PANELS.find(q=>q.m===hit.object);if(b.grab){}else if(trig&&!b.down){if(uiDown(p,hit.uv))try{gp.hapticActuators[0].pulse(.3,15)}catch{}}else if(trig)uiMove(p,hit.uv)}
   else if(sh){b.line.material.color.set('#f6ba45');b.lg.visible=true;b.line.scale.y=sh.distance;b.line.position.z=-sh.distance/2;b.dot.visible=true;b.dot.position.copy(sh.point);   // pointing at another section: gold
-    if(trig&&!b.down&&!b.drag){b.drag=stGrab(sh.st,bRay.ray);try{gp.hapticActuators[0].pulse(.4,25)}catch{}}else if(trig&&b.drag)stMove(b.drag,bRay.ray)}
+    if(trig&&!b.down&&!b.drag){b.drag=stGrab(sh.st,bRay.ray);try{gp.hapticActuators[0].pulse(.4,25)}catch{}}else if(trig&&b.drag&&!stMove(b.drag,bRay.ray))bump(gp)}
   else{b.lg.visible=b.dot.visible=false}
   if(!trig&&b.drag){stDrop(b.drag);b.drag=null}
   if(trig&&!b.down&&!onPanel&&!sh&&!b.drag&&!b.grab&&setKey==='kit'){const val=gp.buttons[0].value;kickNow(Math.max(.55,val||.9));try{gp.hapticActuators[0].pulse(.5,25)}catch{}}
   if(!trig&&b.down)uiUp();b.down=trig;
   // the grip: grab the table
   const sq=!!(gp&&gp.buttons[1]&&gp.buttons[1].pressed);b.c.getWorldPosition(tw);const cw=tw.clone();
-  const rimD=sq&&!b.sq&&!tgrab&&!b.grab?drumAtRim(cw):null,o=beams.find(x=>x!==b),buzz=s=>{try{s.gamepad.hapticActuators[0].pulse(.5,40)}catch{}};
+  let rimD=sq&&!b.sq&&!tgrab&&!b.grab?drumAtRim(cw):null;const o=beams.find(x=>x!==b),buzz=s=>{try{s.gamepad.hapticActuators[0].pulse(.5,40)}catch{}};
   if(!sq){b.rim=false;b.rimSt=null}
+  if(rimD&&LOCK){rimD=null;bump(gp);toast('🔒 The pans are locked: press a thumbstick → 🔓 to move them')}   // locked: the grip leaves the pans be
   if(rimD&&o.src&&o.sq&&o.rim&&o.rimSt===rimD.st&&!lgrab){   // the second hand on a rim: lift them all (the first hand's pan goes back to where it was)
     if(pgrab){pgrab.d.g.position.copy(pgrab.t);pgrab.d.g.rotation.y=pgrab.ry;pgrab=null}o.pgrab=false;b.rim=b.lift=o.lift=true;
     b.rimSt=rimD.st;const [x,y]=beams[0]===b?[b,o]:[o,b];liftGrab(rimD.st,hpos(x),hpos(y),hrot(x),hrot(y));buzz(b.src);buzz(o.src)}
   else if(b.lift){if(!sq||!o.sq){b.lift=o.lift=false;liftDrop()}}
   else if(rimD&&!pgrab){b.rim=b.pgrab=true;b.rimSt=rimD.st;panGrab(rimD,cw);try{gp.hapticActuators[0].pulse(.4,30)}catch{}}
   else if(rimD){b.rim=true;b.rimSt=rimD.st}
-  else if(sq&&b.pgrab)panMove(cw);
+  else if(sq&&b.pgrab){if(panMove(cw)===false)bump(gp)}
   else if(!sq&&b.pgrab){b.pgrab=false;panDrop()}
   else if(sq&&!b.sq&&!tgrab&&tableShown()&&((hit&&hit.distance<3)||nearTable(cw))){b.grab=true;tableGrab(cw);try{gp.hapticActuators[0].pulse(.4,30)}catch{}}
   else if(sq&&b.grab)tableMove(cw);
   else if(!sq&&b.grab){b.grab=false;tableDrop()}
   b.sq=sq}
-  if(lgrab&&beams[0].lift&&beams[1].lift)liftMove(hpos(beams[0]),hpos(beams[1]),hrot(beams[0]),hrot(beams[1]))}
+  if(lgrab&&beams[0].lift&&beams[1].lift&&liftMove(hpos(beams[0]),hpos(beams[1]),hrot(beams[0]),hrot(beams[1]))===false)for(const x of beams)bump(x.src&&x.src.gamepad)}
+let bumpT=0;function bump(gp){const t=performance.now();if(t-bumpT<120)return;bumpT=t;try{gp.hapticActuators[0].pulse(.25,12)}catch{}}
 const hpos=b=>b.c.getWorldPosition(new THREE.Vector3()),hrot=b=>b.c.getWorldQuaternion(new THREE.Quaternion());
 let statT=0,lastStat='';
 function studioFrame(dt){if(msgT>0){msgT-=dt;if(msgT<=0){MSG='';dirty=true}}
@@ -1057,14 +1115,14 @@ let last=performance.now();const tipW=new THREE.Vector3();
 renderer.setAnimationLoop((now,frame)=>{
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(renderer.xr.isPresenting){
-    if(!placed&&frame&&++placeN>5){placed=true;bringPan()}   // a few frames in, so the headset knows where your head is
+    if(!placed&&frame&&++placeN>5){placed=true;bringPan();if(LS('welcomed')!=='1')setTimeout(()=>guideOpen(true),400)}   // a few frames in, so the headset knows where your head is
     for(const s of sticks){if(!s.src){s.prev=null;continue}s.piv.rotation.x=STICK_TILT;s.piv.updateMatrixWorld(true);s.tip.getWorldPosition(tipW);track(s,tipW,dt);trackKit(s,tipW,dt);bounce(s,dt);squash(s,dt);
       const gp=s.src.gamepad;if(!gp)continue;const hd=s.src.handedness,B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
       {const a=B(4),k=hd+'a',t0=pressed.get(k+'t');if(a&&!t0){pressed.set(k+'t',now);pressed.set(k+'l',false)}
         else if(a&&t0&&!pressed.get(k+'l')&&now-t0>800){pressed.set(k+'l',true);if(!KIDS)showTable(!tableOn);try{gp.hapticActuators[0].pulse(.6,60)}catch{}}
         else if(!a&&t0){if(!pressed.get(k+'l'))bringPan();pressed.set(k+'t',0)}}
       if(edge(hd+'b',B(5)))nextSet();
-      if(edge(hd+'s',B(3)))menuOpen(!menu.m.visible);
+      if(edge(hd+'s',B(3))){if(guide.m.visible)guideOpen(false);else menuOpen(!menu.m.visible)}
       if(inYard()){const ax=gp.axes[2]||0,ay=gp.axes[3]||0,bc=beams[sticks.indexOf(s)].c;   // the yard: teleport and snap turn
         if(ay<-.6){aiming[hd]=true;bc.updateMatrixWorld(true);const o=new THREE.Vector3().setFromMatrixPosition(bc.matrixWorld),r=new THREE.Matrix4().extractRotation(bc.matrixWorld);aimFrom(o,new THREE.Vector3(0,0,-1).applyMatrix4(r))}
         else if(aiming[hd]&&ay>-.35){aiming[hd]=false;aimEnd(true)}
@@ -1074,7 +1132,7 @@ renderer.setAnimationLoop((now,frame)=>{
   }
   for(const d of drums)for(const n of d.notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.6*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
   if(renderer.xr.isPresenting)beamFrame();
-  tick();studioFrame(dt);kitFrame(dt);standFollow();listen();renderer.render(scene,camera);
+  tick();studioFrame(dt);kitFrame(dt);standFollow();listen();toastFrame(dt);renderer.render(scene,camera);
 });
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
@@ -1115,7 +1173,7 @@ async function enter(mode){
   catch(e){console.warn(e);$('status').textContent='The headset didn’t start: '+(e.message||e)}
 }
 $('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immersive-ar');
-loadSong();renderSeg();applyLook();gdUI();mineUI();yardUI();if(inYard())goTo(setKey);
+loadSong();renderSeg();applyLook();gdUI();mineUI();yardUI();lockUI();document.querySelectorAll('#lockSeg button').forEach(b=>b.onclick=()=>setLock(b.dataset.lock==='on'));if(inYard())goTo(setKey);
 document.querySelectorAll('#whereSeg button').forEach(b=>b.onclick=()=>setYard(b.dataset.where==='yard'));document.querySelectorAll('#evenSeg button').forEach(b=>b.onclick=()=>setEven(b.dataset.even==='on'));document.querySelectorAll('#kidsSeg button').forEach(b=>b.onclick=()=>setKids(b.dataset.kids==='on'));
 $('mineFile').onclick=()=>$('mineIn').click();
 $('mineIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const x=await openFile(f);$('status').textContent='Opened '+x.title+'.'}catch(err){$('status').textContent='That file couldn’t open: '+(err.message||err)}};
@@ -1136,7 +1194,7 @@ document.querySelectorAll('#lenSeg button').forEach(b=>b.onclick=()=>{stickLen=b
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,act,menu:on=>menuOpen(on),menuOn:()=>menu.m.visible,opts:()=>({...OPT}),stickLen:()=>{const s=makeStick();s.tip.updateMatrixWorld(true);return +(-s.tip.position.z).toFixed(3)},
+const VR=window.VR={hits:[],clicks:0,toasts:[],guide:on=>guideOpen(on),guideOn:()=>guide.m.visible,guidePage:()=>GPAGE,lock:setLock,locked:()=>LOCK,clash:k=>+clashOf(STN.get(k)).toFixed(3),foot:k=>footOf(STN.get(k)).map(([x,z,r])=>[+x.toFixed(2),+z.toFixed(2),+r.toFixed(2)]),here:()=>hereRing.visible?[+hereRing.position.x.toFixed(2),+hereRing.position.z.toFixed(2)]:null,act,menu:on=>menuOpen(on),menuOn:()=>menu.m.visible,opts:()=>({...OPT}),stickLen:()=>{const s=makeStick();s.tip.updateMatrixWorld(true);return +(-s.tip.position.z).toFixed(3)},
   // a hand at a drum's rim squeezes, moves by (dx, dy, dz) and lets go; or the hand over the notes (not the rim)
   movePan(i,dx,dy,dz,overNotes){const d=drums[i],w=new THREE.Vector3(overNotes?0:RS,.02,0);d.g.localToWorld(w);const s=drumAtRim(w);if(s!==d)return false;
     panGrab(d,w);w.add(new THREE.Vector3(dx,dy,dz));panMove(w);panDrop();return true},panPos:i=>drums[i].g.position.toArray().map(v=>+v.toFixed(3)),pansBack,showTable,tableOn:()=>tableOn,THREE,scene,mk:k=>makeStick(k),borrow:id=>borrowOf(id),sticks:()=>sticks.map(s=>s.kind),
@@ -1151,7 +1209,7 @@ const VR=window.VR={hits:[],clicks:0,act,menu:on=>menuOpen(on),menuOn:()=>menu.m
   dragTable(dx,dy,dz){const w=new THREE.Vector3(0,.1,0);table.localToWorld(w);const s=w.clone();if(!nearTable(s))return false;tableGrab(s);w.add(new THREE.Vector3(dx,dy,dz));tableMove(w);tableDrop();return true},tableReset,
   surf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;return {centre:+surf(d,x,z).toFixed(4),bowl:+bowl(Math.hypot(x,z),d.D).toFixed(4),depth:d.D}},grooveAt(id,dx){const d=drumOf(id),n=d.notes.find(x=>x.id===id);return +offAt(d,(n.x-d.cx)*d.S+dx,(n.y-d.cy)*d.S).toFixed(4)},song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
   // a press (and a drag) on the desk or the screen at a spot in its own pixels, as the pointer beam does
-  press(panel,id,fx,fy){const p=panel==='desk'?desk:panel==='menu'?menu:scr;if(dirty){dirty=false;drawScreen();drawDesk()}const b=p.hits.find(q=>q.id===id);if(!b)return false;const uv=(x,y)=>({x:x/p.W,y:1-y/p.H});
+  press(panel,id,fx,fy){const p=panel==='desk'?desk:panel==='menu'?menu:panel==='guide'?guide:scr;if(dirty){dirty=false;drawScreen();drawDesk()}const b=p.hits.find(q=>q.id===id);if(!b)return false;const uv=(x,y)=>({x:x/p.W,y:1-y/p.H});
     uiDown(p,uv(b.x+b.w*(fx??.5),b.y+b.h*(fy??.5)));return true},
   drag(panel,id,fx0,fy0,fx1,fy1){const p=panel==='desk'?desk:scr;if(dirty){dirty=false;drawScreen();drawDesk()}const b=p.hits.find(q=>q.id===id);if(!b)return false;const uv=(x,y)=>({x:x/p.W,y:1-y/p.H});
     uiDown(p,uv(b.x+b.w*fx0,b.y+b.h*fy0));uiMove(p,uv(b.x+b.w*fx1,b.y+b.h*fy1));uiUp();return true},

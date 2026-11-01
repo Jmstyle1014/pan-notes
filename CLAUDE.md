@@ -310,6 +310,12 @@ upright count is low because a checklist pushes the pans below the play bar ther
   **Pull a section closer:** a beam on another station (its invisible cylinder `st.hit`, the beam turns gold) + trigger drags it
   along the floor (`stationHit`, `stGrab/stMove/stDrop` on the 0.9 m plane, `placeStation` keeps it turned to the middle and
   moves its sound); kept per set in localStorage `panyard-vr-yardpos`; menu ↺ Yard back (`yardBack`) puts all back on the circle.
+  **The barrier** (`clashOf`/`footOf`, `GAP` 8 cm): footprints are each station's drums, the kit's pieces and its player's
+  spot; a pull (`stMove`), one-pan move (`panMove`) or lift (`liftMove`) that would make the worst overlap bigger is undone
+  that frame (a buzz, `bump`). **The lock** (`LOCK`, localStorage `panyard-vr-lock`, on): the grips and the beam leave the
+  pans be (a `toast` says how to unlock); menu 🔒/🔓 and the page's switch. A gold ring (`hereRing`) marks your spot.
+  **Welcome guide** (`guide` panel, `GUIDE.grown`/`.kids` pages, `guideOpen`/`drawGuide`): opens the first time in the
+  headset (localStorage `panyard-vr-welcomed`), Next / Back / Skip, menu ❓ Guide. `toast()` floats short messages.
   **Kids mode** (`KIDS`, localStorage `panyard-vr-kids`): the yard with `KIDSETS`, no table, a simple menu. Test with `tvryard`
   (the older VR tests pin One pan with `panyard-vr-yard` = 0).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

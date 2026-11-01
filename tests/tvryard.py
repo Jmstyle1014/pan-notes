@@ -90,6 +90,28 @@ with sync_playwright() as p:
     pg.evaluate("VR.view('yard')");pg.wait_for_timeout(600);pg.screenshot(path=D+'7-pulled-closer.png');pg.evaluate("VR.view('pans')")
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=90000);check(abs(ST()['six']['at'][0]-1.4)<.05,'they stay there when the page opens again')
     pg.evaluate("VR.yardBack()");check(ST()['six']['at']==far,'↺ Yard back puts them back on the circle')
+    # the barrier: a section pulled onto another stops before they touch
+    pg.evaluate("VR.goTo('guitar')");t0=ST()['tenor']['at']
+    pg.evaluate(f"VR.dragSection('six',{t0[0]},{t0[1]+.3})");six=ST()['six']['at']
+    check(pg.evaluate("VR.clash('six')")<=0 and pg.evaluate("VR.clash('tenor')")<=0 and math.hypot(six[0]-t0[0],six[1]-t0[1])>1.2,f'pulling the basses onto the tenor stops before they touch ({six})')
+    pg.evaluate("VR.yardBack()")
+    check(all(pg.evaluate(f"VR.clash('{k}')")<=0 for k in ST()),'no two sections overlap round the yard')
+    # where you are: a gold ring at your spot
+    pg.evaluate("VR.goTo('six')");h=pg.evaluate("VR.here()");pl=pg.evaluate("VR.player()")
+    check(h and abs(h[0]-pl['x'])<.05 and abs(h[1]-pl['z'])<.05,'a gold ring marks the spot of the pans you\'re at')
+    # the lock: on to start with, a switch on the page
+    check(pg.evaluate("VR.locked()"),'the pans start locked in place')
+    pg.evaluate("VR.lock(false)");check(not pg.evaluate("VR.locked()") and pg.evaluate("localStorage.getItem('panyard-vr-lock')")=='0','and unlock')
+    pg.evaluate("VR.lock(true)")
+    # the welcome guide
+    pg.evaluate("VR.goTo('tenor');VR.view('pans');VR.guide(true)");check(pg.evaluate("VR.guideOn()") and pg.evaluate("VR.guidePage()")==0,'the welcome guide opens')
+    pg.wait_for_timeout(500);pg.screenshot(path=D+'8-welcome.png')
+    for i in range(3):pg.evaluate("VR.press('guide','gnext')")
+    check(pg.evaluate("VR.guidePage()")==3,'Next turns its pages');pg.wait_for_timeout(400);pg.screenshot(path=D+'9-welcome-menu.png')
+    pg.evaluate("VR.press('guide','gback')");check(pg.evaluate("VR.guidePage()")==2,'Back goes back')
+    for i in range(3):pg.evaluate("VR.press('guide','gnext')")
+    pg.evaluate("VR.press('guide','gnext')");check(not pg.evaluate("VR.guideOn()") and pg.evaluate("localStorage.getItem('panyard-vr-welcomed')")=='1','Let\'s play closes it, and it won\'t show by itself again')
+    pg.evaluate("VR.menu(true)");check('mguide' in pg.evaluate("VR.menuHits()") and 'mlock' in pg.evaluate("VR.menuHits()"),'the menu has ❓ Guide and the lock');pg.evaluate("VR.menu(false)")
     # kids mode
     pg.evaluate("VR.kids(true)");check(set(ST())=={'tenor','dsec','guitar','fcello','six','kit'} and not pg.evaluate("VR.tableOn()") or set(ST())=={'tenor','dsec','guitar','fcello','six','kit'},'kids mode: a band of pans out')
     check(pg.evaluate("VR.menuHits()").count('mkids')==1 and 'msongs' not in pg.evaluate("VR.menuHits()"),'its menu is the simple one')
