@@ -44,6 +44,8 @@ canvas{display:block}
   <div class="seg" id="optSeg"><button data-opt="hum">Drum body hum</button><button data-opt="tone">Bass &amp; treble for each pan</button></div>
   <div class="lab">Sticks</div>
   <div class="seg" id="lenSeg"><button data-len="short">Short</button><button data-len="medium">Medium</button><button data-len="long">Long</button></div>
+  <div class="lab">Notes</div>
+  <div class="seg" id="fillSeg"><button data-fill="on">Close to the rim (like a real pan)</button><button data-fill="off">As drawn in Panyard</button></div>
   <div class="seg" id="capSeg" style="margin-top:8px"><button data-cap="red">Tenor caps: red</button><button data-cap="black">Tenor caps: black</button></div>
   <div class="lab">Studio table</div>
   <div class="seg" id="studioSeg"><button data-st="on">Out</button><button data-st="off">Put away (just play)</button></div>
@@ -70,6 +72,12 @@ const A=441;                       // Panyard Band's tuning
 const RS=0.285;                    // a 22.5 in drum: the playing surface's radius in metres
 const GROOVE=.005,DOME=.006;       // each note: the groove round it sinks 5 mm, its middle rises up to 6 mm (smaller notes less)
 const SURF=0.27;                   // where the drawing's playing surface edge lands, in metres
+// Notes to the rim (on unless switched off, localStorage panyard-vr-notefill): on a real pan the outer notes come close to
+// the rim. The drawings leave about 2.7 cm on a tenor; this scales each drum's notes out until the outermost reaches
+// FILLTO (1.4 cm from the rim), so every note is a little bigger. As drawn: SURF as before.
+let NOTEFILL=true;const FILLTO=RS-.0135;   // read from storage once LS exists (below)
+function outerOf(dd,SV){let m=0;for(const n of dd.notes){const pe=document.createElementNS('http://www.w3.org/2000/svg','path');pe.setAttribute('d',n.path);SV.appendChild(pe);
+  const L=pe.getTotalLength();for(let q=0;q<96;q++){const pt=pe.getPointAtLength(L*q/96);m=Math.max(m,Math.hypot(pt.x-dd.cx,pt.y-dd.cy))}pe.remove()}return m}
 const bowl=(r,D)=>-D*Math.max(0,1-(r/RS)**2);   // the bowl's height at a distance from the centre, D deep
 const $=id=>document.getElementById(id);
 // each set: its skirt (inches), its barrel's hum (343 / 4(L + 0.3·22.5 in)), its suggested tone, where its drums stand
@@ -93,6 +101,7 @@ const LOOKS={
   flag:{skirt:['#5a4200','#c79a00','#fff2a0','#f2c400','#a37d00','#ffe066','#3d2c00'],rim:'#fcd116',hit:'#fcd116',sky:['#1a1a1a','#050505'],floor:'#1c1a14',flag:true},
 };
 const LS=k=>{try{return localStorage.getItem('panyard-vr-'+k)}catch{return null}},LSset=(k,v)=>{try{localStorage.setItem('panyard-vr-'+k,v)}catch{}};
+NOTEFILL=LS('notefill')!=='0';
 let setKey=SETS[LS('set')]||LS('set')==='kit'?LS('set'):'tenor',lookKey=LOOKS[LS('look')]?LS('look'):'chrome';
 const ALL=Object.entries(SETS).flatMap(([k,s])=>s.drums.flatMap(d=>d.notes.map(n=>(n.set=k,n))));
 const NOTE=Object.fromEntries(ALL.map(n=>[n.id,n]));
@@ -231,7 +240,7 @@ function makeDrums(k,stn,lite){
   const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
   try{
   return set.drums.map((dd,i)=>{
-    const d={...dd,set:k,i,st:stn,S:SURF/dd.r,D:P.depth,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};d.off=heightMap(d);
+    const d={...dd,set:k,i,st:stn,S:NOTEFILL?Math.max(SURF/dd.r,FILLTO/outerOf(dd,SV)):SURF/dd.r,D:P.depth,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};d.off=heightMap(d);
     const g=new THREE.Group();g.rotation.order='YXZ';const pl=placeOf(i,k),sv=savedPos(i,k);if(sv){g.position.set(sv[0],sv[1],sv[2]);g.rotation.y=Math.atan2(-sv[0],.48-sv[2]+.0001)*(P.place&&P.place.length<2?0:1)}else{g.position.set(pl[0],0,pl[2]);g.rotation.y=pl[1]}g.rotation.x=P.tilt||.2;stn.lift.add(g);d.g=g;
     const geo=new THREE.RingGeometry(.0005,RS,lite?160:256,lite?70:110);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
     for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,surf(d,x,z))}geo.computeVertexNormals();
@@ -312,12 +321,17 @@ function signFor(){return canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.8
    ribs; a rounded butt; and the rubber squashing a little when it hits (the hit itself is unchanged). len: how much shows
    past the hand; r: the wood; cr, ch: the cap's radius and height (or ball: the oval's radius). */
 let TENORCAP=LS('tenorcap')==='black'?'black':'red';   // the photo has tenor sticks with red and with black caps
+// g: each stick's weight in grams (estimates: shops rarely list them; a tenor stick ~45 g, a bass mallet ~110 g)
 const STICKS={
-  tenor:{len:.145,r:.0065,tip:'#d63752',cr:.011,ch:.015},dten:{len:.145,r:.0065,tip:'#d63752',cr:.011,ch:.015},
-  dsec:{len:.155,r:.007,tip:'#d63752',cr:.012,ch:.016},guitar:{len:.165,r:.0075,tip:'#b67c43',cr:.013,ch:.02},
-  fcello:{len:.18,r:.0075,tip:'#161b20',cr:.015,ch:.025},tcello:{len:.18,r:.0075,tip:'#161b20',cr:.015,ch:.025},
-  six:{len:.22,r:.008,ball:.041,tip:'#368dd2'},seven:{len:.22,r:.008,ball:.041,tip:'#368dd2'},
-  kit:{len:.32,r:.0068,tip:'#d9b98a',cr:.0068,ch:.012,wood:1}};
+  tenor:{len:.145,r:.0065,tip:'#d63752',cr:.011,ch:.015,g:45},dten:{len:.145,r:.0065,tip:'#d63752',cr:.011,ch:.015,g:45},
+  dsec:{len:.155,r:.007,tip:'#d63752',cr:.012,ch:.016,g:50},guitar:{len:.165,r:.0075,tip:'#b67c43',cr:.013,ch:.02,g:60},
+  fcello:{len:.18,r:.0075,tip:'#161b20',cr:.015,ch:.025,g:70},tcello:{len:.18,r:.0075,tip:'#161b20',cr:.015,ch:.025,g:70},
+  six:{len:.22,r:.008,ball:.041,tip:'#368dd2',g:110},seven:{len:.22,r:.008,ball:.041,tip:'#368dd2',g:110},
+  kit:{len:.32,r:.0068,tip:'#d9b98a',cr:.0068,ch:.012,wood:1,g:50}};
+/* the weight: a heavier stick carries more into the note, so the same swing plays louder (and, as louder hits are, brighter);
+   a light one needs a quicker flick. Heavier sticks also bounce up less, come back slower and press the rubber more.
+   heft(): the weight against a 60 g stick, square-rooted (momentum, softened so no pan feels sluggish). */
+const heft=kind=>Math.sqrt(((STICKS[kind]||STICKS.tenor).g||60)/60);
 const STICK_TILT=-.22;
 const STICKLEN={short:.8,medium:1,long:1.2};let stickLen=STICKLEN[LS('sticklen')]?LS('sticklen'):'medium';   // radians: pointing forward and a touch down, as in the hand
 // the wood: pale beech with a faint grain along the stick
@@ -354,11 +368,11 @@ function sinkOf(s){s.tip.getWorldPosition(bw);let deep=0;
   for(const d of drums){bl.copy(bw);d.g.worldToLocal(bl);const r=Math.hypot(bl.x,bl.z);if(r<RS+.01){const k=surf(d,bl.x,bl.z)+s.R-bl.y;if(k>deep&&k<.25)deep=k}}
   if(kitG.visible)for(const p of KITP){bl.copy(bw);p.g.worldToLocal(bl);if(Math.hypot(bl.x,bl.z)<p.r+.01){const k=s.R-bl.y;if(k>deep&&k<.12)deep=k}}
   return deep}
-function bounce(s,dt){s.reb=Math.max(0,s.reb-dt*5);const base=STICK_TILT+s.reb;   // the flick: up straight after the hit, back down over a fifth of a second
+function bounce(s,dt){s.reb=Math.max(0,s.reb-dt*5/heft(s.kind));const base=STICK_TILT+s.reb;   // the flick: up straight after the hit, back down over a fifth of a second
   s.piv.rotation.x=base;s.piv.updateMatrixWorld(true);if(sinkOf(s)<=0)return 0;
   let lo=0,hi=1.4;for(let i=0;i<8;i++){const m=(lo+hi)/2;s.piv.rotation.x=base+m;s.piv.updateMatrixWorld(true);if(sinkOf(s)>0)lo=m;else hi=m}
   s.piv.rotation.x=base+hi;s.piv.updateMatrixWorld(true);return hi}
-function kickBack(s,v){s.reb=s.rebMax=.18+.3*v;s.sq=0;s.sqA=Math.max(.15,Math.min(1,v))*(STICKS[s.kind]&&STICKS[s.kind].ball?.13:.08)}
+function kickBack(s,v){const h=heft(s.kind);s.reb=s.rebMax=(.18+.3*v)/h;s.sq=0;s.sqA=Math.min(.2,Math.max(.15,Math.min(1,v))*(STICKS[s.kind]&&STICKS[s.kind].ball?.13:.08)*h)}
 function squash(s,dt){if(!s.cap||s.sq>=1)return;s.sq=Math.min(1,s.sq+dt/.115);const t=s.sq,c=t<.28?Math.sin(t/.28*Math.PI/2):t<.8?Math.cos((t-.28)/.52*Math.PI/2):-.1*Math.sin((t-.8)/.2*Math.PI);
   const y=1-s.sqA*c;s.cap.scale.set(1/Math.sqrt(y),y,1/Math.sqrt(y));if(t>=1)s.cap.scale.set(1,1,1)}
 
@@ -428,7 +442,7 @@ function trackKit(s,world,dt){if(!kitG.visible)return null;s.kp=s.kp||{};let out
   for(const p of KITP){local.copy(world);p.g.worldToLocal(local);const r=Math.hypot(local.x,local.z),dd=local.y-.012,prev=s.kp[p.gm];
     s.kp[p.gm]={x:local.x,y:local.y,z:local.z,dd,arm:prev?(prev.arm||dd>.012):true};
     if(!prev||!prev.arm||r>p.r+.01||!(prev.dd>0&&dd<=0)){continue}
-    s.kp[p.gm].arm=false;const sp=Math.hypot(local.x-prev.x,local.y-prev.y,local.z-prev.z)/Math.max(dt,1e-3),v=Math.max(.12,Math.min(1,sp/3.2));
+    s.kp[p.gm].arm=false;const sp=Math.hypot(local.x-prev.x,local.y-prev.y,local.z-prev.z)/Math.max(dt,1e-3),v=Math.max(.12,Math.min(1,sp/3.2*heft(s.kind)));
     const gm=p.edge&&r>p.r*(p.gm===42?.62:.82)?p.edge:p.gm;strikeDrum('drum:'+gm,v);out=gm;kickBack(s,v);
     try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}}
   return out}
@@ -445,7 +459,7 @@ function track(s,world,dt){
   if(!prev||!s.armed||r>RS||!(prev.dd>0&&dd<=0))return null;
   const sp=Math.hypot(best.x-prev.x,best.y-prev.y,best.z-prev.z)/Math.max(dt,1e-3);
   const n=noteAt(d,best.x,best.z);s.armed=false;if(!n)return null;
-  const v=Math.max(.12,Math.min(1,sp/3.2));                              // about 3 m/s is a full stroke
+  const v=Math.max(.12,Math.min(1,sp/3.2*heft(s.kind)));               // about 3 m/s is a full stroke with a 60 g stick (heft)
   strike(n.id,v);n.lit=1;kickBack(s,v);
   try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}
   return n.id;
@@ -1107,6 +1121,9 @@ $('mineFile').onclick=()=>$('mineIn').click();
 $('mineIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const x=await openFile(f);$('status').textContent='Opened '+x.title+'.'}catch(err){$('status').textContent='That file couldn’t open: '+(err.message||err)}};
 showTable(tableOn);document.querySelectorAll('#optSeg [data-opt]').forEach(b=>{b.setAttribute('aria-pressed',String(OPT[b.dataset.opt]));b.onclick=()=>setOpt(b.dataset.opt,!OPT[b.dataset.opt])});
 const lenUI=()=>{document.querySelectorAll('#lenSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.len===stickLen)));document.querySelectorAll('#capSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cap===TENORCAP)))};lenUI();
+const fillUI=()=>document.querySelectorAll('#fillSeg button').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.fill==='on')===NOTEFILL)));fillUI();
+function setFill(on){NOTEFILL=on;LSset('notefill',on?'1':'0');syncStations(true);fillUI()}
+document.querySelectorAll('#fillSeg button').forEach(b=>b.onclick=()=>setFill(b.dataset.fill==='on'));
 document.querySelectorAll('#capSeg button').forEach(b=>b.onclick=()=>{TENORCAP=b.dataset.cap;LSset('tenorcap',TENORCAP);restick(true);lenUI()});
 document.querySelectorAll('#lenSeg button').forEach(b=>b.onclick=()=>{stickLen=b.dataset.len;LSset('sticklen',stickLen);restick(true);lenUI()});document.querySelectorAll('#studioSeg button').forEach(b=>b.onclick=()=>showTable(b.dataset.st==='on'));
 (async()=>{
@@ -1130,7 +1147,7 @@ const VR=window.VR={hits:[],clicks:0,act,menu:on=>menuOpen(on),menuOn:()=>menu.m
       const t0=new THREE.Vector3();s.tip.getWorldPosition(t0);s.grip.position.copy(w).sub(t0);s.grip.updateMatrixWorld(true);
       s.tip.getWorldPosition(tipW);const hit=track(s,tipW,1/72);bounce(s,1/72);const e=new THREE.Vector3();s.tip.getWorldPosition(e);const l=e.clone();d.g.worldToLocal(l);
       out.push({hit,below:+((surf(d,l.x,l.z)+s.R-l.y)*1000).toFixed(1),bend:+s.piv.rotation.x.toFixed(3)})}scene.remove(s.grip);return out},nsel:()=>{const q=selNote();return q?{t:q.t.name,id:q.n.id,b:q.n.b,v:q.n.v}:null},pickNote(ti,ni){const t=SONG.tracks[ti];NSEL={t:t.id,n:t.notes[ni]};SONG.sel=ti;dirty=true},gdList,gdImport,recPlaying:()=>recSrcs.length,undo:()=>undo(),rec:()=>RECBUF?RECBUF.duration:0,drums:()=>Object.keys(dbuf).length,kick:v=>kickNow(v),
-  hitDrum(gm,speed,edge){const p=KITP.find(q=>q.gm===gm),s={src:null},dt=1/72,step=(speed||2.5)*dt;let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(edge?p.r*.9:0,.012+k*step,0);p.g.localToWorld(w);out=trackKit(s,w,dt)||out}return out},table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
+  hitDrum(gm,speed,edge){const p=KITP.find(q=>q.gm===gm),s={src:null,kind:'kit'},dt=1/72,step=(speed||2.5)*dt;let out=null;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(edge?p.r*.9:0,.012+k*step,0);p.g.localToWorld(w);out=trackKit(s,w,dt)||out}return out},table:()=>table.position.toArray().map(v=>+v.toFixed(3)),
   dragTable(dx,dy,dz){const w=new THREE.Vector3(0,.1,0);table.localToWorld(w);const s=w.clone();if(!nearTable(s))return false;tableGrab(s);w.add(new THREE.Vector3(dx,dy,dz));tableMove(w);tableDrop();return true},tableReset,
   surf(id){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;return {centre:+surf(d,x,z).toFixed(4),bowl:+bowl(Math.hypot(x,z),d.D).toFixed(4),depth:d.D}},grooveAt(id,dx){const d=drumOf(id),n=d.notes.find(x=>x.id===id);return +offAt(d,(n.x-d.cx)*d.S+dx,(n.y-d.cy)*d.S).toFixed(4)},song:()=>SONG,tr:()=>({state:TR.state,run:TR.run,beat:TR.run&&ac?beatAt(ac.currentTime):0}),view,
   // a press (and a drag) on the desk or the screen at a spot in its own pixels, as the pointer beam does
@@ -1149,7 +1166,12 @@ const VR=window.VR={hits:[],clicks:0,act,menu:on=>menuOpen(on),menuOn:()=>menu.m
   // two sticks held over the pans, for a picture off the headset
   demo(){[[-.16,.16,-.1,-.25],[.17,.11,.02,.2]].forEach(([x,y,z,yaw])=>{const s=makeStick(),g=new THREE.Group();g.add(s.piv);const w=new THREE.Vector3(x,y,z);rig.localToWorld(w);g.position.copy(w);g.position.z+=.25;g.rotation.set(.75,yaw,0);scene.add(g)})},
   set:useSet,look:k=>{lookKey=k;applyLook()},state:()=>({set:setKey,look:lookKey,drums:drums.length}),nextSet,nextLook,
-  bring:bringPan,rig,camera,
+  bring:bringPan,rig,camera,setFill,
+  // the same swing with each pan's sticks: how loud it plays, and how far the stick flicks up
+  weighed(id,speed){const s=makeStick(NOTE[id].set),d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,y=surf(d,x,z),dt=1/72,step=speed*dt;
+    const h0=VR.hits.length;for(let k=4;k>=-2;k--){const w=new THREE.Vector3(x,y+.012+k*step,z);d.g.localToWorld(w);track(s,w,dt)}const hit=VR.hits[h0];
+    let t=0;while(s.reb>0&&t<2){s.reb=Math.max(0,s.reb-(1/72)*5/heft(s.kind));t+=1/72}return {g:STICKS[s.kind].g,v:hit?hit.v:null,flick:+s.rebMax.toFixed(3),back:+t.toFixed(3)}},
+  rimGap:()=>drums.map(d=>{let m=0;for(const n of d.notes){const pts=n.glow.geometry.attributes.position;for(let q=0;q<pts.count;q++)m=Math.max(m,Math.hypot(pts.getX(q),pts.getZ(q)))}return +((RS-m)*100).toFixed(2)}),
   // every stick laid side by side in front of the camera, as in the owner's photo (left to right), for a picture
   lineup(){const g=new THREE.Group();g.name='lineup';scene.add(g);const kinds=['six','fcello','guitar','dsec','tenor','tenor'];let x=-.33;
     kinds.forEach((k,i)=>{const was=TENORCAP;if(i===5)TENORCAP=TENORCAP==='red'?'black':'red';for(let j=0;j<2;j++){const st=makeStick(k);st.piv.rotation.set(Math.PI/2,0,0);st.piv.position.set(x,0,0);g.add(st.piv);x+=STICKS[k].ball?.09:.045}TENORCAP=was;x+=.02});
