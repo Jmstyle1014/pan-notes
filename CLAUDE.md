@@ -332,6 +332,16 @@ upright count is low because a checklist pushes the pans below the play bar ther
   cursor (`LEARN.cur`) so slow frames skip none. A live hit within `GOOD` (0.18 s) of its moment counts (`learnHit`, matched
   straight from the part, green flash); notes let go are missed; each pass toasts its score (`LEARN.P` by `passOf`). ▶, ● or
   🎓 ends it. Test with `tvrlearn` (`VR.learnAt` gives a hit's exact moment: the test browser's frames are too slow to time).
+  **Studio sound packs** (`packs/<name>/`, served at /pan-notes/packs/, made by `source/make_sound_pack.py` from a library
+  with one WAV per note per loudness, `<note>v<k>.wav`): a few loudness layers per note (mono 16-bit FLAC, trimmed, the
+  loudest layer at about −1 dB, the others at their own level) and `pack.json` (`files[id]` soft→hard, `tune[id].cents` to A
+  440 from each note's measured pitch, `credit`, `licence`). VR (`PACKS`, `PACK`, `pbuf`, `strikeLayer`: the layer for the
+  hit's strength, ×0.78) plays a pack per set when chosen (`packOn`, localStorage `panyard-vr-snd-<set>`, page `#packBox` with
+  the credit, menu "Sound: studio/band" beside Go to pans). **dunleavy-dsec**: the Dunleavy Double Seconds (bitKlavier,
+  Princeton, Josh Quillen; Neumann mics; CC BY 4.0, credit required), 30 notes × 4 layers (v1/3/5/7), on by default.
+  **sasse-tenor**: the SASS-E dataset (Zenodo 7803316, Colin Malloy, UVic; **CC BY-NC: non-commercial, remove before
+  charging**), recorded for pitch-detection research (hits all over the note, ~1 s rings, three pans unlabelled: the
+  largest pitch group per note, four hits soft→hard), off by default. Test with `tvrpack`.
   **Kids mode** (`KIDS`, localStorage `panyard-vr-kids`): the yard with `KIDSETS`, no table, a simple menu. Test with `tvryard`
   (the older VR tests pin One pan with `panyard-vr-yard` = 0).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

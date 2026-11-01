@@ -20,7 +20,7 @@ canvas{display:block}
 .btns button{flex:1;min-width:150px;min-height:52px;border-radius:14px;border:1px solid var(--line);background:rgb(255 255 255/.08);color:var(--text);font-size:17px;font-weight:600}
 .btns button.go{background:var(--gold);color:#1a1205;border-color:var(--gold)}
 #status{font-size:14px}
-#mineBox p{margin:8px 0}.mine{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}.mrow{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 12px}.mrow.now{border-color:var(--gold)}.mrow span{flex:1;min-width:0}.mrow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mrow small{color:var(--muted)}.mrow button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px}
+#mineBox p{margin:8px 0}.credit{font-size:12.5px;color:var(--muted)}.mine{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}.mrow{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 12px}.mrow.now{border-color:var(--gold)}.mrow span{flex:1;min-width:0}.mrow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mrow small{color:var(--muted)}.mrow button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px}
 #gdBox p{margin:8px 0}.gdl{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}.gdl button{min-height:46px;border-radius:12px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px;text-align:left;padding:0 14px}
 </style>
 <script type="importmap">{"imports":{"three":"./lib/three.module.min.js"}}</script>
@@ -42,6 +42,7 @@ canvas{display:block}
   <div class="seg" id="lockSeg"><button data-lock="on">🔒 Locked in place</button><button data-lock="off">🔓 Free to arrange</button></div>
   <div class="lab">Kids mode</div>
   <div class="seg" id="kidsSeg"><button data-kids="on">On: just play, no studio</button><button data-kids="off">Off</button></div>
+  <div id="packBox"></div>
   <div class="lab">Sound</div>
   <div class="seg" id="optSeg"><button data-opt="hum">Drum body hum</button><button data-opt="tone">Bass &amp; treble for each pan</button></div>
   <div class="lab">Sticks</div>
@@ -70,6 +71,13 @@ import {RoomEnvironment} from './lib/RoomEnvironment.js';
 /* ---------- the pans, as drawn in Panyard: each drum's notes in its own drawing (centre cx, cy; playing surface radius r) ---------- */
 const SETS=/*SETS*/{};
 const SOUNDS='../band/band-sounds/';
+/* studio sound packs (packs/<name>/pack.json, made by source/make_sound_pack.py): a few loudness layers per note, so a soft
+   hit plays a soft recording and a hard one a hard recording. Per set, a choice between the band's own pans and the pack
+   (localStorage panyard-vr-snd-<set>: 'band' or 'pack'; `use` is where it starts). The study tenor (SASS-E) is
+   non-commercial (CC BY-NC) and recorded for testing pitch software, so it starts off: one to compare by ear. */
+const PACKS={dsec:{url:'../packs/dunleavy-dsec/',use:'pack'},tenor:{url:'../packs/sasse-tenor/',use:'band'}};
+const PACK={},pbuf={};   // set → its pack.json; note id → [buffers, soft to hard]
+const packOn=k=>!!PACK[k]&&(LS('snd-'+k)||PACKS[k].use)==='pack';
 const A=441;                       // Panyard Band's tuning
 const RS=0.285;                    // a 22.5 in drum: the playing surface's radius in metres
 const GROOVE=.005,DOME=.006;       // each note: the groove round it sinks 5 mm, its middle rises up to 6 mm (smaller notes less)
@@ -127,6 +135,10 @@ async function loadSounds(){
   try{man=await (await fetch(SOUNDS+'manifest.json',{cache:'no-cache'})).json()}catch{$('status').textContent='The pan sounds couldn’t be fetched. Check the internet and open this page again.';return false}
   audio();let n=0;const ids=ALL.map(f=>f.id).filter(id=>man.files[id]);
   await Promise.all(ids.map(async id=>{try{const r=await fetch(SOUNDS+man.files[id]);buf[id]=await ac.decodeAudioData(await r.arrayBuffer());$('status').textContent='Getting the band’s pan sounds ready… '+(++n)+' of '+ids.length}catch(e){console.warn(id,e)}}));
+  for(const [k,{url}] of Object.entries(PACKS)){try{const m=await (await fetch(url+'pack.json',{cache:'no-cache'})).json();PACK[k]={...m,url};
+    await Promise.all(Object.entries(m.files).map(async([id,fs])=>{pbuf[id]=await Promise.all(fs.map(async f=>ac.decodeAudioData(await (await fetch(url+f)).arrayBuffer())))}));
+    $('status').textContent='Getting the studio '+setName(k)+' ready…'}catch(e){console.warn('pack',k,e);delete PACK[k]}}
+  packUI();
   const nd=await loadDrums();await moreSounds(SONG.tracks.flatMap(t=>t.notes.map(q=>q.id)));await recLoad();
   $('status').textContent=n?'Ready: '+n+' notes from the band’s pans'+(nd?' and the drum kit.':'.'):'The pan sounds couldn’t be read on this browser.';
   return n>0;
@@ -144,7 +156,9 @@ function borrowOf(id){if(buf[id])return {id,shift:0};if(BORROW[id]!==undefined)r
 function strike(id,v,at,tr){
   if(id.startsWith('drum:'))return strikeDrum(id,v,at,tr);
   const fromTake=!!tr;
-  const n=NOTE[id],bw=borrowOf(id),b=bw&&buf[bw.id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
+  const n=NOTE[id],layered=n&&packOn(n.set)&&pbuf[id];
+  if(layered)return strikeLayer(id,n,v,at,tr);
+  const bw=borrowOf(id),b=bw&&buf[bw.id];if(!ac||!b||!n)return false;if(ac.state==='suspended')ac.resume();
   const T=(man&&man.tune&&man.tune[bw.id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set]||{body:150,tone:null};
   const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440)+bw.shift;
   const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
@@ -162,6 +176,25 @@ function strike(id,v,at,tr){
   if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t)}
   VR.hits.push({id,v:+v.toFixed(2),p:fromTake?1:0});return true;
 }
+// a note from a studio pack: the loudness layer for the hit's strength (a little softer or louder within it), its pitch
+// set right, the drum's hum and tone as ever; no extra darkening for soft hits (the soft recording already is)
+function strikeLayer(id,n,v,at,tr){if(!ac)return false;if(ac.state==='suspended')ac.resume();
+  const L=pbuf[id],k=Math.min(L.length-1,Math.floor(v*L.length*.999)),b=L[k],P=PANSET[n.set]||{body:150,tone:null},t=Math.max(at||0,ac.currentTime+.002);
+  const T=(PACK[n.set].tune||{})[id]||{},src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440);
+  const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
+  if(OPT.hum){pk('peaking',P.body,3.3,2.2);pk('peaking',P.body*3,1.5,2.2)}
+  if(OPT.tone&&P.tone){pk('lowshelf',P.tone[0],P.tone[1]);pk('highshelf',P.tone[2],P.tone[3])}
+  if(!nodes.length)pk('peaking',1000,0,1);
+  src.connect(g);g.connect(nodes[0]);for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);nodes[nodes.length-1].connect(tr&&chan(tr)?chan(tr).g:busOf(n.set));
+  const within=v*L.length-k,a=.78*(.8+.2*Math.min(1,within)),len=b.duration;   // .78: the pack's loudest layer about level with the band's full hit
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.002);g.gain.setValueAtTime(a,t+len-.05);g.gain.linearRampToValueAtTime(0,t+len);src.start(t);src.stop(t+len+.02);
+  const p=voices.get(id);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
+  voices.set(id,{src,g,end:t+len});
+  if(tr)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t)}
+  VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0,layer:k});return true}
+function setSound(k,which){LSset('snd-'+k,which);packUI();dirty=true;if(menu.m.visible)drawMenu();toast(setName(k)+': '+(which==='pack'?PACK[k].name:'your band\'s pans'))}
+function packUI(){const box=$('packBox');if(!box)return;box.innerHTML=Object.entries(PACK).map(([k,m])=>'<div class="lab">'+setName(k)+' sound</div><div class="seg"><button data-snd="'+k+':band" aria-pressed="'+!packOn(k)+'">Our band\'s pans</button><button data-snd="'+k+':pack" aria-pressed="'+packOn(k)+'">'+m.name+'</button></div><p class="credit">'+m.credit+' · '+m.licence+'</p>').join('');
+  box.querySelectorAll('[data-snd]').forEach(b=>b.onclick=()=>{const [k,w]=b.dataset.snd.split(':');setSound(k,w)})}
 function light(id){for(const d of drums)for(const n of d.notes)if(n.id===id)n.lit=1}
 
 /* ---------- the scene ---------- */
@@ -733,7 +766,7 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
     g.fillStyle='#9fb0b8';g.font='26px system-ui,sans-serif';g.textAlign='left';g.fillText('Push a thumbstick forward, aim, and let go to jump to other pans.',36,790);g.fillText('Push it left or right to turn. Press it to open or close this menu.',36,830);
     p.tex.needsUpdate=true;return}
   const yd=inYard();
-  row(105,yd?'Go to pans':'Pans',yd?'the pans in this song':'');pick(100,'mset',setName(setKey),60);
+  row(105,yd?'Go to pans':'Pans',yd?'the pans in this song':'');pick(100,'mset',setName(setKey),60);if(PACK[setKey])btn(p,'msnd',900,100,260,60,packOn(setKey)?'Sound: studio':'Sound: band',{on:packOn(setKey),fs:24});
   row(180,'Look');pick(175,'mlook',LOOKN[lookKey],60);
   row(255,'Where you play',yd?(LAYOUT==='pano'?'the whole band, basses on the wings':'the whole band in rows'):'one pan in front of you');btn(p,'mwhere:pano',560,250,200,60,'Panorama',{on:yd&&LAYOUT==='pano',fs:26});btn(p,'mwhere:rows',770,250,190,60,'Rows',{on:yd&&LAYOUT==='rows',fs:26});btn(p,'mwhere:one',970,250,190,60,'One pan',{on:!yd,fs:26});
   row(330,'Even mix','far pans stay clear; walk up and they get louder');btn(p,'meven',880,325,280,60,EVEN?'On':'Off',{on:EVEN,fs:30});
@@ -849,7 +882,7 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
 function act(id){const [k,a]=id.split(':'),i=+a;
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
     barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),pickgo:pansOut,learn:()=>learn(),setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
-    mclose:()=>menuOpen(false),gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
+    mclose:()=>menuOpen(false),msnd:()=>{setSound(setKey,packOn(setKey)?'band':'pack')},gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{if(a==='one')setYard(false);else setLayout(a);drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
     mlook:()=>{const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+i+ks.length)%ks.length];LSset('look',lookKey);applyLook();drawMenu()},
@@ -1288,7 +1321,7 @@ document.querySelectorAll('#lenSeg button').forEach(b=>b.onclick=()=>{stickLen=b
 
 /* for the tests: the notes, what was played, and a stick swung through a note */
 const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
-const VR=window.VR={hits:[],clicks:0,toasts:[],wristPinned:false,
+const VR=window.VR={hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,
   // the wrist panel shown in front of the camera (off the headset there's no hand to turn)
   wrist(on){VR.wristPinned=on;wrist.m.visible=on;if(on){scene.add(wrist.m);const hp=camera.getWorldPosition(new THREE.Vector3()),f=camera.getWorldDirection(new THREE.Vector3());wrist.m.position.copy(hp).addScaledVector(f,.35);wrist.m.rotation.set(0,0,0);wrist.m.lookAt(hp);drawWrist()}},
   studioAt:()=>{const w=scr.m.getWorldPosition(new THREE.Vector3()),st=STN.get(setKey),c=st?st.g.getWorldPosition(new THREE.Vector3()):null;return {screen:w.toArray().map(v=>+v.toFixed(2)),pans:c&&c.toArray().map(v=>+v.toFixed(2)),wood:table.children.some(o=>o.visible&&o!==scr.m&&o!==desk.m&&o!==sign),mixer:desk.m.visible}},mixer:setMixer,learn:()=>learn(),learnAt:(id,beat)=>learnHit(id,TR.t0+beat*spb()),learning:()=>({id:LEARN.id,ok:LEARN.ok,miss:LEARN.miss,P:LEARN.P,exp:[...LEARN.exp.keys()],waiting:[...LEARN.exp.values()].filter(e=>!e.hit&&!e.miss).map(e=>({id:e.id,in:+(e.t-ac.currentTime).toFixed(3)}))}),

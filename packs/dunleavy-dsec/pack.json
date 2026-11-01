@@ -1,0 +1,288 @@
+{
+"format": "panyard-sound-pack",
+"name": "Dunleavy Double Seconds (studio)",
+"set": "dsec",
+"credit": "The Dunleavy Double Seconds: pans by Kyle Dunleavy, played by Josh Quillen, recorded for bitKlavier at Princeton University (Neumann mics)",
+"licence": "CC BY 4.0",
+"layers": [
+0.0,
+0.333,
+0.667,
+1.0
+],
+"files": {
+"dsec:52": [
+"dsec_52-0.flac",
+"dsec_52-1.flac",
+"dsec_52-2.flac",
+"dsec_52-3.flac"
+],
+"dsec:53": [
+"dsec_53-0.flac",
+"dsec_53-1.flac",
+"dsec_53-2.flac",
+"dsec_53-3.flac"
+],
+"dsec:54": [
+"dsec_54-0.flac",
+"dsec_54-1.flac",
+"dsec_54-2.flac",
+"dsec_54-3.flac"
+],
+"dsec:55": [
+"dsec_55-0.flac",
+"dsec_55-1.flac",
+"dsec_55-2.flac",
+"dsec_55-3.flac"
+],
+"dsec:56": [
+"dsec_56-0.flac",
+"dsec_56-1.flac",
+"dsec_56-2.flac",
+"dsec_56-3.flac"
+],
+"dsec:57": [
+"dsec_57-0.flac",
+"dsec_57-1.flac",
+"dsec_57-2.flac",
+"dsec_57-3.flac"
+],
+"dsec:58": [
+"dsec_58-0.flac",
+"dsec_58-1.flac",
+"dsec_58-2.flac",
+"dsec_58-3.flac"
+],
+"dsec:59": [
+"dsec_59-0.flac",
+"dsec_59-1.flac",
+"dsec_59-2.flac",
+"dsec_59-3.flac"
+],
+"dsec:60": [
+"dsec_60-0.flac",
+"dsec_60-1.flac",
+"dsec_60-2.flac",
+"dsec_60-3.flac"
+],
+"dsec:61": [
+"dsec_61-0.flac",
+"dsec_61-1.flac",
+"dsec_61-2.flac",
+"dsec_61-3.flac"
+],
+"dsec:62": [
+"dsec_62-0.flac",
+"dsec_62-1.flac",
+"dsec_62-2.flac",
+"dsec_62-3.flac"
+],
+"dsec:63": [
+"dsec_63-0.flac",
+"dsec_63-1.flac",
+"dsec_63-2.flac",
+"dsec_63-3.flac"
+],
+"dsec:64": [
+"dsec_64-0.flac",
+"dsec_64-1.flac",
+"dsec_64-2.flac",
+"dsec_64-3.flac"
+],
+"dsec:65": [
+"dsec_65-0.flac",
+"dsec_65-1.flac",
+"dsec_65-2.flac",
+"dsec_65-3.flac"
+],
+"dsec:66": [
+"dsec_66-0.flac",
+"dsec_66-1.flac",
+"dsec_66-2.flac",
+"dsec_66-3.flac"
+],
+"dsec:67": [
+"dsec_67-0.flac",
+"dsec_67-1.flac",
+"dsec_67-2.flac",
+"dsec_67-3.flac"
+],
+"dsec:68": [
+"dsec_68-0.flac",
+"dsec_68-1.flac",
+"dsec_68-2.flac",
+"dsec_68-3.flac"
+],
+"dsec:69": [
+"dsec_69-0.flac",
+"dsec_69-1.flac",
+"dsec_69-2.flac",
+"dsec_69-3.flac"
+],
+"dsec:70": [
+"dsec_70-0.flac",
+"dsec_70-1.flac",
+"dsec_70-2.flac",
+"dsec_70-3.flac"
+],
+"dsec:71": [
+"dsec_71-0.flac",
+"dsec_71-1.flac",
+"dsec_71-2.flac",
+"dsec_71-3.flac"
+],
+"dsec:72": [
+"dsec_72-0.flac",
+"dsec_72-1.flac",
+"dsec_72-2.flac",
+"dsec_72-3.flac"
+],
+"dsec:73": [
+"dsec_73-0.flac",
+"dsec_73-1.flac",
+"dsec_73-2.flac",
+"dsec_73-3.flac"
+],
+"dsec:74": [
+"dsec_74-0.flac",
+"dsec_74-1.flac",
+"dsec_74-2.flac",
+"dsec_74-3.flac"
+],
+"dsec:75": [
+"dsec_75-0.flac",
+"dsec_75-1.flac",
+"dsec_75-2.flac",
+"dsec_75-3.flac"
+],
+"dsec:76": [
+"dsec_76-0.flac",
+"dsec_76-1.flac",
+"dsec_76-2.flac",
+"dsec_76-3.flac"
+],
+"dsec:77": [
+"dsec_77-0.flac",
+"dsec_77-1.flac",
+"dsec_77-2.flac",
+"dsec_77-3.flac"
+],
+"dsec:78": [
+"dsec_78-0.flac",
+"dsec_78-1.flac",
+"dsec_78-2.flac",
+"dsec_78-3.flac"
+],
+"dsec:79": [
+"dsec_79-0.flac",
+"dsec_79-1.flac",
+"dsec_79-2.flac",
+"dsec_79-3.flac"
+],
+"dsec:80": [
+"dsec_80-0.flac",
+"dsec_80-1.flac",
+"dsec_80-2.flac",
+"dsec_80-3.flac"
+],
+"dsec:81": [
+"dsec_81-0.flac",
+"dsec_81-1.flac",
+"dsec_81-2.flac",
+"dsec_81-3.flac"
+]
+},
+"tune": {
+"dsec:52": {
+"cents": 3.9
+},
+"dsec:53": {
+"cents": 1.6
+},
+"dsec:54": {
+"cents": 1.1
+},
+"dsec:55": {
+"cents": -7.3
+},
+"dsec:56": {
+"cents": -5.1
+},
+"dsec:57": {
+"cents": -5.6
+},
+"dsec:58": {
+"cents": 2.5
+},
+"dsec:59": {
+"cents": -1.9
+},
+"dsec:60": {
+"cents": -4.8
+},
+"dsec:61": {
+"cents": 0.2
+},
+"dsec:62": {
+"cents": -1.4
+},
+"dsec:63": {
+"cents": -5.2
+},
+"dsec:64": {
+"cents": -5.4
+},
+"dsec:65": {
+"cents": 3.3
+},
+"dsec:66": {
+"cents": -5.6
+},
+"dsec:67": {
+"cents": -13.2
+},
+"dsec:68": {
+"cents": -6.2
+},
+"dsec:69": {
+"cents": -2.3
+},
+"dsec:70": {
+"cents": 1.0
+},
+"dsec:71": {
+"cents": -1.6
+},
+"dsec:72": {
+"cents": 0.2
+},
+"dsec:73": {
+"cents": -5.9
+},
+"dsec:74": {
+"cents": -9.8
+},
+"dsec:75": {
+"cents": -4.7
+},
+"dsec:76": {
+"cents": -0.5
+},
+"dsec:77": {
+"cents": -5.5
+},
+"dsec:78": {
+"cents": -9.7
+},
+"dsec:79": {
+"cents": -8.8
+},
+"dsec:80": {
+"cents": -10.9
+},
+"dsec:81": {
+"cents": -5.5
+}
+},
+"version": "9f6fda521c"
+}
