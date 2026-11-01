@@ -1,0 +1,279 @@
+{
+"format": "panyard-sound-pack",
+"name": "Study tenor (SASS-E)",
+"set": "tenor",
+"credit": "SASS-E, the Steelpan Audio Sample Set for Evaluation, curated by Colin Malloy (University of Victoria); C. Malloy and G. Tzanetakis, NIME 2023",
+"licence": "CC BY-NC 4.0 (non-commercial)",
+"layers": [
+0.0,
+0.333,
+0.667,
+1.0
+],
+"files": {
+"tenor:60": [
+"tenor_60-0.flac",
+"tenor_60-1.flac",
+"tenor_60-2.flac",
+"tenor_60-3.flac"
+],
+"tenor:61": [
+"tenor_61-0.flac",
+"tenor_61-1.flac",
+"tenor_61-2.flac",
+"tenor_61-3.flac"
+],
+"tenor:62": [
+"tenor_62-0.flac",
+"tenor_62-1.flac",
+"tenor_62-2.flac",
+"tenor_62-3.flac"
+],
+"tenor:63": [
+"tenor_63-0.flac",
+"tenor_63-1.flac",
+"tenor_63-2.flac",
+"tenor_63-3.flac"
+],
+"tenor:64": [
+"tenor_64-0.flac",
+"tenor_64-1.flac",
+"tenor_64-2.flac",
+"tenor_64-3.flac"
+],
+"tenor:65": [
+"tenor_65-0.flac",
+"tenor_65-1.flac",
+"tenor_65-2.flac",
+"tenor_65-3.flac"
+],
+"tenor:66": [
+"tenor_66-0.flac",
+"tenor_66-1.flac",
+"tenor_66-2.flac",
+"tenor_66-3.flac"
+],
+"tenor:67": [
+"tenor_67-0.flac",
+"tenor_67-1.flac",
+"tenor_67-2.flac",
+"tenor_67-3.flac"
+],
+"tenor:68": [
+"tenor_68-0.flac",
+"tenor_68-1.flac",
+"tenor_68-2.flac",
+"tenor_68-3.flac"
+],
+"tenor:69": [
+"tenor_69-0.flac",
+"tenor_69-1.flac",
+"tenor_69-2.flac",
+"tenor_69-3.flac"
+],
+"tenor:70": [
+"tenor_70-0.flac",
+"tenor_70-1.flac",
+"tenor_70-2.flac",
+"tenor_70-3.flac"
+],
+"tenor:71": [
+"tenor_71-0.flac",
+"tenor_71-1.flac",
+"tenor_71-2.flac",
+"tenor_71-3.flac"
+],
+"tenor:72": [
+"tenor_72-0.flac",
+"tenor_72-1.flac",
+"tenor_72-2.flac",
+"tenor_72-3.flac"
+],
+"tenor:73": [
+"tenor_73-0.flac",
+"tenor_73-1.flac",
+"tenor_73-2.flac",
+"tenor_73-3.flac"
+],
+"tenor:74": [
+"tenor_74-0.flac",
+"tenor_74-1.flac",
+"tenor_74-2.flac",
+"tenor_74-3.flac"
+],
+"tenor:75": [
+"tenor_75-0.flac",
+"tenor_75-1.flac",
+"tenor_75-2.flac",
+"tenor_75-3.flac"
+],
+"tenor:76": [
+"tenor_76-0.flac",
+"tenor_76-1.flac",
+"tenor_76-2.flac",
+"tenor_76-3.flac"
+],
+"tenor:77": [
+"tenor_77-0.flac",
+"tenor_77-1.flac",
+"tenor_77-2.flac",
+"tenor_77-3.flac"
+],
+"tenor:78": [
+"tenor_78-0.flac",
+"tenor_78-1.flac",
+"tenor_78-2.flac",
+"tenor_78-3.flac"
+],
+"tenor:79": [
+"tenor_79-0.flac",
+"tenor_79-1.flac",
+"tenor_79-2.flac",
+"tenor_79-3.flac"
+],
+"tenor:80": [
+"tenor_80-0.flac",
+"tenor_80-1.flac",
+"tenor_80-2.flac",
+"tenor_80-3.flac"
+],
+"tenor:81": [
+"tenor_81-0.flac",
+"tenor_81-1.flac",
+"tenor_81-2.flac",
+"tenor_81-3.flac"
+],
+"tenor:82": [
+"tenor_82-0.flac",
+"tenor_82-1.flac",
+"tenor_82-2.flac",
+"tenor_82-3.flac"
+],
+"tenor:83": [
+"tenor_83-0.flac",
+"tenor_83-1.flac",
+"tenor_83-2.flac",
+"tenor_83-3.flac"
+],
+"tenor:84": [
+"tenor_84-0.flac",
+"tenor_84-1.flac",
+"tenor_84-2.flac",
+"tenor_84-3.flac"
+],
+"tenor:85": [
+"tenor_85-0.flac",
+"tenor_85-1.flac",
+"tenor_85-2.flac",
+"tenor_85-3.flac"
+],
+"tenor:86": [
+"tenor_86-0.flac",
+"tenor_86-1.flac",
+"tenor_86-2.flac",
+"tenor_86-3.flac"
+],
+"tenor:87": [
+"tenor_87-0.flac",
+"tenor_87-1.flac",
+"tenor_87-2.flac",
+"tenor_87-3.flac"
+],
+"tenor:88": [
+"tenor_88-0.flac",
+"tenor_88-1.flac",
+"tenor_88-2.flac",
+"tenor_88-3.flac"
+]
+},
+"tune": {
+"tenor:60": {
+"cents": -9.9
+},
+"tenor:61": {
+"cents": -6.0
+},
+"tenor:62": {
+"cents": -2.4
+},
+"tenor:63": {
+"cents": -14.5
+},
+"tenor:64": {
+"cents": -0.3
+},
+"tenor:65": {
+"cents": -2.0
+},
+"tenor:66": {
+"cents": -2.0
+},
+"tenor:67": {
+"cents": -3.8
+},
+"tenor:68": {
+"cents": -2.2
+},
+"tenor:69": {
+"cents": -1.1
+},
+"tenor:70": {
+"cents": -0.1
+},
+"tenor:71": {
+"cents": -2.1
+},
+"tenor:72": {
+"cents": -4.1
+},
+"tenor:73": {
+"cents": -3.1
+},
+"tenor:74": {
+"cents": -9.9
+},
+"tenor:75": {
+"cents": -5.9
+},
+"tenor:76": {
+"cents": -6.3
+},
+"tenor:77": {
+"cents": -9.3
+},
+"tenor:78": {
+"cents": -7.6
+},
+"tenor:79": {
+"cents": -7.4
+},
+"tenor:80": {
+"cents": -8.7
+},
+"tenor:81": {
+"cents": -13.5
+},
+"tenor:82": {
+"cents": -14.6
+},
+"tenor:83": {
+"cents": -9.8
+},
+"tenor:84": {
+"cents": -18.1
+},
+"tenor:85": {
+"cents": -14.6
+},
+"tenor:86": {
+"cents": -17.7
+},
+"tenor:87": {
+"cents": -2.9
+},
+"tenor:88": {
+"cents": -4.1
+}
+},
+"version": "5e4ce6d1df"
+}
