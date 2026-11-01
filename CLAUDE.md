@@ -261,6 +261,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   a seam, `ribTex`), a rounded butt and grained beech (`woodMat`); the rubber sits on its own pivot (`s.cap`) and squashes on
   a hit (`squash()`, after `kickBack`), the hit itself unchanged. Tenor caps red or black (page switch, localStorage
   `panyard-vr-tenorcap`). Test with `tvrsticks`.
+  **Stick weight** (`STICKS[k].g`, estimates: tenor 45 g … bass 110 g; `heft()` = √(g/60)): the swing's strength is
+  speed/3.2 × heft (the same swing plays a bass louder, so brighter), and the bounce flicks up 1/heft as far and settles
+  heft× slower, the rubber squashing heft× more (`kickBack`, `bounce`). The recordings already carry each pan's own sticks'
+  tone, so weight changes the strength, not the sample. Test in `tvrsticks` (`VR.weighed`).
   **Notes to the rim** (page switch, localStorage `panyard-vr-notefill`, on): each drum's notes scale out until the outermost
   sits `FILLTO` (1.35 cm) from the rim, half the drawings' gap (tenor 2.7 cm); `outerOf()` measures the paths, `d.S` takes the
   larger scale, so hits, grooves and glows all follow. Off: `SURF` as drawn. Test in `tvrsticks` (`VR.rimGap`).

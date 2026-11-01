@@ -41,6 +41,14 @@ with sync_playwright() as p:
     check(not bad,f'every tenor note is still found where it\'s drawn and plays ({len(ids)} notes, bad {bad})')
     for k in ['dsec','guitar']:
         pg.evaluate(f"VR.set('{k}')");g=pg.evaluate("VR.rimGap()");check(all(1.2<x<1.5 for x in g),f'{k}: its drums too {g}')
+    # the sticks' weights: the same swing plays a heavy bass stick louder than a light tenor one; light sticks flick up higher and come back sooner
+    pg.evaluate("VR.setFill(true)")
+    res={}
+    for k in ['tenor','dsec','six']:
+        pg.evaluate(f"VR.set('{k}')");nid=pg.evaluate("VR.notes()")[3];res[k]=pg.evaluate(f"VR.weighed('{nid}',2.0)")
+    print(res)
+    check(res['tenor']['v']<res['dsec']['v']<res['six']['v'],f"the same 2 m/s swing: tenor {res['tenor']['v']}, double second {res['dsec']['v']}, six bass {res['six']['v']} (heavier sticks play louder)")
+    check(res['tenor']['flick']>res['six']['flick'] and res['tenor']['back']<res['six']['back'],f"light tenor sticks flick up higher ({res['tenor']['flick']} vs {res['six']['flick']} rad) and come back sooner ({res['tenor']['back']} vs {res['six']['back']} s)")
     check(not errs,'no page errors '+str(errs[:3]))
     b.close()
 print('PASS' if not fails else 'FAILED: '+'; '.join(fails));sys.exit(1 if fails else 0)
