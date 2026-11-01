@@ -8546,9 +8546,10 @@ function noteEnvelope(gp,a,t,len,fade,T){
 }
 // the same player as before, with Tone in the path and Ring in the volume, plus this song's band sound (BAND) and how hard you hit (FEEL)
 const holdAt=(p,t)=>{if(p.cancelAndHoldAtTime)p.cancelAndHoldAtTime(t);else{p.cancelScheduledValues(t);p.setValueAtTime(p.value,t)}};
-playSample=function(id,vel,light,shift,key){
-  const ac=panCtx(),b=SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
-  const t=ac.currentTime+0.003,T=BAND.tune(tuneOf(id)),vin=Math.min(1,vel||1);
+// pk: a studio sound pack's layer for this note ({b, T}, panyard-packs.js) in place of your recording
+playSample=function(id,vel,light,shift,key,pk){
+  const ac=panCtx(),b=pk?pk.b:SAMPLES.buf[id];if(!ac||!b)return false;shift=shift||0;key=key||id;
+  const t=ac.currentTime+0.003,T=BAND.tune(pk?pk.T:tuneOf(id)),vin=Math.min(1,vel||1);
   // a borrowed note plays faster or slower, so it also lasts shorter or longer
   const end=Math.min(b.duration,T.end??b.duration),start=Math.min(T.start,end-0.05),len=(end-start)/Math.pow(2,shift/1200),v=(vel||1)*Math.pow(10,T.db/20)*(light?0.7:1);
   const det=T.cents+refCents()+shift+BAND.cents(id),ch=BAND.chain(ac,T,id,vin,t,light);
@@ -9858,6 +9859,70 @@ var STEEL=(()=>{
 .steelsl input{width:100%;accent-color:var(--gold);min-height:32px}.steelsl output{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}`;document.head.appendChild(c)}
   return {play:shimmer,one:play,ready,make,warm,tapBuf,soft,T:TUNE,get s(){return st},set(k,v){st[k]=v;keep();render()},mount,learn,unlearn,measure};
 })();
+/* ---------- Studio sound packs: a library's recorded pans, a few loudness layers per note ----------
+   A pack (packs/<name>/, made by make_sound_pack.py, served at /pan-notes/packs/) is one pan set's notes, each recorded
+   soft to hard (pack.json: files[id] soft→hard, tune[id].cents to A 440, credit, licence). With a pack on for a pan,
+   Play's taps and Studio's tracks for that pan play the layer for how hard the note is hit, tuned to the song's A, with
+   the song's band sound on top; your own recordings of that pan stay on the phone and come back when it's off.
+   Settings has a switch per pack, with its credit. Kept per phone (localStorage 'panyard-packs', not backed up).
+   The study tenor (SASS-E) is CC BY-NC: non-commercial only, so take it out (PACKS.LIST) before charging. */
+var PACKS=(()=>{
+  const LIST={dsec:{dir:'dunleavy-dsec',def:true,short:'Dunleavy studio double seconds'},
+              tenor:{dir:'sasse-tenor',def:false,short:'Study tenor (SASS-E)'}};
+  const K='panyard-packs',BASE='../packs/';
+  let pick0={};try{pick0=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch{}
+  const on=k=>!!LIST[k]&&(k in pick0?!!pick0[k]:LIST[k].def);
+  const man={},buf={},state={};   // state[k]: 'loading' | 'ready' | 'fail'
+  const setOf=id=>/^(\w+):/.test(id)?id.split(':')[0]:'guitar';
+  async function load(k){
+    if(state[k]||!LIST[k])return;state[k]='loading';
+    try{
+      const ac=panCtx();if(!ac){state[k]=0;return}
+      const url=BASE+LIST[k].dir+'/',m=await (await fetch(url+'pack.json',{cache:'no-cache'})).json();man[k]=m;
+      const jobs=[];for(const [id,fs] of Object.entries(m.files))fs.forEach((f,i)=>jobs.push([id,i,url+f+'?v='+m.version]));
+      const got={};let n=0;
+      const one=async()=>{while(n<jobs.length){const [id,i,u]=jobs[n++];
+        try{const r=await fetch(u);if(!r.ok)continue;const b=await ac.decodeAudioData(await r.arrayBuffer());(got[id]=got[id]||[])[i]=b}catch(e){console.warn('pack',u,e)}}};
+      await Promise.all([one(),one(),one(),one()]);
+      for(const id in got)if(got[id].length===m.files[id].length&&got[id].every(Boolean))buf[id]=got[id];
+      state[k]=Object.keys(buf).some(id=>setOf(id)===k)?'ready':'fail';
+      try{SETUP.render()}catch{}
+    }catch(e){console.warn('pack',k,e);state[k]='fail'}
+  }
+  // the layer for this hit: soft hits the soft recording; the recordings carry their own loudness, so the volume only
+  // leans a little with the hit (like VR's), set against the note's own A and the pack's measured tuning
+  function pick(id,vel){
+    const k=setOf(id);if(!on(k))return null;
+    const L=buf[id];if(!L){load(k);return null}
+    const v=Math.max(0,Math.min(1,vel==null?1:vel)),x=v*L.length*.999,i=Math.min(L.length-1,Math.floor(x)),within=x-i;
+    const a=.78*(.8+.2*within),T=Object.assign({},typeof TUNE0!=='undefined'?TUNE0:{start:0,end:null,db:0,fade:.15},{cents:(man[k].tune[id]||{}).cents||0,db:20*Math.log10(a/Math.max(.05,vel==null?1:vel)),fade:.25});
+    return {b:L[i],T,layer:i};
+  }
+  function set(k,val){pick0[k]=!!val;try{localStorage.setItem(K,JSON.stringify(pick0))}catch{}if(val)load(k);try{STUDIO.refresh()}catch{}}
+  // Play: a tap on a pan with its pack on plays the pack (after How you play's hit strength)
+  {const _sm=strikeMine;strikeMine=function(id,vel,light){
+    if(S.panVoice==='mine'){const pk=pick(id,vel);if(pk)return playSample(id,vel,light,0,id,pk)}
+    return _sm.apply(this,arguments)}}
+  // get the song's pan ready when the app opens and when the pan changes
+  const warm=()=>{try{const k=setKey();if(on(k))load(k)}catch{}};
+  {const _p=applyPanSet;applyPanSet=function(){const r=_p.apply(this,arguments);setTimeout(warm,300);return r}}
+  {let n=0;const go=()=>{if(panCtx())warm();else if(++n<40)setTimeout(go,500)};setTimeout(go,1200)}
+  /* Settings: a switch per pack, under How you play, with its credit and licence */
+  {const _sr=SETUP.render.bind(SETUP);SETUP.render=function(){_sr();try{
+      const list=$('setList');if(!list||list.querySelector('[data-row^=pack-]'))return;
+      let at=list.querySelector('[data-row=phone]')||list.querySelector('[data-row=feel]')||list.querySelector('[data-row=play]');if(!at)return;
+      for(const k of Object.keys(LIST)){const P=LIST[k],o=on(k),m=man[k],st=state[k];
+        const r=document.createElement('button');r.className='sxrow';r.dataset.row='pack-'+k;r.setAttribute('role','switch');r.setAttribute('aria-checked',String(o));
+        const name=(SETS[k]&&SETS[k].name)||k,note=o&&st==='loading'?' Getting the sounds ready…':o&&st==='fail'?' Couldn\'t get the sounds (no internet?). Your own sounds play for now.':'';
+        r.innerHTML='<span class="sxic" style="background:#ffd479" aria-hidden="true">🎙</span><span class="sxlab"><b>'+P.short+'</b><small>'+(o?'On: ':'Off: ')+(o?'your '+name+' plays the studio recording, soft to hard.':'your '+name+' plays your own sounds.')+note+
+          (m?'<br><i>'+m.credit+' · '+m.licence+'</i>':'')+'</small></span><span class="sxtog'+(o?' on':'')+'" aria-hidden="true"><i></i></span>';
+        r.onclick=e=>{e.stopPropagation();set(k,!on(k));SETUP.render();say(on(k)?P.short+' on for the '+name+'.':'The '+name+' plays your own sounds again.')};
+        at.parentNode.insertBefore(r,at.nextSibling);at=r}
+      // credits show once a pack's details are in, even before it's switched on
+      for(const k of Object.keys(LIST))if(!man[k]&&!state[k])fetch(BASE+LIST[k].dir+'/pack.json').then(r=>r.json()).then(m=>{if(!man[k]){man[k]=m;SETUP.render()}}).catch(()=>{});
+    }catch(e){console.warn(e)}}}
+  return {LIST,on,set,pick,load,state,get man(){return man},has:id=>!!buf[id]};
+})();
 
 /* ---------- no recording yet? ▶ plays your part ----------
    A song with notes but no recording: the play button makes "Your part" (every note you've written, played on your
@@ -10673,6 +10738,8 @@ function panVoice(dest,id,t,v,light){
   if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const b=STEEL.ready(id);if(b){playBuf(STEEL.soft(ctx,dest,id,v,t),id,b,STEEL.T(b),t,v,light);return}
     STEEL.make(id);(STEEL.one(ctx,dest,id,t,v,light)||[]).forEach(x=>lineUp(x,t));return}
   if(S.panVoice==='mine'){
+    // a studio sound pack switched on for this pan (panyard-packs.js): the layer for how hard it's hit
+    if(typeof PACKS!=='undefined'){const pk=PACKS.pick(id,v);if(pk){playBuf(dest,id,pk.b,pk.T,t,v,light);return}}
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
     const go=b=>{const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light)};
@@ -14358,7 +14425,7 @@ var CLOUD={
   MAN:'panyard-backup.json',
   K:'panyard-cloud',
   // settings that belong to this phone, not to you (its speaker and mic timing, which tips you've seen)
-  SKIP:/^(panyard-studio|panyard-smooth|panyard-feel|panyard-phone|panyard-cloud.*|panyard-guide|pan-lastBackup|panyard-subtab|pan-snooze-.*)$/,
+  SKIP:/^(panyard-studio|panyard-smooth|panyard-feel|panyard-phone|panyard-packs|panyard-cloud.*|panyard-guide|pan-lastBackup|panyard-subtab|pan-snooze-.*)$/,
   st:null,tok:null,dirty:false,busy:false,
   cid(){try{return localStorage.getItem('panyard-gclient')||this.CID}catch{return this.CID}},
   load(){try{this.st=Object.assign({on:0,email:'',last:0,blobs:{},man:''},JSON.parse(localStorage.getItem(this.K)||'{}'))}catch{this.st={on:0,email:'',last:0,blobs:{},man:''}}

@@ -386,6 +386,8 @@ function panVoice(dest,id,t,v,light){
   if(S.panVoice==='steel'&&typeof STEEL!=='undefined'){const b=STEEL.ready(id);if(b){playBuf(STEEL.soft(ctx,dest,id,v,t),id,b,STEEL.T(b),t,v,light);return}
     STEEL.make(id);(STEEL.one(ctx,dest,id,t,v,light)||[]).forEach(x=>lineUp(x,t));return}
   if(S.panVoice==='mine'){
+    // a studio sound pack switched on for this pan (panyard-packs.js): the layer for how hard it's hit
+    if(typeof PACKS!=='undefined'){const pk=PACKS.pick(id,v);if(pk){playBuf(dest,id,pk.b,pk.T,t,v,light);return}}
     // your recording of this note, or (Advanced tuning) another pan's recording retuned to it
     let src=id,sh=0;if(!SAMPLES.wav[id]||(typeof TW!=='undefined'&&TW.skip(id))){const bw=typeof borrowOf==='function'&&borrowOf(id);if(bw){src=bw.src;sh=bw.cents}else src=null}
     const go=b=>{const T=tuneOf(src);playBuf(dest,id,b,sh?Object.assign({},T,{cents:(T.cents||0)+sh,rate:Math.pow(2,sh/1200)}):T,t,v,light)};

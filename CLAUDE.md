@@ -344,4 +344,11 @@ upright count is low because a checklist pushes the pans below the play bar ther
   largest pitch group per note, four hits soft→hard), off by default. Test with `tvrpack`.
   **Kids mode** (`KIDS`, localStorage `panyard-vr-kids`): the yard with `KIDSETS`, no table, a simple menu. Test with `tvryard`
   (the older VR tests pin One pan with `panyard-vr-yard` = 0).
+- **Studio sound packs in Panyard and Panyard Band** (`panyard-packs.js`, `PACKS`, after steel): the same `packs/` as VR
+  (`PACKS.LIST`: dsec Dunleavy on by default, tenor SASS-E off; **remove `tenor` before charging**, CC BY-NC). With a pack on and
+  recorded sounds (`S.panVoice==='mine'`), Play's taps (`strikeMine` wrapper → `playSample(…, pk)`) and Studio's `panVoice`
+  (`PACKS.pick(id,v)` → `playBuf`) play the layer for the hit's strength (×0.78, as VR), the pack's cents + the song's A, Band
+  sound on top; the phone's own recordings stay. A pack loads when its set is the song's pan (or Studio asks for a note).
+  Settings: a switch per pack with credit and licence (localStorage `panyard-packs`, not backed up). The service worker keeps
+  pack files in its own `sound-packs` cache (survives app updates). Test with `tpacks` (Panyard and Band).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
