@@ -319,6 +319,19 @@ upright count is low because a checklist pushes the pans below the play bar ther
   pans be (a `toast` says how to unlock); menu 🔒/🔓 and the page's switch. A gold ring (`hereRing`) marks your spot.
   **Welcome guide** (`guide` panel, `GUIDE.grown`/`.kids` pages, `guideOpen`/`drawGuide`): opens the first time in the
   headset (localStorage `panyard-vr-welcomed`), Next / Back / Skip, menu ❓ Guide. `toast()` floats short messages.
+  **The studio hovers** (the owner's choice over the table): the table group's wood is hidden; `hoverHome()` puts the screen
+  just behind the pans you're at (behind their farthest drum), at about eye height (table y .13 in the station frame), facing
+  you, at every station (`hereStation` moves it; the sign rides on top). A grip on it nudges it (localStorage
+  `panyard-vr-hover`, kept as an offset for every pan). The mixer (`desk`) folds down under the screen with the bottom row's
+  🎚 Mixer (`setMixer`, localStorage `panyard-vr-mixer`, off); `panelLive` skips hidden panels. **Wrist buttons** (`wrist`
+  panel on the left grip, `drawWrist`/`wristFrame`): ▶/■, ● Rec, 🎓 Learn, ⟲ Loop and the status line, shown when the left
+  palm turns up to your face (the grip's +x toward the head, a moment's grace), pressed with the right beam.
+  **Play along** (🎓 Learn on the screen, `learn()`/`learnStop()`, `LEARN`): the part for the pans you're at (or the selected
+  track) goes silent (`audible()` leaves out `LEARN.id`) while the rest plays; its notes glow solid teal on the pans `LEAD`
+  (2) beats ahead (`learnFrame`, `upcoming()`, per-note `n.cue` mesh sharing the glow's shape; kit pieces via `p.cue`), from a
+  cursor (`LEARN.cur`) so slow frames skip none. A live hit within `GOOD` (0.18 s) of its moment counts (`learnHit`, matched
+  straight from the part, green flash); notes let go are missed; each pass toasts its score (`LEARN.P` by `passOf`). ▶, ● or
+  🎓 ends it. Test with `tvrlearn` (`VR.learnAt` gives a hit's exact moment: the test browser's frames are too slow to time).
   **Kids mode** (`KIDS`, localStorage `panyard-vr-kids`): the yard with `KIDSETS`, no table, a simple menu. Test with `tvryard`
   (the older VR tests pin One pan with `panyard-vr-yard` = 0).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
