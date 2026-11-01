@@ -111,6 +111,15 @@ with sync_playwright() as p:
     for i in range(3):pg.evaluate("VR.press('guide','gnext')")
     pg.evaluate("VR.press('guide','gnext')");check(not pg.evaluate("VR.guideOn()") and pg.evaluate("localStorage.getItem('panyard-vr-welcomed')")=='1','Let\'s play closes it, and it won\'t show by itself again')
     pg.evaluate("VR.menu(true)");check('mguide' in pg.evaluate("VR.menuHits()") and 'mlock' in pg.evaluate("VR.menuHits()"),'the menu has ❓ Guide and the lock');pg.evaluate("VR.menu(false)")
+    # the studio hovers just behind the pans you're at, its screen at eye height; the mixer folds down; wrist buttons
+    for k in ['tenor','six']:
+        pg.evaluate(f"VR.goTo('{k}')");sa=pg.evaluate("VR.studioAt()");pl=pg.evaluate("VR.player()")
+        ds=math.hypot(sa['screen'][0]-pl['x'],sa['screen'][2]-pl['z']);dp=math.hypot(sa['pans'][0]-pl['x'],sa['pans'][2]-pl['z'])
+        check(not sa['wood'] and 1.4<sa['screen'][1]<1.7 and ds>dp and ds<2.4,f'{k}: the studio screen hovers behind its pans at eye height, no table ({ds:.1f} m away, pans {dp:.1f} m)')
+    check(not pg.evaluate("VR.studioAt()")['mixer'],'the mixer starts folded away')
+    pg.evaluate("VR.act('mixer')");check(pg.evaluate("VR.studioAt()")['mixer'],'🎚 Mixer folds it down');pg.evaluate("VR.act('mixer')")
+    pg.evaluate("VR.goTo('tenor');VR.wrist(true)");pg.evaluate("VR.press('wrist','play')");check(pg.evaluate("VR.tr().state")=='play','▶ on the wrist plays the song')
+    pg.evaluate("VR.press('wrist','play')");check(pg.evaluate("VR.tr().state")=='idle','and ■ stops it');pg.evaluate("VR.wrist(false)")
     # Concert rows: the other layout, everyone facing the front, basses at the back; then back to Panorama
     pg.evaluate("VR.layout('rows')");R=ST();pl=pg.evaluate("VR.player()")
     check(R['tenor']['at']==[0,-2.3] and R['guitar']['at']==[-2.5,-.3] and R['six']['at'][1]>1.5 and R['seven']['at'][1]>1.5 and pl['at']=='tenor',f'Concert rows: frontline, then guitars, basses at the back {R}')
