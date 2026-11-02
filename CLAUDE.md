@@ -351,4 +351,14 @@ upright count is low because a checklist pushes the pans below the play bar ther
   sound on top; the phone's own recordings stay. A pack loads when its set is the song's pan (or Studio asks for a note).
   Settings: a switch per pack with credit and licence (localStorage `panyard-packs`, not backed up). The service worker keeps
   pack files in its own `sound-packs` cache (survives app updates). Test with `tpacks` (Panyard and Band).
+- **Songs out of VR** (page → Saved in VR → Share, `shareRow`/`shareDo` in `panyard-vr.html`): 🎵 MP3 / WAV (`renderSong`:
+  an OfflineAudioContext borrows the note players: `RENDER` makes `chan()` give per-track channels and `busOf()` the plain
+  stereo `masterChain()`, no lights, no resume; mute/solo, swing, a Panyard recording included; MP3 by Panyard's
+  `../panyard/lame.min.js`); 📱 Send to Panyard (`sendPanyard`: `panyard-vr-inbox.json` in the hidden app folder, upserted by
+  song id, recording tracks left out); 📁 Save to my Drive (`toMyDrive`: its own token with scope **drive.file**, a visible
+  "Panyard VR" folder, the song file + an MP3, the same names replaced). Panyard's side is `panyard-vrin.js` (`VRIN`, after
+  cloud; Panyard only, set up at DOMContentLoaded so Band's later `BANDAPP` keeps it out): with Google signed in it peeks at
+  the inbox, a 🥽 chip on Home for unopened songs (localStorage `panyard-vrin` {id: at}), a Songs from VR button on the
+  Backup card; Open = `ROLE.songNew0()`, title and pan, then `backupIn({studio})` (pan tracks, kit → drums 'real').
+  Test with `tvrshare` (a pretend Google and Drive, both apps).
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.
