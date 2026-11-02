@@ -1850,9 +1850,10 @@ function drawStaff(g,x,y,w,notes,opt){opt=opt||{};const s=20,yb=y+4*s,col='#eef2
     for(let L=Z+10;L<=dn;L+=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-Z)*s/2);g.lineTo(nx+s*1.1,yb-(L-Z)*s/2);g.stroke()}
     const acc=lab.slice(1);if(acc&&!(KEYSIG[opt.key]||[]).includes(lab)){g.font='700 '+(s*1.7)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(acc,nx-s*1.55,ny)}
     const d=n.d||1;noteHead(g,nx,ny,s,d>=2);if([.75,1.5,3].includes(d)){g.beginPath();g.arc(nx+s*1.05,ny-(dn%2?0:s*.4),s*.2,0,7);g.fill()}
-    if(d<4){const up=dn<Z+4,sx=up?nx+s*.6:nx-s*.6,sy=up?ny-s*3.5:ny+s*3.5;g.lineWidth=2.5;g.beginPath();g.moveTo(sx,ny);g.lineTo(sx,sy);g.stroke();
+    const nx2=notes[i+1],pairs=d===.5&&nx2&&!nx2.rest&&(nx2.d||1)===.5&&opt.timed&&Math.floor(nx2.b)===Math.floor(n.b)&&n.b%1===0;
+    if(d<4){const up=beam&&beam.on?beam.up:pairs?(dn+dnOf(nx2.m,spell(nx2.m,opt.key)))/2<Z+4:dn<Z+4,sx=up?nx+s*.6:nx-s*.6,sy=up?ny-s*3.5:ny+s*3.5;g.lineWidth=2.5;g.beginPath();g.moveTo(sx,ny);g.lineTo(sx,sy);g.stroke();
       if(d===.5){const nxt=notes[i+1];if(beam&&beam.on){g.lineWidth=s*.45;g.beginPath();g.moveTo(beam.x,beam.y);g.lineTo(sx,sy);g.stroke();beam=null}
-        else if(nxt&&!nxt.rest&&(nxt.d||1)===.5&&opt.timed&&Math.floor(nxt.b)===Math.floor(n.b))beam={on:1,x:sx,y:sy};
+        else if(pairs)beam={on:1,x:sx,y:sy,up};
         else{g.lineWidth=2.5;g.beginPath();g.moveTo(sx,sy);g.quadraticCurveTo(sx+s*.9,sy+(up?s*1:-s*1),sx+s*.6,sy+(up?s*2:-s*2));g.stroke()}}}});
   if(opt.cursor!=null&&opt.cursor>=0){const cxp=X(opt.cursor)-(opt.timed?s*.9:0);g.strokeStyle='#f6ba45';g.lineWidth=4;g.beginPath();g.moveTo(cxp,yb+s*1.5);g.lineTo(cxp,yb-s*5.5);g.stroke()}
   g.restore()}
@@ -1886,7 +1887,7 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
   if(CLASS.page==='piece'){const B=CLASS.beat,T=pieceTune();g.fillStyle='#f6ba45';lt('🎼 My piece · in '+T.key+' · '+T.len/4+' bars',40,66);
     g.fillStyle='#c9d6cf';g.font='26px system-ui,sans-serif';lt('Each 🎼 step in the lessons writes a part. The band fills any part you haven\'t written.',40,130);
     PIECE_ROWS.forEach(([k,name,note],i)=>{const P=PIECE[k],y=172+i*70;rr(g,40,y,p.W-80,60,12,'#20352a',P?'#30d158':'#3c5245');g.fillStyle=P?'#30d158':'#6c7d74';g.font='700 30px system-ui,sans-serif';lt(P?'✓':'○',62,y+30);
-      g.fillStyle='#eef2f4';lt(name,110,y+30);g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt((P?P.notes.length+' notes on your '+panName(P.set):'not written yet: the band plays Yard Lime\'s')+(note?' · '+note:''),420,y+30)});
+      g.fillStyle='#eef2f4';lt(name,110,y+30);g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt((P?P.notes.length+' notes on your '+panName(P.set):k==='jam'?'not played yet':'not written yet: the band plays Yard Lime\'s')+(note?' · '+note:''),420,y+30)});
     if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 30px system-ui,sans-serif';lt(fit(g,CLASS.msg,p.W-100),46,p.H-150)}
     btn(p,'clshome',40,p.H-100,250,76,'◀ Lessons',{fs:28});
     if(!B||B.over){btn(p,'clspiece:hear',320,p.H-100,360,76,'▶ Hear my piece',{fs:30,on:true});btn(p,'clspiece:save',700,p.H-100,420,76,'💾 Save to My songs',{fs:30});
@@ -1922,7 +1923,7 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
   if(st.mel){const ev=st.mel,len=st.len,show=len>8?8:len,page=bcur!=null&&bcur>=0?Math.min(Math.floor(bcur/show),Math.ceil(len/show)-1):0,a=page*show,
       ns=ev.filter(e=>e.b>=a&&e.b<a+show).map(e=>({m:e.m,b:e.b-a,d:e.d,rest:e.rest,col:e.rest||bcur==null?null:bcur>e.b+.3?'#6c7d74':bcur>e.b-1?'#f6ba45':null}));
     drawStaff(g,46,Math.max(y+30,330),p.W-92,ns,{timed:1,len:show,time:a===0,clef:LOWPANS.has(CLASS.set)?'bass':null,key:st.key,bars:[...Array(show/4).keys()].slice(1).map(i=>i*4),cursor:bcur!=null?bcur-a:null});
-    g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt('Bars '+(a/4+1)+'–'+((a+show)/4)+' of '+len/4+(st.bandChords?' · '+st.bandChords.slice(a/4,(a+show)/4).map(c=>chordOf(c).name).join(' | '):''),46,Math.max(y+30,330)+150);y=Math.max(y+30,330)+200}
+    g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt('Bars '+(a/4+1)+'–'+((a+show)/4)+' of '+len/4+(st.bandChords?' · '+st.bandChords.slice(a/4,(a+show)/4).map(c=>chordOf(c).name).join(' | '):''),46,Math.max(y+30,330)+182);y=Math.max(y+30,330)+200}
   else if(st.chartShow){const n=st.chartShow.bars.length,cur=bcur!=null&&bcur>=0?Math.min(n-1,Math.floor(bcur/4)):-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chartShow,cur)}
   else if(st.chart){const ord=chartOrder(st.chart),cur=B&&!B.over&&B.cur>=0?ord[Math.min(ord.length-1,Math.floor(B.cur/4))]:-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chart,cur)}
   else if(st.rh){const R=rhythm(st.rh),id=st.ids?st.ids[0]:null,m=id?cm(id):72;drawStaff(g,46,Math.max(y+30,330),p.W-92,R.ev.filter(e=>!e.bar).map(e=>({m,b:e.b,d:e.d,rest:e.rest})),{timed:1,len:R.len,time:1,bars:R.ev.filter(e=>e.bar).map(e=>e.b),cursor:B&&!B.over?((ac?ac.currentTime:0)-B.t0)/B.sp:null});y=Math.max(y+30,330)+200}
@@ -1931,7 +1932,7 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
     g.fillStyle='#9fb0b8';g.font='28px system-ui,sans-serif';lt((st.glow?'Play':'Your turn')+' · '+Math.min(CLASS.k+1,st.items.length)+' of '+st.items.length,46,y);
     if(!CLASS.done){g.fillStyle='#f6ba45';g.font='700 '+(visual?48:64)+'px system-ui,sans-serif';lt(fit(g,st.read||it.read?(CLASS.shown||CLASS.wrong?it.label:'The gold note'):it.label,TW),46,y+(visual?52:70))}}
   if(st.t==='beat'){y=Math.max(y+10,visual?600:470);g.fillStyle='#9fb0b8';g.font='26px system-ui,sans-serif';
-    lt('♩ = '+Math.round(st.bpm*CLASS.spd)+(CLASS.spd<1?' (slower practice)':'')+(st.band?' · with the band ('+st.band+')':'')+(st.chart?' · two notes of each chord, keep the third':' · the glow shows what\'s next'),46,y);
+    lt(fit(g,'♩ = '+Math.round(st.bpm*CLASS.spd)+(CLASS.spd<1?' (slower practice)':'')+(st.band||st.backing?' · with the band':'')+(st.write?' · ● records what you play':st.listen?'':st.chart?' · two notes of each chord, keep the third':st.noglow?' · read it: nothing glows':' · the glow shows what\'s next'),(!B||B.over)?p.W-940:p.W-100),46,y);
     if(!B||B.over){spdBtns(p,p.W-860,y-34);btn(p,'clsbeat',p.W-400,y-34,360,74,B?'↻ Try again':'▶ Start',{fs:32,on:!B})}}
   if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 32px system-ui,sans-serif';const ls=wrapT(g,CLASS.msg,p.W-100);ls.slice(0,2).forEach((w,i)=>lt(w,46,p.H-180+i*42))}
   btn(p,'clshome',40,p.H-100,250,76,'◀ Lessons',{fs:28});btn(p,'clsagain',305,p.H-100,250,76,st.t==='say'?'🔊 Again':'🔊 Hear it',{fs:28});
