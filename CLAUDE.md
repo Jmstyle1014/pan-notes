@@ -361,4 +361,15 @@ upright count is low because a checklist pushes the pans below the play bar ther
   the inbox, a 🥽 chip on Home for unopened songs (localStorage `panyard-vrin` {id: at}), a Songs from VR button on the
   Backup card; Open = `ROLE.songNew0()`, title and pan, then `backupIn({studio})` (pan tracks, kit → drums 'real').
   Test with `tvrshare` (a pretend Google and Drive, both apps).
+- **Soft hits, Even out, Clean the rumble** (measured from the Dunleavy double seconds against the band's tenor): recordings
+  are one firm hit per note, so `BAND.chain` shapes softer hits with `BAND.SOFT` (octave / third / sparkle dB below a hard hit at
+  v .15 .43 .71 1, from the pack's 4 layers, the softest capped): `softNodes()` (peaks at 2× and 3×, a shelf from 3.6×), on
+  recordings only (`real`: not `T.layered` pack notes, not Tuned steel, which keep the old lowpass or none), when How you
+  play's dynamics are on. Ring and body are left as recorded (they come from the skirt). `panyard-even.js` (`EVENOUT`, after
+  packs): ⚖ Even out my <pan> (Pan sounds, recorded sounds) measures each note's octave and sparkle (`measure`, first 0.3 s)
+  against its neighbours within 4 semitones (2 dB allowance, 60% of the way, Tone ±6, `T.oct` ±8 dB, a peak at 2× in
+  `BAND.chain`), ↶ Undo from localStorage `panyard-even`; Panyard Band evens the band's tenor once per band-sounds version
+  (`panyard-even-band`). 🧹 Clean the rumble (Settings, `panyard-clean`): three 170 Hz high-passes (**Q −3.01: a high-pass's Q
+  is in dB in Web Audio, 0.707 gives a bump**) on tenor recordings (and dten, which borrows them); the skirt's ~265 Hz hum
+  stays. Test with `tsoft`.
 - **Android signing key:** `android/panyard.keystore`. Every APK must be signed with it so it installs over the last one.

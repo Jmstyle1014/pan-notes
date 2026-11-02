@@ -34,7 +34,7 @@ var PACKS=(()=>{
     const k=setOf(id);if(!on(k))return null;
     const L=buf[id];if(!L){load(k);return null}
     const v=Math.max(0,Math.min(1,vel==null?1:vel)),x=v*L.length*.999,i=Math.min(L.length-1,Math.floor(x)),within=x-i;
-    const a=.78*(.8+.2*within),T=Object.assign({},typeof TUNE0!=='undefined'?TUNE0:{start:0,end:null,db:0,fade:.15},{cents:(man[k].tune[id]||{}).cents||0,db:20*Math.log10(a/Math.max(.05,vel==null?1:vel)),fade:.25});
+    const a=.78*(.8+.2*within),T=Object.assign({},typeof TUNE0!=='undefined'?TUNE0:{start:0,end:null,db:0,fade:.15},{layered:true,cents:(man[k].tune[id]||{}).cents||0,db:20*Math.log10(a/Math.max(.05,vel==null?1:vel)),fade:.25});
     return {b:L[i],T,layer:i};
   }
   function set(k,val){pick0[k]=!!val;try{localStorage.setItem(K,JSON.stringify(pick0))}catch{}if(val)load(k);try{STUDIO.refresh()}catch{}}
