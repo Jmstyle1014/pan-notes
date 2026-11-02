@@ -183,7 +183,7 @@ function strike(id,v,at,tr){
   // the same note hit again: the older ring is damped quickly, like a real pan
   const p=voices.get(id);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
   voices.set(id,{src,g,end:t+len});if(RENDER)return true;
-  if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t)}
+  if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
   VR.hits.push({id,v:+v.toFixed(2),p:fromTake?1:0});return true;
 }
 // a note from a studio pack: the loudness layer for the hit's strength (a little softer or louder within it), its pitch
@@ -200,7 +200,7 @@ function strikeLayer(id,n,v,at,tr){if(!ac)return false;if(!RENDER&&ac.state==='s
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.002);g.gain.setValueAtTime(a,t+len-.05);g.gain.linearRampToValueAtTime(0,t+len);src.start(t);src.stop(t+len+.02);
   const p=voices.get(id);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
   voices.set(id,{src,g,end:t+len});if(RENDER)return true;
-  if(tr)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t)}
+  if(tr)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
   VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0,layer:k});return true}
 function setSound(k,which){LSset('snd-'+k,which);packUI();dirty=true;if(menu.m.visible)drawMenu();toast(setName(k)+': '+(which==='pack'?PACK[k].name:'your band\'s pans'))}
 function packUI(){const box=$('packBox');if(!box)return;box.innerHTML=Object.entries(PACK).map(([k,m])=>'<div class="lab">'+setName(k)+' sound</div><div class="seg"><button data-snd="'+k+':band" aria-pressed="'+!packOn(k)+'">Our band\'s pans</button><button data-snd="'+k+':pack" aria-pressed="'+packOn(k)+'">'+m.name+'</button></div><p class="credit">'+m.credit+' · '+m.licence+'</p>').join('');
@@ -527,7 +527,7 @@ function strikeDrum(id,v,at,tr){const gm=+id.slice(5),K=DK[gm];if(!ac||!K)return
   if(gm===42&&dvoice[46]&&dvoice[46].end>t){try{dvoice[46].g.gain.setTargetAtTime(0,t,.01);dvoice[46].src.stop(t+.06)}catch{}}
   dvoice[gm]={src,g,end:t+b.duration/(K.rate||1)};if(RENDER)return true;
   const lit=()=>{const p=KITP.find(q=>q.gm===gm||q.edge===gm);if(p)p.lit=1;if(gm===36)kick.lit=1};
-  if(tr)setTimeout(lit,Math.max(0,(t-ac.currentTime)*1000));else{lit();recHit(id,v,t);learnHit(id,t);classHit(id,t)}
+  if(tr)setTimeout(lit,Math.max(0,(t-ac.currentTime)*1000));else{lit();recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
   VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0});return true}
 // the pieces
 const kitG=new THREE.Group();kitG.visible=false;rig.add(kitG);
@@ -1331,7 +1331,7 @@ function snapTurn(dir){const h=headNow();teleport(h.p.x,h.p.z,h.yaw+dir*Math.PI/
 // a station's spot: half a metre behind its pans (outside the circle), facing them
 function spotOf(st){const p=new THREE.Vector3(0,0,.5);st.g.localToWorld(p);return {x:p.x,z:p.z,yaw:st.g.rotation.y}}
 function goTo(k){const st=STN.get(k);if(!st)return;const sp=spotOf(st);teleport(sp.x,sp.z,sp.yaw);arrive(k)}
-function arrive(k,quiet){if(!STN.has(k))return;if(typeof CLASS!=='undefined'&&CLASS.on&&CLS_SETS.includes(k)&&k!==CLASS.set){CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsFor(k);CLASS.page='home';CLASS.beat=null;CLASS.redraw=true}const was=setKey;setKey=k;LSset('set',k);hereStation();restick();renderSeg();
+function arrive(k,quiet){if(!STN.has(k))return;if(typeof CLASS!=='undefined'&&CLASS.on&&(CLASS.lvl===3?ALL_CLS:CLS_SETS).includes(k)&&k!==CLASS.set){CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsFor(k);CLASS.page='home';CLASS.beat=null;CLASS.redraw=true}const was=setKey;setKey=k;LSset('set',k);hereStation();restick();renderSeg();
   if(!KIDS&&TR.state!=='rec'){const i=SONG.tracks.findIndex(t=>!t.rec&&t.set===k);if(i>=0)SONG.sel=i}
   if(was!==k&&!quiet)msg(setName(k)+(KIDS?'':' · ● Rec records here'));dirty=true}
 // walking: the station whose spot (or pans) you're nearest, within a metre or so, is where you are
@@ -1460,7 +1460,7 @@ const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
    voiced two notes at a time (two sticks): the pair of the chord's notes closest together on your pan (on double
    seconds, one on each pan). Voice: speechSynthesis (localStorage panyard-vr-cls-voice). */
 const CLS_SETS=['tenor','dsec'];
-var CLASS={on:false,set:LS('cls-set')==='dsec'?'dsec':'tenor',page:'home',L:0,S:0,k:0,wrong:0,shown:false,mis:0,msg:'',col:'#9fb0b8',pend:{},beat:null,done:false,voice:LS('cls-voice')!=='0',redraw:true,hint:''};
+var CLASS={on:false,set:['tenor','dten','dsec','guitar','fcello','tcello','six','seven'].includes(LS('cls-set'))&&(LS('cls-lvl')==='3'||['tenor','dsec'].includes(LS('cls-set')))?LS('cls-set'):'tenor',page:'home',L:0,S:0,k:0,wrong:0,shown:false,mis:0,msg:'',col:'#9fb0b8',pend:{},beat:null,done:false,voice:LS('cls-voice')!=='0',redraw:true,hint:''};
 let CPROG={};try{CPROG=JSON.parse(LS('cls')||'{}')||{}}catch{CPROG={}}
 const board=uiPanel(1.15,.65,1600,904);board.m.visible=false;scene.add(board.m);
 const door=uiPanel(1.7,1.11,1300,850);door.m.visible=false;rig.add(door.m);
@@ -1470,18 +1470,21 @@ const door=uiPanel(1.7,1.11,1300,850);door.m.visible=false;rig.add(door.m);
 PANELS.push(board,door);
 // ---- the pan's notes: names as the pan writes them, ring, which pan, and where on it
 const PCN=['C','C♯','D','E♭','E','F','F♯','G','G♯','A','B♭','B'],ALT={'C♯':'D♭','E♭':'D♯','F♯':'G♭','G♯':'A♭','B♭':'A♯'};
-const cm=id=>+id.split(':')[1],cpc=m=>((m%12)+12)%12;
+// a note's pitch: its id's number (the pans are numbered by pitch), or for the Double Guitar (ids like 'e-low') from its sound
+const cm=id=>{const x=+String(id).split(':')[1];if(Number.isFinite(x))return x;const n=NOTE[id];return n&&n.hz?Math.round(69+12*Math.log2(n.hz/440)):NaN},cpc=m=>((m%12)+12)%12;
+const idSet=id=>NOTE[id]&&NOTE[id].set||String(id).split(':')[0];
+const M2I={};function m2i(set){if(M2I[set])return M2I[set];const o={};for(const n of NOTE_IDS(set)){const m=cm(n);if(Number.isFinite(m))o[m]=n}return M2I[set]=o}
 const CI={};
-function cInfo(id){if(CI[id])return CI[id];const set=id.split(':')[0],S=SETS[set];if(!S)return null;
+function cInfo(id){if(CI[id])return CI[id];const set=idSet(id),S=SETS[set];if(!S)return null;
   // the centre of each note's shape, from the browser's own measure of the path (arcs included)
   if(!cInfo.sv){cInfo.sv=document.createElementNS('http://www.w3.org/2000/svg','svg');cInfo.sv.style.cssText='position:absolute;width:0;height:0;visibility:hidden';document.body.appendChild(cInfo.sv)}
   S.drums.forEach((d,i)=>d.notes.forEach(n=>{const pe=document.createElementNS('http://www.w3.org/2000/svg','path');pe.setAttribute('d',n.path);cInfo.sv.appendChild(pe);let bb=null;try{bb=pe.getBBox()}catch{}pe.remove();
     const x=bb&&bb.width?bb.x+bb.width/2:d.cx,y=bb&&bb.height?bb.y+bb.height/2:d.cy;
     CI[n.id]={label:n.label,pos:n.pos,drum:i,dname:d.name,x,y,left:S.drums.length>1?(d.cx<=Math.min(...S.drums.map(q=>q.cx))):null}}));return CI[id]||null}
-const cid=(set,m)=>NOTE[set+':'+m]?set+':'+m:null;
+const cid=(set,m)=>NOTE[set+':'+m]?set+':'+m:(m2i(set)[m]||null);
 const cnm=(m,set)=>{const i=cid(set||CLASS.set,m);const c=i&&cInfo(i);return c?c.label:PCN[cpc(m)]};
 const both=n=>ALT[n]?n+' ('+ALT[n]+')':n;
-function ringOf(id){const c=cInfo(id);if(!c)return '';const set=id.split(':')[0];
+function ringOf(id){const c=cInfo(id);if(!c)return '';const set=idSet(id);
   if(set==='dsec')return 'the '+(/inner/.test(c.pos)?'inner':'outer')+' ring of your '+c.dname+' pan';
   return c.pos==='centre'?'the centre':'the '+c.pos+' ring'}
 function hintFor(want,got){const a=cInfo(want),b=cInfo(got);if(!a||!b)return 'That one is on a different pan.';
@@ -1630,10 +1633,11 @@ function lessons2For(set){const T=set==='tenor',I=m=>cid(set,m),N=m=>cnm(m,set),
    · 🎵 Practise my songs: a song saved in VR gets a chord per bar guessed from its notes (guessChords: every major and
      minor triad scored against the bar's notes, the bass's notes counting double); tap a bar to try the next guess; comp
      along while the song's other tracks play. */
-CLASS.lvl=LS('cls-lvl')==='2'?2:1;CLASS.spd=[1,.75,.5].includes(+LS('cls-spd'))?+LS('cls-spd'):1;
-const lessonsAt=set=>CLASS.lvl===2?lessons2For(set):lessonsFor(set);
+CLASS.lvl=[2,3].includes(+LS('cls-lvl'))?+LS('cls-lvl'):1;CLASS.spd=[1,.75,.5].includes(+LS('cls-spd'))?+LS('cls-spd'):1;
+const lessonsAt=set=>CLASS.lvl===3?lessons3For(set):CLASS.lvl===2?lessons2For(set):lessonsFor(set);
+const clsSets=()=>CLASS.lvl===3?ALL_CLS:CLS_SETS;
 let LESSONS=[];   // built once everything below exists (Level 2's lessons use the chord tables)
-const pk=i=>CLASS.set+(CLASS.lvl===2?':2:':':')+i,stars=i=>CPROG[pk(i)]||0,clsOpen=i=>i===0||stars(i-1)>=2;
+const pk=i=>CLASS.set+(CLASS.lvl>1?':'+CLASS.lvl+':':':')+i,stars=i=>CPROG[pk(i)]||0,clsOpen=i=>i===0||stars(i-1)>=2;
 function speak(t){if(!CLASS.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/♯/g,' sharp').replace(/♭/g,' flat').replace(/°/g,' diminished').replace(/\|:|:\|/g,' ').replace(/[★☆✓✗🎓🔊🎵]/g,'').replace(/\+/g,' and '));u.rate=.97;speechSynthesis.speak(u);VR.said.push(u.text)}catch{}}
 const DTR=()=>({id:'cls-demo-'+CLASS.set,set:CLASS.set,vol:1,pan:0,mute:false,solo:true,notes:[]});
 const BTR={id:'cls-bass',set:'six',vol:.75,pan:0,mute:false,solo:true,notes:[]},KTR={id:'cls-kit',set:'kit',vol:.55,pan:0,mute:false,solo:true,notes:[]};
@@ -1647,18 +1651,18 @@ function chordOf(name){const m=/^([A-G])([#b♯♭]?)(maj7|m7|m|7|°)?$/.exec(na
   return {name:name.replace('#','♯').replace(/^([A-G])b/,'$1♭'),root,q,tones:iv.map(x=>(root+x)%12),third:(root+iv[1])%12,seventh:iv[3]!=null?(root+iv[3])%12:null,fifth:(root+iv[2])%12}}
 const pcName=pc=>PCN[((pc%12)+12)%12];
 const toneNames=ch=>ch.tones.map(pcName).join(', ').replace(/, ([^,]*)$/,' and $1');
-function chordPairs(set,ch,guide){const c=[];for(let m=58;m<=83;m++)if(cid(set,m)&&ch.tones.includes(cpc(m)))c.push(m);const out=[];
+function chordPairs(set,ch,guide){const c=[],[lo,hi]=set==='tenor'||set==='dsec'?[58,83]:setRange(set);for(let m=lo;m<=hi;m++)if(cid(set,m)&&ch.tones.includes(cpc(m)))c.push(m);const out=[];
   for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){const a=c[i],b=c[j],ps=[cpc(a),cpc(b)];if(ps[0]===ps[1]||b-a>9)continue;
     if(!ps.includes(ch.third))continue;if(guide&&ch.seventh!=null&&!ps.includes(ch.seventh))continue;out.push([a,b])}return out}
 const notePos=(set,m)=>{const c=cInfo(cid(set,m));return c?[c.x,c.y]:[0,0]};
 function travel(set,p,q){const d=(a,b)=>{const A=notePos(set,a),B=notePos(set,b);return Math.hypot(A[0]-B[0],A[1]-B[1])};return Math.min(d(p[0],q[0])+d(p[1],q[1]),d(p[0],q[1])+d(p[1],q[0]))}
 function chordVoice(set,ch,prev,guide){let best=null,bs=1e9;for(const v of chordPairs(set,ch,guide)){const A=cInfo(cid(set,v[0])),B=cInfo(cid(set,v[1]));
     const same=prev&&cpc(prev[0])+','+cpc(prev[1])===[cpc(v[0]),cpc(v[1])].sort((a,b)=>a-b).join(',')||prev&&cpc(prev[1])+','+cpc(prev[0])===[cpc(v[0]),cpc(v[1])].sort((a,b)=>a-b).join(',');
-    const s=(same?1e5:0)+(prev?travel(set,prev,v)*1.2:Math.hypot(A.x-B.x,A.y-B.y))+(set==='dsec'&&A.drum===B.drum?(prev?600:2000):0)+(v[1]-v[0])*20+Math.abs((v[0]+v[1])/2-68)*4;if(s<bs){bs=s;best=v}}return best}
+    const s=(same?1e5:0)+(prev?travel(set,prev,v)*1.2:Math.hypot(A.x-B.x,A.y-B.y))+(set==='dsec'&&A.drum===B.drum?(prev?600:2000):0)+(v[1]-v[0])*20+Math.abs((v[0]+v[1])/2-(set==='tenor'||set==='dsec'?68:(setRange(set)[0]+setRange(set)[1])/2))*4;if(s<bs){bs=s;best=v}}return best}
 const CM_PER=57/890;   // drawing units to centimetres (a 22.5 in drum is about 890 units across)
-// ---- rhythm notation: "q q h | e e q Q" (w h q e = 4 2 1 ½ beats; capitals are rests)
+// ---- rhythm notation: "q q h | e e q Q" (w h q e = 4 2 1 ½ beats; capitals are rests; a dot adds half: q. = 1½)
 const RH={w:4,h:2,q:1,e:.5};
-function rhythm(s){const out=[];let b=0;for(const tok of s.trim().split(/\s+/)){if(tok==='|'){out.push({bar:true,b});continue}const d=RH[tok.toLowerCase()];if(!d)continue;out.push({b,d,rest:tok!==tok.toLowerCase()});b+=d}return {ev:out,len:b}}
+function rhythm(s){const out=[];let b=0;for(const tok of s.trim().split(/\s+/)){if(tok==='|'){out.push({bar:true,b});continue}const d=RH[tok.toLowerCase().replace('.','')]*(tok.endsWith('.')?1.5:1);if(!d)continue;out.push({b,d,rest:tok!==tok.toLowerCase()});b+=d}return {ev:out,len:b}}
 // ---- a chart's bars in the order they're played: |: … :| twice, a 1st ending only the first time
 function chartOrder(ch){const n=ch.bars.length,R=ch.rep;if(!R)return [...Array(n).keys()];const o=[];
   for(let i=0;i<=R.to;i++)o.push(i);for(let i=R.from;i<=R.to;i++)if(!(R.end1||[]).includes(i))o.push(i);for(let i=R.to+1;i<n;i++)o.push(i);return o}
@@ -1672,35 +1676,37 @@ function playBand(style,chords,t0,sp){if(!ac)return;for(let i=0;i<chords.length;
 // ---- going in and out
 function placeBoard(){const st=STN.get(CLASS.set)||STN.get(setKey),g=st?st.g:rig,[x,y,z]=hoverHome();
   const p=g.localToWorld(new THREE.Vector3(0,y+.55,z-.12)),q=g.localToWorld(new THREE.Vector3(0,y+.55,.5));board.m.position.copy(p);board.m.lookAt(q)}
-const levelName=()=>CLASS.lvl===2?'Level 2: chords, keys and reading music':'Level 1: know your '+(CLASS.set==='dsec'?'double seconds':'tenor');
+const panName=k=>k==='dsec'?'double seconds':SETS[k]?SETS[k].name.toLowerCase():k;
+const levelName=()=>CLASS.lvl===3?'Level 3: playing in the band, and composing':CLASS.lvl===2?'Level 2: chords, keys and reading music':'Level 1: know your '+(CLASS.set==='dsec'?'double seconds':'tenor');
 function classStart(){if(KIDS)return;menuOpen(false);if(LEARN.id)learnStop();if(TR.state!=='idle')stopAll();audio();
   CLASS.on=true;CLASS.page='home';CLASS.beat=null;LESSONS=lessonsAt(CLASS.set);useSet(CLASS.set);table.visible=false;placeBoard();board.m.visible=true;door.m.visible=false;CLASS.redraw=true;
   moreSounds([...Array(12).keys()].map(bassId));speak('Welcome to the classroom. '+levelName()+'. Pick a lesson.');dirty=true}
 function classStop(){CLASS.on=false;CLASS.beat=null;board.m.visible=false;table.visible=tableShown();try{speechSynthesis.cancel()}catch{}
   for(const d of drums)for(const n of d.notes){n.cA=0;n.cOk=0;n.cBad=0;if(n.cue)n.cue.visible=false}placeTable();dirty=true}
-function classSet(k){if(!CLS_SETS.includes(k))return;CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsAt(k);CLASS.page='home';CLASS.beat=null;useSet(k);table.visible=false;placeBoard();CLASS.redraw=true;speak(k==='dsec'?'Double seconds.':'Tenor.')}
-function classLevel(n){CLASS.lvl=n===2?2:1;LSset('cls-lvl',String(CLASS.lvl));LESSONS=lessonsAt(CLASS.set);CLASS.page='home';CLASS.beat=null;CLASS.msg='';CLASS.redraw=true;speak(levelName()+'.')}
+function classSet(k){if(!clsSets().includes(k))return;CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsAt(k);CLASS.page='home';CLASS.beat=null;useSet(k);table.visible=false;placeBoard();CLASS.redraw=true;speak((SETS[k]&&SETS[k].name||k)+'.')}
+function classLevel(n){CLASS.lvl=[2,3].includes(n)?n:1;LSset('cls-lvl',String(CLASS.lvl));if(!clsSets().includes(CLASS.set)){CLASS.set='tenor';LSset('cls-set','tenor');useSet('tenor');table.visible=false;placeBoard()}LESSONS=lessonsAt(CLASS.set);CLASS.page='home';CLASS.beat=null;CLASS.msg='';CLASS.redraw=true;speak(levelName()+'.')}
 function openLesson(i){if(!LESSONS[i])return;if(!clsOpen(i)){CLASS.msg='Get two stars on lesson '+i+' first.';CLASS.redraw=true;speak(CLASS.msg);return}
   Object.assign(CLASS,{page:'lesson',L:i,S:0,mis:0,prev:null});enterStep()}
 function itemSay(it,st){return it.hear?it.label:st.read||it.read?'Play the gold note on the staff.':(st.glow?'Play ':'')+it.label+'.'}
-function enterStep(){const st=step();Object.assign(CLASS,{k:0,wrong:0,shown:false,pend:{},beat:null,badId:null,done:st.t==='say',msg:'',col:'#9fb0b8',hint:'',prev:CLASS.S?CLASS.prev:null});CLASS.redraw=true;
+function enterStep(){CLASS.cur=null;const st0=LESSONS[CLASS.L].steps[CLASS.S];CLASS.cur=st0.prep?{...st0,...st0.prep()}:st0;const st=CLASS.cur;Object.assign(CLASS,{k:0,wrong:0,shown:false,pend:{},beat:null,badId:null,done:st.t==='say',msg:'',col:'#9fb0b8',hint:'',prev:CLASS.S?CLASS.prev:null});CLASS.redraw=true;
   const it=st.items&&st.items[0];speak(st.lines.join(' ')+(it?' '+itemSay(it,st):st.t==='beat'?' Press Start when you\'re ready.':''));
-  if(st.t==='say')setTimeout(()=>{demo(st.demo);if(st.rdemo)rhythmDemo(st.rdemo)},400);if(it&&it.hear)setTimeout(()=>demo(it.hear),2600)}
+  if(st.t==='say')setTimeout(()=>{demo(st.demo);if(st.rdemo)rhythmDemo(st.rdemo);if(st.mdemo)melodyDemo(st.mdemo)},400);if(it&&it.hear)setTimeout(()=>demo(it.hear),2600)}
 function rhythmDemo(r){if(!ac)return;const R=rhythm(r.rh),sp=60/(r.bpm||80),t0=ac.currentTime+.4+4*sp,tr=DTR();for(let b=-4;b<R.len;b++)click(t0+b*sp,((b%4)+4)%4===0);for(const e of R.ev)if(!e.bar&&!e.rest)strike(r.id,.8,t0+e.b*sp,tr)}
 function nextStep(){const L=LESSONS[CLASS.L];if(CLASS.S<L.steps.length-1){CLASS.S++;enterStep();return}
-  const s=CLASS.mis<=1?3:CLASS.mis<=4?2:1;CPROG[pk(CLASS.L)]=Math.max(stars(CLASS.L),s);LSset('cls',JSON.stringify(CPROG));CLASS.page='done';CLASS.got=s;CLASS.redraw=true;
-  speak((s===3?'Excellent! ':s===2?'Well done! ':'Good effort! ')+s+(s===1?' star.':' stars.')+(s<2?' Try it again for two stars to open the next lesson.':L.test?' You passed Level '+CLASS.lvl+'!':''))}
+  const s=CLASS.mis<=1?3:CLASS.mis<=4?2:1;CPROG[pk(CLASS.L)]=Math.max(stars(CLASS.L),s);LSset('cls',JSON.stringify(CPROG));CLASS.page='done';CLASS.got=s;CLASS.redraw=true;CLASS.saved=CLASS.lvl===3&&L.test?savePiece():null;
+  speak((s===3?'Excellent! ':s===2?'Well done! ':'Good effort! ')+s+(s===1?' star.':' stars.')+(s<2?' Try it again for two stars to open the next lesson.':L.test?' You passed Level '+CLASS.lvl+'!':'')+(CLASS.saved?' Your piece is saved in My songs as '+CLASS.saved.title+'.':''))}
 // ---- the pan answers
-const step=()=>!CLASS.on?null:CLASS.page==='lesson'?LESSONS[CLASS.L].steps[CLASS.S]:CLASS.page==='song'&&CLASS.song&&CLASS.song.st||null;
-const notesOf=id=>{const o=[];for(const d of drums)if(d.set===id.split(':')[0])for(const n of d.notes)if(n.id===id)o.push(n);return o};
+const step=()=>!CLASS.on?null:CLASS.page==='lesson'?(CLASS.cur||LESSONS[CLASS.L].steps[CLASS.S]):CLASS.page==='song'&&CLASS.song&&CLASS.song.st||CLASS.page==='piece'&&CLASS.pieceSt||null;
+const notesOf=id=>{const o=[];for(const d of drums)if(d.set===idSet(id))for(const n of d.notes)if(n.id===id)o.push(n);return o};
 const flash=(id,k)=>{for(const n of notesOf(id))n[k]=1};
 function matches(it,id){return it.any?NOTE[id]&&NOTE[id].set===CLASS.set&&it.ids.some(w=>cpc(cm(w))===cpc(cm(id))):it.ids.includes(id)}
 function wrongHit(id,msg){const st=step();flash(id,'cBad');CLASS.badId=id;CLASS.pend={};CLASS.wrong++;if(CLASS.wrong<=3)CLASS.mis++;
   if(!st.glow&&CLASS.wrong>=2&&!CLASS.shown){CLASS.shown=true;msg+=' It\'s glowing now.'}CLASS.hint=msg;CLASS.msg=msg;CLASS.col='#ff6b5e';CLASS.redraw=true;speak(msg)}
-function classHit(id,t){const st=step();if(!st||id.startsWith('drum:'))return;
-  if(st.t==='beat')return beatHit(id,t);if(st.t!=='play'||CLASS.done)return;const it=st.items[CLASS.k];
-  if(NOTE[id]&&NOTE[id].set!==CLASS.set){CLASS.msg='That\'s a different pan: play your '+(CLASS.set==='dsec'?'double seconds':'tenor')+'.';CLASS.col='#ff9f0a';CLASS.redraw=true;return}
+function classHit(id,t,v){const st=step();if(!st||id.startsWith('drum:'))return;v=v==null?.8:v;
+  if(st.t==='beat')return beatHit(id,t,v);if(st.t!=='play'||CLASS.done)return;const it=st.items[CLASS.k];
+  if(NOTE[id]&&NOTE[id].set!==CLASS.set){CLASS.msg='That\'s a different pan: play your '+panName(CLASS.set)+'.';CLASS.col='#ff9f0a';CLASS.redraw=true;return}
   if(it.chord)return chordHit(it,id,t);
+  if(it.choose){const c=it.choose[cpc(cm(id))];if(c){PIECE.key=c;keepPiece();flash(id,'cOk');return advance('Your piece will be in '+c+'.')}return wrongHit(id,'Play a G or a C.')}
   if(matches(it,id)){flash(id,'cOk');if(it.ids.length===1)return advance();CLASS.pend[id]=t;const all=it.ids.every(w=>CLASS.pend[w]!=null&&Math.abs(CLASS.pend[w]-t)<.45);
     if(all)return advance();CLASS.msg='Good, and the other note at the same time…';CLASS.col='#9fb0b8';CLASS.redraw=true;return}
   const alt=it.alt&&it.alt[cpc(cm(id))];
@@ -1728,28 +1734,38 @@ function advance(note){const st=step();CLASS.k++;CLASS.badId=null;CLASS.wrong=0;
 function sugOf(st,it){if(it.chord)return (chordVoice(CLASS.set,it.chord,CLASS.prev,it.guide)||[]).map(m=>cid(CLASS.set,m));return it.any&&!st.glow?[nearestOf(it,it.ids[0])]:it.ids}
 // ---- in time with the click: notes, chords, rolls, with or without the band
 function beatPlan(st){const out=[];
+  if(st.write||st.listen)return {exp:[],len:st.len,chords:st.bandChords?st.bandChords.map(chordOf):null};
+  if(st.mel){for(const e of st.mel)if(!e.rest&&e.id)out.push({b:e.b,ids:[e.id]});return {exp:out,len:st.len,chords:st.bandChords?st.bandChords.map(chordOf):null}}
   if(st.chart){const ord=chartOrder(st.chart),strum=st.strum||[0,2];let prev=null;ord.forEach((bi,k)=>{const ch=chordOf(st.chart.bars[bi]);for(const b of strum){const v=chordVoice(CLASS.set,ch,prev,st.guide);prev=v||prev;out.push({b:k*4+b,chord:ch,sug:v,bar:bi,guide:st.guide})}});return {exp:out,len:ord.length*4,chords:ord.map(i=>chordOf(st.chart.bars[i]))}}
-  if(st.rh){const R=rhythm(st.rh);for(const e of R.ev)if(!e.bar&&!e.rest)out.push({b:e.b,ids:st.ids.slice()});return {exp:out,len:R.len,chords:st.bandChords?st.bandChords.map(CH):null}}
-  for(const x of st.beats)out.push(x.roll?{b:x.b,roll:true,len:x.len,ids:x.ids}:x.chord?{b:x.b,chord:x.chord,sug:chordVoice(CLASS.set,x.chord,null,x.guide),guide:x.guide}:{b:x.b,ids:x.ids.slice()});
-  return {exp:out,len:st.len,chords:st.bandChords?st.bandChords.map(CH):null}}
+  if(st.rh){const R=rhythm(st.rh);for(const e of R.ev)if(!e.bar&&!e.rest)out.push({b:e.b,ids:st.ids.slice()});return {exp:out,len:R.len,chords:st.bandChords?st.bandChords.map(chordOf):null}}
+  for(const x of st.beats)out.push(x.roll?{b:x.b,roll:true,len:x.len,ids:x.ids,cresc:x.cresc}:x.chord?{b:x.b,chord:x.chord,sug:chordVoice(CLASS.set,x.chord,null,x.guide),guide:x.guide}:x.any?{b:x.b,ids:x.any.slice(),any:true}:{b:x.b,ids:x.ids.slice(),dyn:x.dyn});
+  return {exp:out,len:st.len,chords:st.bandChords?st.bandChords.map(chordOf):null}}
+// stop the classroom's band: its channels go quiet and are made afresh next time
+function stopClass(){if(!ac)return;for(const [id,c] of [...CH]){if(!String(id).startsWith('cls'))continue;try{c.g.gain.cancelScheduledValues(ac.currentTime);c.g.gain.setValueAtTime(0,ac.currentTime);c.p.disconnect()}catch{}CH.delete(id)}}
 function beatStart(){const st=step();if(!st||st.t!=='beat')return;audio();if(ac.state==='suspended')ac.resume();const P=beatPlan(st),sp=60/(st.bpm*CLASS.spd),t0=ac.currentTime+.5+4*sp;
-  CLASS.beat={t0,sp,ok:0,extra:0,over:false,len:P.len,end:t0+P.len*sp,exp:P.exp.map(x=>({...x,t:t0+x.b*sp,t2:x.roll?t0+(x.b+x.len)*sp:null,got:x.chord?new Map():new Set(),hits:[],ok:false}))};
-  for(let b=-4;b<P.len;b++)click(t0+b*sp,((b%4)+4)%4===0);
+  CLASS.beat={t0,sp,ok:0,extra:0,dynMiss:0,over:false,write:!!st.write,listen:!!st.listen,rec:[],len:P.len,end:t0+P.len*sp,exp:P.exp.map(x=>({...x,t:t0+x.b*sp,t2:x.roll?t0+(x.b+x.len)*sp:null,got:x.chord?new Map():new Set(),hits:[],ok:false}))};
+  for(let b=-4;b<(st.listen?0:P.len);b++)click(t0+b*sp,((b%4)+4)%4===0);
   if(st.band&&P.chords)playBand(st.band,P.chords,t0,sp);
   if(st.backing)for(const tr of st.backing)for(const n of tr.notes)if(n.b<P.len)strike(n.id,n.v,t0+n.b*sp,tr);
   CLASS.msg='Listen: 1, 2, 3, 4…';CLASS.col='#9fb0b8';CLASS.done=false;CLASS.redraw=true}
-function beatHit(id,t){const B=CLASS.beat;if(!B||B.over)return;
-  for(const e of B.exp)if(e.roll&&!e.done&&t>=e.t-.12&&t<=e.t2+.12){if(e.ids.includes(id)){e.hits.push({id,t});flash(id,'cOk')}else{B.extra++;flash(id,'cBad')}return}
+function beatHit(id,t,v){const B=CLASS.beat;if(!B||B.over)return;
+  if(B.write){if(idSet(id)===CLASS.set&&t>=B.t0-.2&&t<=B.end+.2){B.rec.push({id,t,v});flash(id,'cOk');CLASS.redraw=true}return}
+  for(const e of B.exp)if(e.roll&&!e.done&&t>=e.t-.12&&t<=e.t2+.12){if(e.ids.includes(id)){e.hits.push({id,t,v});flash(id,'cOk')}else{B.extra++;flash(id,'cBad')}return}
   const pc=cpc(cm(id));let best=null;
   for(const e of B.exp){if(e.ok||e.roll||Math.abs(t-e.t)>.17)continue;const fit=e.chord?e.chord.tones.includes(pc)&&!e.got.has(pc):e.ids.includes(id)&&!e.got.has(id);if(fit&&(!best||Math.abs(t-e.t)<Math.abs(t-best.t)))best=e}
   if(!best){B.extra++;flash(id,'cBad');CLASS.redraw=true;return}flash(id,'cOk');
   if(best.chord){best.got.set(pc,id);const g=best.got;if(g.size>=2&&g.has(best.chord.third)&&(!best.guide||best.chord.seventh==null||g.has(best.chord.seventh))){best.ok=true;B.ok++}}
-  else{best.got.add(id);if(best.got.size===best.ids.length){best.ok=true;B.ok++}}CLASS.redraw=true}
+  else{best.got.add(id);const loud=v>=.62,soft=v<.5;if(best.dyn&&!(best.dyn==='f'?loud:soft)){best.dynWrong=true;B.dynMiss++;flash(id,'cBad');best.ok=true;CLASS.redraw=true;return}
+    if(best.any||best.got.size===best.ids.length){best.ok=true;B.ok++}}CLASS.redraw=true}
 function rollCheck(e){e.done=true;const dur=e.t2-e.t,hs=e.hits,both=e.ids.every(w=>hs.filter(h=>h.id===w).length>=2),rate=hs.length/dur;
   const iv=hs.slice(1).map((h,i)=>h.t-hs[i].t),mean=iv.reduce((a,b)=>a+b,0)/(iv.length||1),cv=iv.length>2?Math.sqrt(iv.reduce((a,b)=>a+(b-mean)**2,0)/iv.length)/mean:1;
-  e.rate=+rate.toFixed(1);e.even=cv<.45;e.ok=rate>=4.5&&both;if(e.ok)CLASS.beat.ok++}
-function beatEnd(){const B=CLASS.beat;for(const e of B.exp)if(e.roll&&!e.done)rollCheck(e);const n=B.exp.length,miss=n-B.ok,pct=Math.round(100*B.ok/n);B.over=true;CLASS.mis+=Math.ceil(miss/2);CLASS.done=true;
-  const rolls=B.exp.filter(e=>e.roll),rmsg=rolls.length?' Rolls: '+rolls.map(e=>e.ok?(e.even?'even ✓':'a bit uneven'):e.rate<4.5?'too slow ('+e.rate+' a second)':'use both notes').join(', ')+'.':'';
+  e.rate=+rate.toFixed(1);e.even=cv<.45;e.ok=rate>=4.5&&both;
+  if(e.cresc&&hs.length>=6){const k=Math.floor(hs.length/3),a=hs.slice(0,k).reduce((x,h)=>x+(h.v||0),0)/k,z=hs.slice(-k).reduce((x,h)=>x+(h.v||0),0)/k;e.grew=z>a+.15;if(!e.grew)e.ok=false}
+  if(e.ok)CLASS.beat.ok++}
+function beatEnd(){const B=CLASS.beat;
+  if(B.write||B.listen){B.over=true;CLASS.done=true;CLASS.msg=B.write?finishWrite(step(),B):'That\'s it. Next ▶ when you\'re ready.';CLASS.col='#30d158';CLASS.redraw=true;speak(CLASS.msg);return}
+  for(const e of B.exp)if(e.roll&&!e.done)rollCheck(e);const n=B.exp.length,miss=n-B.ok,pct=Math.round(100*B.ok/n);B.over=true;CLASS.mis+=Math.ceil(miss/2);CLASS.done=true;
+  const rolls=B.exp.filter(e=>e.roll),rmsg=(rolls.length?' Rolls: '+rolls.map(e=>e.ok?(e.even?'even ✓':'a bit uneven'):e.cresc&&e.grew===false&&e.rate>=4.5?'it didn\'t grow: start softer, end stronger':e.rate<4.5?'too slow ('+e.rate+' a second)':'use both notes').join(', ')+'.':'')+(B.dynMiss?' '+B.dynMiss+' at the wrong loudness (p soft, f strong).':'');B.ok-=0;
   CLASS.msg=(CLASS.spd<1?'('+(CLASS.spd===.5?'½':'¾')+' speed) ':'')+(pct>=90?'✓ '+B.ok+' of '+n+' in time. Great!':pct>=60?B.ok+' of '+n+' in time. Good: again, or go on.':B.ok+' of '+n+' in time. Try it again: listen for the click.')+rmsg;CLASS.col=pct>=60?'#30d158':'#ff9f0a';CLASS.redraw=true;speak(CLASS.msg)}
 // ---- 🎵 Practise my songs: a chord for every bar, guessed from the song's notes
 const BASSY=new Set(['six','seven','fcello','tcello']);
@@ -1773,10 +1789,14 @@ function classAct(k,a){
   if(k==='clsl')return openLesson(+a);if(k==='clshome'){CLASS.page='home';CLASS.beat=null;CLASS.msg='';CLASS.redraw=true;return}
   if(k==='clssongs'){CLASS.page='songs';CLASS.msg='';CLASS.beat=null;CLASS.redraw=true;speak('Practise my songs. Pick a song you saved in VR.');return}
   if(k==='clssong')return openSong(a);
+  if(k==='clspiece'){if(!a){CLASS.page='piece';CLASS.beat=null;CLASS.msg='';CLASS.sure=false;CLASS.redraw=true;speak('My piece. '+PIECE_ROWS.filter(r=>PIECE[r[0]]).length+' parts written. Hear it, or save it to My songs.');return}
+    if(a==='hear'){CLASS.sure=false;return pieceHear()}if(a==='stop'){CLASS.beat=null;stopClass();CLASS.msg='';CLASS.redraw=true;return}
+    if(a==='save'){const e=savePiece();CLASS.msg=e?'💾 Saved in My songs as "'+e.title+'": open it in the studio to keep working on it.':'Couldn\'t save: the headset\'s storage is full.';CLASS.col=e?'#30d158':'#ff6b5e';CLASS.redraw=true;speak(CLASS.msg);return}
+    if(a==='reset'){if(!CLASS.sure){CLASS.sure=true;CLASS.redraw=true;return}CLASS.sure=false;PIECE={};keepPiece();CLASS.msg='A fresh start: your piece is empty.';CLASS.col='#9fb0b8';CLASS.redraw=true;speak(CLASS.msg);return}}
   if(k==='clsbar'){const S=CLASS.song,g=S&&S.G[+a];if(!g)return;g.c=g.alts[(g.alts.indexOf(g.c)+1)%g.alts.length];let sv={};try{sv=JSON.parse(LS('cls-chords-'+S.e.id)||'{}')||{}}catch{}sv[+a]=g.c;LSset('cls-chords-'+S.e.id,JSON.stringify(sv));S.st=null;CLASS.redraw=true;speak(g.c);return}
   if(k==='clscomp'){const S=CLASS.song;if(!S)return;S.st=songStep();CLASS.mis=0;return beatStart()}
   if(k==='clsnext'){if(CLASS.page==='done'){if(LESSONS[CLASS.L+1]&&clsOpen(CLASS.L+1))openLesson(CLASS.L+1);else{CLASS.page='home';CLASS.redraw=true}return}return nextStep()}
-  if(k==='clsagain'){if(CLASS.page==='done')return openLesson(CLASS.L);const st=step();if(st&&st.t==='beat')return beatStart();
+  if(k==='clsagain'){if(CLASS.page==='done')return openLesson(CLASS.L);const st=step();if(st&&st.t==='beat')return beatStart();if(st&&st.mdemo)melodyDemo(st.mdemo);
     if(st){const it=st.items&&st.items[CLASS.k];if(it&&it.hear)return demo(it.hear);speak(st.lines.join(' '));demo(st.demo);if(st.rdemo)rhythmDemo(st.rdemo)}return}
   if(k==='clsspd'){CLASS.spd=[1,.75,.5].includes(+a)?+a:1;LSset('cls-spd',String(CLASS.spd));CLASS.redraw=true;speak(CLASS.spd===1?'Full speed.':CLASS.spd===.5?'Half speed.':'Three quarter speed.');return}
   if(k==='clsbeat')return beatStart()}
@@ -1784,11 +1804,12 @@ function classAct(k,a){
 function classFrame(dt){const on=CLASS.on;door.m.visible=inYard()&&!KIDS&&!on;if(door.m.visible&&!door.drawn){drawDoor();door.drawn=1}
   if(!on)return;const st=step(),want=new Map(),pulse=.55+.35*Math.sin(performance.now()/180);
   if(st&&st.t==='play'&&!CLASS.done){const it=st.items[CLASS.k];if(it&&!it.hear&&(st.glow||CLASS.shown))for(const w of sugOf(st,it))if(w&&CLASS.pend[w]==null)want.set(w,pulse)}
-  const B=CLASS.beat;if(st&&st.t==='beat'&&B&&!B.over&&ac){const now=ac.currentTime;
+  const B=CLASS.beat;if(st&&st.t==='beat'&&B&&!B.over&&ac&&st.scale)for(const id of NOTE_IDS(CLASS.set))if(st.scale.includes(cpc(cm(id))))want.set(id,.28);
+  if(st&&st.t==='beat'&&B&&!B.over&&ac){const now=ac.currentTime;
     for(const e of B.exp){if(e.roll){if(!e.done&&now>e.t2+.15)rollCheck(e);if(now>=e.t-B.sp&&now<=e.t2)for(const w of e.ids)want.set(w,now>=e.t?.9:.4);continue}
       const ah=(e.t-now)/B.sp;if(e.ok||ah>1||ah<=-.2)continue;const a=ah<.15?1:.25+.6*(1-ah),ws=e.chord?(e.sug||[]).map(m=>cid(CLASS.set,m)).filter(w=>!e.got.has(cpc(cm(w)))):e.ids.filter(w=>!e.got.has(w));
       if(!st.noglow)for(const w of ws)want.set(w,Math.max(want.get(w)||0,a))}
-    if(now>B.end+.4)beatEnd();else{const b=Math.floor((now-B.t0)/B.sp);B.cur=b;const m=b<0?'Count in: '+(-b)+'…':'Beat '+((b%4)+1)+' · '+B.ok+' in time';if(m!==CLASS.msg){CLASS.msg=m;CLASS.redraw=true}}}
+    if(now>B.end+.4)beatEnd();else{const b=Math.floor((now-B.t0)/B.sp);B.cur=b;const m=b<0?'Count in: '+(-b)+'…':B.listen?'Bar '+(Math.floor(b/4)+1)+' · listen':B.write?(b<(st.recFrom||0)?'Bar '+(Math.floor(b/4)+1)+' · listen, your turn at bar '+((st.recFrom||0)/4+1):'Bar '+(Math.floor(b/4)+1)+' · ● '+B.rec.length+' notes'):'Beat '+((b%4)+1)+' · '+B.ok+' in time';if(m!==CLASS.msg){CLASS.msg=m;CLASS.redraw=true}if(st.mel&&(CLASS.mt=(CLASS.mt||0)+dt)>.12){CLASS.mt=0;CLASS.redraw=true}}}
   for(const d of drums){const mine=d.set===CLASS.set;for(const n of d.notes){if(n.cOk>0)n.cOk=Math.max(0,n.cOk-dt*2.2);if(n.cBad>0)n.cBad=Math.max(0,n.cBad-dt*1.6);
     const a=mine?want.get(n.id)||0:0;if(!a&&!(n.cOk>0)&&!(n.cBad>0)){if(n.cue&&n.cue.visible)n.cue.visible=false;continue}
     const c=cueOf(n);c.visible=true;c.material.color.set(n.cBad>0?'#ff3b30':n.cOk>0?'#1fbf4a':'#00e0d0');c.material.opacity=n.cBad>0?.85*n.cBad:n.cOk>0?.85*n.cOk:Math.min(.9,a)}}
@@ -1804,27 +1825,32 @@ function drawClef(g,x,yb,s){g.save();g.fillStyle=g.strokeStyle='#eef2f4';g.font=
   if(g.measureText('𝄞').width>s*1.5)g.fillText('𝄞',x,yb+s*1.55);
   else{const yg=yb-s;g.lineWidth=s*.22;g.beginPath();g.moveTo(x+s*1.1,yb+s*1.8);g.lineTo(x+s*1.1,yb-s*5);g.quadraticCurveTo(x+s*2.2,yb-s*3.8,x+s*.6,yb-s*2.2);g.quadraticCurveTo(x-s*.2,yb-s*1.1,x+s*.9,yb-s*.2);
     g.quadraticCurveTo(x+s*2.1,yb-s*.4,x+s*1.8,yg-s*.1);g.quadraticCurveTo(x+s*1.2,yg-s*.8,x+s*.7,yg+s*.1);g.stroke();g.beginPath();g.arc(x+s*.75,yb+s*1.75,s*.32,0,7);g.fill()}g.restore()}
+function drawBassClef(g,x,yb,s){g.save();g.fillStyle=g.strokeStyle='#eef2f4';g.font=(s*3.6)+'px "Noto Music","Segoe UI Symbol","Apple Symbols",serif';g.textBaseline='alphabetic';g.textAlign='left';
+  if(g.measureText('𝄢').width>s*1.2)g.fillText('𝄢',x,yb-s*.9);else{const yf=yb-3*s;g.lineWidth=s*.32;g.beginPath();g.arc(x+s*.55,yf,s*.38,0,7);g.fill();
+    g.beginPath();g.moveTo(x+s*.3,yf-s*.3);g.bezierCurveTo(x+s*1.2,yf-s*1.6,x+s*2.8,yf-s*.6,x+s*1.6,yf+s*1.2);g.quadraticCurveTo(x+s*1,yf+s*2.2,x+s*.2,yf+s*2.6);g.stroke();
+    for(const dy of [-.5,.5]){g.beginPath();g.arc(x+s*2.6,yf+dy*s,s*.2,0,7);g.fill()}}g.restore()}
 function noteHead(g,x,y,s,open){g.save();g.translate(x,y);g.rotate(-.35);g.beginPath();g.ellipse(0,0,s*.66,s*.46,0,0,7);if(open){g.lineWidth=s*.17;g.stroke()}else g.fill();g.restore()}
 function restGlyph(g,x,yb,s,d){g.save();g.fillStyle=g.strokeStyle;const mid=yb-2*s;
+  if(d===1.5||d===3){g.beginPath();g.arc(x+s*.75,mid-s*.5,s*.2,0,7);g.fill()}
   if(d>=4)g.fillRect(x-s*.6,mid-s,s*1.2,s*.5);else if(d>=2)g.fillRect(x-s*.6,mid-s*.5,s*1.2,s*.5);
   else if(d>=1){g.lineWidth=s*.22;g.beginPath();g.moveTo(x-s*.3,mid-s*1.5);g.lineTo(x+s*.3,mid-s*.6);g.lineTo(x-s*.25,mid+s*.1);g.lineTo(x+s*.3,mid+s*.8);g.quadraticCurveTo(x-s*.6,mid+s*.6,x,mid+s*1.4);g.stroke()}
   else{g.beginPath();g.arc(x-s*.2,mid-s*.4,s*.25,0,7);g.fill();g.lineWidth=s*.16;g.beginPath();g.moveTo(x-s*.2,mid-s*.25);g.lineTo(x+s*.4,mid-s*.6);g.lineTo(x,mid+s*.9);g.stroke()}g.restore()}
 /* notes: [{m, d (beats, for shapes), rest, col}]; opt: key, time ('4/4'), bars (beat positions), cursor (beats) */
-function drawStaff(g,x,y,w,notes,opt){opt=opt||{};const s=20,yb=y+4*s,col='#eef2f4';g.save();g.strokeStyle=col;g.fillStyle=col;g.lineWidth=2;
-  for(let i=0;i<5;i++){g.beginPath();g.moveTo(x,yb-i*s);g.lineTo(x+w,yb-i*s);g.stroke()}drawClef(g,x+6,yb,s);let cx=x+s*4.4;
-  const ks=KEYSIG[opt.key]||[];for(const a of ks){const dn=SIGPOS[a];g.font='700 '+(s*1.9)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(a.slice(1),cx,yb-(dn-30)*s/2);cx+=s*1.1}
+function drawStaff(g,x,y,w,notes,opt){opt=opt||{};const s=20,yb=y+4*s,col='#eef2f4',BS=opt.clef==='bass',Z=BS?18:30;g.save();g.strokeStyle=col;g.fillStyle=col;g.lineWidth=2;
+  for(let i=0;i<5;i++){g.beginPath();g.moveTo(x,yb-i*s);g.lineTo(x+w,yb-i*s);g.stroke()}if(BS)drawBassClef(g,x+10,yb,s);else drawClef(g,x+6,yb,s);let cx=x+s*4.4;
+  const ks=KEYSIG[opt.key]||[];for(const a of ks){const dn=SIGPOS[a]-(BS?14:0);g.font='700 '+(s*1.9)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(a.slice(1),cx,yb-(dn-Z)*s/2);cx+=s*1.1}
   if(opt.time){g.font='700 '+(s*1.9)+'px Georgia,serif';g.textAlign='center';g.textBaseline='middle';g.fillText('4',cx+s*.6,yb-3*s);g.fillText('4',cx+s*.6,yb-s);cx+=s*1.8}
   cx+=s*.8;const W=x+w-cx-s,beats=opt.len||Math.max(1,notes.length),X=b=>cx+(opt.timed?b/beats*W:(b+.5)/beats*W);
   for(const bb of opt.bars||[]){const bx=X(bb)-(opt.timed?s*.9:0);g.lineWidth=2;g.beginPath();g.moveTo(bx,yb);g.lineTo(bx,yb-4*s);g.stroke()}
   g.lineWidth=3;g.beginPath();g.moveTo(x+w,yb);g.lineTo(x+w,yb-4*s);g.stroke();
   let beam=null;notes.forEach((n,i)=>{const nx=X(opt.timed?n.b:i),c=n.col||col;g.strokeStyle=g.fillStyle=c;
     if(n.rest){restGlyph(g,nx,yb,s,n.d);return}
-    const lab=spell(n.m,opt.key),dn=dnOf(n.m,lab),ny=yb-(dn-30)*s/2;
-    g.strokeStyle=c;g.lineWidth=2;for(let L=28;L>=dn;L-=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-30)*s/2);g.lineTo(nx+s*1.1,yb-(L-30)*s/2);g.stroke()}
-    for(let L=40;L<=dn;L+=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-30)*s/2);g.lineTo(nx+s*1.1,yb-(L-30)*s/2);g.stroke()}
+    const lab=spell(n.m,opt.key),dn=dnOf(n.m,lab),ny=yb-(dn-Z)*s/2;
+    g.strokeStyle=c;g.lineWidth=2;for(let L=Z-2;L>=dn;L-=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-Z)*s/2);g.lineTo(nx+s*1.1,yb-(L-Z)*s/2);g.stroke()}
+    for(let L=Z+10;L<=dn;L+=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-Z)*s/2);g.lineTo(nx+s*1.1,yb-(L-Z)*s/2);g.stroke()}
     const acc=lab.slice(1);if(acc&&!(KEYSIG[opt.key]||[]).includes(lab)){g.font='700 '+(s*1.7)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(acc,nx-s*1.55,ny)}
-    const d=n.d||1;noteHead(g,nx,ny,s,d>=2);
-    if(d<4){const up=dn<34,sx=up?nx+s*.6:nx-s*.6,sy=up?ny-s*3.5:ny+s*3.5;g.lineWidth=2.5;g.beginPath();g.moveTo(sx,ny);g.lineTo(sx,sy);g.stroke();
+    const d=n.d||1;noteHead(g,nx,ny,s,d>=2);if([.75,1.5,3].includes(d)){g.beginPath();g.arc(nx+s*1.05,ny-(dn%2?0:s*.4),s*.2,0,7);g.fill()}
+    if(d<4){const up=dn<Z+4,sx=up?nx+s*.6:nx-s*.6,sy=up?ny-s*3.5:ny+s*3.5;g.lineWidth=2.5;g.beginPath();g.moveTo(sx,ny);g.lineTo(sx,sy);g.stroke();
       if(d===.5){const nxt=notes[i+1];if(beam&&beam.on){g.lineWidth=s*.45;g.beginPath();g.moveTo(beam.x,beam.y);g.lineTo(sx,sy);g.stroke();beam=null}
         else if(nxt&&!nxt.rest&&(nxt.d||1)===.5&&opt.timed&&Math.floor(nxt.b)===Math.floor(n.b))beam={on:1,x:sx,y:sy};
         else{g.lineWidth=2.5;g.beginPath();g.moveTo(sx,sy);g.quadraticCurveTo(sx+s*.9,sy+(up?s*1:-s*1),sx+s*.6,sy+(up?s*2:-s*2));g.stroke()}}}});
@@ -1843,17 +1869,28 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
   g.textBaseline='middle';g.fillStyle='#f6ba45';g.font='700 46px system-ui,sans-serif';
   const pan=CLASS.set==='dsec'?'Double seconds':'Tenor';
   btn(p,'clsvoice',p.W-470,30,250,70,CLASS.voice?'🔊 Voice on':'🔇 Voice off',{fs:28,on:CLASS.voice});btn(p,'clsx',p.W-205,30,170,70,'✕ Leave',{fs:28});
-  if(CLASS.page==='home'){g.fillStyle='#f6ba45';lt(CLASS.lvl===2?'🎓 Level 2 · Chords, keys, reading':'🎓 Level 1 · Know your pan',40,66);
-    btn(p,'clsset:tenor',40,120,200,62,'Tenor',{on:CLASS.set==='tenor',fs:28});btn(p,'clsset:dsec',250,120,280,62,'Double seconds',{on:CLASS.set==='dsec',fs:28});
-    btn(p,'clslvl:1',600,120,190,62,'Level 1',{on:CLASS.lvl===1,fs:28});btn(p,'clslvl:2',800,120,190,62,'Level 2',{on:CLASS.lvl===2,fs:28});
-    g.fillStyle='#c9d6cf';g.font='24px system-ui,sans-serif';lt('Two stars open the next lesson.',1020,151);
+  if(CLASS.page==='home'){g.fillStyle='#f6ba45';lt(CLASS.lvl===3?'🎓 Level 3 · Playing in the band':CLASS.lvl===2?'🎓 Level 2 · Chords, keys, reading':'🎓 Level 1 · Know your pan',40,66);
+    [1,2,3].forEach(n=>btn(p,'clslvl:'+n,40+(n-1)*200,120,190,62,'Level '+n,{on:CLASS.lvl===n,fs:28}));
+    g.fillStyle='#c9d6cf';g.font='24px system-ui,sans-serif';lt('Two stars open the next lesson.',660,151);
+    const sets=clsSets(),sw=Math.min(280,(p.W-80)/sets.length-10);sets.forEach((k,i)=>btn(p,'clsset:'+k,40+i*(sw+10),198,sw,58,sets.length>2?shortSet(k):k==='dsec'?'Double seconds':'Tenor',{on:CLASS.set===k,fs:sets.length>2?24:28}));
+    if(CLASS.lvl===3){g.fillStyle='#9fb0b8';g.font='22px system-ui,sans-serif';lt('Your '+panName(CLASS.set)+' plays '+ROLE_NAME[ROLE3[CLASS.set]]+'.',40,282)}
     const tiles=LESSONS.map((L,i)=>({id:'clsl:'+i,t:(L.test?'★ ':(i+1)+'. ')+L.title,ok:clsOpen(i),s:stars(i)}));if(CLASS.lvl===2)tiles.push({id:'clssongs',t:'🎵 Practise my songs',ok:true,s:-1});
-    const rows=Math.ceil(tiles.length/3),th=Math.min(170,(p.H-230)/rows-14);
-    tiles.forEach((T,i)=>{const c=i%3,r=Math.floor(i/3),x=40+c*512,y=205+r*(th+14);rr(g,x,y,492,th,18,T.ok?'#20352a':'#1a221e',T.s>0?'#f6ba45':'#3c5245');
+    if(CLASS.lvl===3)tiles.push({id:'clspiece',t:'🎼 My piece',ok:true,s:-2});
+    const top=CLASS.lvl===3?305:280,rows=Math.ceil(tiles.length/3),th=Math.min(170,(p.H-top-70)/rows-12);
+    tiles.forEach((T,i)=>{const c=i%3,r=Math.floor(i/3),x=40+c*512,y=top+r*(th+12);rr(g,x,y,492,th,18,T.ok?'#20352a':'#1a221e',T.s>0?'#f6ba45':'#3c5245');
       g.fillStyle=T.ok?'#f6ba45':'#6c7d74';g.font='700 28px system-ui,sans-serif';lt(fit(g,T.t,450),x+22,y+th*.32);
-      g.fillStyle=T.ok?'#eef2f4':'#6c7d74';g.font='36px system-ui,sans-serif';lt(T.s<0?'Comp along to your own songs':T.ok?'★★★'.slice(0,T.s)+'☆☆☆'.slice(0,3-T.s):'🔒',x+22,y+th*.72);
+      g.fillStyle=T.ok?'#eef2f4':'#6c7d74';g.font=(T.s<0?'26px':'36px')+' system-ui,sans-serif';lt(T.s===-2?PIECE_ROWS.filter(r=>PIECE[r[0]]).length+' of '+PIECE_ROWS.length+' parts written':T.s<0?'Comp along to your own songs':T.ok?'★★★'.slice(0,T.s)+'☆☆☆'.slice(0,3-T.s):'🔒',x+22,y+th*.72);
       if(T.ok)p.hits.push({id:T.id,x,y,w:492,h:th})});
     if(CLASS.msg){g.fillStyle='#ff9f0a';g.font='26px system-ui,sans-serif';lt(CLASS.msg,40,p.H-30)}
+    p.tex.needsUpdate=true;return}
+  if(CLASS.page==='piece'){const B=CLASS.beat,T=pieceTune();g.fillStyle='#f6ba45';lt('🎼 My piece · in '+T.key+' · '+T.len/4+' bars',40,66);
+    g.fillStyle='#c9d6cf';g.font='26px system-ui,sans-serif';lt('Each 🎼 step in the lessons writes a part. The band fills any part you haven\'t written.',40,130);
+    PIECE_ROWS.forEach(([k,name,note],i)=>{const P=PIECE[k],y=172+i*70;rr(g,40,y,p.W-80,60,12,'#20352a',P?'#30d158':'#3c5245');g.fillStyle=P?'#30d158':'#6c7d74';g.font='700 30px system-ui,sans-serif';lt(P?'✓':'○',62,y+30);
+      g.fillStyle='#eef2f4';lt(name,110,y+30);g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt((P?P.notes.length+' notes on your '+panName(P.set):'not written yet: the band plays Yard Lime\'s')+(note?' · '+note:''),420,y+30)});
+    if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 30px system-ui,sans-serif';lt(fit(g,CLASS.msg,p.W-100),46,p.H-150)}
+    btn(p,'clshome',40,p.H-100,250,76,'◀ Lessons',{fs:28});
+    if(!B||B.over){btn(p,'clspiece:hear',320,p.H-100,360,76,'▶ Hear my piece',{fs:30,on:true});btn(p,'clspiece:save',700,p.H-100,420,76,'💾 Save to My songs',{fs:30});
+      btn(p,'clspiece:reset',p.W-400,p.H-100,360,76,CLASS.sure?'Sure? Tap again':'🗑 Start over',{fs:28})}else btn(p,'clspiece:stop',320,p.H-100,360,76,'■ Stop',{fs:30});
     p.tex.needsUpdate=true;return}
   if(CLASS.page==='songs'){g.fillStyle='#f6ba45';lt('🎵 Practise my songs',40,66);g.fillStyle='#c9d6cf';g.font='28px system-ui,sans-serif';
     lt(SONGS.length?'Pick a song you saved in VR. I\'ll guess a chord for each bar from its notes.':'No songs saved in VR yet: make one in the studio (or bring one from Panyard) and 💾 Save it.',40,140);
@@ -1872,15 +1909,22 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
     g.textAlign='center';g.fillStyle='#f6ba45';g.font='160px system-ui,sans-serif';g.fillText('★★★'.slice(0,s)+'☆☆☆'.slice(0,3-s),p.W/2,330);
     g.fillStyle='#eef2f4';g.font='700 44px system-ui,sans-serif';g.fillText(s===3?'Excellent!':s===2?'Well done!':'Good effort: try again for two stars.',p.W/2,500);
     g.fillStyle='#c9d6cf';g.font='30px system-ui,sans-serif';g.fillText(CLASS.mis+(CLASS.mis===1?' slip':' slips')+' along the way'+(L.test&&s>=2?' · Level '+CLASS.lvl+' passed!':''),p.W/2,560);
+    if(CLASS.saved){g.fillStyle='#30d158';g.font='700 30px system-ui,sans-serif';g.fillText('💾 Your piece is saved in My songs as "'+CLASS.saved.title+'"',p.W/2,620)}
     btn(p,'clshome',300,680,300,90,'Lessons',{fs:32});btn(p,'clsagain',640,680,300,90,'↻ Again',{fs:32});if(LESSONS[CLASS.L+1]&&clsOpen(CLASS.L+1))btn(p,'clsnext',980,680,320,90,'Next lesson ▶',{fs:32,on:true});
     p.tex.needsUpdate=true;return}
-  const st=L.steps[CLASS.S],B=CLASS.beat,visual=!!(st.staff||st.rh||st.chart||st.read),it0=st.items&&st.items[Math.min(CLASS.k,st.items.length-1)],map=st.t==='play'&&!CLASS.done&&it0&&!it0.hear,TW=map?p.W-520:p.W-100;g.fillStyle='#f6ba45';lt(fit(g,lvT+' · '+L.title,940),40,66);
+  const st=L.steps[CLASS.S],B=CLASS.beat,visual=!!(st.staff||st.rh||st.chart||st.read||st.mel||st.chartShow),it0=st.items&&st.items[Math.min(CLASS.k,st.items.length-1)],map=st.t==='play'&&!CLASS.done&&it0&&!it0.hear,TW=map?p.W-520:p.W-100;g.fillStyle='#f6ba45';lt(fit(g,lvT+' · '+L.title,940),40,66);
   L.steps.forEach((_,i)=>{g.beginPath();g.arc(52+i*34,122,11,0,7);g.fillStyle=i<CLASS.S?'#30d158':i===CLASS.S?'#f6ba45':'#3c5245';g.fill()});
   g.fillStyle='#eef2f4';g.font=(visual?'32px':'38px')+' system-ui,sans-serif';let y=180;for(const ln of st.lines)for(const w of wrapT(g,ln,TW)){lt(w,46,y);y+=visual?40:50}
   // where to look: your pan from above, the note to play in gold (when it may glow), your last wrong note in red
   if(map)drawMap(g,p.W-450,118,410,320,(st.glow||CLASS.shown)?sugOf(st,it0):[],CLASS.badId,Object.keys(CLASS.pend||{}));
   // the staff, the rhythm or the chart
-  if(st.chart){const ord=chartOrder(st.chart),cur=B&&!B.over&&B.cur>=0?ord[Math.min(ord.length-1,Math.floor(B.cur/4))]:-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chart,cur)}
+  const bcur=B&&!B.over&&ac?((ac.currentTime-B.t0)/B.sp):null;
+  if(st.mel){const ev=st.mel,len=st.len,show=len>8?8:len,page=bcur!=null&&bcur>=0?Math.min(Math.floor(bcur/show),Math.ceil(len/show)-1):0,a=page*show,
+      ns=ev.filter(e=>e.b>=a&&e.b<a+show).map(e=>({m:e.m,b:e.b-a,d:e.d,rest:e.rest,col:e.rest||bcur==null?null:bcur>e.b+.3?'#6c7d74':bcur>e.b-1?'#f6ba45':null}));
+    drawStaff(g,46,Math.max(y+30,330),p.W-92,ns,{timed:1,len:show,time:a===0,clef:LOWPANS.has(CLASS.set)?'bass':null,key:st.key,bars:[...Array(show/4).keys()].slice(1).map(i=>i*4),cursor:bcur!=null?bcur-a:null});
+    g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt('Bars '+(a/4+1)+'–'+((a+show)/4)+' of '+len/4+(st.bandChords?' · '+st.bandChords.slice(a/4,(a+show)/4).map(c=>chordOf(c).name).join(' | '):''),46,Math.max(y+30,330)+150);y=Math.max(y+30,330)+200}
+  else if(st.chartShow){const n=st.chartShow.bars.length,cur=bcur!=null&&bcur>=0?Math.min(n-1,Math.floor(bcur/4)):-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chartShow,cur)}
+  else if(st.chart){const ord=chartOrder(st.chart),cur=B&&!B.over&&B.cur>=0?ord[Math.min(ord.length-1,Math.floor(B.cur/4))]:-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chart,cur)}
   else if(st.rh){const R=rhythm(st.rh),id=st.ids?st.ids[0]:null,m=id?cm(id):72;drawStaff(g,46,Math.max(y+30,330),p.W-92,R.ev.filter(e=>!e.bar).map(e=>({m,b:e.b,d:e.d,rest:e.rest})),{timed:1,len:R.len,time:1,bars:R.ev.filter(e=>e.bar).map(e=>e.b),cursor:B&&!B.over?((ac?ac.currentTime:0)-B.t0)/B.sp:null});y=Math.max(y+30,330)+200}
   else if(st.staff||st.read){const ns=st.staff?st.staff.map(m=>({m,d:1})):st.items.map((it,i)=>({m:cm(it.ids[0]),d:1,col:i<CLASS.k?'#30d158':i===CLASS.k&&!CLASS.done?'#f6ba45':null}));drawStaff(g,46,Math.max(y+30,330),map?p.W-560:p.W-92,ns,{key:st.key});y=Math.max(y+30,330)+200}
   if(st.t==='play'){const it=st.items[Math.min(CLASS.k,st.items.length-1)];y=visual?Math.max(y,560):Math.max(y+20,470);
@@ -1898,7 +1942,7 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
 const MP={};
 function drawMap(g,x,y,w,h,gold,bad,ok){const S=SETS[CLASS.set];if(!S)return;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const d of S.drums){x0=Math.min(x0,d.cx-d.r);x1=Math.max(x1,d.cx+d.r);y0=Math.min(y0,d.cy-d.r);y1=Math.max(y1,d.cy+d.r)}
   const k=Math.min((w-20)/(x1-x0),(h-44)/(y1-y0)),ox=x+(w-(x1-x0)*k)/2-x0*k,oy=y+34-y0*k;g.save();rr(g,x,y,w,h,16,'#0f1a14','#3c5245');
-  g.fillStyle='#9fb0b8';g.font='22px system-ui,sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText('Your '+(CLASS.set==='dsec'?'double seconds':'tenor')+' (you stand at the bottom)',x+14,y+20);
+  g.fillStyle='#9fb0b8';g.font='22px system-ui,sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText('Your '+panName(CLASS.set)+' (you stand at the bottom)',x+14,y+20);
   gold=new Set((gold||[]).filter(Boolean));ok=new Set(ok||[]);
   for(const d of S.drums){g.beginPath();g.arc(ox+d.cx*k,oy+d.cy*k,d.r*k,0,7);g.fillStyle='#2a3036';g.fill();g.strokeStyle='#8a939c';g.lineWidth=2;g.stroke();
     for(const n of d.notes){const P=MP[n.id]||(MP[n.id]=new Path2D(n.path));g.save();g.translate(ox,oy);g.scale(k,k);
@@ -1906,13 +1950,160 @@ function drawMap(g,x,y,w,h,gold,bad,ok){const S=SETS[CLASS.set];if(!S)return;let
       const c=cInfo(n.id);if(c&&(gold.has(n.id)||n.id===bad)){g.fillStyle=n.id===bad?'#fff':'#1a1300';g.font='700 '+Math.max(12,Math.round(26*k*4))+'px system-ui,sans-serif';g.textAlign='center';g.fillText(c.label,ox+c.x*k,oy+c.y*k)}}}
   g.restore()}
 function spdBtns(p,x,y){[[1,'1×'],[.75,'¾'],[.5,'½']].forEach(([v,l],i)=>btn(p,'clsspd:'+v,x+i*140,y,128,74,l,{on:CLASS.spd===v,fs:30}))}
+/* ---- Level 3: playing in the band, and composing (every pan) ----
+   Each pan has its role (ROLE3): the frontline (tenor, double tenor) the melody, the double seconds the harmony, guitar
+   and cellos the strum, six and seven bass the bass line. Two original calypso tunes (TUNE_A in C, TUNE_B in A minor,
+   written for the classroom) are read off the staff (bass clef for cellos and basses), fitted to each pan's range by
+   octaves (fitShift). arrangeTo(set, tune, role) writes any section's part from a tune's melody and chords (harmony a
+   third below in the key, strum two-note chord voicings, bass root and fifth), so the yard can play the rest of the band
+   round you (SECT tracks on each section's station). The composing thread: `write` steps record what you play over the
+   band, quantized to eighths, into your piece (PIECE, localStorage panyard-vr-cls3-piece: melody, answer, harm, strum,
+   bass, minor, jam, key); 🎼 My piece hears it, saves it to My songs (savePiece: every section, the parts you didn't
+   write filled in by arrangeTo, plus a calypso kit), and the Level 3 test performs it with the yard. */
+const ALL_CLS=['tenor','dten','dsec','guitar','fcello','tcello','six','seven'];
+const ROLE3={tenor:'lead',dten:'lead',dsec:'harm',guitar:'strum',fcello:'strum',tcello:'strum',six:'bass',seven:'bass'};
+const ROLE_NAME={lead:'the melody (the frontline)',harm:'the harmony (the doubles)',strum:'the strum (guitars and cellos)',bass:'the bass line'};
+const ROLE_SET={lead:'tenor',harm:'dsec',strum:'guitar',bass:'six'},BAND4=['lead','harm','strum','bass'];
+const LOWPANS=new Set(['fcello','tcello','six','seven']);
+const setRange=set=>{const ms=NOTE_IDS(set).map(cm).filter(Number.isFinite).sort((a,b)=>a-b);return [ms[0],ms[ms.length-1]]};
+function nearestPc(set,pc,near){let best=null,bd=1e9;for(const id of NOTE_IDS(set)){const m=cm(id);if(!Number.isFinite(m)||cpc(m)!==pc)continue;const d=Math.abs(m-near);if(d<bd){bd=d;best=id}}return best}
+function fitShift(set,ms){const [lo,hi]=setRange(set),mid=(lo+hi)/2,av=ms.reduce((a,b)=>a+b,0)/Math.max(1,ms.length);let best=null,bd=1e9;
+  for(let k=-5;k<=3;k++){const sh=k*12;if(ms.every(m=>cid(set,m+sh))){const d=Math.abs(av+sh-mid);if(d<bd){bd=d;best=sh}}}return best}
+function fitNote(set,m,sh){if(sh!=null&&cid(set,m+sh))return cid(set,m+sh);const [lo,hi]=setRange(set);let mm=m;while(mm<lo)mm+=12;while(mm>hi)mm-=12;return cid(set,mm)||nearestPc(set,cpc(m),m)}
+// "E5/e D5/e C5/q. G4/e | …": a note and its length (w h q e, a dot adds half), r for a rest, | between bars
+function melody(s){const out=[];let b=0;for(const tok of s.trim().split(/\s+/)){if(tok==='|')continue;const [p,dv]=tok.split('/'),base=dv.replace('.',''),d=RH[base]*(dv.endsWith('.')?1.5:1);
+    out.push(p==='r'?{b,d,rest:true}:{b,d,m:midiOfName(p)});b+=d}return {ev:out,len:b}}
+const TUNE_A={name:'Yard Lime',key:'C',bpm:92,chords:['C','F','G7','C','C','F','G7','C'],
+  mel:'E5/e D5/e C5/q. G4/e A4/q | A4/e C5/e F5/q. E5/e D5/q | D5/e B4/e G4/q. B4/e D5/q | C5/h. r/q | E5/e G5/e E5/q. D5/e C5/q | C5/e A4/e F5/q. E5/e D5/q | B4/e D5/e F5/q. E5/e D5/q | C5/w'};
+const TUNE_B={name:'Moonlight Mas',key:'Am',bpm:88,chords:['Am','Dm','E7','Am'],mel:'A4/e C5/e E5/q. D5/e C5/q | D5/e F5/e A5/q. G5/e F5/q | E5/e G#4/e B4/q. D5/e C5/q | A4/h. r/q'};
+const SCALE={C:[0,2,4,5,7,9,11],Am:[9,11,0,2,4,5,8],G:[7,9,11,0,2,4,6]};
+function harmBelow(m,key){const pcs=(SCALE[key]||SCALE.C).map(x=>x%12);if(!pcs.includes(cpc(m)))return m-3;let mm=m,k=0;while(k<2){mm--;if(pcs.includes(cpc(mm)))k++}return mm}
+function trChord(n,semi){const c=chordOf(n);return PCN[(c.root+semi+120)%12].replace('♯','#').replace('♭','b')+({'':'',m:'m','7':'7',m7:'m7',maj7:'maj7','°':'°'})[c.q]}
+const tuneEv=t=>t.ev||melody(t.mel).ev;
+// one section's part for a tune: [{id, b, v}]
+function arrangeTo(set,tune,role){const ev=tuneEv(tune).filter(e=>!e.rest),ch=tune.chords.map(chordOf);if(!ev.length&&(role==='lead'||role==='harm'))return [];
+  if(role==='lead'||role==='harm'){const ms=ev.map(e=>role==='harm'?harmBelow(e.m,tune.key):e.m),sh=fitShift(set,ms);return ev.map((e,i)=>({id:fitNote(set,ms[i],sh),b:e.b,v:+(e.v||.8).toFixed(2)})).filter(n=>n.id)}
+  if(role==='strum'){const out=[];let prev=null;ch.forEach((c,i)=>{const v=chordVoice(set,c,prev,false);if(!v)return;prev=v;for(const b of [0,1.5,2.5,3])for(const m of v)out.push({id:cid(set,m),b:i*4+b,v:b?.6:.75})});return out}
+  const [lo]=setRange(set),out=[];ch.forEach((c,i)=>{const r=nearestPc(set,c.root,lo+5),f=nearestPc(set,c.fifth,lo+9);for(const [b,id] of [[0,r],[1.5,f],[2,r],[3.5,f]])if(id)out.push({id,b:i*4+b,v:.8})});return out}
+const SECT=set=>({id:'cls-sec-'+set,set,vol:.85,pan:0,mute:false,solo:true,notes:[]});
+const KITP_CAL=bars=>{const n=[];for(let i=0;i<bars;i++){for(const b of [0,2])n.push({id:'drum:36',b:i*4+b,v:.7});for(const b of [1,3])n.push({id:'drum:38',b:i*4+b,v:.45});for(let b=0;b<4;b+=.5)n.push({id:'drum:42',b:i*4+b,v:b%1?.32:.22})}return n};
+// the yard plays the sections that aren't you, each from its own station (in the yard), with their sounds ready
+async function sectionsReady(sets){await moreSounds(sets.flatMap(s=>NOTE_IDS(s)));if(inYard()){let add=false;for(const s of sets)if(!STN.has(s)){SHOWN.add(s);add=true}if(add){syncStations();arrive(CLASS.set,true);table.visible=false;placeBoard()}}}
+function bandAround(tune,mine,role){const out=[];for(const r of BAND4){if(r===role)continue;const set=ROLE_SET[r];const notes=r===mine?.r?mine.notes:arrangeTo(set,tune,r);out.push({...SECT(set),notes})}
+  out.push({...KTR,id:'cls-kit',notes:KITP_CAL(tune.chords.length)});return out}
+// ---- your piece
+let PIECE={};try{PIECE=JSON.parse(LS('cls3-piece')||'{}')||{}}catch{PIECE={}}
+const keepPiece=()=>LSset('cls3-piece',JSON.stringify(PIECE));
+// the piece: your melody (bars 1-4) and answer (5-8) over Yard Lime's chords, then your minor section (9-12) if you wrote
+// one; Yard Lime's own bars fill what you haven't written. In G (Changing key) every part moves up a fifth.
+function pieceTune(){const mel=[],add=(p,off)=>{if(p&&p.notes)for(const n of p.notes)if(Number.isFinite(cm(n.id)))mel.push({b:n.b+off,m:cm(n.id),v:n.v})},A=melody(TUNE_A.mel).ev;
+  if(PIECE.melody)add(PIECE.melody,0);else for(const e of A)if(!e.rest&&e.b<16)mel.push({b:e.b,m:e.m,v:.8});
+  if(PIECE.answer)add(PIECE.answer,0);else for(const e of A)if(!e.rest&&e.b>=16)mel.push({b:e.b,m:e.m,v:.8});
+  const minor=PIECE.minor&&PIECE.minor.notes&&PIECE.minor.notes.length;if(minor)add(PIECE.minor,32);
+  const len=minor?48:32;mel.sort((a,b)=>a.b-b.b);mel.forEach((e,i)=>e.d=Math.max(.5,((mel[i+1]||{b:len}).b-e.b)));
+  const semi=PIECE.key==='G'?7:0,chords=TUNE_A.chords.concat(minor?TUNE_B.chords:[]);
+  return {key:semi?'G':'C',semi,chords:chords.map(c=>trChord(c,semi)),ev:mel.map(e=>({...e,m:e.m+semi})),bpm:92,len}}
+const PART_OF={lead:'melody',harm:'harm',strum:'strum',bass:'bass'};
+// a section's part: the bars you wrote (moved to the piece's key), the arranger's for the rest
+function piecePart(role,tune){const p=PIECE[PART_OF[role]];if(role==='lead'||!p||!p.notes||!p.notes.length){const set=ROLE_SET[role];return {set,notes:arrangeTo(set,tune,role),r:role}}
+  const set=p.set,sh=tune.semi||0,mine=p.notes.map(n=>({id:sh?fitNote(set,cm(n.id)+sh,null):n.id,b:n.b,v:n.v})).filter(n=>n.id),bars=new Set(mine.map(n=>Math.floor(n.b/4)));
+  return {set,notes:mine.concat(arrangeTo(set,tune,role).filter(n=>!bars.has(Math.floor(n.b/4)))).sort((a,b)=>a.b-b.b),r:role,mine:1}}
+// the whole yard for your piece: every section but yours (or every section, to hear it)
+function pieceBand(T,skip){const out=[];for(const r of BAND4){if(r===skip)continue;const P=r==='lead'?{set:'tenor',notes:arrangeTo('tenor',T,'lead')}:piecePart(r,T);out.push({...SECT(P.set),notes:P.notes})}
+  out.push({...KTR,id:'cls-kit',notes:KITP_CAL(T.chords.length)});return out}
+function savePiece(){const T=pieceTune(),tracks=[];BAND4.forEach((r,i)=>{const P=r==='lead'?{set:'tenor',notes:arrangeTo('tenor',T,'lead')}:piecePart(r,T);
+    tracks.push({id:uid(),name:({lead:'Melody',harm:'Harmony',strum:'Strum',bass:'Bass'})[r],set:P.set,vol:1,pan:0,mute:false,solo:false,col:COLORS[i],notes:P.notes.map(n=>({id:n.id,v:n.v||.8,b:+(+n.b).toFixed(3)}))})});
+  tracks.push({id:uid(),name:'Drums',set:'kit',vol:.8,pan:0,mute:false,solo:false,col:COLORS[4],notes:KITP_CAL(T.chords.length).map(n=>({...n}))});
+  const title=freeTitle('My calypso'),e={id:uid(),title,at:Date.now(),song:{bpm:92,L:T.len,loop:{on:false,s:0,e:1},sel:0,click:false,title,tracks}};
+  SONGS.unshift(e);if(!keepSongs()){SONGS.shift();return null}mineUI();return e}
+const PIECE_ROWS=[['melody','Melody','bars 1–4'],['answer','Answer','bars 5–8'],['harm','Harmony',''],['strum','Strum',''],['bass','Bass line',''],['minor','Minor section','bars 9–12'],['jam','Jam','a sketch, not in the song']];
+function pieceHear(){const T=pieceTune();sectionsReady(BAND4.map(r=>r==='lead'?'tenor':piecePart(r,T).set));
+  CLASS.pieceSt={t:'beat',lines:[],bpm:92,len:T.len,listen:true,backing:pieceBand(T,null)};CLASS.mis=0;beatStart()}
+function lessons3For(set){const role=ROLE3[set]||'lead',T=set==='tenor',LOW=LOWPANS.has(set),I=m=>cid(set,m),N=m=>cnm(m,set);
+  const A=melody(TUNE_A.mel),B=melody(TUNE_B.mel),fitEv=(ev,sh)=>ev.map(e=>e.rest?e:{...e,id:fitNote(set,e.m,sh),m:cm(fitNote(set,e.m,sh))});
+  const shA=fitShift(set,A.ev.filter(e=>!e.rest).map(e=>e.m)),shB=fitShift(set,B.ev.filter(e=>!e.rest).map(e=>e.m)),EA=fitEv(A.ev,shA),EB=fitEv(B.ev,shB);
+  const bars=(ev,a,z)=>ev.filter(e=>e.b>=a*4&&e.b<z*4).map(e=>({...e,b:e.b-a*4}));
+  const mel=(ev,a,z,glow,lines,bpm,chords)=>({t:'beat',lines,bpm,mel:bars(ev,a,z),len:(z-a)*4,noglow:!glow,band:'calypso',bandChords:chords||TUNE_A.chords.slice(a,z)});
+  const C4=nearestPc(set,0,(setRange(set)[0]+setRange(set)[1])/2),G4=nearestPc(set,7,cm(C4)+7),pair=[C4,nearestPc(set,4,cm(C4)+4)];
+  const qs=dyn=>dyn.map((d,b)=>({b,ids:[C4],dyn:d}));
+  const W=(kind,lines,o)=>Object.assign({t:'beat',write:kind,lines,bpm:88,len:16,recFrom:0,at:0,band:'calypso',bandChords:['C','F','G7','C'],chartShow:{bars:['C','F','G7','C']}},o||{});
+  const myHarmLines={lead:'Frontline harmony sits a third under the melody: the same rhythm, two voices.',harm:'The doubles harmonise a third under the melody: the same rhythm, two voices. When a third clashes, a sixth under works too.',
+    strum:'Guitars and cellos harmonise with chords: under the melody, two notes of each chord on the strum.',bass:'The bass harmonises from below: the root of each chord on beat 1, its fifth on the "and" of 2.'}[role];
+  const harmBeats=()=>{if(role==='lead'||role==='harm'){const ev=EA.filter(e=>!e.rest&&e.b<16);return ev.map(e=>{const a=fitNote(set,harmBelow(e.m,'C'),null),six=fitNote(set,e.m-8-(SCALE.C.includes(cpc(e.m-8))?0:1),null);return {b:e.b,any:[a,six].filter(Boolean)}})}
+    if(role==='strum')return TUNE_A.chords.slice(0,4).flatMap((c,i)=>[0,2].map(b=>({b:i*4+b,chord:chordOf(c)})));return arrangeTo(set,{...TUNE_A,chords:TUNE_A.chords.slice(0,4)},'bass').map(n=>({b:n.b,ids:[n.id]}))};
+  const tuneA4={...TUNE_A,chords:TUNE_A.chords.slice(0,4)};
+  return [
+  {title:'Reading a melody',steps:[
+    {t:'say',lines:['A melody on the staff shows pitch and rhythm together. Two eighths, then a long dotted quarter: that push is the calypso feel.','"'+TUNE_A.name+'" is an original tune written for this classroom.'+(LOW?' Your pan reads the bass clef: its lines from the bottom are G, B, D, F, A.':'')],mdemo:{ev:bars(EA,0,2),bpm:84}},
+    mel(EA,0,2,true,['Read and play bars 1 and 2. The notes glow a beat ahead.'],76),
+    mel(EA,0,4,true,['Bars 1 to 4.'],84),
+    mel(EA,0,4,false,['Now read it: no glow.'],84),
+    {t:'say',lines:['🎼 Your piece starts here. Over the chords C, F, G7 and C, play a 4-bar melody of your own.','Start and end on C, E or G, and use the calypso push.']},
+    W('melody',['Your melody: 4 bars over C | F | G7 | C. The band plays; you invent. Press Start.'])]},
+  {title:'Feel: syncopation',steps:[
+    {t:'say',lines:['Syncopation puts notes between the beats. A dot makes a note half as long again: a dotted quarter is 1½ beats.','The calypso push: 1, the "and" of 2, then 4.'],rh:'q. e Q q | q. e h',ids:[C4],rdemo:{rh:'q. e Q q | q. e h',bpm:84,id:C4}},
+    {t:'beat',lines:['The push.'],bpm:84,rh:'q. e Q q | q. e h',ids:[C4]},
+    {t:'beat',lines:['Off the beat: the notes between.'],bpm:80,rh:'e q e q q | e q e h',ids:[C4]},
+    {t:'beat',lines:['Three-three-two: the soca feel.'],bpm:92,rh:'q. q. q | q. q. q',ids:[C4]}]},
+  {title:'Dynamics',steps:[
+    {t:'say',lines:['Dynamics are how loud you play. In VR your swing sets it: a gentle swing is soft (p, piano), a strong swing loud (f, forte).','An accent (>) is one note louder than the rest.']},
+    {t:'beat',lines:['Four soft, then four loud: p p p p f f f f.'],bpm:76,len:8,beats:qs(['p','p','p','p','f','f','f','f'])},
+    {t:'beat',lines:['Accent the first beat of each bar: > . . . > . . .'],bpm:84,len:8,beats:qs(['f','p','p','p','f','p','p','p'])},
+    {t:'beat',lines:['A roll that grows: start soft, end loud (a crescendo).'],bpm:72,len:4,beats:[{b:0,roll:true,len:4,ids:LOW?[C4,G4]:pair,cresc:true}]},
+    W('melody',['🎼 Play your melody again with dynamics: soft at first, growing to the end. It replaces the one you wrote.'])]},
+  {title:'Harmony under a melody',steps:[
+    {t:'say',lines:[myHarmLines,'The band plays the melody; you add the harmony.']},
+    {t:'beat',lines:[role==='lead'||role==='harm'?'Under each melody note, a third (or sixth) below. The glow shows the third.':role==='strum'?'Two notes of each chord on beats 1 and 3.':'Root on 1, fifth on the "and" of 2.'],bpm:80,len:16,beats:harmBeats(),prep:()=>({backing:[{...SECT(set==='tenor'?'dsec':'tenor'),notes:arrangeTo(set==='tenor'?'dsec':'tenor',tuneA4,'lead')}]})},
+    W(role==='lead'||role==='harm'?'harm':role,['🎼 Now harmonise your own melody: the band plays it, you add your '+(role==='bass'?'bass line':role==='strum'?'strum':'harmony')+'.'],{prep:()=>({backing:[pieceLead(0,16)]})})]},
+  {title:'Minor keys',steps:[
+    {t:'say',lines:['In A minor the chords are Am, Dm and E7. E7 borrows a G♯ (from the harmonic minor), so the 5 chord pulls hard back home to Am.','"'+TUNE_B.name+'" is a minor calypso.'],mdemo:{ev:EB,bpm:84}},
+    role==='lead'||role==='harm'?mel(EB,0,4,true,['Read and play "'+TUNE_B.name+'".'],84,TUNE_B.chords)
+      :role==='strum'?{t:'play',lines:['The minor chords, two notes each (keep the third).'],glow:true,items:['Am','Dm','E7','Am'].map(n=>({chord:chordOf(n),label:chordOf(n).name}))}
+      :{t:'play',lines:['The roots of the minor chords: A, D, E, A.'],glow:true,items:[9,2,4,9].map(pc=>({ids:[nearestPc(set,pc,setRange(set)[0]+7)],any:true,label:PCN[pc]}))},
+    W('minor',['🎼 Write 4 minor bars over Am | Dm | E7 | Am: a new section for your piece.'],{bandChords:TUNE_B.chords,chartShow:{bars:TUNE_B.chords}})]},
+  {title:'Call and response',steps:[
+    {t:'say',lines:['In calypso the singer calls and the band answers. Listen to a short phrase, then play it back by ear.']},
+    {t:'play',lines:['Play back what you hear (any octave).'],glow:false,items:[0,2,4].map((pc,i)=>({ids:[nearestPc(set,pc,cm(C4)+pc)],any:true,label:'note '+(i+1)+' of 3',hear:i?null:[[nearestPc(set,0,cm(C4))],[nearestPc(set,2,cm(C4)+2)],[nearestPc(set,4,cm(C4)+4)]]}))},
+    {t:'play',lines:['A longer one.'],glow:false,items:[7,4,2,0].map((pc,i)=>({ids:[nearestPc(set,pc,cm(C4)+pc)],any:true,label:'note '+(i+1)+' of 4',hear:i?null:[7,4,2,0].map(q=>[nearestPc(set,q,cm(C4)+q)])}))},
+    W('answer',['🎼 Your melody is the call: the band plays it, then you play 4 bars that answer it.'],{len:32,recFrom:16,at:16,bandChords:TUNE_A.chords,chartShow:{bars:TUNE_A.chords},prep:()=>({backing:[pieceLead(0,16)]})})]},
+  {title:'First improvising',steps:[
+    {t:'say',lines:['The C major pentatonic: C, D, E, G and A. Five notes that sound good over every chord in this song.','Improvising is making it up as you go. Any of these notes works: play with the rhythm.'],demo:[0,2,4,7,9].map(pc=>nearestPc(set,pc,cm(C4)+pc))},
+    {t:'play',lines:['Find the five pentatonic notes (any octave).'],glow:true,items:[0,2,4,7,9].map(pc=>({ids:[nearestPc(set,pc,cm(C4)+pc)],any:true,label:PCN[pc]}))},
+    W('jam',['Jam for 8 bars over the band. The pentatonic notes glow softly: anything you play from them fits.'],{len:32,bandChords:TUNE_A.chords,chartShow:{bars:TUNE_A.chords},scale:[0,2,4,7,9]})]},
+  {title:'Your part in the band',steps:[
+    {t:'say',lines:['In a steelband each section has a job. The frontline plays the melody, the doubles harmonise, the guitars and cellos strum, and the basses hold the bottom.','On your '+(SETS[set]?SETS[set].name:set)+' you play '+ROLE_NAME[role]+'. The yard plays the rest around you.']},
+    {t:'beat',lines:['"'+TUNE_A.name+'" with the whole yard. Your part glows.'],bpm:88,len:32,prep:()=>{const mine={r:role,set,notes:arrangeTo(set,TUNE_A,role)};sectionsReady(BAND4.filter(r=>r!==role).map(r=>ROLE_SET[r]));return {beats:groupBeats(mine.notes),backing:bandAround(TUNE_A,null,role)}}},
+    W(role==='lead'?'harm':role==='harm'?'harm':role,['🎼 Write your section\'s part for your own piece: the band plays your tune, you add '+ROLE_NAME[role==='lead'?'harm':role]+'.'],{len:32,bandChords:TUNE_A.chords,chartShow:{bars:TUNE_A.chords},prep:()=>({backing:[pieceLead(0,32)]})})]},
+  {title:'Changing key',steps:[
+    {t:'say',lines:['Moving a tune to another key keeps every step the same size. From C to G every note goes up a fifth (or down a fourth).',T?'On your tenor the whole shape slides one step round the circle of fifths.':'Same shapes, new place on your pan: follow the glow.']},
+    mel(fitEv(A.ev.map(e=>e.rest?e:{...e,m:e.m+7}),fitShift(set,A.ev.filter(e=>!e.rest).map(e=>e.m+7))),0,4,true,['"'+TUNE_A.name+'" in G.'],84,['G','C','D7','G']),
+    mel(fitEv(A.ev.map(e=>e.rest?e:{...e,m:e.m+5}),fitShift(set,A.ev.filter(e=>!e.rest).map(e=>e.m+5))),0,4,false,['And in F, reading it.'],84,['F','B♭'.replace('♭','b'),'C7','F']),
+    {t:'play',lines:['🎼 Your piece: play G to play it in G, or C to keep it in C.'],glow:false,items:[{ids:[nearestPc(set,7,cm(C4)+7),C4],choose:{7:'G',0:'C'},label:'G or C'}]}]},
+  {title:'Level 3 test: perform your piece',test:true,steps:[
+    {t:'say',lines:['Your piece: your melody and answer, with your harmony, strum and bass (the band fills any part you haven\'t written), played by the whole yard.','Play your section\'s part with them. Your piece is saved to My songs at the end.']},
+    {t:'beat',lines:['Perform your piece. Your part doesn\'t glow: it\'s yours.'],bpm:92,len:32,noglow:true,prep:()=>{const T3=pieceTune(),mine=role==='lead'?{set,notes:arrangeTo(set,T3,'lead')}:piecePart(role,T3);
+      sectionsReady(BAND4.filter(r=>r!==role).map(r=>ROLE_SET[r]));return {beats:groupBeats(mine.set===set?mine.notes:arrangeTo(set,T3,role)),backing:pieceBand(T3,role),len:T3.len,bandChords:null}}}]}]}
+function groupBeats(notes){const m=new Map();for(const n of notes){const k=(+n.b).toFixed(3);if(!m.has(k))m.set(k,{b:+n.b,ids:[]});if(!m.get(k).ids.includes(n.id))m.get(k).ids.push(n.id)}return [...m.values()].sort((a,b)=>a.b-b.b)}
+// your melody (and answer) played by the frontline, or Yard Lime's if you haven't written one
+function pieceLead(a,z){const T3=pieceTune();return {...SECT('tenor'),notes:arrangeTo('tenor',T3,'lead').filter(n=>n.b>=a&&n.b<z)}}
+function melodyDemo(r){if(!ac)return;const sp=60/(r.bpm||84),t0=ac.currentTime+.4,tr=DTR();for(const e of r.ev)if(!e.rest&&e.id)strike(e.id,.8,t0+e.b*sp,tr)}
+// a write step's notes, quantized to eighths, kept in your piece, with a word on how it fits
+function finishWrite(st,B){const at=st.at||0,from=st.recFrom||0,notes=B.rec.map(h=>({id:h.id,b:Math.round((h.t-B.t0)/B.sp*2)/2,v:+h.v.toFixed(2),t:h.t})).filter(n=>n.b>=from&&n.b<B.len).map(n=>({id:n.id,b:n.b-from+at,v:n.v,off:Math.abs((n.t-B.t0)/B.sp-Math.round((n.t-B.t0)/B.sp*2)/2)*B.sp}));
+  const k=st.write,chords=(st.bandChords||TUNE_A.chords).map(chordOf),chAt=b=>chords[Math.floor((b-at)/4)]||chords[0];let msg;
+  if(k==='jam'){const sc=st.scale||[0,2,4,7,9],inS=notes.filter(n=>sc.includes(cpc(cm(n.id)))).length,inT=notes.filter(n=>n.off<.12).length;
+    msg=notes.length?'Jam kept: '+notes.length+' notes, '+Math.round(100*inS/notes.length)+'% in the scale, '+Math.round(100*inT/notes.length)+'% in time.':'No notes: press ↻ Try again and play along.'}
+  else if(k==='harm'||k==='strum'){const ok=notes.filter(n=>chAt(n.b).tones.includes(cpc(cm(n.id)))).length;msg=notes.length?'Saved your '+(k==='harm'?'harmony':'strum')+': '+notes.length+' notes, '+Math.round(100*ok/notes.length)+'% chord notes.':'No notes yet: try again.'}
+  else if(k==='bass'){const ok=notes.filter(n=>[chAt(n.b).root,chAt(n.b).fifth].includes(cpc(cm(n.id)))).length;msg=notes.length?'Saved your bass line: '+notes.length+' notes, '+Math.round(100*ok/notes.length)+'% on a root or fifth.':'No notes yet: try again.'}
+  else msg=notes.length>=4?'Saved your '+(k==='answer'?'answer':k==='minor'?'minor section':'melody')+': '+notes.length+' notes.':'Only '+notes.length+' notes: play a few more (↻ Try again).';
+  if(notes.length)PIECE[k]={set:CLASS.set,notes:notes.map(({id,b,v})=>({id,b,v}))};keepPiece();return msg}
+
 LESSONS=lessonsAt(CLASS.set);
 function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRect(0,0,p.W,p.H);g.textAlign='center';g.textBaseline='middle';
-  g.fillStyle='#f6ba45';g.font='700 92px system-ui,sans-serif';g.fillText('🎓 Classroom',p.W/2,170);g.fillStyle='#eef2f4';g.font='44px system-ui,sans-serif';g.fillText('Level 1 · Level 2',p.W/2,280);
-  g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, chords and reading, on your tenor or double seconds',p.W/2,350);
+  g.fillStyle='#f6ba45';g.font='700 92px system-ui,sans-serif';g.fillText('🎓 Classroom',p.W/2,170);g.fillStyle='#eef2f4';g.font='44px system-ui,sans-serif';g.fillText('Levels 1, 2 and 3',p.W/2,280);
+  g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, reading, playing in the band and composing',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
-const VR=window.VR={room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t)=>classHit(id,t),beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
+const VR=window.VR={room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
     level:n=>classLevel(n),spd:v=>act('clsspd:'+v),map:()=>{const st=step(),it=st&&st.items&&st.items[CLASS.k];return {gold:st&&it&&(st.glow||CLASS.shown)?sugOf(st,it):[],bad:CLASS.badId}},song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
     beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
     glow:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>n.id+':'+n.cue.material.color.getHexString())),voicing:(t,s)=>voicing(t,s),hint:(a,b)=>hintFor(a,b),boardAt:()=>board.m.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(2))},rendered:null,render:async()=>{const b=await renderSong(SONG);return VR.rendered},inbox:()=>INBOX,hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,
