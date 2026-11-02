@@ -114,6 +114,17 @@ with sync_playwright() as p:
     pg.evaluate("VR.hits.length=0;VR.cls.comp()");B=pg.evaluate("VR.cls.beatInfo()");pg.wait_for_timeout(5500)
     hs=pg.evaluate("VR.hits.map(h=>h.id)")
     check(len(B)==8 and any(h.startswith('six:') for h in hs) and not any(h.startswith('tenor:') for h in hs),'comping: 2 chords a bar while the song\'s bass plays (your tenor part stays quiet)')
+    # slower practice: ¾ and ½ speed stretch the beat, and say so
+    pg.evaluate("VR.cls.open(1)");pg.evaluate("VR.cls.act('clsnext')");pg.evaluate("VR.cls.spd(.5)");pg.evaluate("VR.cls.act('clsbeat')");B=pg.evaluate("VR.cls.beatInfo()")
+    check(abs((B[1]['t']-B[0]['t'])-60/36)<.01,f'½ speed: the beat is twice as long ({B[1]["t"]-B[0]["t"]:.2f} s)')
+    for x in B:hit(x['ids'][0],x['t'])
+    pg.wait_for_function("VR.cls.state().beat&&VR.cls.state().beat.over",timeout=30000);check('½ speed' in S()['msg'],f'the result says it was at ½ speed: "{S()["msg"]}"')
+    pg.evaluate("VR.cls.spd(1)")
+    # where to look: the pan from above on the board, the note to play in gold, your wrong note in red
+    pg.evaluate("VR.cls.open(4)");pg.evaluate("VR.cls.act('clsnext');VR.cls.act('clsnext')");m=pg.evaluate("VR.cls.map()")
+    check(len(m['gold'])==2 and m['bad'] is None,f'the map shows the chord to play in gold {m["gold"]}')
+    hit('tenor:61');m=pg.evaluate("VR.cls.map()");check(m['bad']=='tenor:61','and your wrong note in red')
+    look();pg.screenshot(path=D+'8-map.png')
     # double seconds
     pg.evaluate("VR.cls.set('dsec')");vs=pg.evaluate("['C','F','Dm','Am'].map(n=>VR.cls.voice(n,null,false))")
     side=pg.evaluate(f"{json.dumps(vs)}.map(v=>v.map(m=>[52,54,56,58,60,62,64,66,68,70,72,74,76,78,80].includes(m)?'C':'C#'))")

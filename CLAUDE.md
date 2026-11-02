@@ -371,6 +371,14 @@ upright count is low because a checklist pushes the pans below the play bar ther
   (major/minor triads scored per bar, bass notes double), a bar tap cycles guesses (localStorage
   `panyard-vr-cls-chords-<song id>`), comp along while the song's other tracks play. Mary Ann's chart is I/V7; no melody
   yet. Test with `tvrclass2`.
+- **VR rooms** (page → Room, menu → Room ▸): a 360° picture as the room (`ROOM`, `setRoom`, `applyRoom` in `panyard-vr.html`):
+  built-in ones from `rooms/rooms.json` (`[{k, name, file}]`, files beside it, served at /pan-notes/rooms/), your own added on
+  the page (`roomAdd`: cut to at most 4096 wide, JPEG, IndexedDB panyard-vr / rec `room:<id>`, names in localStorage
+  `panyard-vr-rooms`; a warning when not 2:1). The choice (`panyard-vr-room`) is `scene.background` (equirectangular); the sky,
+  floor, flag and the yard's roof hide while it shows, never in passthrough. Test with `tvrroom`.
+  **Classroom polish:** practice speed 1× / ¾ / ½ on beat and comp steps (`CLASS.spd`, localStorage `panyard-vr-cls-spd`,
+  `spdBtns`); the where-to-look map (`drawMap`: the pan's own drawing from above, gold = what may glow, red = your last
+  wrong note `CLASS.badId`) on play steps. Tested in `tvrclass2`.
 - **Studio sound packs in Panyard and Panyard Band** (`panyard-packs.js`, `PACKS`, after steel): the same `packs/` as VR
   (`PACKS.LIST`: dsec Dunleavy on by default, tenor SASS-E off; **remove `tenor` before charging**, CC BY-NC). With a pack on and
   recorded sounds (`S.panVoice==='mine'`), Play's taps (`strikeMine` wrapper → `playSample(…, pk)`) and Studio's `panVoice`
