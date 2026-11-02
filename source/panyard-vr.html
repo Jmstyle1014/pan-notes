@@ -33,6 +33,11 @@ canvas{display:block}
   <div class="lab">Pans</div>
   <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="dten">Double Tenor</button><button data-set="dsec">Double Second</button><button data-set="guitar">Double Guitar</button><button data-set="fcello">Four Cello</button><button data-set="tcello">Three Cello</button><button data-set="six">Six Bass</button><button data-set="seven">Seven Bass</button><button data-set="kit">Drum kit</button></div>
   <div class="lab">Look</div>
+  <div class="lab">Room</div>
+  <div class="seg" id="roomSeg"></div>
+  <div class="btns" style="margin-top:6px"><button id="roomAdd">＋ Add a 360° picture…</button><button id="roomDel" hidden>Remove this picture</button></div><input type="file" id="roomIn" accept="image/*" hidden>
+  <p class="credit" id="roomNote">A 360° panorama (2:1, like 4096 × 2048) wraps round you as the room; your pans, the studio and the classroom stay in front of you.</p>
+  <div class="lab">Pans</div>
   <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
   <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you; <b>hold</b> it to hide the studio or bring it back. The <b>studio screen</b> floats above the pans you're at; turn your <b>left palm up</b> for Play, Rec, Learn and Loop on your wrist. <b>Squeeze a grip</b> on the studio screen to nudge it, or with your hand on a pan's rim, to move it. In the <b>pan yard</b>, every pan in your song stands as on a Panorama stage (frontline in front, basses on the wings, drums at the back): push a <b>thumbstick forward</b>, aim the arc and let go to jump to them (or just walk), and push it <b>left or right</b> to turn. To hear a section better, <b>point at it and hold the trigger</b>, then aim where it should go: it slides closer (or further away). <b>Squeeze both grips</b> with your hands on the rims to lift the pans: move, turn and tilt them towards you, so you don't have to look so far down. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the menu (pans, look, sound, sticks, the table). On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
   <div class="lab">Where you play</div>
@@ -369,7 +374,7 @@ function syncStations(all){const ks=wantKeys(),solo=!inYard();
   for(const k of ks)if(!STN.has(k))STN.set(k,buildStation(k));
   drums=[...STN.values()].flatMap(st=>st.drums);
   const kst=STN.get('kit');kitG.visible=!!kst;(kst?kst.g:rig).add(kitG);
-  hereStation();routeAll();shed.visible=inYard()&&!inRoom;flag.position.set(0,inYard()?2.5:1.75,inYard()?-6.4:-2.6);dirty=true}
+  hereStation();routeAll();shed.visible=inYard()&&!inRoom&&!(typeof ROOM!=='undefined'&&roomActive());flag.position.set(0,inYard()?2.5:1.75,inYard()?-6.4:-2.6);dirty=true}
 function buildPans(){syncStations(true)}
 // the station you're at holds the sign and the studio table; the others show their names
 function hereStation(){const st=STN.get(setKey)||[...STN.values()][0];if(!st)return;st.g.add(table);table.add(sign);
@@ -380,8 +385,33 @@ function hereStation(){const st=STN.get(setKey)||[...STN.values()][0];if(!st)ret
 function standFollow(){for(const d of drums){const b=new THREE.Vector3(0,-d.SK,0);d.g.localToWorld(b);const top=Math.max(.02,b.y);d.pole.scale.y=top;d.pole.position.set(b.x,top/2,b.z);d.feet.position.set(b.x,0,b.z);d.stand.visible=b.y>.08}}
 function applyLook(){const L=LOOKS[lookKey];
   if(sky.material.map)sky.material.map.dispose();sky.material.map=canvasTex(4,256,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,0,hh);gr.addColorStop(0,L.sky[0]);gr.addColorStop(.5,L.sky[1]);gr.addColorStop(1,L.sky[1]);g.fillStyle=gr;g.fillRect(0,0,w,hh)});sky.material.needsUpdate=true;
-  floor.material.color.set(L.floor);flag.visible=L.flag&&!inRoom;buildPans();
+  floor.material.color.set(L.floor);flag.visible=L.flag&&!inRoom;buildPans();if(typeof ROOM!=='undefined')applyRoom();
   document.querySelectorAll('#lookSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.look===lookKey)))}
+/* ---------- the room round you: the yard, or a 360° picture ----------
+   Rooms: the built-in ones listed in ../rooms/rooms.json ([{k, name, file}], served with the site), and pictures you add on the
+   page (kept on the headset in IndexedDB panyard-vr / rec as 'room:<id>', their names in localStorage panyard-vr-rooms).
+   The chosen one (localStorage panyard-vr-room: 'yard' or a key) is scene.background (equirectangular); the sky, floor, flag
+   and the yard's roof step aside while it shows, and it's never shown in passthrough. Pictures are cut to at most
+   4096 × 2048 so the headset can hold them. */
+const ROOM={k:LS('room')||'yard',list:[],tex:null,texK:null};
+let MYROOMS=[];try{MYROOMS=JSON.parse(LS('rooms')||'[]')||[]}catch{MYROOMS=[]}
+const roomActive=()=>ROOM.k!=='yard'&&!!ROOM.tex&&ROOM.texK===ROOM.k&&!inRoom;
+function applyRoom(){const a=roomActive();scene.background=a?ROOM.tex:null;sky.visible=!inRoom&&!a;floor.visible=!inRoom&&!a;shed.visible=inYard()&&!inRoom&&!a;flag.visible=LOOKS[lookKey].flag&&!inRoom&&!a;dirty=true}
+async function roomTex(k){const R=ROOM.list.find(x=>x.k===k);if(!R)return null;let url,own=false;
+  if(R.mine){const b=await recGet('room:'+k);if(!b)return null;url=URL.createObjectURL(b);own=true}else url='../rooms/'+R.file;
+  try{const t=await new THREE.TextureLoader().loadAsync(url);t.mapping=THREE.EquirectangularReflectionMapping;t.colorSpace=THREE.SRGBColorSpace;return t}finally{if(own)URL.revokeObjectURL(url)}}
+async function setRoom(k){ROOM.k=ROOM.list.some(x=>x.k===k)?k:'yard';LSset('room',ROOM.k);
+  if(ROOM.k!=='yard'&&ROOM.texK!==ROOM.k){try{const t=await roomTex(ROOM.k);if(t){if(ROOM.tex)ROOM.tex.dispose();ROOM.tex=t;ROOM.texK=ROOM.k}}catch(e){console.warn('room',e);toast('That room picture couldn\'t be opened')}}
+  applyRoom();roomUI();if(menu.m.visible)drawMenu()}
+async function roomsLoad(){let built=[];try{built=await (await fetch('../rooms/rooms.json',{cache:'no-cache'})).json()}catch{}
+  ROOM.list=[{k:'yard',name:'The yard'},...(Array.isArray(built)?built:[]).map(r=>({k:r.k,name:r.name,file:r.file})),...MYROOMS.map(r=>({k:r.k,name:r.name,mine:true}))];await setRoom(ROOM.k)}
+async function roomAdd(file){const bm=await createImageBitmap(file),w=Math.min(4096,bm.width),h=Math.round(w*bm.height/bm.width),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(bm,0,0,w,h);
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.9)),k='my'+Date.now().toString(36),name=(file.name||'My room').replace(/\.[^.]+$/,'').slice(0,30);
+  await recPut('room:'+k,blob);MYROOMS.push({k,name});LSset('rooms',JSON.stringify(MYROOMS));ROOM.list.push({k,name,mine:true});await setRoom(k);
+  const r=bm.width/bm.height;return Math.abs(r-2)<.1?'':'This picture is '+bm.width+' × '+bm.height+', not 2:1, so it may look stretched.'}
+async function roomRemove(){const R=ROOM.list.find(x=>x.k===ROOM.k);if(!R||!R.mine)return;try{await recPut('room:'+R.k,null)}catch{}MYROOMS=MYROOMS.filter(x=>x.k!==R.k);LSset('rooms',JSON.stringify(MYROOMS));ROOM.list=ROOM.list.filter(x=>x.k!==R.k);await setRoom('yard')}
+function roomUI(){const seg=$('roomSeg');if(!seg)return;seg.innerHTML='';for(const R of ROOM.list){const b=document.createElement('button');b.textContent=R.name;b.setAttribute('aria-pressed',String(R.k===ROOM.k));b.onclick=()=>setRoom(R.k);seg.appendChild(b)}
+  const cur=ROOM.list.find(x=>x.k===ROOM.k);$('roomDel').hidden=!(cur&&cur.mine)}
 // a sign behind the pans
 const sign=new THREE.Mesh(new THREE.PlaneGeometry(.8,.2),new THREE.MeshBasicMaterial({transparent:true}));sign.position.set(0,.55,-.6);sign.rotation.x=-.2;rig.add(sign);
 function signFor(){return canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.82)';g.beginPath();g.roundRect(0,0,1024,256,40);g.fill();
@@ -777,7 +807,7 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
     p.tex.needsUpdate=true;return}
   const yd=inYard();
   row(105,yd?'Go to pans':'Pans',yd?'the pans in this song':'');pick(100,'mset',setName(setKey),60);if(PACK[setKey])btn(p,'msnd',900,100,260,60,packOn(setKey)?'Sound: studio':'Sound: band',{on:packOn(setKey),fs:24});
-  row(180,'Look');pick(175,'mlook',LOOKN[lookKey],60);
+  row(180,'Look');pick(175,'mlook',LOOKN[lookKey],60);if(ROOM.list.length>1)btn(p,'mroom',900,175,260,60,'Room ▸ '+fit(g,(ROOM.list.find(x=>x.k===ROOM.k)||{name:'The yard'}).name,150),{fs:22,on:ROOM.k!=='yard'});
   row(255,'Where you play',yd?(LAYOUT==='pano'?'the whole band, basses on the wings':'the whole band in rows'):'one pan in front of you');btn(p,'mwhere:pano',560,250,200,60,'Panorama',{on:yd&&LAYOUT==='pano',fs:26});btn(p,'mwhere:rows',770,250,190,60,'Rows',{on:yd&&LAYOUT==='rows',fs:26});btn(p,'mwhere:one',970,250,190,60,'One pan',{on:!yd,fs:26});
   row(330,'Even mix','far pans stay clear; walk up and they get louder');btn(p,'meven',880,325,280,60,EVEN?'On':'Off',{on:EVEN,fs:30});
   row(405,'Drum body hum','the air in the barrel hums, from its skirt length');btn(p,'mhum',880,400,280,60,OPT.hum?'On':'Off',{on:OPT.hum,fs:30});
@@ -892,7 +922,7 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
 function act(id){const [k,a]=id.split(':'),i=+a;if(/^cls/.test(k))return classAct(k,a);
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
     barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),pickgo:pansOut,learn:()=>learn(),setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
-    mclose:()=>menuOpen(false),msnd:()=>{setSound(setKey,packOn(setKey)?'band':'pack')},gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
+    mclose:()=>menuOpen(false),mroom:()=>{const i=ROOM.list.findIndex(x=>x.k===ROOM.k);setRoom(ROOM.list[(i+1)%ROOM.list.length].k)},msnd:()=>{setSound(setKey,packOn(setKey)?'band':'pack')},gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{if(a==='one')setYard(false);else setLayout(a);drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
     mlook:()=>{const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+i+ks.length)%ks.length];LSset('look',lookKey);applyLook();drawMenu()},
@@ -1369,13 +1399,16 @@ document.querySelectorAll('#viewSeg button').forEach(b=>b.onclick=()=>view(b.dat
 function renderSeg(){document.querySelectorAll('#setSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.set===setKey)))}
 document.querySelectorAll('#setSeg button').forEach(b=>b.onclick=()=>useSet(b.dataset.set));
 document.querySelectorAll('#lookSeg button').forEach(b=>b.onclick=()=>{lookKey=b.dataset.look;LSset('look',lookKey);applyLook()});
+$('roomAdd').onclick=()=>$('roomIn').click();$('roomIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;$('roomNote').textContent='Getting your picture ready…';
+  try{const w=await roomAdd(f);$('roomNote').textContent=w||'Your room is ready. In VR, the menu\'s Room button switches rooms.'}catch(err){console.warn(err);$('roomNote').textContent='That picture couldn\'t be used: '+(err.message||err)}};
+$('roomDel').onclick=()=>{if(confirm('Remove this room picture from the headset?'))roomRemove()};roomsLoad();
 
 /* ---------- going into VR (or into your own room, with the headset's cameras) ---------- */
 let inRoom=false;
 async function enter(mode){
   audio();if(ac.state==='suspended')await ac.resume();
   try{const sess=await navigator.xr.requestSession(mode,{optionalFeatures:['local-floor','bounded-floor']});
-    inRoom=mode==='immersive-ar';sky.visible=floor.visible=!inRoom;flag.visible=!inRoom&&LOOKS[lookKey].flag;
+    inRoom=mode==='immersive-ar';sky.visible=floor.visible=!inRoom;flag.visible=!inRoom&&LOOKS[lookKey].flag;applyRoom();
     renderer.xr.setReferenceSpaceType('local-floor');renderer.xr.setReferenceSpace(null);await renderer.xr.setSession(sess);baseRef=renderer.xr.getReferenceSpace();placed=false;placeN=0;$('hud').hidden=true;shed.visible=inYard()&&!inRoom;
     sess.addEventListener('end',()=>{baseRef=null;renderer.xr.setReferenceSpace(null);inRoom=false;$('hud').hidden=false;sky.visible=floor.visible=true;applyLook()})}
   catch(e){console.warn(e);$('status').textContent='The headset didn’t start: '+(e.message||e)}
@@ -1585,7 +1618,7 @@ function lessons2For(set){const T=set==='tenor',I=m=>cid(set,m),N=m=>cnm(m,set),
    · 🎵 Practise my songs: a song saved in VR gets a chord per bar guessed from its notes (guessChords: every major and
      minor triad scored against the bar's notes, the bass's notes counting double); tap a bar to try the next guess; comp
      along while the song's other tracks play. */
-CLASS.lvl=LS('cls-lvl')==='2'?2:1;
+CLASS.lvl=LS('cls-lvl')==='2'?2:1;CLASS.spd=[1,.75,.5].includes(+LS('cls-spd'))?+LS('cls-spd'):1;
 const lessonsAt=set=>CLASS.lvl===2?lessons2For(set):lessonsFor(set);
 let LESSONS=[];   // built once everything below exists (Level 2's lessons use the chord tables)
 const pk=i=>CLASS.set+(CLASS.lvl===2?':2:':':')+i,stars=i=>CPROG[pk(i)]||0,clsOpen=i=>i===0||stars(i-1)>=2;
@@ -1638,7 +1671,7 @@ function classLevel(n){CLASS.lvl=n===2?2:1;LSset('cls-lvl',String(CLASS.lvl));LE
 function openLesson(i){if(!LESSONS[i])return;if(!clsOpen(i)){CLASS.msg='Get two stars on lesson '+i+' first.';CLASS.redraw=true;speak(CLASS.msg);return}
   Object.assign(CLASS,{page:'lesson',L:i,S:0,mis:0,prev:null});enterStep()}
 function itemSay(it,st){return it.hear?it.label:st.read||it.read?'Play the gold note on the staff.':(st.glow?'Play ':'')+it.label+'.'}
-function enterStep(){const st=step();Object.assign(CLASS,{k:0,wrong:0,shown:false,pend:{},beat:null,done:st.t==='say',msg:'',col:'#9fb0b8',hint:'',prev:CLASS.S?CLASS.prev:null});CLASS.redraw=true;
+function enterStep(){const st=step();Object.assign(CLASS,{k:0,wrong:0,shown:false,pend:{},beat:null,badId:null,done:st.t==='say',msg:'',col:'#9fb0b8',hint:'',prev:CLASS.S?CLASS.prev:null});CLASS.redraw=true;
   const it=st.items&&st.items[0];speak(st.lines.join(' ')+(it?' '+itemSay(it,st):st.t==='beat'?' Press Start when you\'re ready.':''));
   if(st.t==='say')setTimeout(()=>{demo(st.demo);if(st.rdemo)rhythmDemo(st.rdemo)},400);if(it&&it.hear)setTimeout(()=>demo(it.hear),2600)}
 function rhythmDemo(r){if(!ac)return;const R=rhythm(r.rh),sp=60/(r.bpm||80),t0=ac.currentTime+.4+4*sp,tr=DTR();for(let b=-4;b<R.len;b++)click(t0+b*sp,((b%4)+4)%4===0);for(const e of R.ev)if(!e.bar&&!e.rest)strike(r.id,.8,t0+e.b*sp,tr)}
@@ -1650,7 +1683,7 @@ const step=()=>!CLASS.on?null:CLASS.page==='lesson'?LESSONS[CLASS.L].steps[CLASS
 const notesOf=id=>{const o=[];for(const d of drums)if(d.set===id.split(':')[0])for(const n of d.notes)if(n.id===id)o.push(n);return o};
 const flash=(id,k)=>{for(const n of notesOf(id))n[k]=1};
 function matches(it,id){return it.any?NOTE[id]&&NOTE[id].set===CLASS.set&&it.ids.some(w=>cpc(cm(w))===cpc(cm(id))):it.ids.includes(id)}
-function wrongHit(id,msg){const st=step();flash(id,'cBad');CLASS.pend={};CLASS.wrong++;if(CLASS.wrong<=3)CLASS.mis++;
+function wrongHit(id,msg){const st=step();flash(id,'cBad');CLASS.badId=id;CLASS.pend={};CLASS.wrong++;if(CLASS.wrong<=3)CLASS.mis++;
   if(!st.glow&&CLASS.wrong>=2&&!CLASS.shown){CLASS.shown=true;msg+=' It\'s glowing now.'}CLASS.hint=msg;CLASS.msg=msg;CLASS.col='#ff6b5e';CLASS.redraw=true;speak(msg)}
 function classHit(id,t){const st=step();if(!st||id.startsWith('drum:'))return;
   if(st.t==='beat')return beatHit(id,t);if(st.t!=='play'||CLASS.done)return;const it=st.items[CLASS.k];
@@ -1675,7 +1708,7 @@ function acceptChord(it,v){let note='';
   CLASS.prev=v;advance(note)}
 function nearestOf(it,got){const pc=cpc(cm(it.ids[0]));let best=it.ids[0],bd=1e9;for(const n of NOTE_IDS(CLASS.set))if(cpc(cm(n))===pc){const d=Math.abs(cm(n)-cm(got));if(d<bd){bd=d;best=n}}return best}
 const NOTE_IDS=set=>SETS[set].drums.flatMap(d=>d.notes.map(n=>n.id));
-function advance(note){const st=step();CLASS.k++;CLASS.wrong=0;CLASS.shown=false;CLASS.pend={};CLASS.hint='';
+function advance(note){const st=step();CLASS.k++;CLASS.badId=null;CLASS.wrong=0;CLASS.shown=false;CLASS.pend={};CLASS.hint='';
   if(CLASS.k>=st.items.length){CLASS.done=true;CLASS.msg=(note?note+' ':'')+'✓ Well done!';CLASS.col='#30d158';CLASS.redraw=true;speak(CLASS.msg);const S=CLASS.S,L=CLASS.L;setTimeout(()=>{if(CLASS.page==='lesson'&&CLASS.S===S&&CLASS.L===L&&CLASS.done)nextStep()},note?2600:1600);return}
   const it=st.items[CLASS.k];CLASS.msg=note?(note.startsWith('That works')?note:'✓ '+note):'✓';CLASS.col=note&&note.startsWith('That works')?'#ff9f0a':'#30d158';CLASS.redraw=true;
   speak((note?note+' ':'')+itemSay(it,st));if(it.hear)setTimeout(()=>demo(it.hear),note?2600:1300)}
@@ -1687,7 +1720,7 @@ function beatPlan(st){const out=[];
   if(st.rh){const R=rhythm(st.rh);for(const e of R.ev)if(!e.bar&&!e.rest)out.push({b:e.b,ids:st.ids.slice()});return {exp:out,len:R.len,chords:st.bandChords?st.bandChords.map(CH):null}}
   for(const x of st.beats)out.push(x.roll?{b:x.b,roll:true,len:x.len,ids:x.ids}:x.chord?{b:x.b,chord:x.chord,sug:chordVoice(CLASS.set,x.chord,null,x.guide),guide:x.guide}:{b:x.b,ids:x.ids.slice()});
   return {exp:out,len:st.len,chords:st.bandChords?st.bandChords.map(CH):null}}
-function beatStart(){const st=step();if(!st||st.t!=='beat')return;audio();if(ac.state==='suspended')ac.resume();const P=beatPlan(st),sp=60/st.bpm,t0=ac.currentTime+.5+4*sp;
+function beatStart(){const st=step();if(!st||st.t!=='beat')return;audio();if(ac.state==='suspended')ac.resume();const P=beatPlan(st),sp=60/(st.bpm*CLASS.spd),t0=ac.currentTime+.5+4*sp;
   CLASS.beat={t0,sp,ok:0,extra:0,over:false,len:P.len,end:t0+P.len*sp,exp:P.exp.map(x=>({...x,t:t0+x.b*sp,t2:x.roll?t0+(x.b+x.len)*sp:null,got:x.chord?new Map():new Set(),hits:[],ok:false}))};
   for(let b=-4;b<P.len;b++)click(t0+b*sp,((b%4)+4)%4===0);
   if(st.band&&P.chords)playBand(st.band,P.chords,t0,sp);
@@ -1705,7 +1738,7 @@ function rollCheck(e){e.done=true;const dur=e.t2-e.t,hs=e.hits,both=e.ids.every(
   e.rate=+rate.toFixed(1);e.even=cv<.45;e.ok=rate>=4.5&&both;if(e.ok)CLASS.beat.ok++}
 function beatEnd(){const B=CLASS.beat;for(const e of B.exp)if(e.roll&&!e.done)rollCheck(e);const n=B.exp.length,miss=n-B.ok,pct=Math.round(100*B.ok/n);B.over=true;CLASS.mis+=Math.ceil(miss/2);CLASS.done=true;
   const rolls=B.exp.filter(e=>e.roll),rmsg=rolls.length?' Rolls: '+rolls.map(e=>e.ok?(e.even?'even ✓':'a bit uneven'):e.rate<4.5?'too slow ('+e.rate+' a second)':'use both notes').join(', ')+'.':'';
-  CLASS.msg=(pct>=90?'✓ '+B.ok+' of '+n+' in time. Great!':pct>=60?B.ok+' of '+n+' in time. Good: again, or go on.':B.ok+' of '+n+' in time. Try it again: listen for the click.')+rmsg;CLASS.col=pct>=60?'#30d158':'#ff9f0a';CLASS.redraw=true;speak(CLASS.msg)}
+  CLASS.msg=(CLASS.spd<1?'('+(CLASS.spd===.5?'½':'¾')+' speed) ':'')+(pct>=90?'✓ '+B.ok+' of '+n+' in time. Great!':pct>=60?B.ok+' of '+n+' in time. Good: again, or go on.':B.ok+' of '+n+' in time. Try it again: listen for the click.')+rmsg;CLASS.col=pct>=60?'#30d158':'#ff9f0a';CLASS.redraw=true;speak(CLASS.msg)}
 // ---- 🎵 Practise my songs: a chord for every bar, guessed from the song's notes
 const BASSY=new Set(['six','seven','fcello','tcello']);
 function guessChords(song){const bars=Math.min(16,Math.max(1,Math.ceil((+song.L||16)/4))),out=[];let last=null;
@@ -1733,6 +1766,7 @@ function classAct(k,a){
   if(k==='clsnext'){if(CLASS.page==='done'){if(LESSONS[CLASS.L+1]&&clsOpen(CLASS.L+1))openLesson(CLASS.L+1);else{CLASS.page='home';CLASS.redraw=true}return}return nextStep()}
   if(k==='clsagain'){if(CLASS.page==='done')return openLesson(CLASS.L);const st=step();if(st&&st.t==='beat')return beatStart();
     if(st){const it=st.items&&st.items[CLASS.k];if(it&&it.hear)return demo(it.hear);speak(st.lines.join(' '));demo(st.demo);if(st.rdemo)rhythmDemo(st.rdemo)}return}
+  if(k==='clsspd'){CLASS.spd=[1,.75,.5].includes(+a)?+a:1;LSset('cls-spd',String(CLASS.spd));CLASS.redraw=true;speak(CLASS.spd===1?'Full speed.':CLASS.spd===.5?'Half speed.':'Three quarter speed.');return}
   if(k==='clsbeat')return beatStart()}
 // ---- every frame: the glow, and the beat's clock
 function classFrame(dt){const on=CLASS.on;door.m.visible=inYard()&&!KIDS&&!on;if(door.m.visible&&!door.drawn){drawDoor();door.drawn=1}
@@ -1820,7 +1854,7 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
     const bars=S.G.map(g2=>g2.c.replace('♯','#').replace(/^([A-G])♭/,'$1b'));drawChart(g,40,190,p.W-80,{bars},cur);
     const per=Math.min(4,bars.length),bw=(p.W-80)/per,bh=Math.min(92,250/Math.ceil(bars.length/per));if(!B||B.over)bars.forEach((_,i)=>p.hits.push({id:'clsbar:'+i,x:40+(i%per)*bw,y:190+Math.floor(i/per)*(bh+34),w:bw,h:bh}));
     if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 34px system-ui,sans-serif';wrapT(g,CLASS.msg,p.W-100).slice(0,2).forEach((w,i)=>lt(w,46,p.H-190+i*44))}
-    btn(p,'clssongs',40,p.H-110,250,80,'◀ Songs',{fs:28});if(!B||B.over)btn(p,'clscomp',p.W-400,p.H-110,360,80,B?'↻ Comp again':'▶ Comp along',{fs:30,on:true});p.tex.needsUpdate=true;return}
+    btn(p,'clssongs',40,p.H-110,250,80,'◀ Songs',{fs:28});if(!B||B.over){spdBtns(p,p.W-860,p.H-107);btn(p,'clscomp',p.W-400,p.H-110,360,80,B?'↻ Comp again':'▶ Comp along',{fs:30,on:true})}p.tex.needsUpdate=true;return}
   const L=LESSONS[CLASS.L],lvT=L.test?'Level '+CLASS.lvl+' test':'Lesson '+(CLASS.L+1);
   if(CLASS.page==='done'){g.fillStyle='#f6ba45';lt(lvT+' · '+L.title,40,66);const s=CLASS.got;
     g.textAlign='center';g.fillStyle='#f6ba45';g.font='160px system-ui,sans-serif';g.fillText('★★★'.slice(0,s)+'☆☆☆'.slice(0,3-s),p.W/2,330);
@@ -1828,32 +1862,46 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
     g.fillStyle='#c9d6cf';g.font='30px system-ui,sans-serif';g.fillText(CLASS.mis+(CLASS.mis===1?' slip':' slips')+' along the way'+(L.test&&s>=2?' · Level '+CLASS.lvl+' passed!':''),p.W/2,560);
     btn(p,'clshome',300,680,300,90,'Lessons',{fs:32});btn(p,'clsagain',640,680,300,90,'↻ Again',{fs:32});if(LESSONS[CLASS.L+1]&&clsOpen(CLASS.L+1))btn(p,'clsnext',980,680,320,90,'Next lesson ▶',{fs:32,on:true});
     p.tex.needsUpdate=true;return}
-  const st=L.steps[CLASS.S],B=CLASS.beat,visual=!!(st.staff||st.rh||st.chart||st.read);g.fillStyle='#f6ba45';lt(fit(g,lvT+' · '+L.title,940),40,66);
+  const st=L.steps[CLASS.S],B=CLASS.beat,visual=!!(st.staff||st.rh||st.chart||st.read),it0=st.items&&st.items[Math.min(CLASS.k,st.items.length-1)],map=st.t==='play'&&!CLASS.done&&it0&&!it0.hear,TW=map?p.W-520:p.W-100;g.fillStyle='#f6ba45';lt(fit(g,lvT+' · '+L.title,940),40,66);
   L.steps.forEach((_,i)=>{g.beginPath();g.arc(52+i*34,122,11,0,7);g.fillStyle=i<CLASS.S?'#30d158':i===CLASS.S?'#f6ba45':'#3c5245';g.fill()});
-  g.fillStyle='#eef2f4';g.font=(visual?'32px':'38px')+' system-ui,sans-serif';let y=180;for(const ln of st.lines)for(const w of wrapT(g,ln,p.W-100)){lt(w,46,y);y+=visual?40:50}
+  g.fillStyle='#eef2f4';g.font=(visual?'32px':'38px')+' system-ui,sans-serif';let y=180;for(const ln of st.lines)for(const w of wrapT(g,ln,TW)){lt(w,46,y);y+=visual?40:50}
+  // where to look: your pan from above, the note to play in gold (when it may glow), your last wrong note in red
+  if(map)drawMap(g,p.W-450,118,410,320,(st.glow||CLASS.shown)?sugOf(st,it0):[],CLASS.badId,Object.keys(CLASS.pend||{}));
   // the staff, the rhythm or the chart
   if(st.chart){const ord=chartOrder(st.chart),cur=B&&!B.over&&B.cur>=0?ord[Math.min(ord.length-1,Math.floor(B.cur/4))]:-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chart,cur)}
   else if(st.rh){const R=rhythm(st.rh),id=st.ids?st.ids[0]:null,m=id?cm(id):72;drawStaff(g,46,Math.max(y+30,330),p.W-92,R.ev.filter(e=>!e.bar).map(e=>({m,b:e.b,d:e.d,rest:e.rest})),{timed:1,len:R.len,time:1,bars:R.ev.filter(e=>e.bar).map(e=>e.b),cursor:B&&!B.over?((ac?ac.currentTime:0)-B.t0)/B.sp:null});y=Math.max(y+30,330)+200}
-  else if(st.staff||st.read){const ns=st.staff?st.staff.map(m=>({m,d:1})):st.items.map((it,i)=>({m:cm(it.ids[0]),d:1,col:i<CLASS.k?'#30d158':i===CLASS.k&&!CLASS.done?'#f6ba45':null}));drawStaff(g,46,Math.max(y+30,330),p.W-92,ns,{key:st.key});y=Math.max(y+30,330)+200}
+  else if(st.staff||st.read){const ns=st.staff?st.staff.map(m=>({m,d:1})):st.items.map((it,i)=>({m:cm(it.ids[0]),d:1,col:i<CLASS.k?'#30d158':i===CLASS.k&&!CLASS.done?'#f6ba45':null}));drawStaff(g,46,Math.max(y+30,330),map?p.W-560:p.W-92,ns,{key:st.key});y=Math.max(y+30,330)+200}
   if(st.t==='play'){const it=st.items[Math.min(CLASS.k,st.items.length-1)];y=visual?Math.max(y,560):Math.max(y+20,470);
     g.fillStyle='#9fb0b8';g.font='28px system-ui,sans-serif';lt((st.glow?'Play':'Your turn')+' · '+Math.min(CLASS.k+1,st.items.length)+' of '+st.items.length,46,y);
-    if(!CLASS.done){g.fillStyle='#f6ba45';g.font='700 '+(visual?48:64)+'px system-ui,sans-serif';lt(fit(g,st.read||it.read?(CLASS.shown||CLASS.wrong?it.label:'The gold note'):it.label,p.W-100),46,y+(visual?52:70))}}
+    if(!CLASS.done){g.fillStyle='#f6ba45';g.font='700 '+(visual?48:64)+'px system-ui,sans-serif';lt(fit(g,st.read||it.read?(CLASS.shown||CLASS.wrong?it.label:'The gold note'):it.label,TW),46,y+(visual?52:70))}}
   if(st.t==='beat'){y=Math.max(y+10,visual?600:470);g.fillStyle='#9fb0b8';g.font='26px system-ui,sans-serif';
-    lt('♩ = '+st.bpm+(st.band?' · with the band ('+st.band+')':'')+(st.chart?' · two notes of each chord, keep the third':' · the glow shows what\'s next'),46,y);
-    if(!B||B.over)btn(p,'clsbeat',p.W-400,y-34,360,74,B?'↻ Try again':'▶ Start',{fs:32,on:!B})}
+    lt('♩ = '+Math.round(st.bpm*CLASS.spd)+(CLASS.spd<1?' (slower practice)':'')+(st.band?' · with the band ('+st.band+')':'')+(st.chart?' · two notes of each chord, keep the third':' · the glow shows what\'s next'),46,y);
+    if(!B||B.over){spdBtns(p,p.W-860,y-34);btn(p,'clsbeat',p.W-400,y-34,360,74,B?'↻ Try again':'▶ Start',{fs:32,on:!B})}}
   if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 32px system-ui,sans-serif';const ls=wrapT(g,CLASS.msg,p.W-100);ls.slice(0,2).forEach((w,i)=>lt(w,46,p.H-180+i*42))}
   btn(p,'clshome',40,p.H-100,250,76,'◀ Lessons',{fs:28});btn(p,'clsagain',305,p.H-100,250,76,st.t==='say'?'🔊 Again':'🔊 Hear it',{fs:28});
   if(st.t==='say'||CLASS.done)btn(p,'clsnext',p.W-330,p.H-100,290,76,CLASS.S<L.steps.length-1?'Next ▶':'Finish ▶',{fs:32,on:true});
   p.tex.needsUpdate=true}
 
+/* where to look: the pan from above (its own drawing), the note(s) to play in gold, the last wrong note in red */
+const MP={};
+function drawMap(g,x,y,w,h,gold,bad,ok){const S=SETS[CLASS.set];if(!S)return;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const d of S.drums){x0=Math.min(x0,d.cx-d.r);x1=Math.max(x1,d.cx+d.r);y0=Math.min(y0,d.cy-d.r);y1=Math.max(y1,d.cy+d.r)}
+  const k=Math.min((w-20)/(x1-x0),(h-44)/(y1-y0)),ox=x+(w-(x1-x0)*k)/2-x0*k,oy=y+34-y0*k;g.save();rr(g,x,y,w,h,16,'#0f1a14','#3c5245');
+  g.fillStyle='#9fb0b8';g.font='22px system-ui,sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText('Your '+(CLASS.set==='dsec'?'double seconds':'tenor')+' (you stand at the bottom)',x+14,y+20);
+  gold=new Set((gold||[]).filter(Boolean));ok=new Set(ok||[]);
+  for(const d of S.drums){g.beginPath();g.arc(ox+d.cx*k,oy+d.cy*k,d.r*k,0,7);g.fillStyle='#2a3036';g.fill();g.strokeStyle='#8a939c';g.lineWidth=2;g.stroke();
+    for(const n of d.notes){const P=MP[n.id]||(MP[n.id]=new Path2D(n.path));g.save();g.translate(ox,oy);g.scale(k,k);
+      g.fillStyle=n.id===bad?'#ff3b30':gold.has(n.id)?'#f6ba45':ok.has(n.id)?'#30d158':'#4a535c';g.fill(P);g.lineWidth=1.5/k;g.strokeStyle='#15191d';g.stroke(P);g.restore();
+      const c=cInfo(n.id);if(c&&(gold.has(n.id)||n.id===bad)){g.fillStyle=n.id===bad?'#fff':'#1a1300';g.font='700 '+Math.max(12,Math.round(26*k*4))+'px system-ui,sans-serif';g.textAlign='center';g.fillText(c.label,ox+c.x*k,oy+c.y*k)}}}
+  g.restore()}
+function spdBtns(p,x,y){[[1,'1×'],[.75,'¾'],[.5,'½']].forEach(([v,l],i)=>btn(p,'clsspd:'+v,x+i*140,y,128,74,l,{on:CLASS.spd===v,fs:30}))}
 LESSONS=lessonsAt(CLASS.set);
 function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRect(0,0,p.W,p.H);g.textAlign='center';g.textBaseline='middle';
   g.fillStyle='#f6ba45';g.font='700 92px system-ui,sans-serif';g.fillText('🎓 Classroom',p.W/2,170);g.fillStyle='#eef2f4';g.font='44px system-ui,sans-serif';g.fillText('Level 1 · Level 2',p.W/2,280);
   g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, chords and reading, on your tenor or double seconds',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
-const VR=window.VR={said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t)=>classHit(id,t),beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
-    level:n=>classLevel(n),song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
+const VR=window.VR={room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!scene.background,sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t)=>classHit(id,t),beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
+    level:n=>classLevel(n),spd:v=>act('clsspd:'+v),map:()=>{const st=step(),it=st&&st.items&&st.items[CLASS.k];return {gold:st&&it&&(st.glow||CLASS.shown)?sugOf(st,it):[],bad:CLASS.badId}},song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
     beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
     glow:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>n.id+':'+n.cue.material.color.getHexString())),voicing:(t,s)=>voicing(t,s),hint:(a,b)=>hintFor(a,b),boardAt:()=>board.m.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(2))},rendered:null,render:async()=>{const b=await renderSong(SONG);return VR.rendered},inbox:()=>INBOX,hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,
   // the wrist panel shown in front of the camera (off the headset there's no hand to turn)
