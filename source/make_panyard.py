@@ -183,7 +183,7 @@ rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-role.j
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-parts.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-guide.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-polish.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
-rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-cloud.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-cloud.js'), encoding='utf-8').read() + open(os.path.join(HERE, 'panyard-vrin.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-themes.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
 # the Trinidad & Tobago look and its backgrounds (on top of Chrome Night)
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-trini.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
