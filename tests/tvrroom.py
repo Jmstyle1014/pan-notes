@@ -34,6 +34,8 @@ with sync_playwright() as p:
     check(pg.locator('#roomSeg button').count()==2,'the page lists the rooms')
     pg.locator('#roomSeg button',has_text='Sunset deck').click();pg.wait_for_function("VR.room.active()",timeout=20000)
     check(R("bg()") and not R("sky()") and not R("shed()") and R("sizes()")==[2048,1024],'a built-in room wraps round you; the sky and the yard\'s roof step aside')
+    fl=R("floorAt()");check(fl is not None and abs(fl)<.03,f'grounded: the picture\'s floor lies at the real floor (y {fl}), not at infinity')
+    e=pg.evaluate("VR.room.eye(.2)");fl2=R("floorAt()");check(abs(e-1.8)<.01 and abs(fl2)<.03 and pg.evaluate("VR.room.eye(-.2)")==1.6,f'Floor lower / higher changes how far below your eyes the picture\'s floor is ({e} m), the floor staying at your feet')
     pg.evaluate("document.getElementById('hud').hidden=true;VR.camera.position.set(0,1.6,1.5);VR.camera.lookAt(0,1.2,-3)");pg.wait_for_timeout(600);pg.screenshot(path=D+'1-room.png')
     pg.evaluate("document.getElementById('hud').hidden=false")
     # your own picture, not 2:1, wider than the headset can hold is cut down
