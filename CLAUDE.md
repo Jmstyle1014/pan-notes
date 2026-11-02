@@ -385,6 +385,13 @@ upright count is low because a checklist pushes the pans below the play bar ther
   arranger's for the rest; 🎼 My piece (`CLASS.page='piece'`): ▶ Hear (`pieceHear`, `stopClass` silences the cls- channels),
   💾 Save (`savePiece` → SONGS "My calypso", 4 sections + drums), 🗑 Start over. The Level 3 test performs it and saves it.
   Test with `tvrclass3` (`VR.cls.go(L,S)`, `clock`, `piece`, `arrange`).
+- **VR stands and sway** (`HANG`, `hangStand`, `standFollow(dt)`, `swayHit` in `panyard-vr.html`): tenor, dten, dsec, guitar and
+  cellos hang: a pole and tripod, three chrome arms (`seg()` places unit cylinders between points) up round the skirt to hooks
+  ~10 cm above holes near the rim (`HOOK_A`: back and the two front sides), a black strap to each. The stand is rebuilt only when
+  the pan's rest pose moves (`d.rest`), so it stays still while the pan swings. A hit (`track` → `swayHit`) kicks a damped pendulum
+  (`SWAY` w 7, ζ .18; more near the edge, for a harder hit and a lighter pan via `HANG`), applied as `d.g.rotation.x = tilt0 + sx`,
+  `.z = sz` (≤ 2°), so hits follow the pan. Basses keep the old floor pole and don't sway. Menu / page switch Pans sway
+  (`OPT.sway`, localStorage `panyard-vr-sway`, on). Test with `tvrstand` (`VR.swayStep` steps it by simulated time).
 - **VR rooms** (page → Room, menu → Room ▸): a 360° picture as the room (`ROOM`, `setRoom`, `applyRoom` in `panyard-vr.html`):
   built-in ones from `rooms/rooms.json` (`[{k, name, file}]`, files beside it, served at /pan-notes/rooms/), your own added on
   the page (`roomAdd`: cut to at most 4096 wide, JPEG, IndexedDB panyard-vr / rec `room:<id>`, names in localStorage

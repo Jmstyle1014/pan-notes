@@ -50,7 +50,7 @@ canvas{display:block}
   <div class="seg" id="kidsSeg"><button data-kids="on">On: just play, no studio</button><button data-kids="off">Off</button></div>
   <div id="packBox"></div>
   <div class="lab">Sound</div>
-  <div class="seg" id="optSeg"><button data-opt="hum">Drum body hum</button><button data-opt="tone">Bass &amp; treble for each pan</button></div>
+  <div class="seg" id="optSeg"><button data-opt="hum">Drum body hum</button><button data-opt="tone">Bass &amp; treble for each pan</button><button data-opt="sway">Pans sway on their stands</button></div>
   <div class="lab">Sticks</div>
   <div class="seg" id="lenSeg"><button data-len="short">Short</button><button data-len="medium">Medium</button><button data-len="long">Long</button></div>
   <div class="lab">Notes</div>
@@ -154,7 +154,7 @@ async function loadSounds(){
   return n>0;
 }
 // the sound switches (the menu, and the page): the drum's hum from its skirt, and the suggested bass and treble per pan; both on
-const OPT={hum:LS('hum')!=='0',tone:LS('tone')!=='0'};
+const OPT={hum:LS('hum')!=='0',tone:LS('tone')!=='0',sway:LS('sway')!=='0'};
 const voices=new Map();
 // a note nobody recorded (the double tenor, three cello, seven bass) plays the nearest recorded note of the pans the band
 // borrows from (the sounds file's borrow list), retuned to its own pitch, as Panyard Band does
@@ -313,10 +313,12 @@ function makeDrums(k,stn,lite){
       const ng=new THREE.ShapeGeometry(new THREE.Shape(pts),1),np=ng.attributes.position;
       for(let q=0;q<np.count;q++){const x=np.getX(q),z=np.getY(q);np.setXYZ(q,x,surf(d,x,z)+DOME+.003,z)}
       n.glow=new THREE.Mesh(ng,new THREE.MeshBasicMaterial({color:L.hit,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));n.glow.visible=false;g.add(n.glow)}
-    // the stand: a pole down to the floor (it follows the pan), and three feet
-    const st=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1,16),chromeMat());st.add(pole);
+    // the stand: a pole down to the floor (it follows the pan), and three feet; a hanging pan's stand also has three arms
+    // up round the skirt to hooks above the rim, and a strap from each hook to a hole near the rim (hangStand)
+    const st=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(HANG[k]?.014:.012,HANG[k]?.014:.012,1,16),chromeMat());st.add(pole);
     const feet=new THREE.Group();for(let q=0;q<3;q++){const l=new THREE.Mesh(new THREE.CylinderGeometry(.009,.009,.36,10),chromeMat());l.position.set(Math.sin(q*2.094)*.15,.06,Math.cos(q*2.094)*.15);l.rotation.set(Math.cos(q*2.094)*1.1,0,-Math.sin(q*2.094)*1.1);feet.add(l)}st.add(feet);
-    scene.add(st);d.stand=st;d.pole=pole;d.feet=feet;d.SK=SK;
+    if(HANG[k])hangStand(d,st);
+    scene.add(st);d.stand=st;d.pole=pole;d.feet=feet;d.SK=SK;d.tilt0=g.rotation.x;
     return d});
   }finally{SV.remove()}}
 function buildStation(k){const solo=!inYard();let g=rig,lf=lift;if(!solo){g=new THREE.Group();rig.add(g);lf=new THREE.Group();g.add(lf)}
@@ -382,7 +384,42 @@ function hereStation(){const st=STN.get(setKey)||[...STN.values()][0];if(!st)ret
   sign.position.set(0,.96,-.25);sign.rotation.x=.06;sign.scale.setScalar(.6);   // the sign rides on top of the studio screen
   for(const o of STN.values())if(o.label)o.label.visible=o!==st;
   if(sign.material.map)sign.material.map.dispose();sign.material.map=signFor();sign.material.needsUpdate=true;placeTable()}
-function standFollow(){for(const d of drums){const b=new THREE.Vector3(0,-d.SK,0);d.g.localToWorld(b);const top=Math.max(.02,b.y);d.pole.scale.y=top;d.pole.position.set(b.x,top/2,b.z);d.feet.position.set(b.x,0,b.z);d.stand.visible=b.y>.08}}
+/* ---------- stands: pans hang, and sway ----------
+   Tenors, double tenors, double seconds, guitars and cellos hang from their stands: three chrome arms rise from the pole
+   round the skirt to hooks above the rim, and a black strap from each hook holds the pan by a hole near its rim. A hit
+   nudges the pan like a pendulum (SWAY: a note near the edge tips it more than one in the middle, a harder hit more), and
+   it settles in a second or two: a degree or two at most, the lighter pans more (HANG). Basses stand on the floor and
+   don't sway. Hits follow the pan as it moves (they're found in the pan's own frame). Menu / page: Pans sway (OPT.sway). */
+const HANG={tenor:1,dten:.9,dsec:.75,guitar:.45,fcello:.35,tcello:.35},SWAY={w:7,z:.18,k:.2};
+const HOOK_A=[-Math.PI/2,-Math.PI/2+2.094,-Math.PI/2-2.094];   // the holes: one at the back, two round the front sides
+const strapMat=new THREE.MeshStandardMaterial({color:'#141414',roughness:.9});
+function hangStand(d,st){const unit=r=>new THREE.CylinderGeometry(r,r,1,10);d.arms=[];
+  for(let q=0;q<3;q++){const low=new THREE.Mesh(unit(.008),chromeMat()),up=new THREE.Mesh(unit(.008),chromeMat()),
+      hook=new THREE.Mesh(new THREE.TorusGeometry(.011,.0028,6,14,Math.PI*1.3),chromeMat()),strap=new THREE.Mesh(new THREE.BoxGeometry(.012,1,.003),strapMat);
+    st.add(low,up,hook,strap);d.arms.push({low,up,hook,strap})}d.hang=true;d.sx=d.sz=d.vx=d.vz=0;d.rest=new Float32Array(16)}
+const _Y=new THREE.Vector3(0,1,0),_a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_o=new THREE.Vector3();
+function seg(m,a,b){_c.subVectors(b,a);const L=_c.length();if(L<1e-5){m.visible=false;return}m.visible=true;m.position.addVectors(a,b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(_Y,_c.divideScalar(L));m.scale.set(1,L,1)}
+function swayHit(d,x,z,v){if(!OPT.sway||!d.hang)return;const k=SWAY.k*HANG[d.set]*v/RS;d.vx+=k*z;d.vz-=k*x}
+function standFollow(dt){dt=Math.min(.05,dt||0);
+  for(const d of drums){
+    if(!d.hang){const b=new THREE.Vector3(0,-d.SK,0);d.g.localToWorld(b);const top=Math.max(.02,b.y);d.pole.scale.y=top;d.pole.position.set(b.x,top/2,b.z);d.feet.position.set(b.x,0,b.z);d.stand.visible=b.y>.08;continue}
+    // the pan at rest: the stand is built from this, so it stays still while the pan swings
+    d.g.rotation.x=d.tilt0;d.g.rotation.z=0;d.g.updateMatrixWorld(true);const me=d.g.matrixWorld.elements;let moved=!d.H;for(let i=0;i<16;i++)if(Math.abs(me[i]-d.rest[i])>1e-5){moved=true;break}
+    if(moved){d.rest.set(me);const R=RS+.012;d.H=[];d.A=[];let low=1e9;
+      for(let a=0;a<8;a++){_a.set(Math.cos(a*.785)*R,-d.SK,Math.sin(a*.785)*R);d.g.localToWorld(_a);low=Math.min(low,_a.y)}
+      const ctr=new THREE.Vector3(0,-d.SK,0);d.g.localToWorld(ctr);const top=new THREE.Vector3(ctr.x,Math.max(.03,low-.05),ctr.z);
+      d.pole.scale.y=top.y;d.pole.position.set(top.x,top.y/2,top.z);d.feet.position.set(top.x,0,top.z);d.stand.visible=top.y>.08;
+      HOOK_A.forEach((ang,q)=>{const A=new THREE.Vector3(Math.cos(ang)*R,-.022,Math.sin(ang)*R);d.A.push(A.clone());d.g.localToWorld(A);
+        _o.set(A.x-ctr.x,0,A.z-ctr.z).normalize();const H=A.clone().addScaledVector(_o,.014);H.y+=.1;d.H.push(H);
+        const K=new THREE.Vector3(H.x+_o.x*.05,top.y,H.z+_o.z*.05),m=d.arms[q];seg(m.low,top,K);seg(m.up,K,H);
+        m.hook.position.copy(H);m.hook.position.y-=.004;m.hook.rotation.set(0,Math.atan2(-_o.z,_o.x),0);m.hook.rotateZ(-.15)})}
+    // the swing: a damped pendulum, a little under a second a swing
+    if(d.sx||d.sz||d.vx||d.vz){const w=SWAY.w,c=2*SWAY.z*w;d.vx+=(-w*w*d.sx-c*d.vx)*dt;d.vz+=(-w*w*d.sz-c*d.vz)*dt;d.sx+=d.vx*dt;d.sz+=d.vz*dt;
+      const lim=.035;d.sx=Math.max(-lim,Math.min(lim,d.sx));d.sz=Math.max(-lim,Math.min(lim,d.sz));
+      if(Math.abs(d.sx)+Math.abs(d.sz)<1e-5&&Math.abs(d.vx)+Math.abs(d.vz)<1e-4)d.sx=d.sz=d.vx=d.vz=0}
+    if(!OPT.sway)d.sx=d.sz=d.vx=d.vz=0;
+    d.g.rotation.x=d.tilt0+d.sx;d.g.rotation.z=d.sz;d.g.updateMatrixWorld(true);
+    for(let q=0;q<3;q++){_b.copy(d.A[q]);d.g.localToWorld(_b);seg(d.arms[q].strap,d.H[q],_b)}}}
 function applyLook(){const L=LOOKS[lookKey];
   if(sky.material.map)sky.material.map.dispose();sky.material.map=canvasTex(4,256,(g,w,hh)=>{const gr=g.createLinearGradient(0,0,0,hh);gr.addColorStop(0,L.sky[0]);gr.addColorStop(.5,L.sky[1]);gr.addColorStop(1,L.sky[1]);g.fillStyle=gr;g.fillRect(0,0,w,hh)});sky.material.needsUpdate=true;
   floor.material.color.set(L.floor);flag.visible=L.flag&&!inRoom;buildPans();if(typeof ROOM!=='undefined')applyRoom();
@@ -576,7 +613,7 @@ function track(s,world,dt){
   const sp=Math.hypot(best.x-prev.x,best.y-prev.y,best.z-prev.z)/Math.max(dt,1e-3);
   const n=noteAt(d,best.x,best.z);s.armed=false;if(!n)return null;
   const v=Math.max(.12,Math.min(1,sp/3.2*heft(s.kind)));               // about 3 m/s is a full stroke with a 60 g stick (heft)
-  strike(n.id,v);n.lit=1;kickBack(s,v);
+  strike(n.id,v);n.lit=1;kickBack(s,v);swayHit(d,best.x,best.z,v);
   try{const ha=s.src&&s.src.gamepad&&s.src.gamepad.hapticActuators&&s.src.gamepad.hapticActuators[0];if(ha)ha.pulse(.25+.6*v,22)}catch{}
   return n.id;
 }
@@ -824,7 +861,7 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
   row(405,'Drum body hum','the air in the barrel hums, from its skirt length');btn(p,'mhum',880,400,280,60,OPT.hum?'On':'Off',{on:OPT.hum,fs:30});
   row(480,'Bass & treble for each pan','basses fuller, tenors brighter');btn(p,'mtone',880,475,280,60,OPT.tone?'On':'Off',{on:OPT.tone,fs:30});
   row(555,'Sticks');['short','medium','long'].forEach((k,i)=>btn(p,'mlen:'+k,300+i*200,550,185,60,k[0].toUpperCase()+k.slice(1),{on:stickLen===k,fs:28}));
-  row(630,'Studio');btn(p,'mtable:1',300,625,185,60,'Out',{on:tableOn,fs:28});btn(p,'mtable:0',500,625,185,60,'Away',{on:!tableOn,fs:28});
+  row(630,'Studio');btn(p,'mtable:1',300,625,185,60,'Out',{on:tableOn,fs:28});btn(p,'mtable:0',500,625,185,60,'Away',{on:!tableOn,fs:28});btn(p,'msway',880,625,280,60,OPT.sway?'Pans sway: On':'Pans sway: Off',{on:OPT.sway,fs:26});
   btn(p,'msongs',36,705,260,66,'💾 My songs',{fs:27});btn(p,'mback',310,705,250,66,'↺ Pans back',{fs:27});btn(p,'mkids',574,705,250,66,'🧒 Kids mode',{fs:27});btn(p,'mguide',838,705,250,66,'❓ Guide',{fs:27});
   btn(p,'mbring',36,785,290,66,yd?'Back to my spot':'Pans to me',{fs:27});btn(p,'mexit',340,785,200,66,'Leave VR',{fs:27});if(yd)btn(p,'myard',554,785,240,66,'↺ Yard back',{fs:27});btn(p,'mlock',808,785,280,66,LOCK?'🔒 Locked':'🔓 Unlocked',{fs:27,on:LOCK});
   g.fillStyle='#77838d';g.font='20px system-ui,sans-serif';g.textAlign='left';
@@ -937,7 +974,7 @@ function act(id){const [k,a]=id.split(':'),i=+a;if(/^cls/.test(k))return classAc
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{if(a==='one')setYard(false);else setLayout(a);drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
     mlook:()=>{const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+i+ks.length)%ks.length];LSset('look',lookKey);applyLook();drawMenu()},
-    mhum:()=>setOpt('hum',!OPT.hum),mtone:()=>setOpt('tone',!OPT.tone),mlen:()=>{stickLen=a;LSset('sticklen',a);restick(true);try{lenUI()}catch{}drawMenu()},
+    mhum:()=>setOpt('hum',!OPT.hum),mtone:()=>setOpt('tone',!OPT.tone),msway:()=>setOpt('sway',!OPT.sway),mlen:()=>{stickLen=a;LSset('sticklen',a);restick(true);try{lenUI()}catch{}drawMenu()},
     mtable:()=>{showTable(a==='1');drawMenu()},mbring:()=>{bringPan();menuOpen(false)},mexit:()=>{menuOpen(false);const se=renderer.xr.getSession&&renderer.xr.getSession();if(se)se.end()},
     lane:()=>select(i),m:()=>{snapUndo();SONG.tracks[i].mute=!SONG.tracks[i].mute;saveSong();mixAll()},s:()=>{snapUndo();SONG.tracks[i].solo=!SONG.tracks[i].solo;saveSong();mixAll()},
     re:()=>rerecord(i),del:()=>delTrack(i),
@@ -1377,7 +1414,7 @@ renderer.setAnimationLoop((now,frame)=>{
   }
   for(const d of drums)for(const n of d.notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.6*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
   if(renderer.xr.isPresenting)beamFrame();
-  tick();learnFrame(dt);classFrame(dt);wristFrame(dt);studioFrame(dt);kitFrame(dt);standFollow();listen();toastFrame(dt);renderer.render(scene,camera);
+  tick();learnFrame(dt);classFrame(dt);wristFrame(dt);studioFrame(dt);kitFrame(dt);standFollow(dt);listen();toastFrame(dt);renderer.render(scene,camera);
 });
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
@@ -2104,7 +2141,7 @@ function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRec
   g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, reading, playing in the band and composing',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
-const VR=window.VR={room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
+const VR=window.VR={sway:()=>drums.map(d=>({set:d.set,i:d.i,hang:!!d.hang,sx:d.sx||0,sz:d.sz||0,vx:d.vx||0,vz:d.vz||0})),swaySet:(i,x,z)=>{const d=drums[i];d.sx=x;d.sz=z;d.vx=d.vz=0},swayOpt:on=>setOpt('sway',on),swayStep:sec=>{for(let t=0;t<sec;t+=.02)standFollow(.02);return VR.sway()},stand:i=>{const d=drums[i];if(!d.hang)return {hang:false};const rim=new THREE.Vector3();d.g.localToWorld(rim);return {hang:true,rim:+rim.y.toFixed(3),hooks:d.H.map(h=>+h.y.toFixed(3)),straps:d.arms.map(a=>+a.strap.scale.y.toFixed(3)),pole:+d.pole.scale.y.toFixed(3),shown:d.stand.visible}},room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
     level:n=>classLevel(n),spd:v=>act('clsspd:'+v),map:()=>{const st=step(),it=st&&st.items&&st.items[CLASS.k];return {gold:st&&it&&(st.glow||CLASS.shown)?sugOf(st,it):[],bad:CLASS.badId}},song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
     beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
     glow:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>n.id+':'+n.cue.material.color.getHexString())),voicing:(t,s)=>voicing(t,s),hint:(a,b)=>hintFor(a,b),boardAt:()=>board.m.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(2))},rendered:null,render:async()=>{const b=await renderSong(SONG);return VR.rendered},inbox:()=>INBOX,hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,
