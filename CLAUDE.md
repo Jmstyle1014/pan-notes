@@ -374,7 +374,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
 - **VR rooms** (page → Room, menu → Room ▸): a 360° picture as the room (`ROOM`, `setRoom`, `applyRoom` in `panyard-vr.html`):
   built-in ones from `rooms/rooms.json` (`[{k, name, file}]`, files beside it, served at /pan-notes/rooms/), your own added on
   the page (`roomAdd`: cut to at most 4096 wide, JPEG, IndexedDB panyard-vr / rec `room:<id>`, names in localStorage
-  `panyard-vr-rooms`; a warning when not 2:1). The choice (`panyard-vr-room`) is `scene.background` (equirectangular); the sky,
+  `panyard-vr-rooms`; a warning when not 2:1). The choice (`panyard-vr-room`) is drawn on a **grounded dome** (`groundedSky`, as three.js's GroundedSkybox: the lower half
+  pressed into a floor at y 0, `roomEye(k)` m below the picture's camera, 1.6 by default, page Floor lower / higher per room,
+  localStorage `panyard-vr-roomeye-<k>`); as `scene.background` it sat at infinity and felt like floating. The sky,
   floor, flag and the yard's roof hide while it shows, never in passthrough. Test with `tvrroom`.
   **Classroom polish:** practice speed 1× / ¾ / ½ on beat and comp steps (`CLASS.spd`, localStorage `panyard-vr-cls-spd`,
   `spdBtns`); the where-to-look map (`drawMap`: the pan's own drawing from above, gold = what may glow, red = your last

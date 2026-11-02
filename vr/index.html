@@ -35,7 +35,7 @@ canvas{display:block}
   <div class="lab">Look</div>
   <div class="lab">Room</div>
   <div class="seg" id="roomSeg"></div>
-  <div class="btns" style="margin-top:6px"><button id="roomAdd">＋ Add a 360° picture…</button><button id="roomDel" hidden>Remove this picture</button></div><input type="file" id="roomIn" accept="image/*" hidden>
+  <div class="btns" style="margin-top:6px"><button id="roomAdd">＋ Add a 360° picture…</button><button id="roomDel" hidden>Remove this picture</button></div><div class="btns" id="roomEyeBox" style="margin-top:6px" hidden><button id="roomLow">Floor lower</button><button id="roomHigh">Floor higher</button></div><input type="file" id="roomIn" accept="image/*" hidden>
   <p class="credit" id="roomNote">A 360° panorama (2:1, like 4096 × 2048) wraps round you as the room; your pans, the studio and the classroom stay in front of you.</p>
   <div class="lab">Pans</div>
   <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
@@ -390,16 +390,26 @@ function applyLook(){const L=LOOKS[lookKey];
 /* ---------- the room round you: the yard, or a 360° picture ----------
    Rooms: the built-in ones listed in ../rooms/rooms.json ([{k, name, file}], served with the site), and pictures you add on the
    page (kept on the headset in IndexedDB panyard-vr / rec as 'room:<id>', their names in localStorage panyard-vr-rooms).
-   The chosen one (localStorage panyard-vr-room: 'yard' or a key) is scene.background (equirectangular); the sky, floor, flag
+   The chosen one (localStorage panyard-vr-room: 'yard' or a key) is drawn on a grounded dome (groundedSky: its floor at y 0); the sky, floor, flag
    and the yard's roof step aside while it shows, and it's never shown in passthrough. Pictures are cut to at most
    4096 × 2048 so the headset can hold them. */
 const ROOM={k:LS('room')||'yard',list:[],tex:null,texK:null};
 let MYROOMS=[];try{MYROOMS=JSON.parse(LS('rooms')||'[]')||[]}catch{MYROOMS=[]}
 const roomActive=()=>ROOM.k!=='yard'&&!!ROOM.tex&&ROOM.texK===ROOM.k&&!inRoom;
-function applyRoom(){const a=roomActive();scene.background=a?ROOM.tex:null;sky.visible=!inRoom&&!a;floor.visible=!inRoom&&!a;shed.visible=inYard()&&!inRoom&&!a;flag.visible=LOOKS[lookKey].flag&&!inRoom&&!a;dirty=true}
+/* grounded: the picture on a dome whose lower half is pressed flat into a floor ROOM_EYE below the picture's camera, so the
+   floor in the picture lies at your feet and your two eyes see it at different angles (as three.js's GroundedSkybox does).
+   On scene.background it sat at infinity: the floor looked miles below you and felt like floating. */
+const ROOM_R=24;let roomMesh=null,roomEyeK='';
+const roomEye=k=>{const v=+LS('roomeye-'+k);return v>=1.1&&v<=2.3?v:1.6};   // how far below the picture's camera its floor is (page: Floor lower / higher)
+function groundedSky(tex,h){const g=new THREE.SphereGeometry(ROOM_R,128,64);g.scale(1,1,-1);const pos=g.getAttribute('position'),v=new THREE.Vector3(),y1=-h*3/2;
+  for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);if(v.y<0){const f=v.y<y1?-h/v.y:(1-v.y*v.y/(3*y1*y1));v.multiplyScalar(f);v.toArray(pos.array,3*i)}}
+  pos.needsUpdate=true;const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({map:tex,depthWrite:false}));m.position.y=h-.01;m.renderOrder=-1;return m}
+function applyRoom(){const a=roomActive();scene.background=null;
+  const ek=ROOM.k+':'+roomEye(ROOM.k);if(a&&(!roomMesh||roomMesh.material.map!==ROOM.tex||roomEyeK!==ek)){if(roomMesh){scene.remove(roomMesh);roomMesh.geometry.dispose();roomMesh.material.dispose()}roomMesh=groundedSky(ROOM.tex,roomEye(ROOM.k));roomEyeK=ek;scene.add(roomMesh)}
+  if(roomMesh)roomMesh.visible=a;sky.visible=!inRoom&&!a;floor.visible=!inRoom&&!a;shed.visible=inYard()&&!inRoom&&!a;flag.visible=LOOKS[lookKey].flag&&!inRoom&&!a;dirty=true}
 async function roomTex(k){const R=ROOM.list.find(x=>x.k===k);if(!R)return null;let url,own=false;
   if(R.mine){const b=await recGet('room:'+k);if(!b)return null;url=URL.createObjectURL(b);own=true}else url='../rooms/'+R.file;
-  try{const t=await new THREE.TextureLoader().loadAsync(url);t.mapping=THREE.EquirectangularReflectionMapping;t.colorSpace=THREE.SRGBColorSpace;return t}finally{if(own)URL.revokeObjectURL(url)}}
+  try{const t=await new THREE.TextureLoader().loadAsync(url);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}finally{if(own)URL.revokeObjectURL(url)}}
 async function setRoom(k){ROOM.k=ROOM.list.some(x=>x.k===k)?k:'yard';LSset('room',ROOM.k);
   if(ROOM.k!=='yard'&&ROOM.texK!==ROOM.k){try{const t=await roomTex(ROOM.k);if(t){if(ROOM.tex)ROOM.tex.dispose();ROOM.tex=t;ROOM.texK=ROOM.k}}catch(e){console.warn('room',e);toast('That room picture couldn\'t be opened')}}
   applyRoom();roomUI();if(menu.m.visible)drawMenu()}
@@ -411,7 +421,8 @@ async function roomAdd(file){const bm=await createImageBitmap(file),w=Math.min(4
   const r=bm.width/bm.height;return Math.abs(r-2)<.1?'':'This picture is '+bm.width+' × '+bm.height+', not 2:1, so it may look stretched.'}
 async function roomRemove(){const R=ROOM.list.find(x=>x.k===ROOM.k);if(!R||!R.mine)return;try{await recPut('room:'+R.k,null)}catch{}MYROOMS=MYROOMS.filter(x=>x.k!==R.k);LSset('rooms',JSON.stringify(MYROOMS));ROOM.list=ROOM.list.filter(x=>x.k!==R.k);await setRoom('yard')}
 function roomUI(){const seg=$('roomSeg');if(!seg)return;seg.innerHTML='';for(const R of ROOM.list){const b=document.createElement('button');b.textContent=R.name;b.setAttribute('aria-pressed',String(R.k===ROOM.k));b.onclick=()=>setRoom(R.k);seg.appendChild(b)}
-  const cur=ROOM.list.find(x=>x.k===ROOM.k);$('roomDel').hidden=!(cur&&cur.mine)}
+  const cur=ROOM.list.find(x=>x.k===ROOM.k);$('roomDel').hidden=!(cur&&cur.mine);$('roomEyeBox').hidden=ROOM.k==='yard'}
+function roomNudge(d){if(ROOM.k==='yard')return;const v=Math.max(1.1,Math.min(2.3,+(roomEye(ROOM.k)+d).toFixed(2)));LSset('roomeye-'+ROOM.k,String(v));applyRoom();$('roomNote').textContent='Floor '+v.toFixed(2)+' m below your eyes in this room.'}
 // a sign behind the pans
 const sign=new THREE.Mesh(new THREE.PlaneGeometry(.8,.2),new THREE.MeshBasicMaterial({transparent:true}));sign.position.set(0,.55,-.6);sign.rotation.x=-.2;rig.add(sign);
 function signFor(){return canvasTex(1024,256,(g)=>{g.fillStyle='rgba(12,18,24,.82)';g.beginPath();g.roundRect(0,0,1024,256,40);g.fill();
@@ -1401,6 +1412,7 @@ document.querySelectorAll('#setSeg button').forEach(b=>b.onclick=()=>useSet(b.da
 document.querySelectorAll('#lookSeg button').forEach(b=>b.onclick=()=>{lookKey=b.dataset.look;LSset('look',lookKey);applyLook()});
 $('roomAdd').onclick=()=>$('roomIn').click();$('roomIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;$('roomNote').textContent='Getting your picture ready…';
   try{const w=await roomAdd(f);$('roomNote').textContent=w||'Your room is ready. In VR, the menu\'s Room button switches rooms.'}catch(err){console.warn(err);$('roomNote').textContent='That picture couldn\'t be used: '+(err.message||err)}};
+$('roomLow').onclick=()=>roomNudge(.1);$('roomHigh').onclick=()=>roomNudge(-.1);
 $('roomDel').onclick=()=>{if(confirm('Remove this room picture from the headset?'))roomRemove()};roomsLoad();
 
 /* ---------- going into VR (or into your own room, with the headset's cameras) ---------- */
@@ -1900,7 +1912,7 @@ function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRec
   g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, chords and reading, on your tenor or double seconds',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
-const VR=window.VR={room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!scene.background,sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t)=>classHit(id,t),beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
+const VR=window.VR={room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t)=>classHit(id,t),beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
     level:n=>classLevel(n),spd:v=>act('clsspd:'+v),map:()=>{const st=step(),it=st&&st.items&&st.items[CLASS.k];return {gold:st&&it&&(st.glow||CLASS.shown)?sugOf(st,it):[],bad:CLASS.badId}},song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
     beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
     glow:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>n.id+':'+n.cue.material.color.getHexString())),voicing:(t,s)=>voicing(t,s),hint:(a,b)=>hintFor(a,b),boardAt:()=>board.m.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(2))},rendered:null,render:async()=>{const b=await renderSong(SONG);return VR.rendered},inbox:()=>INBOX,hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,
