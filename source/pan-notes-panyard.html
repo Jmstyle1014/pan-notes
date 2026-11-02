@@ -9405,7 +9405,7 @@ var BAND=(()=>{
      hit stays a pan and not a thud. A pan's ring and body come from its skirt, so those stay your recording's own. */
   const SOFT={v:[0.15,0.43,0.71,1],oct:[-14,-6,-1,0],third:[-20,-13,-4,0],top:[-22,-17,-4.5,0]};
   function softAt(k,v){const V=SOFT.v,G=SOFT[k];if(v<=V[0])return G[0];for(let i=1;i<V.length;i++)if(v<=V[i]){const u=(v-V[i-1])/(V[i]-V[i-1]);return G[i-1]+(G[i]-G[i-1])*u}return 0}
-  function softNodes(ac,f,v){const out=[],q=(ty,fq,g,Q)=>{if(Math.abs(g)<0.3||fq>20000)return;const b=ac.createBiquadFilter();b.type=ty;b.frequency.value=fq;b.gain.value=g;if(Q)b.Q.value=Q;out.push(b)};
+  function softNodes(ac,f,v){const out=[],q=(ty,fq,g,Q)=>{if(Math.abs(g)<1||fq>20000)return;/* under 1 dB can't be heard: a firm hit takes the same path as before */const b=ac.createBiquadFilter();b.type=ty;b.frequency.value=fq;b.gain.value=g;if(Q)b.Q.value=Q;out.push(b)};
     q('peaking',f*2,softAt('oct',v),5);q('peaking',f*3,softAt('third',v),5);q('highshelf',f*3.6,softAt('top',v));return out}
   const COVER_SETS=['tenor','dten','dsec'];
   // each pan's body note in Hz, from its skirt length (inches) and a 22.5 in drum: 343 / (4 (L + 0.3 d))
