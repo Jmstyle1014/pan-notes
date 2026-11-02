@@ -1428,8 +1428,11 @@ const PCN=['C','C♯','D','E♭','E','F','F♯','G','G♯','A','B♭','B'],ALT={
 const cm=id=>+id.split(':')[1],cpc=m=>((m%12)+12)%12;
 const CI={};
 function cInfo(id){if(CI[id])return CI[id];const set=id.split(':')[0],S=SETS[set];if(!S)return null;
-  S.drums.forEach((d,i)=>d.notes.forEach(n=>{const v=(n.path.match(/-?\d+(\.\d+)?/g)||[]).map(Number);let x=0,y=0,c=0;for(let j=0;j+1<v.length;j+=2){x+=v[j];y+=v[j+1];c++}
-    CI[n.id]={label:n.label,pos:n.pos,drum:i,dname:d.name,x:c?x/c:d.cx,y:c?y/c:d.cy,left:S.drums.length>1?(d.cx<=Math.min(...S.drums.map(q=>q.cx))):null}}));return CI[id]||null}
+  // the centre of each note's shape, from the browser's own measure of the path (arcs included)
+  if(!cInfo.sv){cInfo.sv=document.createElementNS('http://www.w3.org/2000/svg','svg');cInfo.sv.style.cssText='position:absolute;width:0;height:0;visibility:hidden';document.body.appendChild(cInfo.sv)}
+  S.drums.forEach((d,i)=>d.notes.forEach(n=>{const pe=document.createElementNS('http://www.w3.org/2000/svg','path');pe.setAttribute('d',n.path);cInfo.sv.appendChild(pe);let bb=null;try{bb=pe.getBBox()}catch{}pe.remove();
+    const x=bb&&bb.width?bb.x+bb.width/2:d.cx,y=bb&&bb.height?bb.y+bb.height/2:d.cy;
+    CI[n.id]={label:n.label,pos:n.pos,drum:i,dname:d.name,x,y,left:S.drums.length>1?(d.cx<=Math.min(...S.drums.map(q=>q.cx))):null}}));return CI[id]||null}
 const cid=(set,m)=>NOTE[set+':'+m]?set+':'+m:null;
 const cnm=(m,set)=>{const i=cid(set||CLASS.set,m);const c=i&&cInfo(i);return c?c.label:PCN[cpc(m)]};
 const both=n=>ALT[n]?n+' ('+ALT[n]+')':n;
@@ -1444,7 +1447,7 @@ function hintFor(want,got){const a=cInfo(want),b=cInfo(got);if(!a||!b)return 'Th
 function voicing(tri,set){set=set||CLASS.set;const c=[];for(const p of tri)for(const m of [60+p,72+p])if(cid(set,m)&&m<=81)c.push(m);let best=null,bs=1e9;
   for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){const a=c[i],b=c[j];if(cpc(a)===cpc(b))continue;const A=cInfo(cid(set,a)),B=cInfo(cid(set,b));
     const third=tri[1]%12,hasThird=cpc(a)===third||cpc(b)===third;   /* the third makes it major or minor: always keep it, and the two notes close in pitch */
-    let s=Math.hypot(A.x-B.x,A.y-B.y)+(set==='dsec'&&A.drum===B.drum?400:0)+(hasThird?0:600)+Math.abs(b-a)*25+(Math.abs(b-a)>9?400:0)+Math.abs((a+b)/2-67)*4;if(s<bs){bs=s;best=[a,b].sort((x,y)=>x-y)}}
+    let s=Math.hypot(A.x-B.x,A.y-B.y)+(set==='dsec'&&A.drum===B.drum?2000:0)+(hasThird?0:600)+Math.abs(b-a)*25+(Math.abs(b-a)>9?400:0)+Math.abs((a+b)/2-67)*4;if(s<bs){bs=s;best=[a,b].sort((x,y)=>x-y)}}
   return best}
 /* ---- Level 1 */
 function lessonsFor(set){const T=set==='tenor',I=m=>cid(set,m),N=m=>cnm(m,set),one=(m,any)=>({ids:[I(m)],any,label:any?both(N(m)):N(m)+' ('+ringOf(I(m))+')'});
@@ -1498,113 +1501,360 @@ function lessonsFor(set){const T=set==='tenor',I=m=>cid(set,m),N=m=>cnm(m,set),o
     {t:'play',lines:['G major, up.'],glow:false,items:[67,69,71,72,74,76,78,79].map((m,i)=>({ids:[I(m)],label:i?'note '+(i+1)+' of 8':'note 1 of 8: G'}))},
     {t:'play',lines:['The chords, two notes each.'],glow:false,items:[['F',vF],['C',vC],['G',vG]].map(([c,v])=>({ids:seq(v),label:c+' chord'}))},
     {t:'beat',lines:['In time: C on beats 1 and 3, G on 2 and 4.'],bpm:80,len:8,beats:Array.from({length:8},(_,b)=>({b,ids:[I(b%2?67:60)]}))}]}]}
-let LESSONS=lessonsFor(CLASS.set);
-const pk=i=>CLASS.set+':'+i,stars=i=>CPROG[pk(i)]||0,clsOpen=i=>i===0||stars(i-1)>=2;
-function speak(t){if(!CLASS.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/♯/g,' sharp').replace(/♭/g,' flat').replace(/[★☆✓✗🎓🔊]/g,'').replace(/\+/g,' and '));u.rate=.97;speechSynthesis.speak(u);VR.said.push(u.text)}catch{}}
+/* ---- Level 2: chords, keys and reading music (tenor and double seconds) ---- */
+function lessons2For(set){const T=set==='tenor',I=m=>cid(set,m),N=m=>cnm(m,set),seq=ms=>ms.map(I);
+  const one=(m,any)=>({ids:[I(m)],any,label:any?both(N(m)):N(m)});
+  const chord=(n,o)=>Object.assign({chord:chordOf(n),label:chordOf(n).name},o||{});
+  const vo=(n,prev,g)=>seq(chordVoice(set,chordOf(n),prev,g)||[]);
+  const prog=(names,g)=>{let p=null;return names.map(n=>{const v=chordVoice(set,chordOf(n),p,g);p=v||p;return seq(v||[])})};
+  const roll=(n,cnt)=>({roll:vo(n),n:cnt||10,gap:.11});
+  const scale=(m0,steps)=>steps.reduce((a,s)=>(a.push(a[a.length-1]+s),a),[m0]);
+  const MAJ=[2,2,1,2,2,2,1],MIN=[2,1,2,2,1,2,2];
+  const Bb0=I(58)?58:70,Bb=scale(Bb0,MAJ),AM=scale(69,MIN),CMAJ=scale(60,MAJ);
+  const ear=(name,third,wrong)=>({hear:[{roll:vo(name),n:6,gap:.14}],ids:[I(60+third)],any:true,label:'Major or minor? Play its third.',alt:{[wrong%12]:'That\'s '+pcName(wrong)+(chordOf(name).q==='m'?': the major third. Listen again: this one sounds darker.':': the minor third. Listen again: this one sounds bright.')}});
+  return [
+  {title:'The staff',steps:[
+    {t:'say',lines:['Music is written on five lines: the staff. The treble clef at the start marks the second line up as G.','The lines, from the bottom, are E G B D F (Every Good Boy Does Fine). The spaces are F A C E.'],staff:[64,67,71,74,77],demo:seq([64,67,71,74,77])},
+    {t:'say',lines:['Middle C sits on its own short line just below the staff: a ledger line. Each step up the staff is the next letter.'],staff:CMAJ,demo:seq(CMAJ)},
+    {t:'play',lines:['Read each gold note and play it. The notes glow to help.'],glow:true,read:true,items:[64,67,71,74,77].map(m=>({ids:[I(m)],label:N(m)}))},
+    {t:'play',lines:['On your own: read the gold note.'],glow:false,read:true,items:[69,65,72,62,76,67,60].map(m=>({ids:[I(m)],label:N(m)}))}]},
+  {title:'Note lengths and rests',steps:[
+    {t:'say',lines:['A note\'s shape says how long it lasts. A whole note (open, no stem) is 4 beats, a half note (open, with a stem) 2, a quarter note (filled in) 1, and an eighth note (with a flag) half a beat.','Rests are the same lengths of silence.'],rh:'w | h h | q q q q | e e e e q Q',ids:[I(72)],rdemo:{rh:'w | h h | q q q q | e e e e q Q',bpm:80,id:I(72)}},
+    {t:'beat',lines:['Read it and play C. The gold line shows where you are.'],bpm:72,rh:'q q h | q q q Q',ids:[I(72)]},
+    {t:'beat',lines:['Halves, quarters and eighths.'],bpm:72,rh:'h q q | e e q h',ids:[I(72)]},
+    {t:'beat',lines:['With rests: stay silent on them.'],bpm:76,rh:'q e e Q q | e e e e h',ids:[I(72)],noglow:true}]},
+  {title:'The minor sound',steps:[
+    {t:'say',lines:['A minor uses the same notes as C major, but starts on A: A B C D E F G A.','Starting on A gives the minor sound: darker, sadder. It\'s C major\'s relative minor.'],staff:AM,demo:seq(AM)},
+    {t:'say',lines:['Listen: C major, then A minor.'],demo:[...seq(CMAJ),{rest:.6},...seq(AM)]},
+    {t:'play',lines:['A minor up, reading the staff.'],glow:true,read:true,items:AM.map(m=>({ids:[I(m)],label:N(m)}))},
+    {t:'play',lines:['And down on your own.'],glow:false,items:AM.slice().reverse().map(m=>one(m))}]},
+  {title:'Major or minor: the third decides',steps:[
+    {t:'say',lines:['A chord is major or minor because of its third. C major is C, E, G. C minor is C, E♭, G: only the third is lower.','So with two sticks you always keep the third.'],demo:[{roll:seq([60,64,67]),n:6,gap:.14},{rest:.3},{roll:seq([60,63,67]),n:6,gap:.14}]},
+    {t:'play',lines:['Play each chord: any two of its notes, together, with the third.'],glow:true,items:['C','Cm','F','Fm','G','Gm'].map(n=>chord(n))},
+    {t:'play',lines:['Ear test: the pan plays a chord. If it\'s major, play the major third; if minor, the minor third. 🔊 Hear it plays it again.'],glow:false,items:[ear('C',4,3),ear('Am',0,1),ear('Dm',5,6),ear('F',9,8),ear('Em',7,8),ear('G',11,10)]}]},
+  {title:'Chord symbols: every chord in a key',steps:[
+    {t:'say',lines:['Charts write chords as symbols: C means C major, Dm means D minor, G7 means G seventh, B° means B diminished.','The chords in C major: C, Dm, Em, F, G, Am and B°.'],demo:prog(['C','Dm','Em','F','G','Am'])},
+    {t:'say',lines:['Bands count them: C is the 1, Dm the 2, F the 4, G the 5, Am the 6.','"Go to the 4" means F. "1, 6, 4, 5" means C, Am, F, G.'],demo:prog(['C','Am','F','G'])},
+    {t:'play',lines:['Play each chord from its symbol. The closest pair glows.'],glow:true,items:['C','Dm','Em','F','G','Am'].map(n=>chord(n))},
+    {t:'play',lines:['By number, on your own (in C).'],glow:false,items:[['G','the 5'],['Am','the 6 (minor)'],['Dm','the 2 (minor)'],['F','the 4'],['C','the 1']].map(([n,l])=>chord(n,{label:l}))}]},
+  {title:'Keys round the circle',steps:[
+    {t:'say',lines:[T?'Your tenor\'s outer ring is the circle of fifths. One step round from C is G: the key of G has one sharp, F♯. The next, D, has two: F♯ and C♯.':'Keys go round the circle of fifths. From C, the key of G has one sharp (F♯); D has two (F♯ and C♯).',(T?'Going the other way round':'The other way')+', F has one flat (B♭) and B♭ has two (B♭ and E♭).','A key\'s sharps or flats are written once, at the start of the staff: the key signature.'],staff:scale(67,MAJ),key:'G',demo:seq(scale(67,MAJ))},
+    {t:'play',lines:['G major: the key signature says every F is F♯.'],glow:true,read:true,key:'G',items:scale(67,MAJ).map(m=>({ids:[I(m)],label:N(m)}))},
+    {t:'play',lines:['D major: two sharps.'],glow:true,read:true,key:'D',items:scale(62,MAJ).map(m=>({ids:[I(m)],label:N(m)}))},
+    {t:'play',lines:['F major on your own: one flat.'],glow:false,read:true,key:'F',items:scale(65,MAJ).map(m=>({ids:[I(m)],label:N(m)}))},
+    {t:'play',lines:['B♭ major on your own: two flats.'],glow:false,read:true,key:'B♭',items:Bb.map(m=>({ids:[I(m)],label:N(m)}))}]},
+  {title:'Smooth changes',steps:[
+    {t:'say',lines:['When the chord changes, move your sticks as little as you can. Often a note the two chords share can stay, and the other moves just a step.','Listen: C, Am, F, G, played the smooth way.'],demo:prog(['C','Am','F','G','C'])},
+    {t:'play',lines:['Follow the glow: the closest pair each time.'],glow:true,items:['C','Am','F','G','C'].map(n=>chord(n,{smooth:true}))},
+    {t:'play',lines:['On your own: any two notes with the third, as close as you can. Your sticks\' travel is measured.'],glow:false,items:['C','F','G','C','Am','Dm','G','C'].map(n=>chord(n,{smooth:true}))}]},
+  {title:'Sevenths: two notes that say it all',steps:[
+    {t:'say',lines:['A seventh chord has four notes: G7 is G, B, D and F.','With two sticks, play the two that give it its sound, the 3rd and the 7th: B and F. These are the guide tones.'],demo:[{roll:seq([67,71,74,77]),n:8,gap:.13},{rest:.3},vo('G7',null,true)]},
+    {t:'say',lines:['In 2–5–1 (Dm7, G7, Cmaj7) the guide tones move by just a step each time. It\'s the sound of jazz and of many calypsos.'],demo:prog(['Dm7','G7','Cmaj7'],true)},
+    {t:'play',lines:['2–5–1 with guide tones (3rd + 7th).'],glow:true,items:['Dm7','G7','Cmaj7'].map(n=>chord(n,{guide:true,smooth:true}))},
+    {t:'play',lines:['On your own: the 3rd and 7th of each.'],glow:false,items:['G7','C7','Fmaj7','Am7'].map(n=>chord(n,{guide:true}))},
+    {t:'beat',lines:['2–5–1 in time with the band: Dm7, G7, Cmaj7, Cmaj7. Guide tones on beats 1 and 3.'],bpm:80,chart:{bars:['Dm7','G7','Cmaj7','Cmaj7']},strum:[0,2],guide:true,band:'calypso'}]},
+  {title:'Rolls and strums',steps:[
+    {t:'say',lines:['A long chord on a pan is a roll: both sticks, quickly and evenly, left, right, left, right, on its two notes.'],demo:[roll('C',16)]},
+    {t:'beat',lines:['Roll C for 4 beats, then F for 4 beats. Keep it fast and even.'],bpm:72,len:8,beats:[{b:0,roll:true,len:4,ids:vo('C')},{b:4,roll:true,len:4,ids:vo('F')}]},
+    {t:'say',lines:['Strumming is short chord hits in a rhythm. Calypso strum: 1, 2-and, and-4.','Soca strum: on every "and", between the beats.']},
+    {t:'beat',lines:['Calypso strum: C then F, with the band.'],bpm:84,len:8,band:'calypso',bandChords:['C','F'],beats:[0,1.5,2.5,3].flatMap(b=>[{b,chord:chordOf('C')},{b:b+4,chord:chordOf('F')}])},
+    {t:'beat',lines:['Soca strum: G then C, on the "ands".'],bpm:92,len:8,band:'soca',bandChords:['G','C'],beats:[.5,1.5,2.5,3.5].flatMap(b=>[{b,chord:chordOf('G')},{b:b+4,chord:chordOf('C')}])}]},
+  {title:'Reading a chart',steps:[
+    {t:'say',lines:['A band chart shows the chords bar by bar. Play two notes of each on beats 1 and 3.','|: and :| are repeat signs: play the bars between them twice.'],chart:{bars:['C','Am','F','G'],rep:{from:0,to:3}}},
+    {t:'beat',lines:['Read the chart: it repeats.'],bpm:80,chart:{bars:['C','Am','F','G'],rep:{from:0,to:3}},strum:[0,2],band:'calypso'},
+    {t:'say',lines:['"1." and "2." are endings. The first time, play ending 1 and go back to the repeat sign. The second time, skip ending 1 and play ending 2.'],chart:{bars:['C','F','G','C'],rep:{from:0,to:2,end1:[2],end2:[3]}}},
+    {t:'beat',lines:['A chart with endings: C, F, G (1.), back; C, F, C (2.).'],bpm:80,chart:{bars:['C','F','G','C'],rep:{from:0,to:2,end1:[2],end2:[3]}},strum:[0,2],band:'calypso'}]},
+  {title:'Level 2 test: Mary Ann',test:true,steps:[
+    {t:'say',lines:['The Level 2 test: "Mary Ann", a traditional calypso from Trinidad. It uses just two chords: C (the 1) and G7 (the 5).','First a few questions, then read its chart and comp it with the band.'],chart:{bars:['C','C','G7','G7','G7','G7','C','C'],rep:{from:0,to:7}}},
+    {t:'play',lines:['Read these notes.'],glow:false,read:true,items:[69,64,72,67].map(m=>({ids:[I(m)],label:N(m)}))},
+    {t:'play',lines:['Major or minor? Play its third.'],glow:false,items:[ear('A',1,0),ear('Fm',8,9)]},
+    {t:'play',lines:['G7 with its guide tones, then C.'],glow:false,items:[chord('G7',{guide:true}),chord('C',{smooth:true})]},
+    {t:'beat',lines:['Mary Ann: two notes on beats 1 and 3, keep the third. The chart repeats.'],bpm:96,chart:{bars:['C','C','G7','G7','G7','G7','C','C'],rep:{from:0,to:7}},strum:[0,2],band:'calypso'}]}]}
+
+/* ---- Level 2 (Chords, keys and reading music) and the engine both levels share ----
+   CLASS.lvl (1 or 2, localStorage panyard-vr-cls-lvl) picks lessonsFor (Level 1) or lessons2For (Level 2); progress keys
+   are set:i for Level 1 (as before) and set:2:i for Level 2. New in Level 2:
+   · the staff (drawStaff: treble clef, ledger lines, accidentals from the pan's own spelling, key signatures, note
+     lengths and rests); a step's `staff` shows its notes and play items with `read` hide the name (read it off the staff);
+   · chord items ({chord: chordOf('Dm'), guide}): any two notes of the chord, played together, that keep its third (a seventh's
+     guide tones: 3rd and 7th); `smooth` scores how far the sticks moved against the closest choice (chordVoice/travel);
+   · ear items ({hear}): the pan plays it, you answer on the pan;
+   · beat steps with notation (`rh`: "q q h | e e q Q"), chords (`chart`: bars, |: :| repeats, 1st/2nd endings, `strum`),
+     rolls ({roll: ids, len}: about 4.5 hits a second or more, both notes, even), and a backing band (`band`: calypso or soca:
+     six bass on the root and fifth, kick, snare and hi-hat from the kit) on solo class tracks;
+   · 🎵 Practise my songs: a song saved in VR gets a chord per bar guessed from its notes (guessChords: every major and
+     minor triad scored against the bar's notes, the bass's notes counting double); tap a bar to try the next guess; comp
+     along while the song's other tracks play. */
+CLASS.lvl=LS('cls-lvl')==='2'?2:1;
+const lessonsAt=set=>CLASS.lvl===2?lessons2For(set):lessonsFor(set);
+let LESSONS=[];   // built once everything below exists (Level 2's lessons use the chord tables)
+const pk=i=>CLASS.set+(CLASS.lvl===2?':2:':':')+i,stars=i=>CPROG[pk(i)]||0,clsOpen=i=>i===0||stars(i-1)>=2;
+function speak(t){if(!CLASS.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/♯/g,' sharp').replace(/♭/g,' flat').replace(/°/g,' diminished').replace(/\|:|:\|/g,' ').replace(/[★☆✓✗🎓🔊🎵]/g,'').replace(/\+/g,' and '));u.rate=.97;speechSynthesis.speak(u);VR.said.push(u.text)}catch{}}
 const DTR=()=>({id:'cls-demo-'+CLASS.set,set:CLASS.set,vol:1,pan:0,mute:false,solo:true,notes:[]});
+const BTR={id:'cls-bass',set:'six',vol:.75,pan:0,mute:false,solo:true,notes:[]},KTR={id:'cls-kit',set:'kit',vol:.55,pan:0,mute:false,solo:true,notes:[]};
 function demo(list){if(!list||!ac)return;audio();let t=ac.currentTime+.25;const tr=DTR();
-  for(const x of list){if(x&&x.roll){x.roll.forEach((id,i)=>strike(id,.8,t+i*.13,tr));t+=.13*x.roll.length+.6;continue}
-    const ids=Array.isArray(x)?x:[x];ids.forEach(id=>id&&strike(id,.8,t,tr));t+=ids.length>1?.9:.55}}
+  for(const x of list){if(x&&x.roll){const r=x.roll,n=x.n||r.length;for(let i=0;i<n;i++)strike(r[i%r.length],.75,t+i*(x.gap||.13),tr);t+=(x.gap||.13)*n+.6;continue}
+    if(x&&x.rest){t+=x.rest;continue}const ids=Array.isArray(x)?x:[x];ids.forEach(id=>id&&strike(id,.8,t,tr));t+=ids.length>1?.9:.55}}
+// ---- chords: names, their notes, and the two notes a pan player picks
+const QUAL={'':[0,4,7],m:[0,3,7],'°':[0,3,6],'7':[0,4,7,10],m7:[0,3,7,10],maj7:[0,4,7,11]};
+function chordOf(name){const m=/^([A-G])([#b♯♭]?)(maj7|m7|m|7|°)?$/.exec(name);if(!m)throw Error('chord '+name);
+  const root=(({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[m[1]]+(/[#♯]/.test(m[2])?1:/[b♭]/.test(m[2])?-1:0)+12)%12,q=m[3]||'',iv=QUAL[q];
+  return {name:name.replace('#','♯').replace(/^([A-G])b/,'$1♭'),root,q,tones:iv.map(x=>(root+x)%12),third:(root+iv[1])%12,seventh:iv[3]!=null?(root+iv[3])%12:null,fifth:(root+iv[2])%12}}
+const pcName=pc=>PCN[((pc%12)+12)%12];
+const toneNames=ch=>ch.tones.map(pcName).join(', ').replace(/, ([^,]*)$/,' and $1');
+function chordPairs(set,ch,guide){const c=[];for(let m=58;m<=83;m++)if(cid(set,m)&&ch.tones.includes(cpc(m)))c.push(m);const out=[];
+  for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){const a=c[i],b=c[j],ps=[cpc(a),cpc(b)];if(ps[0]===ps[1]||b-a>9)continue;
+    if(!ps.includes(ch.third))continue;if(guide&&ch.seventh!=null&&!ps.includes(ch.seventh))continue;out.push([a,b])}return out}
+const notePos=(set,m)=>{const c=cInfo(cid(set,m));return c?[c.x,c.y]:[0,0]};
+function travel(set,p,q){const d=(a,b)=>{const A=notePos(set,a),B=notePos(set,b);return Math.hypot(A[0]-B[0],A[1]-B[1])};return Math.min(d(p[0],q[0])+d(p[1],q[1]),d(p[0],q[1])+d(p[1],q[0]))}
+function chordVoice(set,ch,prev,guide){let best=null,bs=1e9;for(const v of chordPairs(set,ch,guide)){const A=cInfo(cid(set,v[0])),B=cInfo(cid(set,v[1]));
+    const same=prev&&cpc(prev[0])+','+cpc(prev[1])===[cpc(v[0]),cpc(v[1])].sort((a,b)=>a-b).join(',')||prev&&cpc(prev[1])+','+cpc(prev[0])===[cpc(v[0]),cpc(v[1])].sort((a,b)=>a-b).join(',');
+    const s=(same?1e5:0)+(prev?travel(set,prev,v)*1.2:Math.hypot(A.x-B.x,A.y-B.y))+(set==='dsec'&&A.drum===B.drum?(prev?600:2000):0)+(v[1]-v[0])*20+Math.abs((v[0]+v[1])/2-68)*4;if(s<bs){bs=s;best=v}}return best}
+const CM_PER=57/890;   // drawing units to centimetres (a 22.5 in drum is about 890 units across)
+// ---- rhythm notation: "q q h | e e q Q" (w h q e = 4 2 1 ½ beats; capitals are rests)
+const RH={w:4,h:2,q:1,e:.5};
+function rhythm(s){const out=[];let b=0;for(const tok of s.trim().split(/\s+/)){if(tok==='|'){out.push({bar:true,b});continue}const d=RH[tok.toLowerCase()];if(!d)continue;out.push({b,d,rest:tok!==tok.toLowerCase()});b+=d}return {ev:out,len:b}}
+// ---- a chart's bars in the order they're played: |: … :| twice, a 1st ending only the first time
+function chartOrder(ch){const n=ch.bars.length,R=ch.rep;if(!R)return [...Array(n).keys()];const o=[];
+  for(let i=0;i<=R.to;i++)o.push(i);for(let i=R.from;i<=R.to;i++)if(!(R.end1||[]).includes(i))o.push(i);for(let i=R.to+1;i<n;i++)o.push(i);return o}
+// ---- the backing band: six bass on the root and the fifth, and the kit
+const bassId=pc=>{for(const m of [36+pc,48+pc,24+pc])if(NOTE['six:'+m])return 'six:'+m;ensureNote('six:'+(36+pc),'six');return 'six:'+(36+pc)};
+function playBand(style,chords,t0,sp){if(!ac)return;for(let i=0;i<chords.length;i++){const c=chords[i];if(!c)continue;const bt=b=>t0+(i*4+b)*sp;
+    const bass=style==='soca'?[[0,c.root],[.5,c.root],[1.5,c.root],[2,c.root],[2.5,c.root],[3.5,c.fifth]]:[[0,c.root],[1.5,c.fifth],[2,c.root],[3.5,c.fifth]];
+    for(const [b,pc] of bass)strike(bassId(pc),.62,bt(b),BTR);
+    const kick=style==='soca'?[0,1,2,3]:[0,2],snare=[1,3];for(const b of kick)strike('drum:36',.7,bt(b),KTR);for(const b of snare)strike('drum:38',.45,bt(b),KTR);
+    for(let b=0;b<4;b+=.5)strike('drum:42',b%1?.32:.22,bt(b),KTR)}}
 // ---- going in and out
 function placeBoard(){const st=STN.get(CLASS.set)||STN.get(setKey),g=st?st.g:rig,[x,y,z]=hoverHome();
   const p=g.localToWorld(new THREE.Vector3(0,y+.55,z-.12)),q=g.localToWorld(new THREE.Vector3(0,y+.55,.5));board.m.position.copy(p);board.m.lookAt(q)}
+const levelName=()=>CLASS.lvl===2?'Level 2: chords, keys and reading music':'Level 1: know your '+(CLASS.set==='dsec'?'double seconds':'tenor');
 function classStart(){if(KIDS)return;menuOpen(false);if(LEARN.id)learnStop();if(TR.state!=='idle')stopAll();audio();
-  CLASS.on=true;CLASS.page='home';CLASS.beat=null;LESSONS=lessonsFor(CLASS.set);useSet(CLASS.set);table.visible=false;placeBoard();board.m.visible=true;door.m.visible=false;CLASS.redraw=true;
-  speak('Welcome to the classroom. Level 1: know your '+(CLASS.set==='dsec'?'double seconds':'tenor')+'. Pick a lesson.');dirty=true}
+  CLASS.on=true;CLASS.page='home';CLASS.beat=null;LESSONS=lessonsAt(CLASS.set);useSet(CLASS.set);table.visible=false;placeBoard();board.m.visible=true;door.m.visible=false;CLASS.redraw=true;
+  moreSounds([...Array(12).keys()].map(bassId));speak('Welcome to the classroom. '+levelName()+'. Pick a lesson.');dirty=true}
 function classStop(){CLASS.on=false;CLASS.beat=null;board.m.visible=false;table.visible=tableShown();try{speechSynthesis.cancel()}catch{}
   for(const d of drums)for(const n of d.notes){n.cA=0;n.cOk=0;n.cBad=0;if(n.cue)n.cue.visible=false}placeTable();dirty=true}
-function classSet(k){if(!CLS_SETS.includes(k))return;CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsFor(k);CLASS.page='home';CLASS.beat=null;useSet(k);table.visible=false;placeBoard();CLASS.redraw=true;speak(k==='dsec'?'Double seconds.':'Tenor.')}
+function classSet(k){if(!CLS_SETS.includes(k))return;CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsAt(k);CLASS.page='home';CLASS.beat=null;useSet(k);table.visible=false;placeBoard();CLASS.redraw=true;speak(k==='dsec'?'Double seconds.':'Tenor.')}
+function classLevel(n){CLASS.lvl=n===2?2:1;LSset('cls-lvl',String(CLASS.lvl));LESSONS=lessonsAt(CLASS.set);CLASS.page='home';CLASS.beat=null;CLASS.msg='';CLASS.redraw=true;speak(levelName()+'.')}
 function openLesson(i){if(!LESSONS[i])return;if(!clsOpen(i)){CLASS.msg='Get two stars on lesson '+i+' first.';CLASS.redraw=true;speak(CLASS.msg);return}
-  Object.assign(CLASS,{page:'lesson',L:i,S:0,mis:0});enterStep()}
-function enterStep(){const st=LESSONS[CLASS.L].steps[CLASS.S];Object.assign(CLASS,{k:0,wrong:0,shown:false,pend:{},beat:null,done:st.t==='say',msg:'',col:'#9fb0b8',hint:''});CLASS.redraw=true;
-  const it=st.items&&st.items[0];speak(st.lines.join(' ')+(it?' '+(st.glow?'Play ':'')+it.label+'.':st.t==='beat'?' Press Start when you\'re ready.':''));if(st.t==='say')setTimeout(()=>demo(st.demo),400)}
+  Object.assign(CLASS,{page:'lesson',L:i,S:0,mis:0,prev:null});enterStep()}
+function itemSay(it,st){return it.hear?it.label:st.read||it.read?'Play the gold note on the staff.':(st.glow?'Play ':'')+it.label+'.'}
+function enterStep(){const st=step();Object.assign(CLASS,{k:0,wrong:0,shown:false,pend:{},beat:null,done:st.t==='say',msg:'',col:'#9fb0b8',hint:'',prev:CLASS.S?CLASS.prev:null});CLASS.redraw=true;
+  const it=st.items&&st.items[0];speak(st.lines.join(' ')+(it?' '+itemSay(it,st):st.t==='beat'?' Press Start when you\'re ready.':''));
+  if(st.t==='say')setTimeout(()=>{demo(st.demo);if(st.rdemo)rhythmDemo(st.rdemo)},400);if(it&&it.hear)setTimeout(()=>demo(it.hear),2600)}
+function rhythmDemo(r){if(!ac)return;const R=rhythm(r.rh),sp=60/(r.bpm||80),t0=ac.currentTime+.4+4*sp,tr=DTR();for(let b=-4;b<R.len;b++)click(t0+b*sp,((b%4)+4)%4===0);for(const e of R.ev)if(!e.bar&&!e.rest)strike(r.id,.8,t0+e.b*sp,tr)}
 function nextStep(){const L=LESSONS[CLASS.L];if(CLASS.S<L.steps.length-1){CLASS.S++;enterStep();return}
   const s=CLASS.mis<=1?3:CLASS.mis<=4?2:1;CPROG[pk(CLASS.L)]=Math.max(stars(CLASS.L),s);LSset('cls',JSON.stringify(CPROG));CLASS.page='done';CLASS.got=s;CLASS.redraw=true;
-  speak((s===3?'Excellent! ':s===2?'Well done! ':'Good effort! ')+s+(s===1?' star.':' stars.')+(s<2?' Try it again for two stars to open the next lesson.':L.test?' You passed Level 1!':''))}
+  speak((s===3?'Excellent! ':s===2?'Well done! ':'Good effort! ')+s+(s===1?' star.':' stars.')+(s<2?' Try it again for two stars to open the next lesson.':L.test?' You passed Level '+CLASS.lvl+'!':''))}
 // ---- the pan answers
-const step=()=>CLASS.on&&CLASS.page==='lesson'?LESSONS[CLASS.L].steps[CLASS.S]:null;
+const step=()=>!CLASS.on?null:CLASS.page==='lesson'?LESSONS[CLASS.L].steps[CLASS.S]:CLASS.page==='song'&&CLASS.song&&CLASS.song.st||null;
 const notesOf=id=>{const o=[];for(const d of drums)if(d.set===id.split(':')[0])for(const n of d.notes)if(n.id===id)o.push(n);return o};
 const flash=(id,k)=>{for(const n of notesOf(id))n[k]=1};
 function matches(it,id){return it.any?NOTE[id]&&NOTE[id].set===CLASS.set&&it.ids.some(w=>cpc(cm(w))===cpc(cm(id))):it.ids.includes(id)}
+function wrongHit(id,msg){const st=step();flash(id,'cBad');CLASS.pend={};CLASS.wrong++;if(CLASS.wrong<=3)CLASS.mis++;
+  if(!st.glow&&CLASS.wrong>=2&&!CLASS.shown){CLASS.shown=true;msg+=' It\'s glowing now.'}CLASS.hint=msg;CLASS.msg=msg;CLASS.col='#ff6b5e';CLASS.redraw=true;speak(msg)}
 function classHit(id,t){const st=step();if(!st||id.startsWith('drum:'))return;
-  if(st.t==='beat'){const B=CLASS.beat;if(!B||B.over)return;let best=null;for(const e of B.exp)if(!e.ok&&e.ids.includes(id)&&!e.got.has(id)&&Math.abs(t-e.t)<=.17&&(!best||Math.abs(t-e.t)<Math.abs(t-best.t)))best=e;
-    if(best){best.got.add(id);flash(id,'cOk');if(best.got.size===best.ids.length){best.ok=true;B.ok++}}else{B.extra++;flash(id,'cBad')}CLASS.redraw=true;return}
-  if(st.t!=='play'||CLASS.done)return;const it=st.items[CLASS.k];
+  if(st.t==='beat')return beatHit(id,t);if(st.t!=='play'||CLASS.done)return;const it=st.items[CLASS.k];
   if(NOTE[id]&&NOTE[id].set!==CLASS.set){CLASS.msg='That\'s a different pan: play your '+(CLASS.set==='dsec'?'double seconds':'tenor')+'.';CLASS.col='#ff9f0a';CLASS.redraw=true;return}
+  if(it.chord)return chordHit(it,id,t);
   if(matches(it,id)){flash(id,'cOk');if(it.ids.length===1)return advance();CLASS.pend[id]=t;const all=it.ids.every(w=>CLASS.pend[w]!=null&&Math.abs(CLASS.pend[w]-t)<.45);
     if(all)return advance();CLASS.msg='Good, and the other note at the same time…';CLASS.col='#9fb0b8';CLASS.redraw=true;return}
-  flash(id,'cBad');CLASS.pend={};CLASS.wrong++;if(CLASS.wrong<=3)CLASS.mis++;const want=it.ids.find(w=>!it.any||true);
-  CLASS.hint=it.ids.length>1?'That\'s '+(cInfo(id)||{label:'?'}).label+'. Play '+it.ids.map(w=>cInfo(w).label).join(' and ')+' together.':hintFor(it.any?nearestOf(it,id):want,id);
-  if(!st.glow&&CLASS.wrong>=2&&!CLASS.shown){CLASS.shown=true;CLASS.hint+=' It\'s glowing now.'}
-  CLASS.msg=CLASS.hint;CLASS.col='#ff6b5e';CLASS.redraw=true;speak(CLASS.hint)}
+  const alt=it.alt&&it.alt[cpc(cm(id))];
+  wrongHit(id,alt?alt:it.ids.length>1?'That\'s '+(cInfo(id)||{label:'?'}).label+'. Play '+it.ids.map(w=>cInfo(w).label).join(' and ')+' together.':hintFor(it.any?nearestOf(it,id):it.ids[0],id))}
+function chordHit(it,id,t){const ch=it.chord,pc=cpc(cm(id));
+  if(!ch.tones.includes(pc))return wrongHit(id,'That\'s '+cInfo(id).label+'. '+ch.name+' is '+toneNames(ch)+': play two of them'+(it.guide&&ch.seventh!=null?', the '+pcName(ch.third)+' and the '+pcName(ch.seventh)+'.':', with the '+pcName(ch.third)+'.'));
+  flash(id,'cOk');for(const k of Object.keys(CLASS.pend))if(t-CLASS.pend[k]>.45)delete CLASS.pend[k];CLASS.pend[id]=t;
+  const ids=Object.keys(CLASS.pend),pcs=new Set(ids.map(i=>cpc(cm(i))));
+  if(pcs.size>=2){const ok=pcs.has(ch.third)&&(!it.guide||ch.seventh==null||pcs.has(ch.seventh));
+    if(ok){const pick=[];for(const i of ids.sort((a,b)=>CLASS.pend[b]-CLASS.pend[a]))if(!pick.some(p=>cpc(cm(p))===cpc(cm(i))))pick.push(i);return acceptChord(it,pick.slice(0,2).map(cm).sort((a,b)=>a-b))}
+    if(CLASS.wrong<1){CLASS.wrong++;CLASS.mis++}CLASS.pend={};CLASS.msg='Both are in '+ch.name+', but keep the '+(it.guide?pcName(ch.third)+' and the '+pcName(ch.seventh):pcName(ch.third))+(it.guide?': the 3rd and 7th give it its sound.':': the third says major or minor.');CLASS.col='#ff9f0a';CLASS.redraw=true;speak(CLASS.msg);return}
+  CLASS.msg='Good: and another note of '+ch.name+' with it…';CLASS.col='#9fb0b8';CLASS.redraw=true}
+function acceptChord(it,v){let note='';
+  if(CLASS.prev&&[cpc(v[0]),cpc(v[1])].sort().join()===[cpc(CLASS.prev[0]),cpc(CLASS.prev[1])].sort().join()){const only=it.chord.tones.filter(p=>p!==cpc(v[0])&&p!==cpc(v[1]));CLASS.pend={};
+    CLASS.msg='Those are the same two notes as the last chord, so the change isn\'t heard. Move one stick'+(only.length?' to '+only.map(pcName).join(' or '):'')+'.';CLASS.col='#ff9f0a';CLASS.redraw=true;speak(CLASS.msg);return}if(it.smooth&&CLASS.prev){const set=CLASS.set,moved=travel(set,CLASS.prev,v);let best=1e9,bv=null;for(const q of chordPairs(set,it.chord,it.guide)){if([cpc(q[0]),cpc(q[1])].sort().join()===[cpc(CLASS.prev[0]),cpc(CLASS.prev[1])].sort().join())continue;const d=travel(set,CLASS.prev,q);if(d<best){best=d;bv=q}}
+    if(moved<=best*1.25+40)note='Smooth: your sticks moved '+Math.round(moved*CM_PER)+' cm.';else{note='That works, but '+bv.map(m=>cnm(m)).join(' + ')+' was closer ('+Math.round(best*CM_PER)+' cm, not '+Math.round(moved*CM_PER)+').';CLASS.mis++}}
+  CLASS.prev=v;advance(note)}
 function nearestOf(it,got){const pc=cpc(cm(it.ids[0]));let best=it.ids[0],bd=1e9;for(const n of NOTE_IDS(CLASS.set))if(cpc(cm(n))===pc){const d=Math.abs(cm(n)-cm(got));if(d<bd){bd=d;best=n}}return best}
 const NOTE_IDS=set=>SETS[set].drums.flatMap(d=>d.notes.map(n=>n.id));
-function advance(){const st=step();CLASS.k++;CLASS.wrong=0;CLASS.shown=false;CLASS.pend={};CLASS.hint='';
-  if(CLASS.k>=st.items.length){CLASS.done=true;CLASS.msg='✓ Well done!';CLASS.col='#30d158';CLASS.redraw=true;speak('Well done!');const S=CLASS.S,L=CLASS.L;setTimeout(()=>{if(CLASS.page==='lesson'&&CLASS.S===S&&CLASS.L===L&&CLASS.done)nextStep()},1600);return}
-  CLASS.msg='✓';CLASS.col='#30d158';CLASS.redraw=true;speak(st.items[CLASS.k].label)}
-function beatStart(){const st=step();if(!st||st.t!=='beat')return;audio();if(ac.state==='suspended')ac.resume();const sp=60/st.bpm,t0=ac.currentTime+.5+4*sp;
-  CLASS.beat={t0,sp,ok:0,extra:0,over:false,end:t0+st.len*sp,exp:st.beats.map(x=>({t:t0+x.b*sp,b:x.b,ids:x.ids.slice(),got:new Set(),ok:false}))};
-  for(let b=-4;b<st.len;b++)click(t0+b*sp,((b%4)+4)%4===0);CLASS.msg='Listen: 1, 2, 3, 4…';CLASS.col='#9fb0b8';CLASS.done=false;CLASS.redraw=true}
-function beatEnd(){const B=CLASS.beat,n=B.exp.length,miss=n-B.ok,pct=Math.round(100*B.ok/n);B.over=true;CLASS.mis+=Math.ceil(miss/2);CLASS.done=true;
-  CLASS.msg=pct>=90?'✓ '+B.ok+' of '+n+' in time. Great!':pct>=60?B.ok+' of '+n+' in time. Good: again, or go on.':B.ok+' of '+n+' in time. Try it again: listen for the click.';CLASS.col=pct>=60?'#30d158':'#ff9f0a';CLASS.redraw=true;speak(CLASS.msg)}
+function advance(note){const st=step();CLASS.k++;CLASS.wrong=0;CLASS.shown=false;CLASS.pend={};CLASS.hint='';
+  if(CLASS.k>=st.items.length){CLASS.done=true;CLASS.msg=(note?note+' ':'')+'✓ Well done!';CLASS.col='#30d158';CLASS.redraw=true;speak(CLASS.msg);const S=CLASS.S,L=CLASS.L;setTimeout(()=>{if(CLASS.page==='lesson'&&CLASS.S===S&&CLASS.L===L&&CLASS.done)nextStep()},note?2600:1600);return}
+  const it=st.items[CLASS.k];CLASS.msg=note?(note.startsWith('That works')?note:'✓ '+note):'✓';CLASS.col=note&&note.startsWith('That works')?'#ff9f0a':'#30d158';CLASS.redraw=true;
+  speak((note?note+' ':'')+itemSay(it,st));if(it.hear)setTimeout(()=>demo(it.hear),note?2600:1300)}
+// what glows for a play step: the item's notes, or for a chord the closest pair to where your sticks are
+function sugOf(st,it){if(it.chord)return (chordVoice(CLASS.set,it.chord,CLASS.prev,it.guide)||[]).map(m=>cid(CLASS.set,m));return it.any&&!st.glow?[nearestOf(it,it.ids[0])]:it.ids}
+// ---- in time with the click: notes, chords, rolls, with or without the band
+function beatPlan(st){const out=[];
+  if(st.chart){const ord=chartOrder(st.chart),strum=st.strum||[0,2];let prev=null;ord.forEach((bi,k)=>{const ch=chordOf(st.chart.bars[bi]);for(const b of strum){const v=chordVoice(CLASS.set,ch,prev,st.guide);prev=v||prev;out.push({b:k*4+b,chord:ch,sug:v,bar:bi,guide:st.guide})}});return {exp:out,len:ord.length*4,chords:ord.map(i=>chordOf(st.chart.bars[i]))}}
+  if(st.rh){const R=rhythm(st.rh);for(const e of R.ev)if(!e.bar&&!e.rest)out.push({b:e.b,ids:st.ids.slice()});return {exp:out,len:R.len,chords:st.bandChords?st.bandChords.map(CH):null}}
+  for(const x of st.beats)out.push(x.roll?{b:x.b,roll:true,len:x.len,ids:x.ids}:x.chord?{b:x.b,chord:x.chord,sug:chordVoice(CLASS.set,x.chord,null,x.guide),guide:x.guide}:{b:x.b,ids:x.ids.slice()});
+  return {exp:out,len:st.len,chords:st.bandChords?st.bandChords.map(CH):null}}
+function beatStart(){const st=step();if(!st||st.t!=='beat')return;audio();if(ac.state==='suspended')ac.resume();const P=beatPlan(st),sp=60/st.bpm,t0=ac.currentTime+.5+4*sp;
+  CLASS.beat={t0,sp,ok:0,extra:0,over:false,len:P.len,end:t0+P.len*sp,exp:P.exp.map(x=>({...x,t:t0+x.b*sp,t2:x.roll?t0+(x.b+x.len)*sp:null,got:x.chord?new Map():new Set(),hits:[],ok:false}))};
+  for(let b=-4;b<P.len;b++)click(t0+b*sp,((b%4)+4)%4===0);
+  if(st.band&&P.chords)playBand(st.band,P.chords,t0,sp);
+  if(st.backing)for(const tr of st.backing)for(const n of tr.notes)if(n.b<P.len)strike(n.id,n.v,t0+n.b*sp,tr);
+  CLASS.msg='Listen: 1, 2, 3, 4…';CLASS.col='#9fb0b8';CLASS.done=false;CLASS.redraw=true}
+function beatHit(id,t){const B=CLASS.beat;if(!B||B.over)return;
+  for(const e of B.exp)if(e.roll&&!e.done&&t>=e.t-.12&&t<=e.t2+.12){if(e.ids.includes(id)){e.hits.push({id,t});flash(id,'cOk')}else{B.extra++;flash(id,'cBad')}return}
+  const pc=cpc(cm(id));let best=null;
+  for(const e of B.exp){if(e.ok||e.roll||Math.abs(t-e.t)>.17)continue;const fit=e.chord?e.chord.tones.includes(pc)&&!e.got.has(pc):e.ids.includes(id)&&!e.got.has(id);if(fit&&(!best||Math.abs(t-e.t)<Math.abs(t-best.t)))best=e}
+  if(!best){B.extra++;flash(id,'cBad');CLASS.redraw=true;return}flash(id,'cOk');
+  if(best.chord){best.got.set(pc,id);const g=best.got;if(g.size>=2&&g.has(best.chord.third)&&(!best.guide||best.chord.seventh==null||g.has(best.chord.seventh))){best.ok=true;B.ok++}}
+  else{best.got.add(id);if(best.got.size===best.ids.length){best.ok=true;B.ok++}}CLASS.redraw=true}
+function rollCheck(e){e.done=true;const dur=e.t2-e.t,hs=e.hits,both=e.ids.every(w=>hs.filter(h=>h.id===w).length>=2),rate=hs.length/dur;
+  const iv=hs.slice(1).map((h,i)=>h.t-hs[i].t),mean=iv.reduce((a,b)=>a+b,0)/(iv.length||1),cv=iv.length>2?Math.sqrt(iv.reduce((a,b)=>a+(b-mean)**2,0)/iv.length)/mean:1;
+  e.rate=+rate.toFixed(1);e.even=cv<.45;e.ok=rate>=4.5&&both;if(e.ok)CLASS.beat.ok++}
+function beatEnd(){const B=CLASS.beat;for(const e of B.exp)if(e.roll&&!e.done)rollCheck(e);const n=B.exp.length,miss=n-B.ok,pct=Math.round(100*B.ok/n);B.over=true;CLASS.mis+=Math.ceil(miss/2);CLASS.done=true;
+  const rolls=B.exp.filter(e=>e.roll),rmsg=rolls.length?' Rolls: '+rolls.map(e=>e.ok?(e.even?'even ✓':'a bit uneven'):e.rate<4.5?'too slow ('+e.rate+' a second)':'use both notes').join(', ')+'.':'';
+  CLASS.msg=(pct>=90?'✓ '+B.ok+' of '+n+' in time. Great!':pct>=60?B.ok+' of '+n+' in time. Good: again, or go on.':B.ok+' of '+n+' in time. Try it again: listen for the click.')+rmsg;CLASS.col=pct>=60?'#30d158':'#ff9f0a';CLASS.redraw=true;speak(CLASS.msg)}
+// ---- 🎵 Practise my songs: a chord for every bar, guessed from the song's notes
+const BASSY=new Set(['six','seven','fcello','tcello']);
+function guessChords(song){const bars=Math.min(16,Math.max(1,Math.ceil((+song.L||16)/4))),out=[];let last=null;
+  for(let i=0;i<bars;i++){const w=new Array(12).fill(0);let low=null;
+    for(const t of song.tracks){if(t.rec||t.set==='kit')continue;for(const n of t.notes){if(n.b<i*4||n.b>=i*4+4)continue;const m=cm(n.id);if(!Number.isFinite(m))continue;const pc=cpc(m),k=(BASSY.has(t.set)?2:1)*(.5+(+n.v||.8));w[pc]+=k;if(!low||m<low.m)low={m,pc}}}
+    if(low)w[low.pc]+=1;const tot=w.reduce((a,b)=>a+b,0);if(!tot){out.push({c:last||'C',alts:[last||'C'],empty:true});continue}
+    const sc=[];for(let r=0;r<12;r++)for(const q of ['','m']){const ch=chordOf(PCN[r].replace('♯','#').replace('♭','b')+q),inn=ch.tones.reduce((a,p)=>a+w[p],0);sc.push([inn-.6*(tot-inn)+(low&&low.pc===r?.8:0)+(w[r]?.2:0),ch.name])}
+    sc.sort((a,b)=>b[0]-a[0]);const alts=[...new Set(sc.slice(0,4).map(x=>x[1]))];out.push({c:alts[0],alts});last=alts[0]}
+  return out}
+function openSong(id){const e=SONGS.find(x=>x.id===id);if(!e)return;let saved={};try{saved=JSON.parse(LS('cls-chords-'+id)||'{}')||{}}catch{}
+  const G=guessChords(e.song);G.forEach((g,i)=>{if(saved[i]&&g.alts.includes(saved[i]))g.c=saved[i];else if(saved[i]){g.alts.unshift(saved[i]);g.c=saved[i]}});
+  CLASS.song={e,G,st:null};CLASS.page='song';CLASS.msg='';CLASS.beat=null;CLASS.redraw=true;speak(e.title+'. These chords are my best guess from your notes. Tap a bar to try another chord, then comp along.')}
+function songStep(){const S=CLASS.song,bars=S.G.map(g=>g.c.replace('♯','#').replace(/^([A-G])♭/,'$1b'));
+  return {t:'beat',lines:['Comp along: two notes of each chord on beats 1 and 3, keep the third.'],bpm:Math.round(+S.e.song.bpm||100),chart:{bars},strum:[0,2],
+    backing:S.e.song.tracks.filter(t=>!t.rec&&t.set!==CLASS.set&&t.notes.length&&!t.mute)}}
+// ---- the board's buttons
 function classAct(k,a){
-  if(k==='clsgo')return classStart();if(k==='clsx')return classStop();if(k==='clsset')return classSet(a);
+  if(k==='clsgo')return classStart();if(k==='clsx')return classStop();if(k==='clsset')return classSet(a);if(k==='clslvl')return classLevel(+a);
   if(k==='clsvoice'){CLASS.voice=!CLASS.voice;LSset('cls-voice',CLASS.voice?'1':'0');if(!CLASS.voice)try{speechSynthesis.cancel()}catch{}CLASS.redraw=true;return}
   if(k==='clsl')return openLesson(+a);if(k==='clshome'){CLASS.page='home';CLASS.beat=null;CLASS.msg='';CLASS.redraw=true;return}
+  if(k==='clssongs'){CLASS.page='songs';CLASS.msg='';CLASS.beat=null;CLASS.redraw=true;speak('Practise my songs. Pick a song you saved in VR.');return}
+  if(k==='clssong')return openSong(a);
+  if(k==='clsbar'){const S=CLASS.song,g=S&&S.G[+a];if(!g)return;g.c=g.alts[(g.alts.indexOf(g.c)+1)%g.alts.length];let sv={};try{sv=JSON.parse(LS('cls-chords-'+S.e.id)||'{}')||{}}catch{}sv[+a]=g.c;LSset('cls-chords-'+S.e.id,JSON.stringify(sv));S.st=null;CLASS.redraw=true;speak(g.c);return}
+  if(k==='clscomp'){const S=CLASS.song;if(!S)return;S.st=songStep();CLASS.mis=0;return beatStart()}
   if(k==='clsnext'){if(CLASS.page==='done'){if(LESSONS[CLASS.L+1]&&clsOpen(CLASS.L+1))openLesson(CLASS.L+1);else{CLASS.page='home';CLASS.redraw=true}return}return nextStep()}
-  if(k==='clsagain'){if(CLASS.page==='done')return openLesson(CLASS.L);const st=step();if(st&&st.t==='beat')return beatStart();if(st){speak(st.lines.join(' '));demo(st.demo)}return}
+  if(k==='clsagain'){if(CLASS.page==='done')return openLesson(CLASS.L);const st=step();if(st&&st.t==='beat')return beatStart();
+    if(st){const it=st.items&&st.items[CLASS.k];if(it&&it.hear)return demo(it.hear);speak(st.lines.join(' '));demo(st.demo);if(st.rdemo)rhythmDemo(st.rdemo)}return}
   if(k==='clsbeat')return beatStart()}
 // ---- every frame: the glow, and the beat's clock
 function classFrame(dt){const on=CLASS.on;door.m.visible=inYard()&&!KIDS&&!on;if(door.m.visible&&!door.drawn){drawDoor();door.drawn=1}
   if(!on)return;const st=step(),want=new Map(),pulse=.55+.35*Math.sin(performance.now()/180);
-  if(st&&st.t==='play'&&!CLASS.done){const it=st.items[CLASS.k];if(it&&(st.glow||CLASS.shown))for(const w of (it.any&&!st.glow?[nearestOf(it,it.ids[0])]:it.ids))if(CLASS.pend[w]==null)want.set(w,pulse)}
-  const B=CLASS.beat;if(st&&st.t==='beat'&&B&&!B.over&&ac){const now=ac.currentTime;for(const e of B.exp){const ah=(e.t-now)/B.sp;if(!e.ok&&ah<=1&&ah>-.2)for(const w of e.ids)if(!e.got.has(w))want.set(w,Math.max(want.get(w)||0,ah<.15?1:.25+.6*(1-ah)))}
-    if(now>B.end+.4)beatEnd();else{const b=Math.floor((now-B.t0)/B.sp);const m=b<0?'Count in: '+(4+b+1>4?4:-b)+'…':'Beat '+((b%4)+1)+' · '+B.ok+' in time';if(m!==CLASS.msg){CLASS.msg=m;CLASS.redraw=true}}}
+  if(st&&st.t==='play'&&!CLASS.done){const it=st.items[CLASS.k];if(it&&!it.hear&&(st.glow||CLASS.shown))for(const w of sugOf(st,it))if(w&&CLASS.pend[w]==null)want.set(w,pulse)}
+  const B=CLASS.beat;if(st&&st.t==='beat'&&B&&!B.over&&ac){const now=ac.currentTime;
+    for(const e of B.exp){if(e.roll){if(!e.done&&now>e.t2+.15)rollCheck(e);if(now>=e.t-B.sp&&now<=e.t2)for(const w of e.ids)want.set(w,now>=e.t?.9:.4);continue}
+      const ah=(e.t-now)/B.sp;if(e.ok||ah>1||ah<=-.2)continue;const a=ah<.15?1:.25+.6*(1-ah),ws=e.chord?(e.sug||[]).map(m=>cid(CLASS.set,m)).filter(w=>!e.got.has(cpc(cm(w)))):e.ids.filter(w=>!e.got.has(w));
+      if(!st.noglow)for(const w of ws)want.set(w,Math.max(want.get(w)||0,a))}
+    if(now>B.end+.4)beatEnd();else{const b=Math.floor((now-B.t0)/B.sp);B.cur=b;const m=b<0?'Count in: '+(-b)+'…':'Beat '+((b%4)+1)+' · '+B.ok+' in time';if(m!==CLASS.msg){CLASS.msg=m;CLASS.redraw=true}}}
   for(const d of drums){const mine=d.set===CLASS.set;for(const n of d.notes){if(n.cOk>0)n.cOk=Math.max(0,n.cOk-dt*2.2);if(n.cBad>0)n.cBad=Math.max(0,n.cBad-dt*1.6);
     const a=mine?want.get(n.id)||0:0;if(!a&&!(n.cOk>0)&&!(n.cBad>0)){if(n.cue&&n.cue.visible)n.cue.visible=false;continue}
     const c=cueOf(n);c.visible=true;c.material.color.set(n.cBad>0?'#ff3b30':n.cOk>0?'#1fbf4a':'#00e0d0');c.material.opacity=n.cBad>0?.85*n.cBad:n.cOk>0?.85*n.cOk:Math.min(.9,a)}}
   if(CLASS.redraw){CLASS.redraw=false;drawBoard()}}
 // ---- the board
 function wrapT(g,t,w){const out=[];for(const para of String(t).split('\n')){let line='';for(const word of para.split(' ')){const tr=line?line+' '+word:word;if(g.measureText(tr).width>w&&line){out.push(line);line=word}else line=tr}out.push(line)}return out}
+/* the staff: five lines s apart; a note's place from its letter (the pan's own spelling) and octave; E4 sits on the bottom line */
+const LET={C:0,D:1,E:2,F:3,G:4,A:5,B:6},KEYSIG={G:['F♯'],D:['F♯','C♯'],A:['F♯','C♯','G♯'],F:['B♭'],'B♭':['B♭','E♭'],'E♭':['B♭','E♭','A♭'],C:[]};
+const SIGPOS={'F♯':38,'C♯':35,'G♯':39,'D♯':36,'B♭':34,'E♭':37,'A♭':33,'D♭':36};
+function spell(m,key){const lab=cnm(m);if(key){const ks=KEYSIG[key]||[];const alt=ALT[lab];if(alt&&ks.includes(alt))return alt}return lab}
+function dnOf(m,lab){const L=lab[0],oct=Math.floor(m/12)-1;let o=oct;if(L==='C'&&/♭/.test(lab))o++;if(L==='B'&&/♯/.test(lab))o--;return o*7+LET[L]}
+function drawClef(g,x,yb,s){g.save();g.fillStyle=g.strokeStyle='#eef2f4';g.font=(s*7.4)+'px "Noto Music","Segoe UI Symbol","Apple Symbols",serif';g.textBaseline='alphabetic';g.textAlign='left';
+  if(g.measureText('𝄞').width>s*1.5)g.fillText('𝄞',x,yb+s*1.55);
+  else{const yg=yb-s;g.lineWidth=s*.22;g.beginPath();g.moveTo(x+s*1.1,yb+s*1.8);g.lineTo(x+s*1.1,yb-s*5);g.quadraticCurveTo(x+s*2.2,yb-s*3.8,x+s*.6,yb-s*2.2);g.quadraticCurveTo(x-s*.2,yb-s*1.1,x+s*.9,yb-s*.2);
+    g.quadraticCurveTo(x+s*2.1,yb-s*.4,x+s*1.8,yg-s*.1);g.quadraticCurveTo(x+s*1.2,yg-s*.8,x+s*.7,yg+s*.1);g.stroke();g.beginPath();g.arc(x+s*.75,yb+s*1.75,s*.32,0,7);g.fill()}g.restore()}
+function noteHead(g,x,y,s,open){g.save();g.translate(x,y);g.rotate(-.35);g.beginPath();g.ellipse(0,0,s*.66,s*.46,0,0,7);if(open){g.lineWidth=s*.17;g.stroke()}else g.fill();g.restore()}
+function restGlyph(g,x,yb,s,d){g.save();g.fillStyle=g.strokeStyle;const mid=yb-2*s;
+  if(d>=4)g.fillRect(x-s*.6,mid-s,s*1.2,s*.5);else if(d>=2)g.fillRect(x-s*.6,mid-s*.5,s*1.2,s*.5);
+  else if(d>=1){g.lineWidth=s*.22;g.beginPath();g.moveTo(x-s*.3,mid-s*1.5);g.lineTo(x+s*.3,mid-s*.6);g.lineTo(x-s*.25,mid+s*.1);g.lineTo(x+s*.3,mid+s*.8);g.quadraticCurveTo(x-s*.6,mid+s*.6,x,mid+s*1.4);g.stroke()}
+  else{g.beginPath();g.arc(x-s*.2,mid-s*.4,s*.25,0,7);g.fill();g.lineWidth=s*.16;g.beginPath();g.moveTo(x-s*.2,mid-s*.25);g.lineTo(x+s*.4,mid-s*.6);g.lineTo(x,mid+s*.9);g.stroke()}g.restore()}
+/* notes: [{m, d (beats, for shapes), rest, col}]; opt: key, time ('4/4'), bars (beat positions), cursor (beats) */
+function drawStaff(g,x,y,w,notes,opt){opt=opt||{};const s=20,yb=y+4*s,col='#eef2f4';g.save();g.strokeStyle=col;g.fillStyle=col;g.lineWidth=2;
+  for(let i=0;i<5;i++){g.beginPath();g.moveTo(x,yb-i*s);g.lineTo(x+w,yb-i*s);g.stroke()}drawClef(g,x+6,yb,s);let cx=x+s*4.4;
+  const ks=KEYSIG[opt.key]||[];for(const a of ks){const dn=SIGPOS[a];g.font='700 '+(s*1.9)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(a.slice(1),cx,yb-(dn-30)*s/2);cx+=s*1.1}
+  if(opt.time){g.font='700 '+(s*1.9)+'px Georgia,serif';g.textAlign='center';g.textBaseline='middle';g.fillText('4',cx+s*.6,yb-3*s);g.fillText('4',cx+s*.6,yb-s);cx+=s*1.8}
+  cx+=s*.8;const W=x+w-cx-s,beats=opt.len||Math.max(1,notes.length),X=b=>cx+(opt.timed?b/beats*W:(b+.5)/beats*W);
+  for(const bb of opt.bars||[]){const bx=X(bb)-(opt.timed?s*.9:0);g.lineWidth=2;g.beginPath();g.moveTo(bx,yb);g.lineTo(bx,yb-4*s);g.stroke()}
+  g.lineWidth=3;g.beginPath();g.moveTo(x+w,yb);g.lineTo(x+w,yb-4*s);g.stroke();
+  let beam=null;notes.forEach((n,i)=>{const nx=X(opt.timed?n.b:i),c=n.col||col;g.strokeStyle=g.fillStyle=c;
+    if(n.rest){restGlyph(g,nx,yb,s,n.d);return}
+    const lab=spell(n.m,opt.key),dn=dnOf(n.m,lab),ny=yb-(dn-30)*s/2;
+    g.strokeStyle=c;g.lineWidth=2;for(let L=28;L>=dn;L-=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-30)*s/2);g.lineTo(nx+s*1.1,yb-(L-30)*s/2);g.stroke()}
+    for(let L=40;L<=dn;L+=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-30)*s/2);g.lineTo(nx+s*1.1,yb-(L-30)*s/2);g.stroke()}
+    const acc=lab.slice(1);if(acc&&!(KEYSIG[opt.key]||[]).includes(lab)){g.font='700 '+(s*1.7)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(acc,nx-s*1.55,ny)}
+    const d=n.d||1;noteHead(g,nx,ny,s,d>=2);
+    if(d<4){const up=dn<34,sx=up?nx+s*.6:nx-s*.6,sy=up?ny-s*3.5:ny+s*3.5;g.lineWidth=2.5;g.beginPath();g.moveTo(sx,ny);g.lineTo(sx,sy);g.stroke();
+      if(d===.5){const nxt=notes[i+1];if(beam&&beam.on){g.lineWidth=s*.45;g.beginPath();g.moveTo(beam.x,beam.y);g.lineTo(sx,sy);g.stroke();beam=null}
+        else if(nxt&&!nxt.rest&&(nxt.d||1)===.5&&opt.timed&&Math.floor(nxt.b)===Math.floor(n.b))beam={on:1,x:sx,y:sy};
+        else{g.lineWidth=2.5;g.beginPath();g.moveTo(sx,sy);g.quadraticCurveTo(sx+s*.9,sy+(up?s*1:-s*1),sx+s*.6,sy+(up?s*2:-s*2));g.stroke()}}}});
+  if(opt.cursor!=null&&opt.cursor>=0){const cxp=X(opt.cursor)-(opt.timed?s*.9:0);g.strokeStyle='#f6ba45';g.lineWidth=4;g.beginPath();g.moveTo(cxp,yb+s*1.5);g.lineTo(cxp,yb-s*5.5);g.stroke()}
+  g.restore()}
+/* a band chart: four bars a row, chord symbols, |: :| repeats and 1st/2nd endings, the bar being played lit */
+function drawChart(g,x,y,w,ch,cur){const n=ch.bars.length,per=Math.min(4,n),rows=Math.ceil(n/per),bw=w/per,bh=Math.min(92,250/rows),R=ch.rep;g.save();g.textBaseline='middle';
+  for(let i=0;i<n;i++){const r=Math.floor(i/per),c=i%per,bx=x+c*bw,by=y+r*(bh+34);if(i===cur){g.fillStyle='#3a3218';g.fillRect(bx,by,bw,bh)}
+    g.strokeStyle='#c9d6cf';g.lineWidth=2;g.beginPath();g.moveTo(bx,by);g.lineTo(bx,by+bh);g.moveTo(bx+bw,by);g.lineTo(bx+bw,by+bh);g.stroke();
+    g.fillStyle=i===cur?'#f6ba45':'#eef2f4';g.font='700 46px system-ui,sans-serif';g.textAlign='center';g.fillText(chordOf(ch.bars[i]).name,bx+bw/2,by+bh/2);
+    const thick=(xx,dots,right)=>{g.fillStyle='#eef2f4';g.fillRect(right?xx-8:xx,by,8,bh);g.fillRect(right?xx-16:xx+12,by,2,bh);if(dots){for(const dy of [-.18,.18]){g.beginPath();g.arc(right?xx-26:xx+26,by+bh/2+dy*bh,5,0,7);g.fill()}}};
+    if(R&&i===R.from)thick(bx,1,0);if(R&&i===R.to)thick(bx+bw,1,1);
+    for(const [k,arr] of [['1.',R&&R.end1],['2.',R&&R.end2]])if(arr&&arr.includes(i)){g.strokeStyle='#f6ba45';g.lineWidth=3;g.beginPath();g.moveTo(bx+4,by-6);g.lineTo(bx+4,by-26);g.lineTo(bx+bw-8,by-26);g.stroke();g.fillStyle='#f6ba45';g.font='700 24px system-ui,sans-serif';g.textAlign='left';g.fillText(k,bx+12,by-14)}}
+  g.restore();return y+rows*(bh+34)}
 function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillText(t,x,y)};p.hits=[];g.setTransform(1,0,0,1,0,0);g.fillStyle='#16241c';g.fillRect(0,0,p.W,p.H);g.strokeStyle='#8a6a44';g.lineWidth=14;g.strokeRect(7,7,p.W-14,p.H-14);
-  g.textBaseline='middle';g.textAlign='left';g.fillStyle='#f6ba45';g.font='700 46px system-ui,sans-serif';
+  g.textBaseline='middle';g.fillStyle='#f6ba45';g.font='700 46px system-ui,sans-serif';
   const pan=CLASS.set==='dsec'?'Double seconds':'Tenor';
   btn(p,'clsvoice',p.W-470,30,250,70,CLASS.voice?'🔊 Voice on':'🔇 Voice off',{fs:28,on:CLASS.voice});btn(p,'clsx',p.W-205,30,170,70,'✕ Leave',{fs:28});
-  if(CLASS.page==='home'){lt('🎓 Level 1 · Know your pan',40,66);
-    btn(p,'clsset:tenor',40,120,240,66,'Tenor',{on:CLASS.set==='tenor',fs:30});btn(p,'clsset:dsec',295,120,320,66,'Double seconds',{on:CLASS.set==='dsec',fs:30});
-    g.textAlign='left';g.fillStyle='#c9d6cf';g.font='26px system-ui,sans-serif';lt('Lessons for your '+pan.toLowerCase()+'. Two stars open the next one.',640,153);
-    LESSONS.forEach((L,i)=>{const c=i%3,r=Math.floor(i/3),x=40+c*512,y=215+r*200,ok=clsOpen(i),s=stars(i);rr(g,x,y,492,180,18,ok?'#20352a':'#1a221e',s?'#f6ba45':'#3c5245');
-      g.textAlign='left';g.fillStyle=ok?'#f6ba45':'#6c7d74';g.font='700 30px system-ui,sans-serif';lt((L.test?'★ ':(i+1)+'. ')+fit(g,L.title,420),x+24,y+46);
-      g.fillStyle=ok?'#eef2f4':'#6c7d74';g.font='42px system-ui,sans-serif';lt(ok?'★★★'.slice(0,s)+'☆☆☆'.slice(0,3-s):'🔒',x+24,y+118);
-      if(ok)p.hits.push({id:'clsl:'+i,x,y,w:492,h:180})});
-    if(CLASS.msg){g.fillStyle='#ff9f0a';g.font='26px system-ui,sans-serif';g.textAlign='left';lt(CLASS.msg,40,p.H-40)}
+  if(CLASS.page==='home'){g.fillStyle='#f6ba45';lt(CLASS.lvl===2?'🎓 Level 2 · Chords, keys, reading':'🎓 Level 1 · Know your pan',40,66);
+    btn(p,'clsset:tenor',40,120,200,62,'Tenor',{on:CLASS.set==='tenor',fs:28});btn(p,'clsset:dsec',250,120,280,62,'Double seconds',{on:CLASS.set==='dsec',fs:28});
+    btn(p,'clslvl:1',600,120,190,62,'Level 1',{on:CLASS.lvl===1,fs:28});btn(p,'clslvl:2',800,120,190,62,'Level 2',{on:CLASS.lvl===2,fs:28});
+    g.fillStyle='#c9d6cf';g.font='24px system-ui,sans-serif';lt('Two stars open the next lesson.',1020,151);
+    const tiles=LESSONS.map((L,i)=>({id:'clsl:'+i,t:(L.test?'★ ':(i+1)+'. ')+L.title,ok:clsOpen(i),s:stars(i)}));if(CLASS.lvl===2)tiles.push({id:'clssongs',t:'🎵 Practise my songs',ok:true,s:-1});
+    const rows=Math.ceil(tiles.length/3),th=Math.min(170,(p.H-230)/rows-14);
+    tiles.forEach((T,i)=>{const c=i%3,r=Math.floor(i/3),x=40+c*512,y=205+r*(th+14);rr(g,x,y,492,th,18,T.ok?'#20352a':'#1a221e',T.s>0?'#f6ba45':'#3c5245');
+      g.fillStyle=T.ok?'#f6ba45':'#6c7d74';g.font='700 28px system-ui,sans-serif';lt(fit(g,T.t,450),x+22,y+th*.32);
+      g.fillStyle=T.ok?'#eef2f4':'#6c7d74';g.font='36px system-ui,sans-serif';lt(T.s<0?'Comp along to your own songs':T.ok?'★★★'.slice(0,T.s)+'☆☆☆'.slice(0,3-T.s):'🔒',x+22,y+th*.72);
+      if(T.ok)p.hits.push({id:T.id,x,y,w:492,h:th})});
+    if(CLASS.msg){g.fillStyle='#ff9f0a';g.font='26px system-ui,sans-serif';lt(CLASS.msg,40,p.H-30)}
     p.tex.needsUpdate=true;return}
-  const L=LESSONS[CLASS.L];
-  if(CLASS.page==='done'){lt((L.test?'Level 1 test':'Lesson '+(CLASS.L+1))+' · '+L.title,40,66);const s=CLASS.got;
+  if(CLASS.page==='songs'){g.fillStyle='#f6ba45';lt('🎵 Practise my songs',40,66);g.fillStyle='#c9d6cf';g.font='28px system-ui,sans-serif';
+    lt(SONGS.length?'Pick a song you saved in VR. I\'ll guess a chord for each bar from its notes.':'No songs saved in VR yet: make one in the studio (or bring one from Panyard) and 💾 Save it.',40,140);
+    SONGS.slice(0,6).forEach((e,i)=>{const y=190+i*92;rr(g,40,y,p.W-80,80,14,'#20352a','#3c5245');g.fillStyle='#eef2f4';g.font='700 32px system-ui,sans-serif';lt(fit(g,e.title,900),64,y+40);
+      g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt(Math.round(+e.song.bpm||100)+' bpm · '+e.song.tracks.filter(t=>t.notes.length).length+' tracks',1000,y+40);p.hits.push({id:'clssong:'+e.id,x:40,y,w:p.W-80,h:80})});
+    btn(p,'clshome',40,p.H-110,250,80,'◀ Lessons',{fs:28});p.tex.needsUpdate=true;return}
+  if(CLASS.page==='song'){const S=CLASS.song;g.fillStyle='#f6ba45';lt('🎵 '+fit(g,S.e.title,900),40,66);g.fillStyle='#c9d6cf';g.font='26px system-ui,sans-serif';
+    lt('My best guess at the chords. Tap a bar to try the next guess. Then comp: two notes on beats 1 and 3.',40,130);
+    const B=CLASS.beat,ord=S.st&&S.st.chart?chartOrder(S.st.chart):null,cur=B&&!B.over&&B.cur>=0&&ord?ord[Math.min(ord.length-1,Math.floor(B.cur/4))]:-1;
+    const bars=S.G.map(g2=>g2.c.replace('♯','#').replace(/^([A-G])♭/,'$1b'));drawChart(g,40,190,p.W-80,{bars},cur);
+    const per=Math.min(4,bars.length),bw=(p.W-80)/per,bh=Math.min(92,250/Math.ceil(bars.length/per));if(!B||B.over)bars.forEach((_,i)=>p.hits.push({id:'clsbar:'+i,x:40+(i%per)*bw,y:190+Math.floor(i/per)*(bh+34),w:bw,h:bh}));
+    if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 34px system-ui,sans-serif';wrapT(g,CLASS.msg,p.W-100).slice(0,2).forEach((w,i)=>lt(w,46,p.H-190+i*44))}
+    btn(p,'clssongs',40,p.H-110,250,80,'◀ Songs',{fs:28});if(!B||B.over)btn(p,'clscomp',p.W-400,p.H-110,360,80,B?'↻ Comp again':'▶ Comp along',{fs:30,on:true});p.tex.needsUpdate=true;return}
+  const L=LESSONS[CLASS.L],lvT=L.test?'Level '+CLASS.lvl+' test':'Lesson '+(CLASS.L+1);
+  if(CLASS.page==='done'){g.fillStyle='#f6ba45';lt(lvT+' · '+L.title,40,66);const s=CLASS.got;
     g.textAlign='center';g.fillStyle='#f6ba45';g.font='160px system-ui,sans-serif';g.fillText('★★★'.slice(0,s)+'☆☆☆'.slice(0,3-s),p.W/2,330);
     g.fillStyle='#eef2f4';g.font='700 44px system-ui,sans-serif';g.fillText(s===3?'Excellent!':s===2?'Well done!':'Good effort: try again for two stars.',p.W/2,500);
-    g.fillStyle='#c9d6cf';g.font='30px system-ui,sans-serif';g.fillText(CLASS.mis+(CLASS.mis===1?' slip':' slips')+' along the way'+(L.test&&s>=2?' · Level 1 passed!':''),p.W/2,560);
+    g.fillStyle='#c9d6cf';g.font='30px system-ui,sans-serif';g.fillText(CLASS.mis+(CLASS.mis===1?' slip':' slips')+' along the way'+(L.test&&s>=2?' · Level '+CLASS.lvl+' passed!':''),p.W/2,560);
     btn(p,'clshome',300,680,300,90,'Lessons',{fs:32});btn(p,'clsagain',640,680,300,90,'↻ Again',{fs:32});if(LESSONS[CLASS.L+1]&&clsOpen(CLASS.L+1))btn(p,'clsnext',980,680,320,90,'Next lesson ▶',{fs:32,on:true});
     p.tex.needsUpdate=true;return}
-  const st=L.steps[CLASS.S];lt(fit(g,(L.test?'Level 1 test':'Lesson '+(CLASS.L+1))+' · '+L.title,940),40,66);
-  L.steps.forEach((_,i)=>{g.beginPath();g.arc(52+i*34,130,11,0,7);g.fillStyle=i<CLASS.S?'#30d158':i===CLASS.S?'#f6ba45':'#3c5245';g.fill()});
-  g.fillStyle='#eef2f4';g.font='38px system-ui,sans-serif';let y=200;for(const ln of st.lines)for(const w of wrapT(g,ln,p.W-100)){lt(w,46,y);y+=50}
-  if(st.t==='play'){const it=st.items[Math.min(CLASS.k,st.items.length-1)];y=Math.max(y+20,470);
+  const st=L.steps[CLASS.S],B=CLASS.beat,visual=!!(st.staff||st.rh||st.chart||st.read);g.fillStyle='#f6ba45';lt(fit(g,lvT+' · '+L.title,940),40,66);
+  L.steps.forEach((_,i)=>{g.beginPath();g.arc(52+i*34,122,11,0,7);g.fillStyle=i<CLASS.S?'#30d158':i===CLASS.S?'#f6ba45':'#3c5245';g.fill()});
+  g.fillStyle='#eef2f4';g.font=(visual?'32px':'38px')+' system-ui,sans-serif';let y=180;for(const ln of st.lines)for(const w of wrapT(g,ln,p.W-100)){lt(w,46,y);y+=visual?40:50}
+  // the staff, the rhythm or the chart
+  if(st.chart){const ord=chartOrder(st.chart),cur=B&&!B.over&&B.cur>=0?ord[Math.min(ord.length-1,Math.floor(B.cur/4))]:-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chart,cur)}
+  else if(st.rh){const R=rhythm(st.rh),id=st.ids?st.ids[0]:null,m=id?cm(id):72;drawStaff(g,46,Math.max(y+30,330),p.W-92,R.ev.filter(e=>!e.bar).map(e=>({m,b:e.b,d:e.d,rest:e.rest})),{timed:1,len:R.len,time:1,bars:R.ev.filter(e=>e.bar).map(e=>e.b),cursor:B&&!B.over?((ac?ac.currentTime:0)-B.t0)/B.sp:null});y=Math.max(y+30,330)+200}
+  else if(st.staff||st.read){const ns=st.staff?st.staff.map(m=>({m,d:1})):st.items.map((it,i)=>({m:cm(it.ids[0]),d:1,col:i<CLASS.k?'#30d158':i===CLASS.k&&!CLASS.done?'#f6ba45':null}));drawStaff(g,46,Math.max(y+30,330),p.W-92,ns,{key:st.key});y=Math.max(y+30,330)+200}
+  if(st.t==='play'){const it=st.items[Math.min(CLASS.k,st.items.length-1)];y=visual?Math.max(y,560):Math.max(y+20,470);
     g.fillStyle='#9fb0b8';g.font='28px system-ui,sans-serif';lt((st.glow?'Play':'Your turn')+' · '+Math.min(CLASS.k+1,st.items.length)+' of '+st.items.length,46,y);
-    if(!CLASS.done){g.fillStyle='#f6ba45';g.font='700 64px system-ui,sans-serif';lt(fit(g,it.label,p.W-100),46,y+70)}}
-  if(st.t==='beat'){const B=CLASS.beat;y=Math.max(y+20,470);g.fillStyle='#9fb0b8';g.font='28px system-ui,sans-serif';lt('♩ = '+st.bpm+' · '+st.beats.length+' notes · the glow shows what\'s next',46,y);
-    if(!B||B.over)btn(p,'clsbeat',46,y+40,330,90,B?'↻ Try again':'▶ Start',{fs:34,on:!B})}
-  if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 36px system-ui,sans-serif';const ls=wrapT(g,CLASS.msg,p.W-100);ls.slice(0,2).forEach((w,i)=>lt(w,46,p.H-190+i*46))}
-  btn(p,'clshome',40,p.H-110,250,80,'◀ Lessons',{fs:28});btn(p,'clsagain',305,p.H-110,250,80,st.t==='say'?'🔊 Again':'🔊 Hear it',{fs:28});
-  if(st.t==='say'||CLASS.done)btn(p,'clsnext',p.W-330,p.H-110,290,80,CLASS.S<L.steps.length-1?'Next ▶':'Finish ▶',{fs:32,on:true});
+    if(!CLASS.done){g.fillStyle='#f6ba45';g.font='700 '+(visual?48:64)+'px system-ui,sans-serif';lt(fit(g,st.read||it.read?(CLASS.shown||CLASS.wrong?it.label:'The gold note'):it.label,p.W-100),46,y+(visual?52:70))}}
+  if(st.t==='beat'){y=Math.max(y+10,visual?600:470);g.fillStyle='#9fb0b8';g.font='26px system-ui,sans-serif';
+    lt('♩ = '+st.bpm+(st.band?' · with the band ('+st.band+')':'')+(st.chart?' · two notes of each chord, keep the third':' · the glow shows what\'s next'),46,y);
+    if(!B||B.over)btn(p,'clsbeat',p.W-400,y-34,360,74,B?'↻ Try again':'▶ Start',{fs:32,on:!B})}
+  if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 32px system-ui,sans-serif';const ls=wrapT(g,CLASS.msg,p.W-100);ls.slice(0,2).forEach((w,i)=>lt(w,46,p.H-180+i*42))}
+  btn(p,'clshome',40,p.H-100,250,76,'◀ Lessons',{fs:28});btn(p,'clsagain',305,p.H-100,250,76,st.t==='say'?'🔊 Again':'🔊 Hear it',{fs:28});
+  if(st.t==='say'||CLASS.done)btn(p,'clsnext',p.W-330,p.H-100,290,76,CLASS.S<L.steps.length-1?'Next ▶':'Finish ▶',{fs:32,on:true});
   p.tex.needsUpdate=true}
+
+LESSONS=lessonsAt(CLASS.set);
 function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRect(0,0,p.W,p.H);g.textAlign='center';g.textBaseline='middle';
-  g.fillStyle='#f6ba45';g.font='700 92px system-ui,sans-serif';g.fillText('🎓 Classroom',p.W/2,170);g.fillStyle='#eef2f4';g.font='44px system-ui,sans-serif';g.fillText('Level 1 · Know your pan',p.W/2,280);
-  g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Music theory on your tenor or double seconds',p.W/2,350);
+  g.fillStyle='#f6ba45';g.font='700 92px system-ui,sans-serif';g.fillText('🎓 Classroom',p.W/2,170);g.fillStyle='#eef2f4';g.font='44px system-ui,sans-serif';g.fillText('Level 1 · Level 2',p.W/2,280);
+  g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, chords and reading, on your tenor or double seconds',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
 const VR=window.VR={said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t)=>classHit(id,t),beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
-    state:()=>{const st=step();return {on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
+    level:n=>classLevel(n),song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
+    beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
     glow:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>n.id+':'+n.cue.material.color.getHexString())),voicing:(t,s)=>voicing(t,s),hint:(a,b)=>hintFor(a,b),boardAt:()=>board.m.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(2))},rendered:null,render:async()=>{const b=await renderSong(SONG);return VR.rendered},inbox:()=>INBOX,hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,
   // the wrist panel shown in front of the camera (off the headset there's no hand to turn)
   wrist(on){VR.wristPinned=on;wrist.m.visible=on;if(on){scene.add(wrist.m);const hp=camera.getWorldPosition(new THREE.Vector3()),f=camera.getWorldDirection(new THREE.Vector3());wrist.m.position.copy(hp).addScaledVector(f,.35);wrist.m.rotation.set(0,0,0);wrist.m.lookAt(hp);drawWrist()}},
