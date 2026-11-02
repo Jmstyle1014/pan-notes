@@ -62,6 +62,13 @@ with sync_playwright() as p:
     for x in B:hit(x['ids'][0],x['t']+.02)
     pg.wait_for_function("VR.cls.state().beat&&VR.cls.state().beat.over",timeout=30000);s=S()
     check(s['beat']['ok']==s['beat']['n'],f'all {s["beat"]["n"]} melody notes in time ({s["msg"]})')
+    # note names under the staff, and the next note's name while you play (🔤 Names, on by default)
+    pg.evaluate("VR.cls.go(0,1)");pg.evaluate("VR.cls.act('clsbeat')");B=pg.evaluate("VR.cls.beatInfo()")
+    pg.wait_for_timeout(int((B[0]['t']-pg.evaluate("VR.cls.now()"))*1000)+150);m=pg.evaluate("VR.cls.state().msg")
+    check('Next: E' in m or 'Next: D' in m,f'while you play, the next note\'s name shows: "{m}"');shot('2b-names.png')
+    pg.evaluate("VR.cls.act('clsnames')");check(pg.evaluate("localStorage.getItem('panyard-vr-cls-names')")=='0','🔤 Names off is remembered')
+    pg.wait_for_timeout(300);shot('2c-no-names.png');pg.evaluate("VR.cls.act('clsnames')")
+    pg.wait_for_function("VR.cls.state().beat&&VR.cls.state().beat.over",timeout=30000)
     pg.evaluate("VR.cls.go(1,1)");pg.evaluate("VR.cls.act('clsbeat')");B=pg.evaluate("VR.cls.beatInfo()");sp=pg.evaluate("VR.cls.clock()")['sp']
     rel=[round((x['t']-B[0]['t'])/sp,2) for x in B];check(rel==[0,1.5,3,4,5.5,6],f'"q. e Q q | q. e h" (the push) is read as {rel}')
     # dynamics
