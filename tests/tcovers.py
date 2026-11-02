@@ -20,8 +20,18 @@ with sync_playwright() as p:
     ids=pg.evaluate("""async()=>{isDemo=false;S.panSet='dten';applyPanSet();panCtx();const f=[...FIELDS.entries()].filter(([k,v])=>v.set==='dten'),o=f.find(([k,v])=>/outer/.test(v.pos))[0],c=f.find(([k,v])=>/centre/.test(v.pos))[0];
       const sr=44100;for(const id of [o,c]){const hz=pitchHz(id),d=new Float32Array(sr);for(let i=0;i<d.length;i++){const t=i/sr;d[i]=.5*Math.exp(-t*3)*(Math.sin(2*Math.PI*hz*t)+.5*Math.sin(4*Math.PI*hz*t)+.4*Math.sin(6*Math.PI*hz*t)+.3*Math.sin(2*Math.PI*hz*7.3*t)*Math.exp(-t*40))}
         SAMPLES.wav[id]=encodeWav24(d,sr);delete SAMPLES.buf[id];await sampleBuf(id)}S.panVoice='mine';return [o,c]}""")
+    def quiet():
+        # wait until the last note has rung out. The test note fades slowly (still ~12% of its peak 0.7 s later), and
+        # the recorder hands sound over in ~93 ms chunks, so without this a take could open on the last note's tail,
+        # which the onset below then took for the start (bite −17…−26 dB instead of +7). 0.004 sits just above
+        # How you play's keep-awake hum (20 Hz at 0.0018), which is too slow to change the bite.
+        pg.evaluate("()=>{window._rec=[];window._on=1}")
+        for _ in range(80):
+            pg.wait_for_timeout(100);r=pg.evaluate("window._rec.slice(-3)")
+            if len(r)==3 and max(max(abs(v) for v in c) for c in r)<0.004:break
+        else:check(False,'the sound goes quiet between hits')
     def hit(id):
-        pg.evaluate("()=>{window._rec=[];window._on=1}");pg.evaluate("id=>strike(id,.95)",id);pg.wait_for_timeout(700);pg.evaluate("()=>window._on=0")
+        quiet();pg.evaluate("()=>{window._rec=[];window._on=1}");pg.evaluate("id=>strike(id,.95)",id);pg.wait_for_timeout(700);pg.evaluate("()=>window._on=0")
         x=np.concatenate([np.array(r) for r in pg.evaluate("window._rec")]);sr=pg.evaluate("panCtx().sampleRate");x=x[np.argmax(abs(x)>0.05*abs(x).max()):]
         E=lambda y:10*np.log10((y**2).mean()+1e-12);d=np.diff(x)
         # the start against the ring a moment later, so loudness and timing don't matter: bite = sharpness of the start
