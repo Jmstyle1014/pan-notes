@@ -344,6 +344,19 @@ upright count is low because a checklist pushes the pans below the play bar ther
   largest pitch group per note, four hits soft→hard), off by default. Test with `tvrpack`.
   **Kids mode** (`KIDS`, localStorage `panyard-vr-kids`): the yard with `KIDSETS`, no table, a simple menu. Test with `tvryard`
   (the older VR tests pin One pan with `panyard-vr-yard` = 0).
+- **VR classroom** (Level 1: Know your pan, `CLASS`/`LESSONS`/`lessonsFor(set)` in `panyard-vr.html`, before `const VR=`): a chalkboard
+  (`door`, rig-local 3.4, 3.2, back right, yard only, not kids) or the menu's 🎓 Class starts it (`classStart`): you go to your
+  pan (`CLS_SETS` tenor, dsec; localStorage `panyard-vr-cls-set`), the studio steps aside (`table.visible=false`; `panelLive`
+  skips desk/scr/wrist while `CLASS.on`) and `board` stands where the screen hovers (`placeBoard`). Lessons are steps: `say`
+  (board + `speak()` speechSynthesis, `panyard-vr-cls-voice`; a `demo` played on a solo demo track `DTR`), `play` (`items`
+  {ids, any, label}; `glow` guided or check; two ids = together within 0.45 s; wrong hits flash red with `hintFor()` (what
+  you played, how far, which ring/pan from `cInfo`: the pan's own labels, ring and drum, note centres from the SVG paths);
+  check steps glow the answer after 2 wrong tries), `beat` (a 4-click count-in, `click()`, hits within 0.17 s, glow a
+  beat ahead). Live hits reach `classHit` beside `learnHit`. Patient: nothing moves on without the note. Stars from slips
+  (`CLASS.mis`: ≤1 ★★★, ≤4 ★★), kept per pan in localStorage `panyard-vr-cls`; ★★ opens the next lesson; lesson 9 is the
+  Level 1 test. Chords are two notes (`voicing()`: the chord's third always in, close in pitch, close on the pan; dsec one
+  on each pan). Glow uses the Play-along cue meshes (`cueOf`) with its own fields (`cA/cOk/cBad`, `classFrame`). Test with
+  `tvrclass` (`VR.cls`).
 - **Studio sound packs in Panyard and Panyard Band** (`panyard-packs.js`, `PACKS`, after steel): the same `packs/` as VR
   (`PACKS.LIST`: dsec Dunleavy on by default, tenor SASS-E off; **remove `tenor` before charging**, CC BY-NC). With a pack on and
   recorded sounds (`S.panVoice==='mine'`), Play's taps (`strikeMine` wrapper → `playSample(…, pk)`) and Studio's `panVoice`
