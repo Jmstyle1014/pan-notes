@@ -357,6 +357,20 @@ upright count is low because a checklist pushes the pans below the play bar ther
   Level 1 test. Chords are two notes (`voicing()`: the chord's third always in, close in pitch, close on the pan; dsec one
   on each pan). Glow uses the Play-along cue meshes (`cueOf`) with its own fields (`cA/cOk/cBad`, `classFrame`). Test with
   `tvrclass` (`VR.cls`).
+- **VR classroom Level 2** (chords, keys and reading music; `lessons2For(set)`, `CLASS.lvl` / localStorage `panyard-vr-cls-lvl`,
+  progress keys `set:2:i`; Level 1 keeps `set:i`; `LESSONS` is built after all the tables, at the end of the engine, or a
+  Level 2 start throws): `drawStaff` (treble clef, ledger lines, the pan's own spelling via `spell`, `KEYSIG`, note
+  lengths and rests); play steps with `read` hide the name; chord items `{chord: chordOf('Dm'), guide, smooth}` take any
+  two chord notes together that keep the third (`guide`: 3rd + 7th); the same two notes as the last chord don't count
+  as a change; `smooth` compares the move (`travel`, cm via `CM_PER`) with the closest choice; ear items `{hear}`
+  are answered on the pan (`alt` messages for the wrong third); beat steps take `rh` notation ("q q h | e e q Q"), `chart`
+  (bars, `rep:{from,to,end1,end2}`, `chartOrder`, `strum`), `roll` beats (≥ 4.5 hits/s, both notes, evenness) and a
+  `band` (`playBand`: calypso or soca, six bass root/fifth + kick, snare, hi-hat on `BTR`/`KTR`). `chordVoice` picks the
+  pair (dsec: one note on each pan strongly preferred; G7's guide tones are both on the C♯ pan). Note centres in
+  `cInfo` come from SVG `getBBox` (the middle ring's arcs broke a plain average). 🎵 Practise my songs: `guessChords`
+  (major/minor triads scored per bar, bass notes double), a bar tap cycles guesses (localStorage
+  `panyard-vr-cls-chords-<song id>`), comp along while the song's other tracks play. Mary Ann's chart is I/V7; no melody
+  yet. Test with `tvrclass2`.
 - **Studio sound packs in Panyard and Panyard Band** (`panyard-packs.js`, `PACKS`, after steel): the same `packs/` as VR
   (`PACKS.LIST`: dsec Dunleavy on by default, tenor SASS-E off; **remove `tenor` before charging**, CC BY-NC). With a pack on and
   recorded sounds (`S.panVoice==='mine'`), Play's taps (`strikeMine` wrapper → `playSample(…, pk)`) and Studio's `panVoice`
