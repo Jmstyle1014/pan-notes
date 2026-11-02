@@ -49,7 +49,15 @@ var BAND=(()=>{
     const b=now(),f=pitchHz(id)||440,nodes=[];
     const tn=toneNode(ac,T,id);if(tn)nodes.push(tn);
     const stick=b?b.stick:0;
-    let fc=20000;if(v<0.9&&FEEL.s.sens)fc=Math.min(fc,f*(3+30*v*v));   // a soft hit is darker too, as on a real pan
+    // your recordings are one firm hit per note: a softer hit takes its octave, its third and its sparkle down as a real pan
+    // does (SOFT, measured from a studio pan recorded soft to hard). A studio pack already has its soft recordings, and
+    // Tuned steel its own mallet, so they keep the old darkening (or none)
+    const real=!T.layered&&S.panVoice!=='steel';
+    if(real&&FEEL.s.sens&&v<0.99)for(const n of softNodes(ac,f,v))nodes.push(n);
+    let fc=20000;if(!real&&!T.layered&&v<0.9&&FEEL.s.sens)fc=Math.min(fc,f*(3+30*v*v));   // a soft hit is darker too, as on a real pan
+    // Even out (panyard-even.js): this note's own octave nudged toward its pan's; Clean the rumble: nothing under 170 Hz
+    if(+T.oct){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=6;pk.frequency.value=Math.min(20000,f*2);pk.gain.value=+T.oct;nodes.push(pk)}
+    if(real&&typeof EVENOUT!=='undefined'&&EVENOUT.clean((FIELDS.get(id)||{}).set))for(let i=0;i<3;i++){const hp=ac.createBiquadFilter();hp.type='highpass';hp.Q.value=-3.01;hp.frequency.value=170;nodes.push(hp)}   // Q in dB for a high-pass: −3 dB is flat (no bump above 170 Hz)
     if(stick<0)fc=Math.min(fc,Math.max(f*3,18000*Math.pow(0.18,-stick/10)));
     if(fc<16000){const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;lp.frequency.value=fc;nodes.push(lp)}
     if(stick>0&&!light){const pk=ac.createBiquadFilter();pk.type='peaking';pk.Q.value=0.9;pk.frequency.value=clamp(f*5,2500,7000);
@@ -67,6 +75,14 @@ var BAND=(()=>{
     for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);
     return nodes.length?{in:nodes[0],out:nodes[nodes.length-1]}:null;
   }
+  /* soft to hard: how much a hit's octave (2×), third (3×) and sparkle (above 3.6×) drop below a hard hit's, at each strength.
+     Medians over the Dunleavy double seconds' 30 notes, 4 recordings each from soft to hard (packs/dunleavy-dsec: the
+     octave −17, −6, −1, 0 dB; the third −28, −14, −4, 0; the sparkle −42, −18, −4.5, 0), the softest capped so a soft
+     hit stays a pan and not a thud. A pan's ring and body come from its skirt, so those stay your recording's own. */
+  const SOFT={v:[0.15,0.43,0.71,1],oct:[-14,-6,-1,0],third:[-20,-13,-4,0],top:[-22,-17,-4.5,0]};
+  function softAt(k,v){const V=SOFT.v,G=SOFT[k];if(v<=V[0])return G[0];for(let i=1;i<V.length;i++)if(v<=V[i]){const u=(v-V[i-1])/(V[i]-V[i-1]);return G[i-1]+(G[i]-G[i-1])*u}return 0}
+  function softNodes(ac,f,v){const out=[],q=(ty,fq,g,Q)=>{if(Math.abs(g)<0.3||fq>20000)return;const b=ac.createBiquadFilter();b.type=ty;b.frequency.value=fq;b.gain.value=g;if(Q)b.Q.value=Q;out.push(b)};
+    q('peaking',f*2,softAt('oct',v),5);q('peaking',f*3,softAt('third',v),5);q('highshelf',f*3.6,softAt('top',v));return out}
   const COVER_SETS=['tenor','dten','dsec'];
   // each pan's body note in Hz, from its skirt length (inches) and a 22.5 in drum: 343 / (4 (L + 0.3 d))
   const SKIRT_IN={tenor:6,dten:7,dsec:9,guitar:16,fcello:18,tcello:18,six:34,seven:34};   // a four cello's skirt is about a guitar's, a little longer
@@ -209,7 +225,7 @@ var BAND=(()=>{
   // backup files carry this song's band sound (Google Drive backup has all of them)
   setTimeout(()=>{const be=window.backupExtra;window.backupExtra=async()=>{const o=be?await be():{};const b=forSong();if(b)o.band=b;return o};
     const bi=window.backupIn;window.backupIn=async p=>{const m=bi?await bi(p):'';const b=p&&clean(p.band);if(b){st.songs[sid()]=b;keep();apply();return m+' Band sound added.'}return m}},0);
-  return {PRESETS,keyOf,covered,BODY,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
+  return {PRESETS,keyOf,covered,BODY,SOFT,softAt,now,forSong,cents,tune,chain,shimmerOn,use:id=>use(id?cardOf(id):null),edit,riff,mount,apply,get open(){return open}};
 })();
 
 /* ---------- Settings: Band sound (this song) and How you play, one tap from the list ----------
