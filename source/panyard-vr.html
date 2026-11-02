@@ -1497,7 +1497,7 @@ const drumOf=id=>drums.find(d=>d.notes.some(n=>n.id===id));
    voiced two notes at a time (two sticks): the pair of the chord's notes closest together on your pan (on double
    seconds, one on each pan). Voice: speechSynthesis (localStorage panyard-vr-cls-voice). */
 const CLS_SETS=['tenor','dsec'];
-var CLASS={on:false,set:['tenor','dten','dsec','guitar','fcello','tcello','six','seven'].includes(LS('cls-set'))&&(LS('cls-lvl')==='3'||['tenor','dsec'].includes(LS('cls-set')))?LS('cls-set'):'tenor',page:'home',L:0,S:0,k:0,wrong:0,shown:false,mis:0,msg:'',col:'#9fb0b8',pend:{},beat:null,done:false,voice:LS('cls-voice')!=='0',redraw:true,hint:''};
+var CLASS={on:false,set:['tenor','dten','dsec','guitar','fcello','tcello','six','seven'].includes(LS('cls-set'))&&(LS('cls-lvl')==='3'||['tenor','dsec'].includes(LS('cls-set')))?LS('cls-set'):'tenor',page:'home',L:0,S:0,k:0,wrong:0,shown:false,mis:0,msg:'',col:'#9fb0b8',pend:{},beat:null,done:false,voice:LS('cls-voice')!=='0',names:LS('cls-names')!=='0',redraw:true,hint:''};
 let CPROG={};try{CPROG=JSON.parse(LS('cls')||'{}')||{}}catch{CPROG={}}
 const board=uiPanel(1.15,.65,1600,904);board.m.visible=false;scene.add(board.m);
 const door=uiPanel(1.7,1.11,1300,850);door.m.visible=false;rig.add(door.m);
@@ -1822,6 +1822,7 @@ function songStep(){const S=CLASS.song,bars=S.G.map(g=>g.c.replace('♯','#').re
 // ---- the board's buttons
 function classAct(k,a){
   if(k==='clsgo')return classStart();if(k==='clsx')return classStop();if(k==='clsset')return classSet(a);if(k==='clslvl')return classLevel(+a);
+  if(k==='clsnames'){CLASS.names=!CLASS.names;LSset('cls-names',CLASS.names?'1':'0');CLASS.redraw=true;speak(CLASS.names?'Note names on the staff.':'Note names off: read the staff.');return}
   if(k==='clsvoice'){CLASS.voice=!CLASS.voice;LSset('cls-voice',CLASS.voice?'1':'0');if(!CLASS.voice)try{speechSynthesis.cancel()}catch{}CLASS.redraw=true;return}
   if(k==='clsl')return openLesson(+a);if(k==='clshome'){CLASS.page='home';CLASS.beat=null;CLASS.msg='';CLASS.redraw=true;return}
   if(k==='clssongs'){CLASS.page='songs';CLASS.msg='';CLASS.beat=null;CLASS.redraw=true;speak('Practise my songs. Pick a song you saved in VR.');return}
@@ -1846,7 +1847,7 @@ function classFrame(dt){const on=CLASS.on;door.m.visible=inYard()&&!KIDS&&!on;if
     for(const e of B.exp){if(e.roll){if(!e.done&&now>e.t2+.15)rollCheck(e);if(now>=e.t-B.sp&&now<=e.t2)for(const w of e.ids)want.set(w,now>=e.t?.9:.4);continue}
       const ah=(e.t-now)/B.sp;if(e.ok||ah>1||ah<=-.2)continue;const a=ah<.15?1:.25+.6*(1-ah),ws=e.chord?(e.sug||[]).map(m=>cid(CLASS.set,m)).filter(w=>!e.got.has(cpc(cm(w)))):e.ids.filter(w=>!e.got.has(w));
       if(!st.noglow)for(const w of ws)want.set(w,Math.max(want.get(w)||0,a))}
-    if(now>B.end+.4)beatEnd();else{const b=Math.floor((now-B.t0)/B.sp);B.cur=b;const m=b<0?'Count in: '+(-b)+'…':B.listen?'Bar '+(Math.floor(b/4)+1)+' · listen':B.write?(b<(st.recFrom||0)?'Bar '+(Math.floor(b/4)+1)+' · listen, your turn at bar '+((st.recFrom||0)/4+1):'Bar '+(Math.floor(b/4)+1)+' · ● '+B.rec.length+' notes'):'Beat '+((b%4)+1)+' · '+B.ok+' in time';if(m!==CLASS.msg){CLASS.msg=m;CLASS.redraw=true}if(st.mel&&(CLASS.mt=(CLASS.mt||0)+dt)>.12){CLASS.mt=0;CLASS.redraw=true}}}
+    if(now>B.end+.4)beatEnd();else{const b=Math.floor((now-B.t0)/B.sp);B.cur=b;const m=b<0?'Count in: '+(-b)+'…':B.listen?'Bar '+(Math.floor(b/4)+1)+' · listen':st.mel&&CLASS.names&&b>=0?'Bar '+(Math.floor(b/4)+1)+' · '+B.ok+' in time'+(()=>{const e=B.exp.find(x=>!x.ok&&x.t>now-.1);return e?'   ▶ Next: '+spell(cm(e.ids[0]),st.key):''})():B.write?(b<(st.recFrom||0)?'Bar '+(Math.floor(b/4)+1)+' · listen, your turn at bar '+((st.recFrom||0)/4+1):'Bar '+(Math.floor(b/4)+1)+' · ● '+B.rec.length+' notes'):'Beat '+((b%4)+1)+' · '+B.ok+' in time';if(m!==CLASS.msg){CLASS.msg=m;CLASS.redraw=true}if(st.mel&&(CLASS.mt=(CLASS.mt||0)+dt)>.12){CLASS.mt=0;CLASS.redraw=true}}}
   for(const d of drums){const mine=d.set===CLASS.set;for(const n of d.notes){if(n.cOk>0)n.cOk=Math.max(0,n.cOk-dt*2.2);if(n.cBad>0)n.cBad=Math.max(0,n.cBad-dt*1.6);
     const a=mine?want.get(n.id)||0:0;if(!a&&!(n.cOk>0)&&!(n.cBad>0)){if(n.cue&&n.cue.visible)n.cue.visible=false;continue}
     const c=cueOf(n);c.visible=true;c.material.color.set(n.cBad>0?'#ff3b30':n.cOk>0?'#1fbf4a':'#00e0d0');c.material.opacity=n.cBad>0?.85*n.cBad:n.cOk>0?.85*n.cOk:Math.min(.9,a)}}
@@ -1886,6 +1887,7 @@ function drawStaff(g,x,y,w,notes,opt){opt=opt||{};const s=20,yb=y+4*s,col='#eef2
     g.strokeStyle=c;g.lineWidth=2;for(let L=Z-2;L>=dn;L-=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-Z)*s/2);g.lineTo(nx+s*1.1,yb-(L-Z)*s/2);g.stroke()}
     for(let L=Z+10;L<=dn;L+=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-Z)*s/2);g.lineTo(nx+s*1.1,yb-(L-Z)*s/2);g.stroke()}
     const acc=lab.slice(1);if(acc&&!(KEYSIG[opt.key]||[]).includes(lab)){g.font='700 '+(s*1.7)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(acc,nx-s*1.55,ny)}
+    if(opt.names&&!n.hide){g.save();g.font='700 '+(n.col==='#f6ba45'?s*1.5:s*1.15)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(lab,nx,yb+s*(BS?3.4:3.1)+(dn<Z-4?(Z-4-dn)*s/2:0));g.restore()}
     const d=n.d||1;noteHead(g,nx,ny,s,d>=2);if([.75,1.5,3].includes(d)){g.beginPath();g.arc(nx+s*1.05,ny-(dn%2?0:s*.4),s*.2,0,7);g.fill()}
     const nx2=notes[i+1],pairs=d===.5&&nx2&&!nx2.rest&&(nx2.d||1)===.5&&opt.timed&&Math.floor(nx2.b)===Math.floor(n.b)&&n.b%1===0;
     if(d<4){const up=beam&&beam.on?beam.up:pairs?(dn+dnOf(nx2.m,spell(nx2.m,opt.key)))/2<Z+4:dn<Z+4,sx=up?nx+s*.6:nx-s*.6,sy=up?ny-s*3.5:ny+s*3.5;g.lineWidth=2.5;g.beginPath();g.moveTo(sx,ny);g.lineTo(sx,sy);g.stroke();
@@ -1950,7 +1952,7 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
     if(CLASS.saved){g.fillStyle='#30d158';g.font='700 30px system-ui,sans-serif';g.fillText('💾 Your piece is saved in My songs as "'+CLASS.saved.title+'"',p.W/2,620)}
     btn(p,'clshome',300,680,300,90,'Lessons',{fs:32});btn(p,'clsagain',640,680,300,90,'↻ Again',{fs:32});if(LESSONS[CLASS.L+1]&&clsOpen(CLASS.L+1))btn(p,'clsnext',980,680,320,90,'Next lesson ▶',{fs:32,on:true});
     p.tex.needsUpdate=true;return}
-  const st=L.steps[CLASS.S],B=CLASS.beat,visual=!!(st.staff||st.rh||st.chart||st.read||st.mel||st.chartShow),it0=st.items&&st.items[Math.min(CLASS.k,st.items.length-1)],map=st.t==='play'&&!CLASS.done&&it0&&!it0.hear,TW=map?p.W-520:p.W-100;g.fillStyle='#f6ba45';lt(fit(g,lvT+' · '+L.title,940),40,66);
+  const st=L.steps[CLASS.S],B=CLASS.beat,visual=!!(st.staff||st.rh||st.chart||st.read||st.mel||st.chartShow),it0=st.items&&st.items[Math.min(CLASS.k,st.items.length-1)],map=st.t==='play'&&!CLASS.done&&it0&&!it0.hear,TW=map?p.W-520:p.W-100;g.fillStyle='#f6ba45';lt(fit(g,lvT+' · '+L.title,visual?760:940),40,66);if(visual)btn(p,'clsnames',p.W-740,30,255,70,CLASS.names?'🔤 Names on':'🔤 Names off',{fs:26,on:CLASS.names});
   L.steps.forEach((_,i)=>{g.beginPath();g.arc(52+i*34,122,11,0,7);g.fillStyle=i<CLASS.S?'#30d158':i===CLASS.S?'#f6ba45':'#3c5245';g.fill()});
   g.fillStyle='#eef2f4';g.font=(visual?'32px':'38px')+' system-ui,sans-serif';let y=180;for(const ln of st.lines)for(const w of wrapT(g,ln,TW)){lt(w,46,y);y+=visual?40:50}
   // where to look: your pan from above, the note to play in gold (when it may glow), your last wrong note in red
@@ -1959,18 +1961,19 @@ function drawBoard(){const p=board,g=p.g,lt=(t,x,y)=>{g.textAlign='left';g.fillT
   const bcur=B&&!B.over&&ac?((ac.currentTime-B.t0)/B.sp):null;
   if(st.mel){const ev=st.mel,len=st.len,show=len>8?8:len,page=bcur!=null&&bcur>=0?Math.min(Math.floor(bcur/show),Math.ceil(len/show)-1):0,a=page*show,
       ns=ev.filter(e=>e.b>=a&&e.b<a+show).map(e=>({m:e.m,b:e.b-a,d:e.d,rest:e.rest,col:e.rest||bcur==null?null:bcur>e.b+.3?'#6c7d74':bcur>e.b-1?'#f6ba45':null}));
-    drawStaff(g,46,Math.max(y+30,330),p.W-92,ns,{timed:1,len:show,time:a===0,clef:LOWPANS.has(CLASS.set)?'bass':null,key:st.key,bars:[...Array(show/4).keys()].slice(1).map(i=>i*4),cursor:bcur!=null?bcur-a:null});
+    drawStaff(g,46,Math.max(y+30,330),p.W-92,ns,{names:CLASS.names,timed:1,len:show,time:a===0,clef:LOWPANS.has(CLASS.set)?'bass':null,key:st.key,bars:[...Array(show/4).keys()].slice(1).map(i=>i*4),cursor:bcur!=null?bcur-a:null});
     g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';lt('Bars '+(a/4+1)+'–'+((a+show)/4)+' of '+len/4+(st.bandChords?' · '+st.bandChords.slice(a/4,(a+show)/4).map(c=>chordOf(c).name).join(' | '):''),46,Math.max(y+30,330)+182);y=Math.max(y+30,330)+200}
   else if(st.chartShow){const n=st.chartShow.bars.length,cur=bcur!=null&&bcur>=0?Math.min(n-1,Math.floor(bcur/4)):-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chartShow,cur)}
   else if(st.chart){const ord=chartOrder(st.chart),cur=B&&!B.over&&B.cur>=0?ord[Math.min(ord.length-1,Math.floor(B.cur/4))]:-1;y=drawChart(g,46,Math.max(y+40,340),p.W-92,st.chart,cur)}
-  else if(st.rh){const R=rhythm(st.rh),id=st.ids?st.ids[0]:null,m=id?cm(id):72;drawStaff(g,46,Math.max(y+30,330),p.W-92,R.ev.filter(e=>!e.bar).map(e=>({m,b:e.b,d:e.d,rest:e.rest})),{timed:1,len:R.len,time:1,bars:R.ev.filter(e=>e.bar).map(e=>e.b),cursor:B&&!B.over?((ac?ac.currentTime:0)-B.t0)/B.sp:null});y=Math.max(y+30,330)+200}
-  else if(st.staff||st.read){const ns=st.staff?st.staff.map(m=>({m,d:1})):st.items.map((it,i)=>({m:cm(it.ids[0]),d:1,col:i<CLASS.k?'#30d158':i===CLASS.k&&!CLASS.done?'#f6ba45':null}));drawStaff(g,46,Math.max(y+30,330),map?p.W-560:p.W-92,ns,{key:st.key});y=Math.max(y+30,330)+200}
+  else if(st.rh){const R=rhythm(st.rh),id=st.ids?st.ids[0]:null,m=id?cm(id):72;drawStaff(g,46,Math.max(y+30,330),p.W-92,R.ev.filter(e=>!e.bar).map(e=>({m,b:e.b,d:e.d,rest:e.rest})),{names:CLASS.names,timed:1,len:R.len,time:1,bars:R.ev.filter(e=>e.bar).map(e=>e.b),cursor:B&&!B.over?((ac?ac.currentTime:0)-B.t0)/B.sp:null});y=Math.max(y+30,330)+200}
+  else if(st.staff||st.read){const ns=st.staff?st.staff.map(m=>({m,d:1})):st.items.map((it,i)=>({m:cm(it.ids[0]),d:1,col:i<CLASS.k?'#30d158':i===CLASS.k&&!CLASS.done?'#f6ba45':null}));drawStaff(g,46,Math.max(y+30,330),map?p.W-560:p.W-92,ns,{key:st.key,names:CLASS.names});y=Math.max(y+30,330)+200}
   if(st.t==='play'){const it=st.items[Math.min(CLASS.k,st.items.length-1)];y=visual?Math.max(y,560):Math.max(y+20,470);
     g.fillStyle='#9fb0b8';g.font='28px system-ui,sans-serif';lt((st.glow?'Play':'Your turn')+' · '+Math.min(CLASS.k+1,st.items.length)+' of '+st.items.length,46,y);
     if(!CLASS.done){g.fillStyle='#f6ba45';g.font='700 '+(visual?48:64)+'px system-ui,sans-serif';lt(fit(g,st.read||it.read?(CLASS.shown||CLASS.wrong?it.label:'The gold note'):it.label,TW),46,y+(visual?52:70))}}
   if(st.t==='beat'){y=Math.max(y+10,visual?600:470);g.fillStyle='#9fb0b8';g.font='26px system-ui,sans-serif';
     lt(fit(g,'♩ = '+Math.round(st.bpm*CLASS.spd)+(CLASS.spd<1?' (slower practice)':'')+(st.band||st.backing?' · with the band':'')+(st.write?' · ● records what you play':st.listen?'':st.chart?' · two notes of each chord, keep the third':st.noglow?' · read it: nothing glows':' · the glow shows what\'s next'),(!B||B.over)?p.W-940:p.W-100),46,y);
-    if(!B||B.over){spdBtns(p,p.W-860,y-34);btn(p,'clsbeat',p.W-400,y-34,360,74,B?'↻ Try again':'▶ Start',{fs:32,on:!B})}}
+    if(!B||B.over){spdBtns(p,p.W-860,y-34);btn(p,'clsbeat',p.W-400,y-34,360,74,B?'↻ Try again':'▶ Start',{fs:32,on:!B})}
+    else if(st.mel&&CLASS.names&&ac){const e=B.exp.find(x=>!x.ok&&x.t>ac.currentTime-.1);if(e){rr(g,p.W-430,y-46,390,100,18,'#2b2410','#f6ba45');g.fillStyle='#f6ba45';g.font='700 56px system-ui,sans-serif';g.textAlign='center';g.fillText('Next: '+spell(cm(e.ids[0]),st.key),p.W-235,y+4);g.textAlign='left'}}}
   if(CLASS.msg){g.fillStyle=CLASS.col;g.font='700 32px system-ui,sans-serif';const ls=wrapT(g,CLASS.msg,p.W-100);ls.slice(0,2).forEach((w,i)=>lt(w,46,p.H-180+i*42))}
   btn(p,'clshome',40,p.H-100,250,76,'◀ Lessons',{fs:28});btn(p,'clsagain',305,p.H-100,250,76,st.t==='say'?'🔊 Again':'🔊 Hear it',{fs:28});
   if(st.t==='say'||CLASS.done)btn(p,'clsnext',p.W-330,p.H-100,290,76,CLASS.S<L.steps.length-1?'Next ▶':'Finish ▶',{fs:32,on:true});

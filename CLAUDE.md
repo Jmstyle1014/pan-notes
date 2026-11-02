@@ -385,6 +385,8 @@ upright count is low because a checklist pushes the pans below the play bar ther
   arranger's for the rest; 🎼 My piece (`CLASS.page='piece'`): ▶ Hear (`pieceHear`, `stopClass` silences the cls- channels),
   💾 Save (`savePiece` → SONGS "My calypso", 4 sections + drums), 🗑 Start over. The Level 3 test performs it and saves it.
   Test with `tvrclass3` (`VR.cls.go(L,S)`, `clock`, `piece`, `arrange`).
+  **Note names** (🔤 Names on the board's lesson pages, `CLASS.names`, localStorage `panyard-vr-cls-names`, on): `drawStaff(…,{names})`
+  writes each note's letter (the pan's spelling) under the staff, the current one large in gold; mel steps show ▶ Next: <note>.
 - **VR stands and sway** (`HANG`, `hangStand`, `standFollow(dt)`, `swayHit` in `panyard-vr.html`): tenor, dten, dsec, guitar and
   cellos hang: a pole and tripod, three chrome arms (`seg()` places unit cylinders between points) up round the skirt to hooks
   ~10 cm above holes near the rim (`HOOK_A`: back and the two front sides), a black strap to each. The stand is rebuilt only when
