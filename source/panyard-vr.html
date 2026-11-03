@@ -26,7 +26,7 @@ canvas{display:block}
 .btns button{flex:1;min-width:150px;min-height:52px;border-radius:14px;border:1px solid var(--line);background:rgb(255 255 255/.08);color:var(--text);font-size:17px;font-weight:600}
 .btns button.go{background:var(--gold);color:#1a1205;border-color:var(--gold)}
 #status{font-size:14px}
-#mineBox p{margin:8px 0}.credit{font-size:12.5px;color:var(--muted)}.mine{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}.mrow{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 12px}.mrow.now{border-color:var(--gold)}.mrow span{flex:1;min-width:0}.mrow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mrow small{color:var(--muted)}.mrow button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px}
+#mineBox p,#ideaBox p{margin:8px 0}#ideaBox{display:flex;flex-direction:column;gap:8px;max-height:40vh;overflow:auto}.idea textarea{width:100%;box-sizing:border-box;margin-top:4px;background:var(--bg,#0e1418);color:inherit;border:1px solid var(--line);border-radius:10px;padding:8px;font:inherit}.credit{font-size:12.5px;color:var(--muted)}.mine{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}.mrow{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 12px}.mrow.now{border-color:var(--gold)}.mrow span{flex:1;min-width:0}.mrow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mrow small{color:var(--muted)}.mrow button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px}
 .mshare{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 4px;padding:8px;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px}.mshare button{flex:1;min-width:130px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:14.5px}.mshare button:disabled{opacity:.5}.mshare p{flex-basis:100%;margin:2px 0 0;font-size:13.5px;color:var(--muted)}
 #gdBox p{margin:8px 0}.gdl{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}.gdl button{min-height:46px;border-radius:12px;border:1px solid var(--line);background:rgb(255 255 255/.06);color:var(--text);font-size:15px;text-align:left;padding:0 14px}
 </style>
@@ -67,7 +67,7 @@ canvas{display:block}
     <section class="box"><div class="lab">Tenor caps</div><div class="seg" id="capSeg"><button data-cap="red">Tenor caps: red</button><button data-cap="black">Tenor caps: black</button></div></section>
   </div>
   <div class="tab" data-tab="songs">
-    <section class="box wide"><div class="lab">Your songs</div><div class="btns" style="margin-top:0"><button id="gdGo">☁ My songs from Google Drive</button></div>  <div id="gdBox"></div>  <div class="lab">Saved in VR</div>  <div id="mineBox"></div>  <div class="btns" style="margin-top:8px"><button id="mineFile">Open a song file</button></div><input type="file" id="mineIn" accept=".json,application/json" hidden></section>
+    <section class="box wide"><div class="lab">Your songs</div><div class="btns" style="margin-top:0"><button id="gdGo">☁ My songs from Google Drive</button></div>  <div id="gdBox"></div>  <div class="lab">💡 Ideas</div>  <div id="ideaBox"></div>  <div class="btns" style="margin-top:6px"><button id="ideaNew">＋ New idea</button></div>  <div class="lab">Saved in VR</div>  <div id="mineBox"></div>  <div class="btns" style="margin-top:8px"><button id="mineFile">Open a song file</button></div><input type="file" id="mineIn" accept=".json,application/json" hidden></section>
   </div>
   <div class="tab" data-tab="help">
     <section class="box wide"><p>The band's pans, with your controllers as sticks. Hit harder for a louder note.</p><p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you; <b>hold</b> it to hide the studio or bring it back. The <b>studio screen</b> floats above the pans you're at; turn your <b>left palm up</b> for Play, Rec, Learn and Loop on your wrist. <b>Squeeze a grip</b> on the studio screen to nudge it, or with your hand on a pan's rim, to move it. In the <b>pan yard</b>, every pan in your song stands as on a Panorama stage (frontline in front, basses on the wings, drums at the back): push a <b>thumbstick forward</b>, aim the arc and let go to jump to them (or just walk), and push it <b>left or right</b> to turn. To hear a section better, <b>point at it and hold the trigger</b>, then aim where it should go: it slides closer (or further away). <b>Squeeze both grips</b> with your hands on the rims to lift the pans: move, turn and tilt them towards you, so you don't have to look so far down. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the menu (pans, look, sound, sticks, the table). On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p></section>
@@ -213,7 +213,7 @@ function strike(id,v,at,tr){
   // the same note hit again: the older ring is damped quickly, like a real pan
   const vk=tr&&tr._cp?id+'#'+tr._cp:id,p=voices.get(vk);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
   voices.set(vk,{src,g,end:t+len});if(RENDER||tr&&tr._cp)return true;
-  if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
+  if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v);try{ideaHit(id,v)}catch{}}
   VR.hits.push({id,v:+v.toFixed(2),p:fromTake?1:0});return true;
 }
 // a note from a studio pack: the loudness layer for the hit's strength (a little softer or louder within it), its pitch
@@ -230,7 +230,7 @@ function strikeLayer(id,n,v,at,tr){if(!ac)return false;if(!RENDER&&ac.state==='s
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.002);g.gain.setValueAtTime(a,t+len-.05);g.gain.linearRampToValueAtTime(0,t+len);src.start(t);src.stop(t+len+.02);
   const vk=tr&&tr._cp?id+'#'+tr._cp:id,p=voices.get(vk);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
   voices.set(vk,{src,g,end:t+len});if(RENDER||tr&&tr._cp)return true;
-  if(tr)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
+  if(tr)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v);try{ideaHit(id,v)}catch{}}
   VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0,layer:k});return true}
 function setSound(k,which){LSset('snd-'+k,which);packUI();dirty=true;if(menu.m.visible)drawMenu();toast(setName(k)+': '+(which==='pack'?PACK[k].name:'your band\'s pans'))}
 function packUI(){const box=$('packBox');if(!box)return;box.innerHTML=Object.entries(PACK).map(([k,m])=>'<div class="lab">'+setName(k)+' sound</div><div class="seg"><button data-snd="'+k+':band" aria-pressed="'+!packOn(k)+'">Our band\'s pans</button><button data-snd="'+k+':pack" aria-pressed="'+packOn(k)+'">'+m.name+'</button></div><p class="credit">'+m.credit+' · '+m.licence+'</p>').join('');
@@ -661,7 +661,7 @@ function strikeDrum(id,v,at,tr){const gm=+id.slice(5),K=DK[gm];if(!ac||!K)return
   if(gm===42&&dvoice[46]&&dvoice[46].end>t){try{dvoice[46].g.gain.setTargetAtTime(0,t,.01);dvoice[46].src.stop(t+.06)}catch{}}
   dvoice[gm]={src,g,end:t+b.duration/(K.rate||1)};if(RENDER)return true;
   const lit=()=>{const p=KITP.find(q=>q.gm===gm||q.edge===gm);if(p)p.lit=1;if(gm===36)kick.lit=1};
-  if(tr)setTimeout(lit,Math.max(0,(t-ac.currentTime)*1000));else{lit();recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
+  if(tr)setTimeout(lit,Math.max(0,(t-ac.currentTime)*1000));else{lit();recHit(id,v,t);learnHit(id,t);classHit(id,t,v);try{ideaHit(id,v)}catch{}}
   VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0});return true}
 // the pieces
 const kitG=new THREE.Group();kitG.visible=false;rig.add(kitG);
@@ -943,14 +943,14 @@ const SH_RAY=new THREE.Vector3();function signFrame(ray){if(!inYard()||KIDS)retu
     const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(SH_RAY);SH_RAY.y=w.y;psign.m.lookAt(SH_RAY);psign.m.visible=true}}
 function signTick(){if(psign.m.visible&&performance.now()>SIGN.until&&!beams.some(b=>b.onSign)){psign.m.visible=false}}
 const PANELS=[desk,scr,menu,guide,wrist,psign];
-const panelLive=p=>!p.m.visible?false:p===psign?!menu.m.visible&&!guide.m.visible:p===board?!menu.m.visible&&!guide.m.visible:p===door?!CLASS.on&&!menu.m.visible&&!guide.m.visible:CLASS.on&&(p===desk||p===scr||p===wrist)?false:p===wrist?tableShown()&&!guide.m.visible:p===guide?guide.m.visible:p===menu?menu.m.visible&&!guide.m.visible:tableShown()&&!menu.m.visible&&!guide.m.visible;
+const panelLive=p=>!p.m.visible?false:p===pad?!menu.m.visible&&!guide.m.visible:p===psign?!menu.m.visible&&!guide.m.visible:p===board?!menu.m.visible&&!guide.m.visible:p===door?!CLASS.on&&!menu.m.visible&&!guide.m.visible:CLASS.on&&(p===desk||p===scr||p===wrist)?false:p===wrist?tableShown()&&!guide.m.visible:p===guide?guide.m.visible:p===menu?menu.m.visible&&!guide.m.visible:tableShown()&&!menu.m.visible&&!guide.m.visible;
 function menuOpen(on){menu.m.visible=on;if(on){MPAGE='main';DELARM='';const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;const hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);f.y=0;
     if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();menu.m.position.set(hp.x+f.x*.75,hp.y-.12,hp.z+f.z*.75);menu.m.lookAt(hp.x,hp.y-.12,hp.z);drawMenu()}dirty=true}
 let MPAGE='main',MSP=0,DELARM='';
 function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.fillStyle='#0d1216';g.fillRect(0,0,p.W,p.H);g.strokeStyle='#f6ba45';g.lineWidth=6;g.strokeRect(3,3,p.W-6,p.H-6);
   g.fillStyle='#f6ba45';g.font='700 46px system-ui,sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText(MPAGE==='songs'?'My songs':'Panyard VR',36,58);btn(p,'mclose',p.W-210,24,180,70,'✕ Close',{fs:30});
   if(MPAGE==='songs')return drawSongs(p,g);
-  if(!KIDS)btn(p,CLASS.on?'clsx':'clsgo',p.W-470,24,240,70,CLASS.on?'🎓 Leave class':'🎓 Class',{fs:28,on:CLASS.on});
+  if(!KIDS)btn(p,'mideas',p.W-720,24,240,70,'💡 Ideas',{fs:28,on:pad.m.visible});if(!KIDS)btn(p,CLASS.on?'clsx':'clsgo',p.W-470,24,240,70,CLASS.on?'🎓 Leave class':'🎓 Class',{fs:28,on:CLASS.on});
   const row=(y,label,sub)=>{g.fillStyle='#eef2f4';g.textAlign='left';g.font='700 30px system-ui,sans-serif';g.fillText(label,36,y+(sub?18:30));if(sub){g.fillStyle='#9fb0b8';g.font='21px system-ui,sans-serif';g.fillText(sub,36,y+48)}};
   const pick=(y,id,label,h)=>{btn(p,id+':-1',300,y,80,h,'◀',{fs:30});g.fillStyle='#f6ba45';g.font='700 32px system-ui,sans-serif';g.textAlign='center';g.fillText(label,590,y+h/2);btn(p,id+':1',800,y,80,h,'▶',{fs:30})};
   const LOOKN={chrome:'Chrome',gems:'Vincy · Gems',gren:'Vincy · Grenadines',flag:'Vincy · Flag'};
@@ -1078,10 +1078,10 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
     btn(p,'re:'+i,x+14,560,96,60,'↻ Rec',{fs:24});btn(p,'del:'+i,x+120,560,66,60,'✕',{fs:28})});
   if(SONG.tracks.length<MAXT){const x=SONG.tracks.length*SW;btn(p,'add',x+14,240,SW-28,120,'+ Track',{fs:30})}
   p.tex.needsUpdate=true}
-function act(id){const [k,a]=id.split(':'),i=+a;if(/^cls/.test(k))return classAct(k,a);
+function act(id){const [k,a]=id.split(':'),i=+a;if(/^cls/.test(k))return classAct(k,a);if(/^ia/.test(k))return ideaAct(k,a);
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
     barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),pickgo:pansOut,learn:()=>learn(),setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
-    plm:()=>{const t=SONG.tracks[i];if(t)setPlayers(t.set,playersOf(t.set)-1)},plp:()=>{const t=SONG.tracks[i];if(t)setPlayers(t.set,playersOf(t.set)+1)},psm:()=>{if(SIGN.k)setPlayers(SIGN.k,playersOf(SIGN.k)-1)},psp:()=>{if(SIGN.k)setPlayers(SIGN.k,playersOf(SIGN.k)+1)},mclose:()=>menuOpen(false),mroom:()=>{const i=ROOM.list.findIndex(x=>x.k===ROOM.k);setRoom(ROOM.list[(i+1)%ROOM.list.length].k)},mfc:()=>{const o=['clean','guitar','raw'];setFcello(o[(o.indexOf(FCMODE)+1)%3])},msnd:()=>{setSound(setKey,packOn(setKey)?'band':'pack')},gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
+    plm:()=>{const t=SONG.tracks[i];if(t)setPlayers(t.set,playersOf(t.set)-1)},plp:()=>{const t=SONG.tracks[i];if(t)setPlayers(t.set,playersOf(t.set)+1)},psm:()=>{if(SIGN.k)setPlayers(SIGN.k,playersOf(SIGN.k)-1)},psp:()=>{if(SIGN.k)setPlayers(SIGN.k,playersOf(SIGN.k)+1)},mclose:()=>menuOpen(false),mideas:()=>ideasOpen(!pad.m.visible),mroom:()=>{const i=ROOM.list.findIndex(x=>x.k===ROOM.k);setRoom(ROOM.list[(i+1)%ROOM.list.length].k)},mfc:()=>{const o=['clean','guitar','raw'];setFcello(o[(o.indexOf(FCMODE)+1)%3])},msnd:()=>{setSound(setKey,packOn(setKey)?'band':'pack')},gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{if(a==='one')setYard(false);else setLayout(a);drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
     mlook:()=>{const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+i+ks.length)%ks.length];LSset('look',lookKey);applyLook();drawMenu()},
@@ -1191,9 +1191,9 @@ function liftDrop(){if(!lgrab)return;const L=lgrab.st.lift;LIFT[lgrab.st.key]=[.
 /* pointing: a controller's beam, or the mouse off the headset */
 let grab=null;
 function uiFind(p,uv){const x=uv.x*p.W,y=(1-uv.y)*p.H;return {x,y,hit:[...p.hits].reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)}}
-function uiDown(p,uv){const f=uiFind(p,uv);if(!f.hit)return false;audio();if(f.hit.drag){snapUndo();grab={p,hit:f.hit};f.hit.drag(f.x,f.y,true);dirty=true}else act(f.hit.id);return true}
+function uiDown(p,uv){const f=uiFind(p,uv);if(!f.hit)return false;audio();if(f.hit.drag){if(!f.hit.nosnap)snapUndo();grab={p,hit:f.hit};f.hit.drag(f.x,f.y,true);dirty=true}else act(f.hit.id);return true}
 function uiMove(p,uv){if(!grab||grab.p!==p)return;const f=uiFind(p,uv);grab.hit.drag(f.x,f.y,false);dirty=true}
-function uiUp(){if(grab){grab=null;saveSong();dirty=true}}
+function uiUp(){if(grab){const h=grab.hit;grab=null;if(h.done)h.done();if(!h.nosnap)saveSong();dirty=true}}
 const beams=[0,1].map(i=>{const c=renderer.xr.getController(i);scene.add(c);
   const line=new THREE.Mesh(new THREE.CylinderGeometry(.0015,.0015,1,6),new THREE.MeshBasicMaterial({color:'#bfe6ff',transparent:true,opacity:.7}));line.rotation.x=Math.PI/2;
   const lg=new THREE.Group();lg.add(line);c.add(lg);lg.visible=false;
@@ -2276,6 +2276,103 @@ function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRec
   g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, reading, playing in the band and composing',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
+/* ---------- 💡 Ideas: a pad for the ideas you get while playing (the menu's 💡 Ideas, or the page's Songs tab) ----------
+   Three pages per idea: 🎼 Score (a blank staff: with ✏ Write on, every note you hit on the pans goes onto it at the length
+   you picked; two notes hit together stack as a chord; ▶ plays it back on the pans), ⌨ Type (a keyboard on the pad, pressed
+   with the beam) and ✏ Draw (write or sketch with the beam + trigger). Kept on the headset in localStorage panyard-vr-ideas
+   ({list:[{id,title,at,bpm,notes:[{id,m,b,d,rest}],text,ink:[{c,w,p:[[x,y]…]}]}], cur, tab}). */
+const pad=uiPanel(1.1,.62,1600,900);pad.m.visible=false;scene.add(pad.m);PANELS.push(pad);
+const IDEAS=(()=>{let o=null;try{o=JSON.parse(LS('ideas')||'null')}catch{}o=o&&Array.isArray(o.list)?o:{list:[],cur:null,tab:'score'};return o})();
+const IA={write:true,len:1,dot:false,page:0,shift:true,arm:'',play:[],at:-1,lastT:0,ink:'#eef2f4',thick:false,stroke:null};
+const IDEA_LEN=[[4,'Whole'],[2,'Half'],[1,'Quarter'],[.5,'Eighth']],INK=['#eef2f4','#f6ba45','#4fd1c5','#ff6b5e'];
+function ideaSave(){try{LSset('ideas',JSON.stringify(IDEAS))}catch{}try{ideasUI()}catch{}}
+function ideaNew(){const n=IDEAS.list.length+1;let t='Idea '+n;while(IDEAS.list.some(e=>e.title===t))t='Idea '+(+t.split(' ')[1]+1);
+  const e={id:'i'+Date.now().toString(36),title:t,at:Date.now(),bpm:90,notes:[],text:'',ink:[]};IDEAS.list.unshift(e);IDEAS.cur=e.id;IA.page=0;IA.shift=true;ideaSave();return e}
+const ideaCur=()=>IDEAS.list.find(e=>e.id===IDEAS.cur)||IDEAS.list[0]||ideaNew();
+const ideaEnd=e=>e.notes.reduce((a,n)=>Math.max(a,n.b+n.d),0);
+function ideasOpen(on){pad.m.visible=on;if(on){menuOpen(false);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera,hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);f.y=0;
+    if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();pad.m.position.set(hp.x+f.x*.9,hp.y-.02,hp.z+f.z*.9);pad.m.lookAt(hp.x,hp.y-.02,hp.z);ideaCur();IA.page=Math.max(0,Math.floor(Math.max(0,ideaEnd(ideaCur())-.01)/32));drawPad()}
+  else ideaStop();dirty=true}
+/* a note hit on the pans (live, not the song playing): onto the score at the cursor; within 90 ms of the last one, a chord */
+function ideaHit(id,v){if(!pad.m.visible||IDEAS.tab!=='score'||!IA.write||String(id).startsWith('drum:')||IA.play.length)return;const m=cm(id);if(!Number.isFinite(m))return;
+  const e=ideaCur(),now=performance.now(),last=e.notes[e.notes.length-1],d=IA.len*(IA.dot?1.5:1);
+  if(last&&!last.rest&&now-IA.lastT<90){if(!e.notes.some(n=>n.b===last.b&&n.m===m))e.notes.push({id,m,b:last.b,d:last.d})}
+  else e.notes.push({id,m,b:ideaEnd(e),d});
+  IA.lastT=now;e.at=Date.now();IA.page=Math.floor(Math.max(0,ideaEnd(e)-.01)/32);ideaSave();drawPad()}
+function ideaRest(){const e=ideaCur();e.notes.push({rest:true,b:ideaEnd(e),d:IA.len*(IA.dot?1.5:1)});IA.page=Math.floor(Math.max(0,ideaEnd(e)-.01)/32);ideaSave();drawPad()}
+function ideaUndo(){const e=ideaCur(),n=e.notes.pop();if(n&&!n.rest)while(e.notes.length&&e.notes[e.notes.length-1].b===n.b&&!e.notes[e.notes.length-1].rest)e.notes.pop();ideaSave();drawPad()}
+function ideaStop(){IA.play.forEach(clearTimeout);IA.play=[];IA.at=-1}
+function ideaPlay(){if(IA.play.length){ideaStop();drawPad();return}const e=ideaCur();if(!ac||!e.notes.some(n=>!n.rest))return;audio();const sp=60/(e.bpm||90),t0=ac.currentTime+.25,tr={id:'idea-play',set:setKey,vol:1,pan:0,mute:false,solo:true,notes:[]};
+  e.notes.forEach((n,i)=>{if(!n.rest)strike(n.id,.8,t0+n.b*sp,tr);IA.play.push(setTimeout(()=>{IA.at=n.b;IA.page=Math.floor(n.b/32);drawPad()},Math.max(0,(t0-ac.currentTime+n.b*sp)*1000)))});
+  IA.play.push(setTimeout(()=>{IA.play=[];IA.at=-1;drawPad()},(t0-ac.currentTime+ideaEnd(e)*sp)*1000+300));drawPad()}
+function ideaType(k){const e=ideaCur();if(k==='⌫')e.text=e.text.slice(0,-1);else if(k==='⏎')e.text+='\n';else if(k==='⇧'){IA.shift=!IA.shift;drawPad();return}
+  else{let c=k==='space'?' ':k;if(IA.shift&&c.length===1){c=c.toUpperCase();IA.shift=false}e.text+=c;if(/[.?!]\s$/.test(e.text))IA.shift=true}
+  if(e.text===''||/\n$/.test(e.text))IA.shift=true;e.at=Date.now();ideaSave();drawPad()}
+const KB=[['1','2','3','4','5','6','7','8','9','0','⌫'],['q','w','e','r','t','y','u','i','o','p','♯'],['a','s','d','f','g','h','j','k','l','\'','♭'],['⇧','z','x','c','v','b','n','m',',','.','?'],['-','/','|','space',':','⏎']];
+function ideaAct(k,a){const e=ideaCur(),i=+a;IA.arm=k==='iaclr'||k==='iadel'?IA.arm:'';
+  ({iaclose:()=>ideasOpen(false),iatab:()=>{IDEAS.tab=a;ideaSave()},iaprev:()=>{const j=IDEAS.list.indexOf(e);IDEAS.cur=IDEAS.list[(j+i+IDEAS.list.length)%IDEAS.list.length].id;IA.page=0;ideaStop();ideaSave()},
+    ianew:()=>{ideaStop();ideaNew()},ialen:()=>{IA.len=+a},iadot:()=>{IA.dot=!IA.dot},iarest:ideaRest,iaundo:ideaUndo,iawrite:()=>{IA.write=!IA.write},iaplay:ideaPlay,
+    iabpm:()=>{e.bpm=Math.max(40,Math.min(200,(e.bpm||90)+i));ideaSave()},ianames:()=>{CLASS.names=!CLASS.names;LSset('cls-names',CLASS.names?'1':'0')},
+    iapg:()=>{IA.page=Math.max(0,Math.min(Math.floor(Math.max(0,ideaEnd(e)-.01)/32)+1,IA.page+i))},
+    iaclr:()=>{const w=IDEAS.tab+':'+e.id;if(IA.arm===w){IA.arm='';ideaStop();if(IDEAS.tab==='score')e.notes=[];else if(IDEAS.tab==='type')e.text='';else e.ink=[];ideaSave();toast('Cleared')}else IA.arm=w},
+    iadel:()=>{if(IA.arm==='del:'+e.id){IA.arm='';ideaStop();IDEAS.list=IDEAS.list.filter(x=>x!==e);IDEAS.cur=(IDEAS.list[0]||{}).id||null;ideaSave();toast('Idea deleted')}else IA.arm='del:'+e.id},
+    iakey:()=>ideaType(a),iaink:()=>{IA.ink=INK[i]},iathick:()=>{IA.thick=!IA.thick},iainkundo:()=>{e.ink.pop();ideaSave()}})[k]?.();if(pad.m.visible)drawPad()}
+const PADX=30,PADY=118,PADW=1540,PADH=690;
+function inkSeg(g,s,from){g.strokeStyle=s.c;g.lineWidth=s.w;g.lineCap=g.lineJoin='round';g.beginPath();const p=s.p;if(p.length===1){g.fillStyle=s.c;g.beginPath();g.arc(PADX+p[0][0],PADY+p[0][1],s.w/2,0,7);g.fill();return}
+  g.moveTo(PADX+p[Math.max(0,from-1)][0],PADY+p[Math.max(0,from-1)][1]);for(let j=Math.max(1,from);j<p.length;j++)g.lineTo(PADX+p[j][0],PADY+p[j][1]);g.stroke()}
+function inkDrag(x,y,first){const e=ideaCur(),px=Math.max(0,Math.min(PADW,x-PADX)),py=Math.max(0,Math.min(PADH,y-PADY));
+  if(first||!IA.stroke){IA.stroke={c:IA.ink,w:IA.thick?14:6,p:[[px,py]]};e.ink.push(IA.stroke);inkSeg(pad.g,IA.stroke,0)}
+  else{const p=IA.stroke.p,l=p[p.length-1];if(Math.hypot(px-l[0],py-l[1])<3)return;p.push([Math.round(px),Math.round(py)]);inkSeg(pad.g,IA.stroke,p.length-1)}pad.tex.needsUpdate=true}
+function inkDone(){if(IA.stroke){IA.stroke=null;ideaCur().at=Date.now();ideaSave()}}
+function drawPad(){const p=pad,g=p.g,e=ideaCur(),tab=IDEAS.tab;p.hits=[];g.setTransform(1,0,0,1,0,0);g.fillStyle='#0d1216';g.fillRect(0,0,p.W,p.H);g.strokeStyle='#f6ba45';g.lineWidth=6;g.strokeRect(3,3,p.W-6,p.H-6);
+  g.textBaseline='middle';g.textAlign='left';g.fillStyle='#f6ba45';g.font='700 40px system-ui,sans-serif';g.fillText('💡 '+fit(g,e.title,330),30,62);
+  [['score','🎼 Score'],['type','⌨ Type'],['draw','✏ Draw']].forEach(([k,l],j)=>btn(p,'iatab:'+k,420+j*190,24,178,76,l,{on:tab===k,fs:30}));
+  const j=IDEAS.list.indexOf(e);btn(p,'iaprev:-1',1000,24,70,76,'◀',{fs:30});g.fillStyle='#c9d3da';g.font='26px system-ui,sans-serif';g.textAlign='center';g.fillText((j+1)+' / '+IDEAS.list.length,1112,62);btn(p,'iaprev:1',1154,24,70,76,'▶',{fs:30});
+  btn(p,'ianew',1236,24,150,76,'＋ New',{fs:30});btn(p,'iaclose',1398,24,172,76,'✕ Close',{fs:30});
+  if(tab==='score'){
+    IDEA_LEN.forEach(([d,l],k)=>btn(p,'ialen:'+d,30+k*150,118,140,74,l,{on:IA.len===d,fs:28}));btn(p,'iadot',630,118,130,74,'Dotted',{on:IA.dot,fs:28});
+    btn(p,'iarest',770,118,120,74,'Rest',{fs:28});btn(p,'iaundo',900,118,150,74,'⌫ Undo',{fs:28});
+    btn(p,'iawrite',1062,118,250,74,IA.write?'✏ Writing: On':'✏ Writing: Off',{on:IA.write,oncol:'#4fd1c5',fs:28});btn(p,'iaclr',1324,118,246,74,IA.arm==='score:'+e.id?'Clear all?':'🗑 Clear',{fs:28,on:IA.arm==='score:'+e.id,oncol:'#ff453a'});
+    btn(p,'iaplay',30,204,200,70,IA.play.length?'■ Stop':'▶ Play',{on:!!IA.play.length,oncol:'#34c759',fs:30});
+    btn(p,'iabpm:-5',244,204,70,70,'−',{fs:36});g.fillStyle='#eef2f4';g.font='700 28px system-ui,sans-serif';g.textAlign='center';g.fillText((e.bpm||90)+' bpm',380,240);btn(p,'iabpm:5',446,204,70,70,'+',{fs:36});
+    btn(p,'ianames',530,204,200,70,'🔤 Names',{on:CLASS.names,fs:28});
+    const end=ideaEnd(e),pages=Math.floor(Math.max(0,end-.01)/32)+1;IA.page=Math.min(IA.page,pages);
+    btn(p,'iapg:-1',1200,204,70,70,'◀',{fs:30});g.fillStyle='#c9d3da';g.font='26px system-ui,sans-serif';g.fillText('Bars '+(IA.page*8+1)+'–'+(IA.page*8+8),1342,240);btn(p,'iapg:1',1414,204,70,70,'▶',{fs:30});
+    const ms=e.notes.filter(n=>!n.rest).map(n=>n.m),low=ms.length?ms.reduce((a,b)=>a+b,0)/ms.length<57:LOWPANS.has(setKey);
+    for(let r=0;r<2;r++){const b0=(IA.page*2+r)*16,ns=e.notes.filter(n=>n.b>=b0&&n.b<b0+16).map(n=>({m:n.m,rest:n.rest,d:n.d,b:n.b-b0,col:IA.at>=0&&n.b===IA.at?'#f6ba45':null}));
+      const cur=!IA.play.length&&end>=b0&&end<b0+16?end-b0:null;
+      drawStaff(g,46,r?640:370,p.W-92,ns,{names:CLASS.names,timed:1,len:16,time:IA.page===0&&r===0,clef:low?'bass':null,bars:[4,8,12],cursor:cur});
+      g.fillStyle='#77838d';g.font='22px system-ui,sans-serif';g.textAlign='left';g.fillText(String(IA.page*8+r*4+1),46,(r?640:370)-34)}
+    g.fillStyle='#9fb0b8';g.font='24px system-ui,sans-serif';g.textAlign='center';
+    g.fillText(IA.write?(e.notes.length?'Hit the next note on your pans. Two notes together make a chord.':'Pick a length, then hit a note on your pans: it goes on the score.'):'Writing is off: play freely, nothing is written.',p.W/2,870)}
+  else if(tab==='type'){rr(g,30,118,1250,280,16,'#161d23','#2a323a');g.fillStyle='#eef2f4';g.font='34px system-ui,sans-serif';g.textAlign='left';
+    const lines=[];for(const para of (e.text+' ').split('\n')){let cur='';for(const w of para.split(' ')){const t=cur?cur+' '+w:w;if(g.measureText(t).width>1190&&cur){lines.push(cur);cur=w}else cur=t}lines.push(cur)}
+    const show=lines.slice(-6);show.forEach((l,k)=>g.fillText(l+(k===show.length-1?'▏':''),56,160+k*44));
+    if(!e.text){g.fillStyle='#77838d';g.fillText('Type a note: chords, a groove, who plays what…',56,160)}
+    const kw=130,gap=9;KB.forEach((row,ri)=>{let x=30+(ri===1||ri===2?0:0);row.forEach(k=>{const w=k==='space'?kw*4+gap*3:k==='⏎'?kw*2+gap:kw;
+      const lab=k==='space'?'space':k.length===1&&IA.shift?k.toUpperCase():k;btn(p,'iakey:'+k,x,416+ri*94,w,84,lab,{fs:k==='space'?28:36,on:k==='⇧'&&IA.shift});x+=w+gap})});
+    btn(p,'iaclr',1296,118,274,84,IA.arm==='type:'+e.id?'Clear all?':'🗑 Clear text',{fs:26,on:IA.arm==='type:'+e.id,oncol:'#ff453a'})}
+  else{g.fillStyle='#161d23';g.fillRect(PADX,PADY,PADW,PADH);g.strokeStyle='#2a323a';g.lineWidth=2;g.strokeRect(PADX,PADY,PADW,PADH);
+    g.strokeStyle='#1f2830';g.lineWidth=1;for(let y=PADY+60;y<PADY+PADH;y+=60){g.beginPath();g.moveTo(PADX+10,y);g.lineTo(PADX+PADW-10,y);g.stroke()}
+    for(const s of e.ink)inkSeg(g,s,0);
+    if(!e.ink.length){g.fillStyle='#55626c';g.font='30px system-ui,sans-serif';g.textAlign='center';g.fillText('Point here and hold the trigger to write or draw',p.W/2,PADY+PADH/2)}
+    p.hits.push({id:'iaink-area',x:PADX,y:PADY,w:PADW,h:PADH,drag:inkDrag,nosnap:true,done:inkDone});
+    INK.forEach((c,k)=>{rr(g,30+k*100,822,86,64,14,c,IA.ink===c?'#ffffff':null);if(IA.ink===c){g.strokeStyle='#ffffff';g.lineWidth=5;g.strokeRect(30+k*100,822,86,64)}p.hits.push({id:'iaink:'+k,x:30+k*100,y:822,w:86,h:64})});
+    btn(p,'iathick',440,822,200,64,IA.thick?'Thick pen':'Thin pen',{fs:28,on:IA.thick});btn(p,'iainkundo',656,822,220,64,'↶ Undo line',{fs:28});
+    btn(p,'iaclr',890,822,260,64,IA.arm==='draw:'+e.id?'Clear page?':'🗑 Clear page',{fs:28,on:IA.arm==='draw:'+e.id,oncol:'#ff453a'})}
+  {const da=IA.arm==='del:'+e.id;if(tab==='draw')btn(p,'iadel',1300,822,270,64,da?'Delete idea?':'Delete idea',{fs:26,on:da,oncol:'#ff453a'});else if(tab==='score')btn(p,'iadel',744,204,230,70,da?'Delete idea?':'Delete idea',{fs:26,on:da,oncol:'#ff453a'});else btn(p,'iadel',1296,214,274,84,da?'Delete idea?':'Delete idea',{fs:26,on:da,oncol:'#ff453a'})}
+  p.tex.needsUpdate=true;dirty=true}
+/* off the headset: the page's Songs tab lists the ideas; rename, type the notes with a real keyboard, delete */
+function ideasUI(){const box=document.getElementById('ideaBox');if(!box)return;
+  box.innerHTML=IDEAS.list.length?'':'<p>No ideas yet. In VR: press a thumbstick → 💡 Ideas.</p>';
+  for(const e of IDEAS.list){const d=document.createElement('div');d.className='idea';const nn=e.notes.filter(n=>!n.rest).length;
+    d.innerHTML='<div class="mrow"><span><b></b><small>'+when(e.at)+' · '+nn+(nn===1?' note':' notes')+(e.ink.length?' · a drawing':'')+'</small></span><button data-ir aria-label="Rename">✎</button><button data-id aria-label="Delete">🗑</button></div><textarea rows="3" aria-label="Notes"></textarea>';
+    d.querySelector('b').textContent=e.title;const ta=d.querySelector('textarea');ta.value=e.text;ta.placeholder='Your notes for this idea';
+    ta.oninput=()=>{e.text=ta.value;e.at=Date.now();try{LSset('ideas',JSON.stringify(IDEAS))}catch{}if(pad.m.visible&&IDEAS.cur===e.id)drawPad()};
+    d.querySelector('[data-ir]').onclick=()=>{const t=prompt('Name this idea',e.title);if(t){e.title=t.trim()||e.title;ideaSave();if(pad.m.visible)drawPad()}};
+    d.querySelector('[data-id]').onclick=()=>{if(confirm('Delete "'+e.title+'"?')){IDEAS.list=IDEAS.list.filter(x=>x!==e);if(IDEAS.cur===e.id)IDEAS.cur=(IDEAS.list[0]||{}).id||null;ideaSave();if(pad.m.visible)drawPad()}};
+    box.appendChild(d)}}
+{const b=document.getElementById('ideaNew');if(b)b.onclick=()=>{ideaNew();ideasUI()};ideasUI()}
 const VR=window.VR={players:{set:(k,n)=>setPlayers(k,n),of:k=>playersOf(k),max:k=>maxPlayers(k),drums:k=>{const st=STN.get(k);return st?st.drums.map(d=>{const p=d.g.getWorldPosition(new THREE.Vector3());return {i:d.i,copy:d.copy||0,x:+p.x.toFixed(2),z:+p.z.toFixed(2)}}):null},sign:k=>{const st=STN.get(k);SIGN.k=k;drawSign();const w=new THREE.Vector3(0,1.36,-.35);st.g.localToWorld(w);psign.m.position.copy(w);psign.m.visible=true;SIGN.until=performance.now()+60000;return true},press:id=>act(id),hitCopy:(k,copy,id,speed)=>{const d=STN.get(k).drums.find(q=>(q.copy||0)===copy&&q.notes.some(n=>n.id===id)),n=d.notes.find(x=>x.id===id),st=makeStick(k),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,y=surf(d,x,z),dt=1/72,step=(speed||2.5)*dt;let out=null;for(let q=4;q>=-2;q--){const w=new THREE.Vector3(x,y+.012+q*step,z);d.g.localToWorld(w);out=track(st,w,dt)||out}return out}},yfeel:{space:m=>setSpace(m),layout:k=>setLayout(k),get:()=>({space:SPACE,even:EVEN,layout:LAYOUT}),st:()=>[...STN.values()].filter(st=>!st.solo).map(st=>{const p=st.g.getWorldPosition(new THREE.Vector3());return {k:st.key,x:+p.x.toFixed(2),z:+p.z.toFixed(2),clash:+clashOf(st).toFixed(3),bus:st.bus?[st.bus.p.positionX.value,st.bus.p.positionY.value,st.bus.p.positionZ.value].map(v=>+v.toFixed(2)):null}})},buzzes:[],weight:{get:()=>WEIGHT,set:w=>setWeight(w),swingLag:(i,vx,vy)=>{const st=sticks[i],g=st&&st.piv.parent;if(!g)return null;st.lp=null;lagFrame(st,1/72);for(let k=0;k<12;k++){g.position.x+=vx/72;g.position.y+=vy/72;g.updateMatrix();g.updateMatrixWorld(true);lagFrame(st,1/72)}const r={x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)};g.position.x-=vx*12/72;g.position.y-=vy*12/72;g.updateMatrix();g.updateMatrixWorld(true);st.lp=null;st.lagX=st.lagY=0;st.piv.rotation.y=0;return r},frame:(i,dt)=>{const st=sticks[i];lagFrame(st,dt);bounce(st,dt);return {x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)}}},soft:(k,v)=>softAt(k,v),fcello:{mode:()=>FCMODE,set:m=>setFcello(m),src:id=>{ensureNote(id,'fcello');const r=fcelloSrc(id);return r&&{id:r.id,shift:+r.shift.toFixed(1)}},load:()=>moreSounds(FC_GOOD)},sway:()=>drums.map(d=>({set:d.set,i:d.i,hang:!!d.hang,sx:d.sx||0,sz:d.sz||0,vx:d.vx||0,vz:d.vz||0})),swaySet:(i,x,z)=>{const d=drums[i];d.sx=x;d.sz=z;d.vx=d.vz=0},swayOpt:on=>setOpt('sway',on),swayStep:sec=>{for(let t=0;t<sec;t+=.02)standFollow(.02);return VR.sway()},stand:i=>{const d=drums[i];if(!d.hang)return {hang:false};const rim=new THREE.Vector3();d.g.localToWorld(rim);return {hang:true,rim:+rim.y.toFixed(3),hooks:d.H.map(h=>+h.y.toFixed(3)),straps:d.arms.map(a=>+a.strap.scale.y.toFixed(3)),pole:+d.pole.scale.y.toFixed(3),shown:d.stand.visible}},room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{demo:hasDemo(st),t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
     level:n=>classLevel(n),spd:v=>act('clsspd:'+v),map:()=>{const st=step(),it=st&&st.items&&st.items[CLASS.k];return {gold:st&&it&&(st.glow||CLASS.shown)?sugOf(st,it):[],bad:CLASS.badId}},song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
     beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {demoNow:CLASS.demoNow,demoTimes:CLASS.demoTimes,lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
@@ -2350,6 +2447,11 @@ const VR=window.VR={players:{set:(k,n)=>setPlayers(k,n),of:k=>playersOf(k),max:k
   drumWorld(i){const w=new THREE.Vector3(),n=new THREE.Vector3(0,1,0);drums[i].g.getWorldPosition(w);n.applyQuaternion(drums[i].g.getWorldQuaternion(new THREE.Quaternion()));return {p:w.toArray().map(v=>+v.toFixed(3)),up:n.toArray().map(v=>+v.toFixed(3))}},
   songs:()=>SONGS.map(e=>({id:e.id,title:e.title,tracks:e.song.tracks.length})),saveMine,openMine,delMine,renameMine,openFile:async txt=>(await openFile(new File([txt],'s.json'))).title,menuPage:()=>MPAGE,
   menuHits:()=>{drawMenu();return menu.hits.map(h=>h.id)}};
+// 💡 Ideas, for tests: open the pad in front of the camera, press its buttons, write with the pen (points on the pad canvas)
+VR.ideas={open:on=>ideasOpen(on!==false),shown:()=>pad.m.visible,state:()=>JSON.parse(JSON.stringify(IDEAS)),ia:()=>({write:IA.write,len:IA.len,dot:IA.dot,page:IA.page,shift:IA.shift,playing:IA.play.length>0}),
+  press:id=>{act(id)},hits:()=>{drawPad();return pad.hits.map(h=>h.id)},type:t=>{for(const c of t)ideaType(c===' '?'space':c==='\n'?'⏎':c)},
+  pen:pts=>{const h=pad.hits.find(x=>x.id==='iaink-area');pts.forEach(([x,y],i)=>h.drag(x,y,i===0));h.done()},
+  beam:(x,y,down)=>{const uv={x:x/pad.W,y:1-y/pad.H};if(down===true)return uiDown(pad,uv);if(down===false)return uiUp();uiMove(pad,uv)},live:()=>panelLive(pad),noSticks:()=>sticks.forEach(s=>s.grip.visible=false),png:()=>{drawPad();return pad.c.toDataURL('image/png')}};
 </script>
 </body>
 </html>

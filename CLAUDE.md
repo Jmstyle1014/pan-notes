@@ -452,6 +452,15 @@ upright count is low because a checklist pushes the pans below the play bar ther
   **Classroom polish:** practice speed 1× / ¾ / ½ on beat and comp steps (`CLASS.spd`, localStorage `panyard-vr-cls-spd`,
   `spdBtns`); the where-to-look map (`drawMap`: the pan's own drawing from above, gold = what may glow, red = your last
   wrong note `CLASS.badId`) on play steps. Tested in `tvrclass2`.
+- **VR 💡 Ideas** (menu → 💡 Ideas, `pad`/`IDEAS`/`IA`, `ideasOpen`/`drawPad`/`ideaAct` in `panyard-vr.html`, ids `ia…`): a pad in front
+  of you for ideas while you play, kept in localStorage `panyard-vr-ideas` (`{list:[{id,title,at,bpm,notes,text,ink}],cur,tab}`).
+  🎼 Score: with ✏ Writing on, every live pan hit (`ideaHit`, called beside `classHit` in `strike`/`strikeLayer`) goes on a blank
+  staff at the chosen length (Whole/Half/Quarter/Eighth, Dotted, Rest, ⌫ Undo); a hit within 90 ms of the last is a chord (same
+  `b`); notes are `{id,m,b,d}` drawn by `drawStaff` (timed, 2 rows × 4 bars a page, bass clef when the notes are low); ▶ plays it
+  on the pans (`ideaPlay`, a solo track `idea-play`). ⌨ Type: a keyboard on the pad (`KB`, auto capitals). ✏ Draw: beam + trigger
+  draws (`inkDrag`, a hit with `nosnap`/`done`, so it never touches the song's undo; `uiDown`/`uiUp` honour both). The page's
+  Songs tab lists ideas (`ideasUI`, `#ideaBox`): rename, type the notes with a real keyboard, delete. Test with `tvrideas`
+  (`VR.ideas`).
 - **Studio sound packs in Panyard and Panyard Band** (`panyard-packs.js`, `PACKS`, after steel): the same `packs/` as VR
   (`PACKS.LIST`: dsec Dunleavy on by default, tenor SASS-E off; **remove `tenor` before charging**, CC BY-NC). With a pack on and
   recorded sounds (`S.panVoice==='mine'`), Play's taps (`strikeMine` wrapper → `playSample(…, pk)`) and Studio's `panVoice`
