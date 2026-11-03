@@ -1,5 +1,29 @@
 [
  {
+  "k": "mondello",
+  "name": "Beach with palms",
+  "file": "mondello.jpg",
+  "credit": "Poly Haven, CC0 (Spiaggia Di Mondello)"
+ },
+ {
+  "k": "lagoon",
+  "name": "Seaside at night",
+  "file": "lagoon.jpg",
+  "credit": "Poly Haven, CC0 (Blue Lagoon Night)"
+ },
+ {
+  "k": "umhlanga",
+  "name": "Beach at sunrise",
+  "file": "umhlanga.jpg",
+  "credit": "Poly Haven, CC0 (Umhlanga Sunrise)"
+ },
+ {
+  "k": "zanzibar",
+  "name": "Zanzibar fort stage",
+  "file": "zanzibar.jpg",
+  "credit": "Poly Haven, CC0 (Amphitheatre Zanzibar Fort)"
+ },
+ {
   "k": "deck",
   "name": "Sunset deck",
   "file": "sunset-deck.jpg"
