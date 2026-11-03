@@ -23,7 +23,7 @@ with sync_playwright() as p:
     pg.evaluate("VR.hits.length=0;VR.strike('dsec:64',.15);VR.strike('dsec:64',.45);VR.strike('dsec:64',.7);VR.strike('dsec:64',1)")
     L=[h.get('layer') for h in pg.evaluate("VR.hits")];check(L==[0,1,2,3],f'soft to hard hits play the soft to hard recordings {L}')
     ids=pg.evaluate("VR.notes()");check(all(pg.evaluate(f"VR.swing('{i}',2.5)")==i for i in ids),'every note still plays when hit')
-    pg.click('#packBox [data-snd="dsec:band"]');pg.evaluate("VR.hits.length=0;VR.strike('dsec:64',1)")
+    pg.evaluate("hudShow('#packBox')");pg.click('#packBox [data-snd="dsec:band"]');pg.evaluate("VR.hits.length=0;VR.strike('dsec:64',1)")
     check(not pg.evaluate("VR.packs()").get('dsec',{}).get('on') and 'layer' not in pg.evaluate("VR.hits")[0],'Our band\'s pans: back to the band\'s own recordings')
     check(pg.evaluate("localStorage.getItem('panyard-vr-snd-dsec')")=='band','and the choice is kept')
     pg.evaluate("VR.menu(true)");check('msnd' in pg.evaluate("VR.menuHits()"),'the menu has the sound switch at the double second');pg.evaluate("VR.press('menu','msnd')")

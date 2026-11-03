@@ -42,9 +42,9 @@ with sync_playwright() as p:
     # shorter sticks, and a length to choose
     pg.evaluate("VR.set('tenor')");L0=pg.evaluate("VR.stickLen()")
     check(.14<=L0<=.16,f'a tenor stick shows about 15 cm past the hand ({L0} m)')
-    pg.evaluate("document.getElementById('hud').hidden=false");pg.click('#lenSeg [data-len=short]');L1=pg.evaluate("VR.stickLen()")
+    pg.evaluate("document.getElementById('hud').hidden=false");pg.evaluate("hudShow('#lenSeg')");pg.click('#lenSeg [data-len=short]');L1=pg.evaluate("VR.stickLen()")
     check(L1<L0*.85,f'Sticks: Short makes them shorter ({L1} m)')
-    pg.click('#lenSeg [data-len=medium]')
+    pg.evaluate("hudShow('#lenSeg')");pg.click('#lenSeg [data-len=medium]')
     # move one pan by its rim; the notes don't grab it; it stays; ↺ Pans back
     pg.evaluate("VR.set('six')");p0=pg.evaluate("VR.panPos(2)")
     check(not pg.evaluate("VR.movePan(2,.2,0,.1,true)"),'a hand over the notes doesn\'t grab the pan (playing never moves it)')

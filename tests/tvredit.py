@@ -68,7 +68,7 @@ with sync_playwright() as p:
     pg.evaluate("VR.act('undo')");check(len(pg.evaluate("VR.song().tracks"))==2,'↶ Undo brings the old song back')
     pg.evaluate("VR.act('play');VR.act('hide')");check(not pg.evaluate("VR.tableOn()") and pg.evaluate("VR.tr().state")=='idle' and not pg.evaluate("VR.song().click"),'putting the table away stops the music and the click')
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000);check(not pg.evaluate("VR.tableOn()"),'it stays away next time')
-    pg.click('#studioSeg [data-st=on]');check(pg.evaluate("VR.tableOn()"),'and comes back out')
+    pg.evaluate("hudShow('#studioSeg')");pg.click('#studioSeg [data-st=on]');check(pg.evaluate("VR.tableOn()"),'and comes back out')
     # the menu (a thumbstick press): pans, look, the two sound switches (on unless turned off), sticks, the table
     check(pg.evaluate("(({hum,tone})=>({hum,tone}))(VR.opts())")=={'hum':True,'tone':True},'Drum body hum and bass & treble are on to start with')
     pg.evaluate("VR.menu(true)");check(pg.evaluate("VR.menuOn()"),'the menu opens')
@@ -78,7 +78,7 @@ with sync_playwright() as p:
     pg.evaluate("VR.set('tenor');VR.menu(true);VR.press('menu','mset:1')");check(pg.evaluate("VR.state().set")=='dten','◀ ▶ in the menu change the pans')
     pg.evaluate("VR.press('menu','mclose')");check(not pg.evaluate("VR.menuOn()"),'✕ Close closes it')
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=60000);check(pg.evaluate("(({hum,tone})=>({hum,tone}))(VR.opts())")=={'hum':False,'tone':False},'the switches are kept for next time')
-    pg.click('#optSeg [data-opt=hum]');pg.click('#optSeg [data-opt=tone]');check(pg.evaluate("(({hum,tone})=>({hum,tone}))(VR.opts())")=={'hum':True,'tone':True},'and the page\'s Sound switches turn them back on')
+    pg.evaluate("hudShow('#optSeg')");pg.click('#optSeg [data-opt=hum]');pg.evaluate("hudShow('#optSeg')");pg.click('#optSeg [data-opt=tone]');check(pg.evaluate("(({hum,tone})=>({hum,tone}))(VR.opts())")=={'hum':True,'tone':True},'and the page\'s Sound switches turn them back on')
     check(not errs,'no errors '+str(errs[:3]))
     b.close()
 print('FAILED: '+str(len(fails)) if fails else 'all passed')
