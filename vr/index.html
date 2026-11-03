@@ -553,8 +553,14 @@ function restick(force){for(const s of sticks){if(s.kind===setKey&&!force)contin
 /* the bounce: the stick never goes into the steel (it bends back from the hand to rest on it), and after a hit it flicks
    up and comes back, as a stick does off a pan. The hit itself is found from where the hand really took the stick. */
 const bw=new THREE.Vector3(),bl=new THREE.Vector3();
-function sinkOf(s){s.tip.getWorldPosition(bw);let deep=0;
-  for(const d of drums){bl.copy(bw);d.g.worldToLocal(bl);const r=Math.hypot(bl.x,bl.z);if(r<RS+.01){const k=surf(d,bl.x,bl.z)+s.R-bl.y;if(k>deep&&k<.25)deep=k}}
+/* how far the stick is in the steel: its rubber tip, and (the owner: "the whole stick shouldn't go through the pan") points
+   along its wooden shaft too, so bounce() bends the stick up from your hand until neither tip nor shaft is under the steel.
+   The part right by your hand is left out (the hand itself can't be moved), and only shallow dips count, so a stick held
+   under a pan from the side isn't flipped up through it. Hits still use the hand's real tip (track()). */
+const SHAFT_T=[.35,.55,.75,.9],bp=new THREE.Vector3();
+function sinkOf(s){s.tip.getWorldPosition(bw);s.piv.getWorldPosition(bp);let deep=0;const sr=(STICKS[s.kind]||STICKS.tenor).r||.007;
+  for(const d of drums){bl.copy(bw);d.g.worldToLocal(bl);const r=Math.hypot(bl.x,bl.z);if(r<RS+.01){const k=surf(d,bl.x,bl.z)+s.R-bl.y;if(k>deep&&k<.25)deep=k}
+    for(const t of SHAFT_T){bl.copy(bp).lerp(bw,t);d.g.worldToLocal(bl);if(Math.hypot(bl.x,bl.z)<RS){const k=surf(d,bl.x,bl.z)+sr-bl.y;if(k>deep&&k<.12)deep=k}}}
   if(kitG.visible)for(const p of KITP){bl.copy(bw);p.g.worldToLocal(bl);if(Math.hypot(bl.x,bl.z)<p.r+.01){const k=s.R-bl.y;if(k>deep&&k<.12)deep=k}}
   return deep}
 function bounce(s,dt){s.reb=Math.max(0,s.reb-dt*5/heft(s.kind));const base=STICK_TILT+s.reb+(s.lagX||0);   // the flick: up straight after the hit, back down over a fifth of a second
@@ -2212,6 +2218,12 @@ const VR=window.VR={buzzes:[],weight:{get:()=>WEIGHT,set:w=>setWeight(w),swingLa
   movePan(i,dx,dy,dz,overNotes){const d=drums[i],w=new THREE.Vector3(overNotes?0:RS,.02,0);d.g.localToWorld(w);const s=drumAtRim(w);if(s!==d)return false;
     panGrab(d,w);w.add(new THREE.Vector3(dx,dy,dz));panMove(w);panDrop();return true},panPos:i=>drums[i].g.position.toArray().map(v=>+v.toFixed(3)),pansBack,showTable,tableOn:()=>tableOn,THREE,scene,mk:k=>makeStick(k),borrow:id=>borrowOf(id),sticks:()=>sticks.map(s=>s.kind),
   // a hand coming down through a note: the stick's eye-tip stays on the steel, the hit still plays, then it flicks up
+  // the hand just outside a pan's rim, a little below it, the stick reaching in over a note: how far the stick is in the steel
+  // before the bend, and after (bounce), and how much it bent
+  shaftThrough(id,drop){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,a=Math.atan2(z,x),s=makeStick(NOTE[id].set);s.kind=NOTE[id].set;
+    const g=new THREE.Group();g.add(s.piv);scene.add(g);const hand=new THREE.Vector3(Math.cos(a)*(RS+.1),-(drop||.04),Math.sin(a)*(RS+.1)),tgt=new THREE.Vector3(x,surf(d,x,z)+.03,z);d.g.localToWorld(hand);d.g.localToWorld(tgt);
+    g.position.copy(hand);g.lookAt(hand.clone().multiplyScalar(2).sub(tgt));g.updateMatrixWorld(true);s.piv.rotation.x=STICK_TILT;s.piv.updateMatrixWorld(true);
+    const before=sinkOf(s);bounce(s,1/72);const after=sinkOf(s),bend=s.piv.rotation.x-STICK_TILT;scene.remove(g);return {before:+(before*1000).toFixed(1),after:+(after*1000).toFixed(1),bend:+bend.toFixed(3)}},
   pushStick(id,depth){const d=drumOf(id),n=d.notes.find(x=>x.id===id),s=makeStick(),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;
     s.grip=new THREE.Group();s.grip.add(s.piv);scene.add(s.grip);const out=[];for(let k=0;k<=8;k++){const yy=surf(d,x,z)+s.R+.06-k*(.06+depth)/8;
       const w=new THREE.Vector3(x,yy,z);d.g.localToWorld(w);s.piv.rotation.x=STICK_TILT;s.grip.position.set(0,0,0);s.grip.quaternion.identity();s.grip.updateMatrixWorld(true);

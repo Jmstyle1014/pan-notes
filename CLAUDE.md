@@ -255,7 +255,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   **Sticks** (`STICKS`, `makeStick(kind)`, swapped by `restick()`): bass blue balls, cello black, guitar tan, double
   second and tenor red, kit wooden; held pointing forward and a touch down (`STICK_TILT`). **Bounce:** hits use the hand's
   real tip; then `bounce()` bends the stick back from the hand until its tip rests on the steel (`sinkOf`) and a hit
-  flicks it up (`kickBack`). Test with `tvrpans` (`VR.pushStick`).
+  flicks it up (`kickBack`). Test with `tvrpans` (`VR.pushStick`). The whole stick stays out of the steel: `sinkOf` also checks
+  points along the wooden shaft (`SHAFT_T`, not right by the hand, dips under 12 cm), so the stick bends up from the hand until
+  neither tip nor wood is in a pan (test in `tvrsticks`, `VR.shaftThrough`).
   **Stick shapes** (after the owner's stick kit, `steelpan-sticks.mjs`, from the same photo): flat lathed rubber caps wider
   than the wood (`capGeo`, `cr`/`ch` in `STICKS`, tenor 11 mm … cello 15 mm), the basses' oval ribbed blue heads (`ball` 41 mm,
   a seam, `ribTex`), a rounded butt and grained beech (`woodMat`); the rubber sits on its own pivot (`s.cap`) and squashes on

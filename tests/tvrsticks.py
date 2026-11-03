@@ -49,6 +49,10 @@ with sync_playwright() as p:
     print(res)
     check(res['tenor']['v']<res['dsec']['v']<res['six']['v'],f"the same 2 m/s swing: tenor {res['tenor']['v']}, double second {res['dsec']['v']}, six bass {res['six']['v']} (heavier sticks play louder)")
     check(res['tenor']['flick']>res['six']['flick'] and res['tenor']['back']<res['six']['back'],f"light tenor sticks flick up higher ({res['tenor']['flick']} vs {res['six']['flick']} rad) and come back sooner ({res['tenor']['back']} vs {res['six']['back']} s)")
+    # the whole stick stays out of the steel, not just its rubber: hand just outside the rim and below it, stick reaching in
+    for k,nid in [('tenor','tenor:72'),('dsec','dsec:64'),('six','six:40')]:
+        pg.evaluate(f"VR.set('{k}')");r=pg.evaluate(f"VR.shaftThrough('{nid}',.04)")
+        check(r['before']>3 and r['after']<=2.5 and r['bend']>0,f"{k}: the wooden shaft through the rim ({r['before']} mm in) is bent up out of the steel ({r['after']} mm, {r['bend']} rad)")
     check(not errs,'no page errors '+str(errs[:3]))
     b.close()
 print('PASS' if not fails else 'FAILED: '+'; '.join(fails));sys.exit(1 if fails else 0)
