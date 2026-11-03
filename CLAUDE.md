@@ -454,13 +454,16 @@ upright count is low because a checklist pushes the pans below the play bar ther
   wrong note `CLASS.badId`) on play steps. Tested in `tvrclass2`.
 - **VR 💡 Ideas** (menu → 💡 Ideas, `pad`/`IDEAS`/`IA`, `ideasOpen`/`drawPad`/`ideaAct` in `panyard-vr.html`, ids `ia…`): a pad in front
   of you for ideas while you play, kept in localStorage `panyard-vr-ideas` (`{list:[{id,title,at,bpm,notes,text,ink}],cur,tab}`).
-  🎼 Score: with ✏ Writing on, every live pan hit (`ideaHit`, called beside `classHit` in `strike`/`strikeLayer`) goes on a blank
-  staff at the chosen length (Whole/Half/Quarter/Eighth, Dotted, Rest, ⌫ Undo); a hit within 90 ms of the last is a chord (same
-  `b`); notes are `{id,m,b,d}` drawn by `drawStaff` (timed, 2 rows × 4 bars a page, bass clef when the notes are low); ▶ plays it
+  🎼 Score: with ✏ Writing on, every live pan hit (`ideaHit(id,v,t)`, called beside `classHit` in `strike`/`strikeLayer`) goes on a
+  blank staff. **⏱ Auto** (default, the owner: picking a length first "slows down the motion"): a note's length is the wait for the
+  next hit at the idea's tempo, snapped to eighths (`STD_D`: ½ 1 1½ 2 3 4, the rest a rest), the newest note a quarter until then
+  (`auto:1`); a pause over max(2.5 s, 5 beats) starts a new phrase (`IA.run`); 🥁 Click (`clickOn`/`clickOff`, `IA.clk`) lines the
+  beats up with a click. Or a fixed length (Whole/Half/Quarter/Eighth, Dotted); Rest, ⌫ Undo. A hit within 90 ms of the last is a
+  chord (same `b`); 💾 Save as a song (`ideaToSong`): a track per pan into `SONGS` (`e.sid`, so later saves update it); notes are `{id,m,b,d}` drawn by `drawStaff` (timed, 2 rows × 4 bars a page, bass clef when the notes are low); ▶ plays it
   on the pans (`ideaPlay`, a solo track `idea-play`). ⌨ Type: a keyboard on the pad (`KB`, auto capitals). ✏ Draw: beam + trigger
   draws (`inkDrag`, a hit with `nosnap`/`done`, so it never touches the song's undo; `uiDown`/`uiUp` honour both). The page's
   Songs tab lists ideas (`ideasUI`, `#ideaBox`): rename, type the notes with a real keyboard, delete. Test with `tvrideas`
-  (`VR.ideas`).
+  (`VR.ideas`, `hitAt(id,t)` for timed hits).
 - **Studio sound packs in Panyard and Panyard Band** (`panyard-packs.js`, `PACKS`, after steel): the same `packs/` as VR
   (`PACKS.LIST`: dsec Dunleavy on by default, tenor SASS-E off; **remove `tenor` before charging**, CC BY-NC). With a pack on and
   recorded sounds (`S.panVoice==='mine'`), Play's taps (`strikeMine` wrapper → `playSample(…, pk)`) and Studio's `panVoice`
