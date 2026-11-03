@@ -324,6 +324,13 @@ upright count is low because a checklist pushes the pans below the play bar ther
   would touch apart (`pairOver`, `GAP`; ones you moved yourself, `YPOS`, stay), Roomy the first layout. **Even mix is off by
   default** now (far sections quieter, direction clearer), and each station's panner sits at its drums' middle (`placeBus`).
   Test with `tvryardfeel`.
+  **Players** (a section's size, per song: `SONG.players[set]`, `playersOf`/`maxPlayers`/`setPlayers`, the owner: "three tenors…"):
+  `buildStation` adds n−1 copies of the set's drums side by side (`makeDrums(k,st,lite,copy,off)`, `d.copy`, own index → own
+  saved place, `st.n`; `syncStations` rebuilds a station whose size changed, `rebuildStation(k)`), still **one track**; `strike()`
+  with a track plays every copy (`CP_DT` ms later, `CP_C` cents off, ×.82; voices keyed `id#copy`; copies skip lights/hits), so
+  the section sounds fuller. Any copy is playable (same ids). Set on the mixer strip (Players − / +, `plm`/`plp`) or the sign
+  over a section you point at (`psign`, `signFrame`/`signTick`/`drawSign`, `psm`/`psp`). Max 6, 12 drums a section (six/seven 2,
+  four cello 3), not the kit. Test with `tvrplayers` (`VR.players`).
   **Pull a section closer:** a beam on another station (its invisible cylinder `st.hit`, the beam turns gold) + trigger drags it
   along the floor (`stationHit`, `stGrab/stMove/stDrop` on the 0.9 m plane, `placeStation` moves it and its sound); kept per set in localStorage `panyard-vr-yardpos`; menu ↺ Yard back (`yardBack`) puts all back in their `BAND` places. Dragging keeps a section's facing.
   **The barrier** (`clashOf`/`footOf`, `GAP` 8 cm): footprints are each station's drums, the kit's pieces and its player's
