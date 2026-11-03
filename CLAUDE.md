@@ -387,6 +387,11 @@ upright count is low because a checklist pushes the pans below the play bar ther
   Test with `tvrclass3` (`VR.cls.go(L,S)`, `clock`, `piece`, `arrange`).
   **Note names** (🔤 Names on the board's lesson pages, `CLASS.names`, localStorage `panyard-vr-cls-names`, on): `drawStaff(…,{names})`
   writes each note's letter (the pan's spelling) under the staff, the current one large in gold; mel steps show ▶ Next: <note>.
+  **Demonstrations at your pace** (the owner found them rushed): `speak(text, then)` calls back when the voice ends (or soon
+  with it off), so `enterStep` plays the demo (`playDemo`) and ear questions only after it; `demo()` plays a note every 0.9 s
+  (chords 1.4 s) times 1/`CLASS.spd`, rhythm and melody demos follow `CLASS.spd` too; the board's "Now playing" box shows each
+  note's name as it plays (`demoShow`/`demoNow`, `♪` only in ear questions); 🔁 Replay replays just the demo; Demo speed 1× / ¾ /
+  ½ sits on every say and play step. Test with `tvrdemo`.
 - **VR stands and sway** (`HANG`, `hangStand`, `standFollow(dt)`, `swayHit` in `panyard-vr.html`): tenor, dten, dsec, guitar and
   cellos hang: a pole and tripod, three chrome arms (`seg()` places unit cylinders between points) up round the skirt to hooks
   ~10 cm above holes near the rim (`HOOK_A`: back and the two front sides), a black strap to each. The stand is rebuilt only when
