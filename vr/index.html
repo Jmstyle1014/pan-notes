@@ -238,7 +238,7 @@ renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
 document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();
 const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;
-const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.02,60);camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.05,60);   // near 5 cm: 2.5× the depth precision of .02 at the far panscamera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5);
 scene.add(new THREE.HemisphereLight('#dfe8ff','#20160c',.7));
 const sun=new THREE.DirectionalLight('#fff3dd',1.6);sun.position.set(.6,3,1.2);scene.add(sun);
 const canvasTex=(w,hh,draw)=>{const c=document.createElement('canvas');c.width=w;c.height=hh;draw(c.getContext('2d'),w,hh);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t};
@@ -282,6 +282,13 @@ function heightMap(d){const c=document.createElement('canvas');c.width=c.height=
   return off}
 function offAt(d,x,z){const fx=Math.max(0,Math.min(HM-1.001,HM/2+x/RS*HM/2)),fy=Math.max(0,Math.min(HM-1.001,HM/2+z/RS*HM/2)),ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,o=d.off,i=iy*HM+ix;
   return (o[i]*(1-tx)+o[i+1]*tx)*(1-ty)+(o[i+HM]*(1-tx)+o[i+HM+1]*tx)*ty}
+/* the bowl's shading (black specks in the headset, the owner's video): its light comes from a slightly smoothed surface
+   (e = 6 mm, 12 mm on far, lighter stations), not the sharp 5 mm grooves, so a far pan's tiny grooves can't flip a pixel's
+   reflection to the dark sky; the grooves stay in the shape (the stick, the glows) and drawn on the steel. Drawn top side only
+   (side FrontSide: a double-sided bowl let flipped, dark underside fragments win the headset's depth test). */
+function dishNormals(d,geo,e){const p=geo.attributes.position,n=new Float32Array(p.count*3);
+  for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k),gx=(surf(d,x+e,z)-surf(d,x-e,z))/(2*e),gz=(surf(d,x,z+e)-surf(d,x,z-e))/(2*e),L=Math.hypot(gx,1,gz);n[k*3]=-gx/L;n[k*3+1]=1/L;n[k*3+2]=-gz/L}
+  geo.setAttribute('normal',new THREE.BufferAttribute(n,3))}
 // the grooves fade out over the last 2 cm before the rim, so the bowl meets it cleanly
 const surf=(d,x,z)=>{const r=Math.hypot(x,z);return r<RS?bowl(r,d.D)+offAt(d,x,z)*Math.min(1,(RS-r)/.02):0};
 // where each drum stands: one or two from PANSET.place; more from the app's drawing, spread so neighbours don't touch,
@@ -327,8 +334,9 @@ function makeDrums(k,stn,lite){
     const d={...dd,set:k,i,st:stn,S:NOTEFILL?Math.max(SURF/dd.r,FILLTO/outerOf(dd,SV)):SURF/dd.r,D:P.depth,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};d.off=heightMap(d);
     const g=new THREE.Group();g.rotation.order='YXZ';const pl=placeOf(i,k),sv=savedPos(i,k);if(sv){g.position.set(sv[0],sv[1],sv[2]);g.rotation.y=Math.atan2(-sv[0],.48-sv[2]+.0001)*(P.place&&P.place.length<2?0:1)}else{g.position.set(pl[0],0,pl[2]);g.rotation.y=pl[1]}g.rotation.x=P.tilt||.2;stn.lift.add(g);d.g=g;
     const geo=new THREE.RingGeometry(.0005,RS,lite?160:256,lite?70:110);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
-    for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,surf(d,x,z))}geo.computeVertexNormals();
-    d.dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:surfaceTexture(d,lite?1024:2048),metalness:.55,roughness:.4,envMapIntensity:.7,side:THREE.DoubleSide}));g.add(d.dish);
+    for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,surf(d,x,z))}dishNormals(d,geo,lite?.012:.006);
+    const stex=surfaceTexture(d,lite?1024:2048);stex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    d.dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:stex,metalness:.55,roughness:lite?.48:.42,envMapIntensity:lite?.6:.7,side:THREE.FrontSide}));g.add(d.dish);
     const skMat=L.skirt?new THREE.MeshStandardMaterial({map:skirtTex(L.skirt),metalness:.7,roughness:.3,side:THREE.DoubleSide}):chromeMat();
     const sk=new THREE.Mesh(new THREE.CylinderGeometry(RS+.012,RS+.012,SK,96,1,true),skMat);sk.position.y=-SK/2;g.add(sk);
     const rimMat=new THREE.MeshStandardMaterial({color:L.rim,metalness:1,roughness:.18});

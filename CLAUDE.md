@@ -224,6 +224,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   track 0.12 s ahead, looping the song or the loop); ● Rec records the selected track (or a new one, on its pans) while
   the others play, ● again stops, and the first take sets `L` (whole bars). `UNDO` holds earlier songs. Old per-set takes
   (`panyard-vr-take-<set>`) become the first tracks.
+  **No black specks** (the owner's headset video showed dark grain on the bowls, mostly far pans; `dishNormals`): the bowl's light
+  comes from the surface smoothed over e = 6 mm (12 mm on far `lite` stations), not the sharp 5 mm grooves; the bowl is
+  `FrontSide` only (a double-sided one let flipped underside fragments win the Quest's depth test); camera near .05 (was .02:
+  2.5× the depth precision); surface textures get max anisotropy; far stations a touch rougher (.48). Test with `tvrspeck`.
   **The pans in 3D:** each set's bowl is sunk `PANSET[k].depth` (tenor 19 cm ≈ 7½ in, double second 16.5, guitar 14; the
   skirt is at least that long), and `heightMap(d)` (each drum's notes blurred twice on a 512² canvas) sinks a 5 mm groove
   round every note and domes it up to 6 mm (smaller notes less); `surf(d,x,z)` is the playing surface everywhere (the
