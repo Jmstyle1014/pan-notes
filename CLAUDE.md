@@ -406,6 +406,13 @@ upright count is low because a checklist pushes the pans below the play bar ther
   0.8× the note, a gentler body hum and no low-shelf lift; **From guitar** the nearest double guitar recording retuned (C♯3–G♯4,
   further stretches beyond); **As recorded** the old way. Re-measure if new band sounds come (a new version falls back to all of
   them). Test with `tvrfcello` (it renders middle C and measures the octave below).
+- **VR stick feel** (the owner found the sticks too light; `WEIGHTS`, `hitBuzz`, `lagFrame`, `SOFT`/`softAt` in `panyard-vr.html`):
+  Stick weight Light / **Real** (default) / Heavy (page "Stick weight", menu "Weight:" on the Sticks row, localStorage
+  `panyard-vr-weight`): a full hit needs `full`× the old 3.2 m/s swing; the tip trails the hand on fast moves (`lagFrame`, a spring
+  on the pivot from the grip's speed in its own frame, ≤ .07–.11 rad, drawn only: `track()` still uses the real tip); each hit
+  buzzes (`hitBuzz`: a thump 14+14·heft ms then two fading taps, the rubber bouncing; stronger for harder hits). Band recordings'
+  soft hits use Panyard's `BAND.SOFT` (octave, third and sparkle dB below a firm hit), not the old lowpass; packs keep their layers.
+  Test with `tvrfeel` (`VR.weight.swingLag`, `VR.buzzes`).
 - **VR rooms** (page → Room, menu → Room ▸): a 360° picture as the room (`ROOM`, `setRoom`, `applyRoom` in `panyard-vr.html`):
   built-in ones from `rooms/rooms.json` (`[{k, name, file}]`, files beside it, served at /pan-notes/rooms/), your own added on
   the page (`roomAdd`: cut to at most 4096 wide, JPEG, IndexedDB panyard-vr / rec `room:<id>`, names in localStorage
