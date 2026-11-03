@@ -10,6 +10,7 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
 canvas{display:block}
 #hud{position:fixed;left:16px;right:16px;bottom:16px;max-width:1000px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 18px;backdrop-filter:blur(8px);max-height:calc(100vh - 32px);box-sizing:border-box;display:flex;flex-direction:column}
+#hud[hidden]{display:none}
 #hud .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}#hud .ttl{flex:1;min-width:220px}#hud .gobtns{margin-top:0;flex:1;min-width:300px}
 .tabs{display:flex;gap:6px;overflow-x:auto;margin:12px 0 4px;padding-bottom:2px;scrollbar-width:none}.tabs button{flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:rgb(255 255 255/.05);color:var(--muted);font-size:15px;font-weight:600}
 .tabs button[aria-selected=true]{color:var(--text);border-color:var(--gold);background:rgb(246 186 69/.18)}
@@ -512,19 +513,24 @@ function applyRoom(){const a=roomActive();scene.background=null;
   if(roomMesh)roomMesh.visible=a;sky.visible=!inRoom&&!a;floor.visible=!inRoom&&!a;shed.visible=inYard()&&!inRoom&&!a;flag.visible=LOOKS[lookKey].flag&&!inRoom&&!a;dirty=true}
 async function roomTex(k){const R=ROOM.list.find(x=>x.k===k);if(!R)return null;let url,own=false;
   if(R.mine){const b=await recGet('room:'+k);if(!b)return null;url=URL.createObjectURL(b);own=true}else url='../rooms/'+R.file;
-  try{const t=await new THREE.TextureLoader().loadAsync(url);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}finally{if(own)URL.revokeObjectURL(url)}}
+  // built-in rooms are 6144 × 3072 (about as sharp as the Quest 3S shows a full circle); a headset that can't hold that size
+  // gets it shrunk to fit; no mipmaps (the sky is seen at about its own size), which saves a quarter of the memory
+  try{let t=await new THREE.TextureLoader().loadAsync(url);const mx=renderer.capabilities.maxTextureSize||4096,im=t.image;
+    if(im&&im.width>mx){const c=document.createElement('canvas');c.width=mx;c.height=Math.round(im.height*mx/im.width);c.getContext('2d').drawImage(im,0,0,c.width,c.height);t.dispose();t=new THREE.CanvasTexture(c)}
+    t.colorSpace=THREE.SRGBColorSpace;t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.anisotropy=4;return t}finally{if(own)URL.revokeObjectURL(url)}}
 async function setRoom(k){ROOM.k=ROOM.list.some(x=>x.k===k)?k:'yard';LSset('room',ROOM.k);
   if(ROOM.k!=='yard'&&ROOM.texK!==ROOM.k){try{const t=await roomTex(ROOM.k);if(t){if(ROOM.tex)ROOM.tex.dispose();ROOM.tex=t;ROOM.texK=ROOM.k}}catch(e){console.warn('room',e);toast('That room picture couldn\'t be opened')}}
   applyRoom();roomUI();if(menu.m.visible)drawMenu()}
 async function roomsLoad(){let built=[];try{built=await (await fetch('../rooms/rooms.json',{cache:'no-cache'})).json()}catch{}
-  ROOM.list=[{k:'yard',name:'The yard'},...(Array.isArray(built)?built:[]).map(r=>({k:r.k,name:r.name,file:r.file})),...MYROOMS.map(r=>({k:r.k,name:r.name,mine:true}))];await setRoom(ROOM.k)}
+  ROOM.list=[{k:'yard',name:'The yard'},...(Array.isArray(built)?built:[]).map(r=>({k:r.k,name:r.name,file:r.file,credit:r.credit})),...MYROOMS.map(r=>({k:r.k,name:r.name,mine:true}))];await setRoom(ROOM.k)}
 async function roomAdd(file){const bm=await createImageBitmap(file),w=Math.min(4096,bm.width),h=Math.round(w*bm.height/bm.width),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(bm,0,0,w,h);
   const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.9)),k='my'+Date.now().toString(36),name=(file.name||'My room').replace(/\.[^.]+$/,'').slice(0,30);
   await recPut('room:'+k,blob);MYROOMS.push({k,name});LSset('rooms',JSON.stringify(MYROOMS));ROOM.list.push({k,name,mine:true});await setRoom(k);
   const r=bm.width/bm.height;return Math.abs(r-2)<.1?'':'This picture is '+bm.width+' × '+bm.height+', not 2:1, so it may look stretched.'}
 async function roomRemove(){const R=ROOM.list.find(x=>x.k===ROOM.k);if(!R||!R.mine)return;try{await recPut('room:'+R.k,null)}catch{}MYROOMS=MYROOMS.filter(x=>x.k!==R.k);LSset('rooms',JSON.stringify(MYROOMS));ROOM.list=ROOM.list.filter(x=>x.k!==R.k);await setRoom('yard')}
 function roomUI(){const seg=$('roomSeg');if(!seg)return;seg.innerHTML='';for(const R of ROOM.list){const b=document.createElement('button');b.textContent=R.name;b.setAttribute('aria-pressed',String(R.k===ROOM.k));b.onclick=()=>setRoom(R.k);seg.appendChild(b)}
-  const cur=ROOM.list.find(x=>x.k===ROOM.k);$('roomDel').hidden=!(cur&&cur.mine);$('roomEyeBox').hidden=ROOM.k==='yard'}
+  const cur=ROOM.list.find(x=>x.k===ROOM.k);$('roomDel').hidden=!(cur&&cur.mine);$('roomEyeBox').hidden=ROOM.k==='yard';
+  if(cur&&cur.credit)$('roomNote').textContent='Photo: '+cur.credit+'. A real 360° photo, free to use.'}
 function roomNudge(d){if(ROOM.k==='yard')return;const v=Math.max(1.1,Math.min(2.3,+(roomEye(ROOM.k)+d).toFixed(2)));LSset('roomeye-'+ROOM.k,String(v));applyRoom();$('roomNote').textContent='Floor '+v.toFixed(2)+' m below your eyes in this room.'}
 // a sign behind the pans
 const sign=new THREE.Mesh(new THREE.PlaneGeometry(.8,.2),new THREE.MeshBasicMaterial({transparent:true}));sign.position.set(0,.55,-.6);sign.rotation.x=-.2;rig.add(sign);

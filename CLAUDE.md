@@ -444,6 +444,11 @@ upright count is low because a checklist pushes the pans below the play bar ther
   pressed into a floor at y 0, `roomEye(k)` m below the picture's camera, 1.6 by default, page Floor lower / higher per room,
   localStorage `panyard-vr-roomeye-<k>`); as `scene.background` it sat at infinity and felt like floating. The sky,
   floor, flag and the yard's roof hide while it shows, never in passthrough. Test with `tvrroom`.
+  **Built-in rooms are real 360° photos** from Poly Haven (CC0, free for anything; `credit` in rooms.json shows on the page): Beach
+  with palms (Spiaggia di Mondello), Seaside at night (Blue Lagoon Night), Beach at sunrise (Umhlanga Sunrise), Zanzibar fort stage
+  (Amphitheatre Zanzibar Fort), cut from 8K to 6144 × 3072 (about the Quest 3S's sharpness round a full circle); chosen with open
+  ground near the camera, since anything close smears on the grounded floor. `roomTex` shrinks a picture past the GPU's
+  `maxTextureSize` and skips mipmaps. The owner's first two (1774 px wide, AI-made, so soft and stretched) stay at the end.
   **Classroom polish:** practice speed 1× / ¾ / ½ on beat and comp steps (`CLASS.spd`, localStorage `panyard-vr-cls-spd`,
   `spdBtns`); the where-to-look map (`drawMap`: the pan's own drawing from above, gold = what may glow, red = your last
   wrong note `CLASS.badId`) on play steps. Tested in `tvrclass2`.
