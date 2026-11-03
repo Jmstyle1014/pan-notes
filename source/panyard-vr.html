@@ -2451,7 +2451,7 @@ const VR=window.VR={players:{set:(k,n)=>setPlayers(k,n),of:k=>playersOf(k),max:k
 VR.ideas={open:on=>ideasOpen(on!==false),shown:()=>pad.m.visible,state:()=>JSON.parse(JSON.stringify(IDEAS)),ia:()=>({write:IA.write,len:IA.len,dot:IA.dot,page:IA.page,shift:IA.shift,playing:IA.play.length>0}),
   press:id=>{act(id)},hits:()=>{drawPad();return pad.hits.map(h=>h.id)},type:t=>{for(const c of t)ideaType(c===' '?'space':c==='\n'?'⏎':c)},
   pen:pts=>{const h=pad.hits.find(x=>x.id==='iaink-area');pts.forEach(([x,y],i)=>h.drag(x,y,i===0));h.done()},
-  beam:(x,y,down)=>{const uv={x:x/pad.W,y:1-y/pad.H};if(down===true)return uiDown(pad,uv);if(down===false)return uiUp();uiMove(pad,uv)},live:()=>panelLive(pad),noSticks:()=>sticks.forEach(s=>s.grip.visible=false)};
+  beam:(x,y,down)=>{const uv={x:x/pad.W,y:1-y/pad.H};if(down===true)return uiDown(pad,uv);if(down===false)return uiUp();uiMove(pad,uv)},live:()=>panelLive(pad),noSticks:()=>sticks.forEach(s=>s.grip.visible=false),png:()=>{drawPad();return pad.c.toDataURL('image/png')}};
 </script>
 </body>
 </html>
