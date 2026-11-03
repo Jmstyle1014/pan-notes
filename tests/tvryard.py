@@ -21,7 +21,7 @@ song={'bpm':120,'L':8,'loop':{'on':False,'s':0,'e':1},'sel':0,'click':False,'tra
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required','--use-gl=swiftshader','--enable-unsafe-swiftshader'])
     pg=b.new_page(viewport={'width':1100,'height':760});errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
-    pg.add_init_script("if(!sessionStorage.getItem('s')){localStorage.setItem('panyard-vr-song',"+json.dumps(json.dumps(song))+");localStorage.setItem('panyard-vr-set','tenor');sessionStorage.setItem('s','1')}")
+    pg.add_init_script("if(!sessionStorage.getItem('s')){localStorage.setItem('panyard-vr-song',"+json.dumps(json.dumps(song))+");localStorage.setItem('panyard-vr-set','tenor');localStorage.setItem('panyard-vr-space','roomy');localStorage.setItem('panyard-vr-even','1');sessionStorage.setItem('s','1')}")  # the yard as first laid out (Roomy, Even mix on); Close is tested in tvryardfeel
     pg.route('https://pan.test/**',route)
     pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=79&&VR.drums()>0",timeout=90000)
     ST=lambda:{s['k']:s for s in pg.evaluate("VR.stations()")}
@@ -56,7 +56,7 @@ with sync_playwright() as p:
     check(not bad,f'notes on every station play themselves ({len(ids)} notes, bad {bad[:4]})')
     # surround
     sp=pg.evaluate("VR.spatial()")
-    S2=ST();ok=all(t['spatial'] and abs(t['x']-S2[t['set']]['at'][0])<.05 and abs(t['z']-S2[t['set']]['at'][1])<.05 for t in sp)
+    S2=ST();ok=all(t['spatial'] and math.hypot(t['x']-S2[t['set']]['at'][0],t['z']-S2[t['set']]['at'][1])<.3 for t in sp)   # from the middle of its pans, which for the basses' arch sits a little off the station's base
     check(ok,f'each track sounds from where its pans stand {sp}')
     check(all(t['roll']==.3 for t in sp),'Even mix is on: far pans fade only a little')
     pg.evaluate("VR.even(false)");check(all(t['roll']==1 for t in pg.evaluate("VR.spatial()")),'Even mix off: like real life');pg.evaluate("VR.even(true)")
@@ -84,7 +84,7 @@ with sync_playwright() as p:
     near=ST()['six']['at'];pl=pg.evaluate("VR.player()")
     d0=math.hypot(far[0]-pl['x'],far[1]-pl['z']);d1=math.hypot(near[0]-pl['x'],near[1]-pl['z'])
     check(abs(near[0]+2.9)<.05 and abs(near[1]+2.4)<.05 and d1<d0-.8,f'they slide over to where you aim, much closer ({d0:.1f} m → {d1:.1f} m)')
-    six=[t for t in pg.evaluate("VR.spatial()") if t['set']=='six'][0];check(abs(six['x']+2.9)<.05 and abs(six['z']+2.4)<.05,'and their sound comes from there')
+    six=[t for t in pg.evaluate("VR.spatial()") if t['set']=='six'][0];check(math.hypot(six['x']+2.9,six['z']+2.4)<.3,'and their sound comes from there')
     check(not pg.evaluate("VR.dragSection('tenor',0,0)"),'the pans you\'re at don\'t slide (lift them with both hands)')
     pg.evaluate("VR.view('yard')");pg.wait_for_timeout(600);pg.screenshot(path=D+'7-pulled-closer.png');pg.evaluate("VR.view('pans')")
     pg.reload();pg.wait_for_function("window.VR&&VR.ready()>=79",timeout=90000);check(abs(ST()['six']['at'][0]+2.9)<.05,'they stay there when the page opens again')

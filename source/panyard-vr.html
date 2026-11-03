@@ -43,6 +43,7 @@ canvas{display:block}
   <div class="lab">Where you play</div>
   <div class="seg" id="whereSeg"><button data-where="pano">Panorama (basses on the wings)</button><button data-where="rows">Concert rows</button><button data-where="one">One pan in front of you</button></div>
   <div class="lab">Even mix (the yard)</div>
+  <div class="seg" id="spaceSeg"><button data-space="close">Sections close, like a real yard</button><button data-space="roomy">Roomy</button></div>
   <div class="seg" id="evenSeg"><button data-even="on">On: far pans stay clear</button><button data-even="off">Off: like real life</button></div>
   <div class="lab">The pans (the yard)</div>
   <div class="seg" id="lockSeg"><button data-lock="on">🔒 Locked in place</button><button data-lock="off">🔓 Free to arrange</button></div>
@@ -187,12 +188,13 @@ const SOFT={v:[.15,.43,.71,1],oct:[-14,-6,-1,0],third:[-20,-13,-4,0],top:[-22,-1
 function softAt(k,v){const V=SOFT.v,G=SOFT[k];if(v<=V[0])return G[0];for(let i=1;i<V.length;i++)if(v<=V[i]){const u=(v-V[i-1])/(V[i]-V[i-1]);return G[i-1]+(G[i]-G[i-1])*u}return 0}
 function strike(id,v,at,tr){
   if(id.startsWith('drum:'))return strikeDrum(id,v,at,tr);
+  if(tr&&!tr._cp&&ac){const np=playersOf(NOTE[id]?NOTE[id].set:tr.set);for(let j=1;j<np;j++)strike(id,v*.82,Math.max(at||0,ac.currentTime)+CP_DT[j],Object.assign({},tr,{_cp:j}))}   // the section's other players
   const fromTake=!!tr;
   const n=NOTE[id],layered=n&&packOn(n.set)&&pbuf[id];
   if(layered)return strikeLayer(id,n,v,at,tr);
   const fc=n&&n.set==='fcello'?fcelloSrc(id):null,bw=fc||borrowOf(id),b=bw&&buf[bw.id];if(!ac||!b||!n)return false;if(!RENDER&&ac.state==='suspended')ac.resume();
   const T=(man&&man.tune&&man.tune[bw.id])||{},t=Math.max(at||0,ac.currentTime+.002),P=PANSET[n.set]||{body:150,tone:null};
-  const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440)+bw.shift;
+  const src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440)+bw.shift+(tr&&tr._cp?CP_C[tr._cp]:0);
   const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
   if(fc){pk('highpass',n.hz*.8,-3.01);pk('highpass',n.hz*.8,-3.01)}   // the four cello cleaned: nothing under the note (a high-pass's Q is in dB)
   if(OPT.hum){pk('peaking',P.body,fc?1.2:3.3,2.2);pk('peaking',P.body*3,fc?.6:1.5,2.2)}   // drum body hum, from the skirt's length (switch in the menu)
@@ -204,8 +206,8 @@ function strike(id,v,at,tr){
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.003);g.gain.setValueAtTime(a,t+len-fade);g.gain.linearRampToValueAtTime(0,t+len);
   src.start(t,start);src.stop(t+len+.02);
   // the same note hit again: the older ring is damped quickly, like a real pan
-  const p=voices.get(id);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
-  voices.set(id,{src,g,end:t+len});if(RENDER)return true;
+  const vk=tr&&tr._cp?id+'#'+tr._cp:id,p=voices.get(vk);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
+  voices.set(vk,{src,g,end:t+len});if(RENDER||tr&&tr._cp)return true;
   if(fromTake)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
   VR.hits.push({id,v:+v.toFixed(2),p:fromTake?1:0});return true;
 }
@@ -213,7 +215,7 @@ function strike(id,v,at,tr){
 // set right, the drum's hum and tone as ever; no extra darkening for soft hits (the soft recording already is)
 function strikeLayer(id,n,v,at,tr){if(!ac)return false;if(!RENDER&&ac.state==='suspended')ac.resume();
   const L=pbuf[id],k=Math.min(L.length-1,Math.floor(v*L.length*.999)),b=L[k],P=PANSET[n.set]||{body:150,tone:null},t=Math.max(at||0,ac.currentTime+.002);
-  const T=(PACK[n.set].tune||{})[id]||{},src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440);
+  const T=(PACK[n.set].tune||{})[id]||{},src=ac.createBufferSource(),g=ac.createGain();src.buffer=b;src.detune.value=(+T.cents||0)+1200*Math.log2(A/440)+(tr&&tr._cp?CP_C[tr._cp]:0);
   const nodes=[];const pk=(ty,fq,gn,q)=>{const x=ac.createBiquadFilter();x.type=ty;x.frequency.value=fq;x.gain.value=gn;if(q)x.Q.value=q;nodes.push(x)};
   if(OPT.hum){pk('peaking',P.body,3.3,2.2);pk('peaking',P.body*3,1.5,2.2)}
   if(OPT.tone&&P.tone){pk('lowshelf',P.tone[0],P.tone[1]);pk('highshelf',P.tone[2],P.tone[3])}
@@ -221,8 +223,8 @@ function strikeLayer(id,n,v,at,tr){if(!ac)return false;if(!RENDER&&ac.state==='s
   src.connect(g);g.connect(nodes[0]);for(let i=1;i<nodes.length;i++)nodes[i-1].connect(nodes[i]);nodes[nodes.length-1].connect(tr&&chan(tr)?chan(tr).g:busOf(n.set));
   const within=v*L.length-k,a=.78*(.8+.2*Math.min(1,within)),len=b.duration;   // .78: the pack's loudest layer about level with the band's full hit
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.002);g.gain.setValueAtTime(a,t+len-.05);g.gain.linearRampToValueAtTime(0,t+len);src.start(t);src.stop(t+len+.02);
-  const p=voices.get(id);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
-  voices.set(id,{src,g,end:t+len});if(RENDER)return true;
+  const vk=tr&&tr._cp?id+'#'+tr._cp:id,p=voices.get(vk);if(p&&p.end>t){try{p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(p.g.gain.value,t);p.g.gain.linearRampToValueAtTime(0,t+.03);p.src.stop(t+.04)}catch{}}
+  voices.set(vk,{src,g,end:t+len});if(RENDER||tr&&tr._cp)return true;
   if(tr)setTimeout(()=>light(id),Math.max(0,(t-ac.currentTime)*1000));else{recHit(id,v,t);learnHit(id,t);classHit(id,t,v)}
   VR.hits.push({id,v:+v.toFixed(2),p:tr?1:0,layer:k});return true}
 function setSound(k,which){LSset('snd-'+k,which);packUI();dirty=true;if(menu.m.visible)drawMenu();toast(setName(k)+': '+(which==='pack'?PACK[k].name:'your band\'s pans'))}
@@ -237,7 +239,7 @@ renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
 document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();
 const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;
-const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.02,60);camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.05,60);   // near 5 cm: 2.5× the depth precision of .02 at the far panscamera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5);
 scene.add(new THREE.HemisphereLight('#dfe8ff','#20160c',.7));
 const sun=new THREE.DirectionalLight('#fff3dd',1.6);sun.position.set(.6,3,1.2);scene.add(sun);
 const canvasTex=(w,hh,draw)=>{const c=document.createElement('canvas');c.width=w;c.height=hh;draw(c.getContext('2d'),w,hh);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t};
@@ -281,6 +283,13 @@ function heightMap(d){const c=document.createElement('canvas');c.width=c.height=
   return off}
 function offAt(d,x,z){const fx=Math.max(0,Math.min(HM-1.001,HM/2+x/RS*HM/2)),fy=Math.max(0,Math.min(HM-1.001,HM/2+z/RS*HM/2)),ix=fx|0,iy=fy|0,tx=fx-ix,ty=fy-iy,o=d.off,i=iy*HM+ix;
   return (o[i]*(1-tx)+o[i+1]*tx)*(1-ty)+(o[i+HM]*(1-tx)+o[i+HM+1]*tx)*ty}
+/* the bowl's shading (black specks in the headset, the owner's video): its light comes from a slightly smoothed surface
+   (e = 6 mm, 12 mm on far, lighter stations), not the sharp 5 mm grooves, so a far pan's tiny grooves can't flip a pixel's
+   reflection to the dark sky; the grooves stay in the shape (the stick, the glows) and drawn on the steel. Drawn top side only
+   (side FrontSide: a double-sided bowl let flipped, dark underside fragments win the headset's depth test). */
+function dishNormals(d,geo,e){const p=geo.attributes.position,n=new Float32Array(p.count*3);
+  for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k),gx=(surf(d,x+e,z)-surf(d,x-e,z))/(2*e),gz=(surf(d,x,z+e)-surf(d,x,z-e))/(2*e),L=Math.hypot(gx,1,gz);n[k*3]=-gx/L;n[k*3+1]=1/L;n[k*3+2]=-gz/L}
+  geo.setAttribute('normal',new THREE.BufferAttribute(n,3))}
 // the grooves fade out over the last 2 cm before the rim, so the bowl meets it cleanly
 const surf=(d,x,z)=>{const r=Math.hypot(x,z);return r<RS?bowl(r,d.D)+offAt(d,x,z)*Math.min(1,(RS-r)/.02):0};
 // where each drum stands: one or two from PANSET.place; more from the app's drawing, spread so neighbours don't touch,
@@ -309,22 +318,26 @@ const LAYOUTS={
   rows:{tenor:[0,-2.3,0],dten:[-2.5,-2.3,0],dsec:[2.5,-2.3,0],guitar:[-2.5,-.3,0],fcello:[0,-.3,0],tcello:[2.5,-.3,0],
     six:[-3.4,1.9,0],kit:[0,2.1,0],seven:[3.4,1.9,0]}};
 let LAYOUT=LAYOUTS[LS('layout')]?LS('layout'):'pano';
-const BAND=new Proxy({},{get:(_,k)=>LAYOUTS[LAYOUT][k]});
+// how close the sections stand (page / menu "Yard: Close / Roomy", localStorage panyard-vr-space): Close brings every section
+// in by a third, like a real yard (the owner found jumps between pans felt far); Roomy is the yard as first laid out
+const SPACES={close:.68,roomy:1};let SPACE=SPACES[LS('space')]?LS('space'):'close';
+const BAND=new Proxy({},{get:(_,k)=>{const b=LAYOUTS[LAYOUT][k];if(!b)return b;const f=SPACES[SPACE];return [b[0]*f,b[1]*f,b[2]]}});
 const BORDER=['dten','tenor','dsec','guitar','fcello','tcello','seven','kit','six'];   // B / Y and the menu go round in this order
 const STN=new Map(),SHOWN=new Set();
 const inYard=()=>YARD||KIDS;
 function wantKeys(){if(!inYard())return [setKey];if(KIDS)return KIDSETS.slice();
   return [...new Set([...SONG.tracks.filter(t=>!t.rec&&KEYS.includes(t.set)).map(t=>t.set),...SHOWN,setKey])]}
-function makeDrums(k,stn,lite){
+function makeDrums(k,stn,lite,copy,off){copy=copy||0;off=off||0;
   const set=SETS[k],P=PANSET[k],L=LOOKS[lookKey],SK=Math.max(P.skirt*.0254,P.depth+.02);
   const SV=document.createElementNS('http://www.w3.org/2000/svg','svg');SV.style.cssText='position:absolute;width:0;height:0';document.body.appendChild(SV);
   try{
   return set.drums.map((dd,i)=>{
-    const d={...dd,set:k,i,st:stn,S:NOTEFILL?Math.max(SURF/dd.r,FILLTO/outerOf(dd,SV)):SURF/dd.r,D:P.depth,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};d.off=heightMap(d);
-    const g=new THREE.Group();g.rotation.order='YXZ';const pl=placeOf(i,k),sv=savedPos(i,k);if(sv){g.position.set(sv[0],sv[1],sv[2]);g.rotation.y=Math.atan2(-sv[0],.48-sv[2]+.0001)*(P.place&&P.place.length<2?0:1)}else{g.position.set(pl[0],0,pl[2]);g.rotation.y=pl[1]}g.rotation.x=P.tilt||.2;stn.lift.add(g);d.g=g;
+    const d={...dd,set:k,i:i+copy*set.drums.length,copy,st:stn,S:NOTEFILL?Math.max(SURF/dd.r,FILLTO/outerOf(dd,SV)):SURF/dd.r,D:P.depth,notes:dd.notes.map(n=>({...n,p2:new Path2D(n.path),lit:0}))};d.off=heightMap(d);
+    const g=new THREE.Group();g.rotation.order='YXZ';const pl=placeOf(i,k),sv=savedPos(i+copy*set.drums.length,k);if(sv){g.position.set(sv[0],sv[1],sv[2]);g.rotation.y=Math.atan2(-sv[0],.48-sv[2]+.0001)*(P.place&&P.place.length<2?0:1)}else{g.position.set(pl[0]+off,0,pl[2]);g.rotation.y=pl[1]}g.rotation.x=P.tilt||.2;stn.lift.add(g);d.g=g;
     const geo=new THREE.RingGeometry(.0005,RS,lite?160:256,lite?70:110);geo.rotateX(-Math.PI/2);const p=geo.attributes.position;
-    for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,surf(d,x,z))}geo.computeVertexNormals();
-    d.dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:surfaceTexture(d,lite?1024:2048),metalness:.55,roughness:.4,envMapIntensity:.7,side:THREE.DoubleSide}));g.add(d.dish);
+    for(let k=0;k<p.count;k++){const x=p.getX(k),z=p.getZ(k);p.setY(k,surf(d,x,z))}dishNormals(d,geo,lite?.012:.006);
+    const stex=surfaceTexture(d,lite?1024:2048);stex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    d.dish=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:stex,metalness:.55,roughness:lite?.48:.42,envMapIntensity:lite?.6:.7,side:THREE.FrontSide}));g.add(d.dish);
     const skMat=L.skirt?new THREE.MeshStandardMaterial({map:skirtTex(L.skirt),metalness:.7,roughness:.3,side:THREE.DoubleSide}):chromeMat();
     const sk=new THREE.Mesh(new THREE.CylinderGeometry(RS+.012,RS+.012,SK,96,1,true),skMat);sk.position.y=-SK/2;g.add(sk);
     const rimMat=new THREE.MeshStandardMaterial({color:L.rim,metalness:1,roughness:.18});
@@ -344,14 +357,28 @@ function makeDrums(k,stn,lite){
     scene.add(st);d.stand=st;d.pole=pole;d.feet=feet;d.SK=SK;d.tilt0=g.rotation.x;
     return d});
   }finally{SV.remove()}}
+/* ---------- players: a section's size (the owner: "in a panyard we have three tenors…") ----------
+   SONG.players[set] (per song, 1 by default) puts that many copies of a section's pans in the yard, side by side; there's still
+   one track. When the song plays, every copy plays the part (strike(): each a hair later and a few cents off, like real players,
+   copies a little softer), so a bigger section sounds fuller and wider. You can play any copy (your hits go to the same pans and
+   track) and move each one by its rim (its own saved place). Set on the mixer strip (Players − / +) or the ＋ / − sign over a
+   section you point at. Up to 6, fewer for big sets (12 drums a section); not the drum kit. */
+const maxPlayers=k=>k==='kit'||!SETS[k]?1:Math.max(2,Math.min(6,Math.floor(12/SETS[k].drums.length)));
+const playersOf=k=>{const n=+((typeof SONG!=='undefined'&&SONG&&SONG.players||{})[k])||1;return Math.max(1,Math.min(maxPlayers(k),n|0))};
+const CP_DT=[0,.013,.022,.008,.017,.026],CP_C=[0,4,-5,2,-3,6];
+function setPlayers(k,n){if(!SETS[k]||k==='kit')return;n=Math.max(1,Math.min(maxPlayers(k),n));SONG.players=SONG.players||{};if(n===1)delete SONG.players[k];else SONG.players[k]=n;saveSong();
+  rebuildStation(k);drawDesk();drawSign();dirty=true;toast(setName(k)+': '+n+(n===1?' player':' players'))}
+function rebuildStation(k){const st=STN.get(k);if(!st||st.solo)return;dropStation(st);STN.set(k,buildStation(k));drums=[...STN.values()].flatMap(s=>s.drums);relaxYard();hereStation();routeAll()}
 function buildStation(k){const solo=!inYard();let g=rig,lf=lift;if(!solo){g=new THREE.Group();rig.add(g);lf=new THREE.Group();g.add(lf)}
   const st={key:k,g,lift:lf,solo,drums:[]};
   if(!solo){const [bx,bz,by]=BAND[k],sv=YPOS[k];g.rotation.set(0,by,0);if(Array.isArray(sv)&&sv.length===2&&sv.every(Number.isFinite))placeStation(st,sv[0],sv[1]);else placeStation(st,bx,bz)
 
     st.label=new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(512,128,(c)=>{c.fillStyle='rgba(12,18,24,.8)';c.beginPath();c.roundRect(0,0,512,128,30);c.fill();
-      c.fillStyle='#f6ba45';c.font='700 58px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(setName(k),256,66)}),depthWrite:false}));
+      c.fillStyle='#f6ba45';c.font='700 58px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(setName(k)+(playersOf(k)>1?' × '+playersOf(k):''),256,66)}),depthWrite:false}));
     st.label.scale.set(.8,.2,1);st.label.position.set(0,1.05,-.35);st.label.raycast=()=>{};g.add(st.label)}
-  if(k!=='kit')st.drums=makeDrums(k,st,!solo&&SETS[k].drums.length>2);
+  if(k!=='kit'){st.drums=makeDrums(k,st,!solo&&SETS[k].drums.length>2);st.n=solo?1:playersOf(k);
+    const xs=SETS[k].drums.map((_,i)=>placeOf(i,k)[0]),W=Math.max(...xs)-Math.min(...xs)+2*RS+.38;   // a player's room beside each copy
+    for(let j=1;j<st.n;j++)st.drums.push(...makeDrums(k,st,true,j,(j%2?1:-1)*Math.ceil(j/2)*W))}
   if(!solo){const r=k==='kit'?1:Math.max(.4,...st.drums.map(d=>Math.hypot(d.g.position.x,d.g.position.z)+RS));   // what the beam can point at: a cylinder round the station
     st.hit=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1.3,16),new THREE.MeshBasicMaterial());st.hit.visible=false;st.hit.position.y=-.3;st.hit.userData.st=st;g.add(st.hit)}
   applyLift(st);return st}
@@ -387,18 +414,30 @@ let LOCK=LS('lock')!=='0';
 function setLock(on){LOCK=on;LSset('lock',on?'1':'0');toast(on?'🔒 The pans are locked in place':'🔓 Unlocked: move the pans, then lock them again');dirty=true;if(menu.m.visible)drawMenu();lockUI()}
 function lockUI(){document.querySelectorAll('#lockSeg button').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.lock==='on')===LOCK)))}
 function stDrop(dr){const p=dr.st.g.position;YPOS[dr.st.key]=[+p.x.toFixed(3),+p.z.toFixed(3)];LSset(posKey(),JSON.stringify(YPOS));for(const o of STN.values())if(o.label)o.label.visible=o.key!==setKey}
-function yardBack(){YPOS={};LSset(posKey(),'{}');for(const st of STN.values()){if(st.solo)continue;placeStation(st,BAND[st.key][0],BAND[st.key][1])}
-  if(STN.has(setKey))goTo(setKey);msg('Every section is back in its place')}
+function yardBack(){YPOS={};LSset(posKey(),'{}');for(const st of STN.values()){if(st.solo)continue;placeStation(st,BAND[st.key][0],BAND[st.key][1])}relaxYard();
+  if(STN.has(setKey))goTo(setKey,true);msg('Every section is back in its place')}
 function dropStation(st){for(const d of st.drums){st.lift.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map&&o.material.map!==headTex)o.material.map.dispose()})}
   if(st.bus){try{st.bus.p.disconnect()}catch{}}if(st.label){st.label.material.map.dispose();st.label.material.dispose()}
   if(kitG.parent===st.g)rig.add(kitG);if(table.parent===st.g)rig.add(table);if(sign.parent===st.g)rig.add(sign);if(!st.solo)rig.remove(st.g)}
 // the stations the song (or kids mode) needs; all: rebuild every one (a new look)
+/* Close spacing: every section starts at its place brought in by a third (BAND), then any two that would touch are nudged
+   apart along the line between them, a little at a time, until there's GAP between all of them; sections you moved yourself
+   (YPOS) stay put and the others make room. Roomy is the first layout, which never touches. */
+function pairOver(a,b){let w=0;for(const [x,z,r] of footOf(a))for(const [u,v,q] of footOf(b))w=Math.max(w,r+q+GAP-Math.hypot(x-u,z-v));return w}
+function relaxYard(){if(!inYard())return;const sts=[...STN.values()].filter(st=>!st.solo);
+  for(const st of sts){if(YPOS[st.key])continue;const [x,z,ry]=BAND[st.key];st.g.rotation.set(0,ry,0);placeStation(st,x,z)}
+  if(SPACE==='roomy')return;
+  for(let it=0;it<80;it++){let moved=false;
+    for(let i=0;i<sts.length;i++)for(let j=i+1;j<sts.length;j++){const a=sts[i],b=sts[j],o=pairOver(a,b);if(o<=0)continue;
+      const fa=YPOS[a.key]?0:1,fb=YPOS[b.key]?0:1;if(!fa&&!fb)continue;const pa=a.g.position,pb=b.g.position;let dx=pb.x-pa.x,dz=pb.z-pa.z;const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
+      const m=Math.min(.12,o+.01),ka=m*fa/(fa+fb),kb=m*fb/(fa+fb);placeStation(a,pa.x-dx*ka,pa.z-dz*ka);placeStation(b,pb.x+dx*kb,pb.z+dz*kb);moved=true}
+    if(!moved)break}}
 function syncStations(all){const ks=wantKeys(),solo=!inYard();
-  for(const [k,st] of [...STN])if(all||!ks.includes(k)||st.solo!==solo){dropStation(st);STN.delete(k)}
+  for(const [k,st] of [...STN])if(all||!ks.includes(k)||st.solo!==solo||(!solo&&k!=='kit'&&st.n!==playersOf(k))){dropStation(st);STN.delete(k)}
   if(!solo){rig.position.set(0,0,0);rig.rotation.set(0,0,0)}
   for(const k of ks)if(!STN.has(k))STN.set(k,buildStation(k));
   drums=[...STN.values()].flatMap(st=>st.drums);
-  const kst=STN.get('kit');kitG.visible=!!kst;(kst?kst.g:rig).add(kitG);
+  const kst=STN.get('kit');kitG.visible=!!kst;(kst?kst.g:rig).add(kitG);relaxYard();
   hereStation();routeAll();shed.visible=inYard()&&!inRoom&&!(typeof ROOM!=='undefined'&&roomActive());flag.position.set(0,inYard()?2.5:1.75,inYard()?-6.4:-2.6);dirty=true}
 function buildPans(){syncStations(true)}
 // the station you're at holds the sign and the studio table; the others show their names
@@ -553,8 +592,14 @@ function restick(force){for(const s of sticks){if(s.kind===setKey&&!force)contin
 /* the bounce: the stick never goes into the steel (it bends back from the hand to rest on it), and after a hit it flicks
    up and comes back, as a stick does off a pan. The hit itself is found from where the hand really took the stick. */
 const bw=new THREE.Vector3(),bl=new THREE.Vector3();
-function sinkOf(s){s.tip.getWorldPosition(bw);let deep=0;
-  for(const d of drums){bl.copy(bw);d.g.worldToLocal(bl);const r=Math.hypot(bl.x,bl.z);if(r<RS+.01){const k=surf(d,bl.x,bl.z)+s.R-bl.y;if(k>deep&&k<.25)deep=k}}
+/* how far the stick is in the steel: its rubber tip, and (the owner: "the whole stick shouldn't go through the pan") points
+   along its wooden shaft too, so bounce() bends the stick up from your hand until neither tip nor shaft is under the steel.
+   The part right by your hand is left out (the hand itself can't be moved), and only shallow dips count, so a stick held
+   under a pan from the side isn't flipped up through it. Hits still use the hand's real tip (track()). */
+const SHAFT_T=[.35,.55,.75,.9],bp=new THREE.Vector3();
+function sinkOf(s){s.tip.getWorldPosition(bw);s.piv.getWorldPosition(bp);let deep=0;const sr=(STICKS[s.kind]||STICKS.tenor).r||.007;
+  for(const d of drums){bl.copy(bw);d.g.worldToLocal(bl);const r=Math.hypot(bl.x,bl.z);if(r<RS+.01){const k=surf(d,bl.x,bl.z)+s.R-bl.y;if(k>deep&&k<.25)deep=k}
+    for(const t of SHAFT_T){bl.copy(bp).lerp(bw,t);d.g.worldToLocal(bl);if(Math.hypot(bl.x,bl.z)<RS){const k=surf(d,bl.x,bl.z)+sr-bl.y;if(k>deep&&k<.12)deep=k}}}
   if(kitG.visible)for(const p of KITP){bl.copy(bw);p.g.worldToLocal(bl);if(Math.hypot(bl.x,bl.z)<p.r+.01){const k=s.R-bl.y;if(k>deep&&k<.12)deep=k}}
   return deep}
 function bounce(s,dt){s.reb=Math.max(0,s.reb-dt*5/heft(s.kind));const base=STICK_TILT+s.reb+(s.lagX||0);   // the flick: up straight after the hit, back down over a fifth of a second
@@ -731,13 +776,15 @@ function chan(t){if(RENDER)return RENDER.chan(t);let c=CH.get(t.id);if(!c&&ac){c
 /* surround: in the yard each station's sound comes from where its pans stand (an HRTF panner at the station; the
    listener is your head, each frame). Even mix (on unless switched off, localStorage panyard-vr-even): far pans fade only
    a little; off: as in real life. Walking up to a pan always makes it louder. */
-let EVEN=LS('even')!=='0';
+let EVEN=LS('even')==='1';   // off unless chosen: far sections quieter, so you hear where they are
 const SP=new THREE.Vector3();
 function busOf(k){if(RENDER)return master;const st=STN.get(k);if(!st||st.solo||!ac)return master;
   if(!st.bus){const g=ac.createGain(),p=ac.createPanner();p.panningModel='HRTF';p.distanceModel='inverse';p.refDistance=1;p.maxDistance=60;g.connect(p);p.connect(master);st.bus={g,p}}
   placeBus(st);return st.bus.g}
-function placeBus(st){if(!st.bus)return;st.g.getWorldPosition(SP);const p=st.bus.p;p.rolloffFactor=EVEN?.3:1;
+function placeBus(st){if(!st.bus)return;st.g.getWorldPosition(SP);if(st.drums&&st.drums.length){SP.set(0,0,0);for(const d of st.drums){d.g.getWorldPosition(W2);SP.add(W2)}SP.divideScalar(st.drums.length)}else SP.y+=.85;   // heard from its pans (their middle, at pan height), not the floor
+  const p=st.bus.p;p.rolloffFactor=EVEN?.3:1;
   if(p.positionX){p.positionX.value=SP.x;p.positionY.value=SP.y;p.positionZ.value=SP.z}else p.setPosition(SP.x,SP.y,SP.z)}
+const W2=new THREE.Vector3();
 function routeAll(){if(!ac)return;for(const st of STN.values())placeBus(st);
   for(const t of SONG.tracks){const c=CH.get(t.id);if(!c)continue;const to=t.rec?master:busOf(t.set);if(c.to!==to){try{c.p.disconnect()}catch{}c.p.connect(to);c.to=to}}}
 const LP=new THREE.Vector3(),LF=new THREE.Vector3(),LUp=new THREE.Vector3(),LQ2=new THREE.Quaternion();
@@ -800,7 +847,7 @@ function drawPick(p,g){const x0=280,y0=170,w=1300,h=560;g.fillStyle='rgba(8,12,1
   btn(p,'pickx',x0+w-200,y0+20,170,60,'Cancel',{fs:28})}
 // the new song's pans: a track each, out in the yard; you go to the first
 function pansOut(){const ks=KEYS.filter(k=>PSEL.has(k));PICK=null;if(!ks.length)return;for(const k of ks)if(SONG.tracks.length<MAXT)SONG.tracks.push(newTrack(k));SONG.sel=0;saveSong();mixAll();
-  setKey=ks[0];LSset('set',setKey);songChanged();goTo(ks[0]);msg('Your pans are out: '+ks.map(setName).join(', '))}
+  setKey=ks[0];LSset('set',setKey);songChanged();goTo(ks[0],true);msg('Your pans are out: '+ks.map(setName).join(', '))}
 function delTrack(i){const t=SONG.tracks[i];if(!t)return;if(TR.rec===t){TR.rec=null;TR.state='play'}snapUndo();SONG.tracks.splice(i,1);SONG.sel=Math.max(0,Math.min(SONG.sel,SONG.tracks.length-1));
   if(!SONG.tracks.length){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}saveSong();mixAll();songChanged();msg('Deleted '+t.name+' (↶ Undo brings it back)')}
 function rerecord(i){const t=SONG.tracks[i];if(!t)return;if(t.rec||!KEYS.includes(t.set))return msg(t.rec?'The recording comes from Panyard':'Play this part on its own pans in Panyard');if(TR.state==='rec'){endRec();TR.state='play'}snapUndo();t.notes=[];SONG.sel=i;if(!hasNotes()){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}record(true)}
@@ -875,8 +922,18 @@ function wristFrame(dt){if(!renderer.xr.isPresenting||KIDS||!tableShown()){if(wr
   const n=new THREE.Vector3(1,0,0).applyQuaternion(s.grip.getWorldQuaternion(new THREE.Quaternion())),p=wrist.m.getWorldPosition(new THREE.Vector3()),h=headNow().p.sub(p).normalize(),d=n.dot(h);
   wristT=Math.max(0,Math.min(.25,wristT+(d>.6?dt:d<.4?-dt:0)));const on=wristT>=.2||(wrist.m.visible&&wristT>0);
   if(on!==wrist.m.visible){wrist.m.visible=on;if(on)drawWrist()}}
-const PANELS=[desk,scr,menu,guide,wrist];
-const panelLive=p=>!p.m.visible?false:p===board?!menu.m.visible&&!guide.m.visible:p===door?!CLASS.on&&!menu.m.visible&&!guide.m.visible:CLASS.on&&(p===desk||p===scr||p===wrist)?false:p===wrist?tableShown()&&!guide.m.visible:p===guide?guide.m.visible:p===menu?menu.m.visible&&!guide.m.visible:tableShown()&&!menu.m.visible&&!guide.m.visible;
+const psign=uiPanel(.42,.13,640,200);psign.m.visible=false;scene.add(psign.m);
+const SIGN={k:null,until:0};
+function drawSign(){const p=psign,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,p.W,p.H);rr(g,4,4,p.W-8,p.H-8,40,'rgba(12,18,24,.92)','#f6ba45');if(!SIGN.k){p.tex.needsUpdate=true;return}
+  const n=playersOf(SIGN.k);btn(p,'psm',24,40,120,120,'−',{fs:64});btn(p,'psp',p.W-144,40,120,120,'+',{fs:64,on:n>1});g.fillStyle='#f6ba45';g.textAlign='center';g.textBaseline='middle';
+  g.font='700 40px system-ui,sans-serif';g.fillText(fit(g,setName(SIGN.k),320),p.W/2,72);g.fillStyle='#eef2f4';g.font='34px system-ui,sans-serif';g.fillText(n+(n===1?' player':' players'),p.W/2,132);p.tex.needsUpdate=true}
+// pointing at a section shows its sign above its name for a few seconds (enough to move the beam up to it)
+const SH_RAY=new THREE.Vector3();function signFrame(ray){if(!inYard()||KIDS)return;const ts=[...STN.values()].filter(st=>st.hit&&st.key!=='kit').map(st=>st.hit),h=ts.length?ray.intersectObjects(ts,false)[0]:null;
+  if(h){const st=h.object.userData.st;if(SIGN.k!==st.key){SIGN.k=st.key;drawSign()}SIGN.until=performance.now()+2500;const w=new THREE.Vector3(0,1.36,-.35);st.g.localToWorld(w);psign.m.position.copy(w);
+    const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(SH_RAY);SH_RAY.y=w.y;psign.m.lookAt(SH_RAY);psign.m.visible=true}}
+function signTick(){if(psign.m.visible&&performance.now()>SIGN.until&&!beams.some(b=>b.onSign)){psign.m.visible=false}}
+const PANELS=[desk,scr,menu,guide,wrist,psign];
+const panelLive=p=>!p.m.visible?false:p===psign?!menu.m.visible&&!guide.m.visible:p===board?!menu.m.visible&&!guide.m.visible:p===door?!CLASS.on&&!menu.m.visible&&!guide.m.visible:CLASS.on&&(p===desk||p===scr||p===wrist)?false:p===wrist?tableShown()&&!guide.m.visible:p===guide?guide.m.visible:p===menu?menu.m.visible&&!guide.m.visible:tableShown()&&!menu.m.visible&&!guide.m.visible;
 function menuOpen(on){menu.m.visible=on;if(on){MPAGE='main';DELARM='';const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;const hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);f.y=0;
     if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();menu.m.position.set(hp.x+f.x*.75,hp.y-.12,hp.z+f.z*.75);menu.m.lookAt(hp.x,hp.y-.12,hp.z);drawMenu()}dirty=true}
 let MPAGE='main',MSP=0,DELARM='';
@@ -899,7 +956,7 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
   row(105,yd?'Go to pans':'Pans',yd?'the pans in this song':'');pick(100,'mset',setName(setKey),60);if(setKey==='fcello')btn(p,'mfc',900,100,260,60,'Sound: '+FCNAME[FCMODE],{on:FCMODE!=='raw',fs:24});else if(PACK[setKey])btn(p,'msnd',900,100,260,60,packOn(setKey)?'Sound: studio':'Sound: band',{on:packOn(setKey),fs:24});
   row(180,'Look');pick(175,'mlook',LOOKN[lookKey],60);if(ROOM.list.length>1)btn(p,'mroom',900,175,260,60,'Room ▸ '+fit(g,(ROOM.list.find(x=>x.k===ROOM.k)||{name:'The yard'}).name,150),{fs:22,on:ROOM.k!=='yard'});
   row(255,'Where you play',yd?(LAYOUT==='pano'?'the whole band, basses on the wings':'the whole band in rows'):'one pan in front of you');btn(p,'mwhere:pano',560,250,200,60,'Panorama',{on:yd&&LAYOUT==='pano',fs:26});btn(p,'mwhere:rows',770,250,190,60,'Rows',{on:yd&&LAYOUT==='rows',fs:26});btn(p,'mwhere:one',970,250,190,60,'One pan',{on:!yd,fs:26});
-  row(330,'Even mix','far pans stay clear; walk up and they get louder');btn(p,'meven',880,325,280,60,EVEN?'On':'Off',{on:EVEN,fs:30});
+  row(330,'Even mix','far pans stay clear; walk up and they get louder');btn(p,'mspace',560,325,300,60,'Yard: '+(SPACE==='close'?'Close':'Roomy'),{on:SPACE==='close',fs:26});btn(p,'meven',880,325,280,60,EVEN?'On':'Off',{on:EVEN,fs:30});
   row(405,'Drum body hum','the air in the barrel hums, from its skirt length');btn(p,'mhum',880,400,280,60,OPT.hum?'On':'Off',{on:OPT.hum,fs:30});
   row(480,'Bass & treble for each pan','basses fuller, tenors brighter');btn(p,'mtone',880,475,280,60,OPT.tone?'On':'Off',{on:OPT.tone,fs:30});
   row(555,'Sticks');['short','medium','long'].forEach((k,i)=>btn(p,'mlen:'+k,300+i*190,550,175,60,k[0].toUpperCase()+k.slice(1),{on:stickLen===k,fs:28}));btn(p,'mwt',880,550,280,60,'Weight: '+WNAME[WEIGHT],{on:WEIGHT!=='light',fs:26});
@@ -1001,8 +1058,10 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
     const px0=x+24,px1=x+SW-24,py=176;g.fillStyle='#2a323a';g.fillRect(px0,py-4,px1-px0,8);g.fillStyle='#eef2f4';g.beginPath();g.arc(px0+(px1-px0)*(t.pan+1)/2,py,14,0,7);g.fill();
     g.fillStyle='#77838d';g.font='18px system-ui,sans-serif';g.fillText('L',px0-10,py+30);g.fillText('R',px1+10,py+30);
     p.hits.push({id:'pan:'+i,x:x+4,y:py-26,w:SW-8,h:52,drag:(px)=>{t.pan=Math.max(-1,Math.min(1,((px-px0)/(px1-px0))*2-1));if(Math.abs(t.pan)<.06)t.pan=0;mixAll()}});
+    // the section's players (not the drum kit or a recording)
+    if(!t.rec&&t.set!=='kit'&&SETS[t.set]){const np=playersOf(t.set);btn(p,'plm:'+i,x+14,212,52,52,'−',{fs:30});g.fillStyle='#eef2f4';g.font='700 22px system-ui,sans-serif';g.textAlign='center';g.fillText(np+(np===1?' player':' players'),x+SW/2,238);btn(p,'plp:'+i,x+SW-66,212,52,52,'+',{fs:30,on:np>1})}
     // the fader
-    const fy0=230,fy1=520,fx=x+SW/2;g.fillStyle='#0b0e11';rr(g,fx-8,fy0,16,fy1-fy0,8,'#0b0e11');
+    const fy0=290,fy1=520,fx=x+SW/2;g.fillStyle='#0b0e11';rr(g,fx-8,fy0,16,fy1-fy0,8,'#0b0e11');
     const fy=fy1-(fy1-fy0)*t.vol/1.25;g.fillStyle='#3d4852';g.fillRect(fx-50,fy1-(fy1-fy0)/1.25-1,100,2);
     rr(g,fx-44,fy-18,88,36,8,sel?t.col:'#c9d3da');g.fillStyle='#15110a';g.font='700 20px system-ui,sans-serif';g.fillText(Math.round(t.vol*100)+'%',fx,fy+1);
     p.hits.push({id:'vol:'+i,x:x+4,y:fy0-24,w:SW-8,h:fy1-fy0+48,drag:(px,py2)=>{t.vol=Math.max(0,Math.min(1.25,(fy1-py2)/(fy1-fy0)*1.25));if(Math.abs(t.vol-1)<.04)t.vol=1;mixAll()}});
@@ -1012,11 +1071,11 @@ function drawDesk(){const p=desk,g=p.g;p.hits=[];g.fillStyle='#14181c';g.fillRec
 function act(id){const [k,a]=id.split(':'),i=+a;if(/^cls/.test(k))return classAct(k,a);
   ({play,rec:record,click:toggleClick,slow:()=>tempo(-4),fast:()=>tempo(4),snap2:()=>snapTo(.5),snap4:()=>snapTo(.25),undo,loop:toggleLoop,
     barsless:()=>bars(-1),barsmore:()=>bars(1),add:()=>pickFor('new'),pickgo:pansOut,learn:()=>learn(),setof:()=>pickFor(i),pick:()=>picked(a),pickx:()=>{PICK=null},
-    mclose:()=>menuOpen(false),mroom:()=>{const i=ROOM.list.findIndex(x=>x.k===ROOM.k);setRoom(ROOM.list[(i+1)%ROOM.list.length].k)},mfc:()=>{const o=['clean','guitar','raw'];setFcello(o[(o.indexOf(FCMODE)+1)%3])},msnd:()=>{setSound(setKey,packOn(setKey)?'band':'pack')},gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
+    plm:()=>{const t=SONG.tracks[i];if(t)setPlayers(t.set,playersOf(t.set)-1)},plp:()=>{const t=SONG.tracks[i];if(t)setPlayers(t.set,playersOf(t.set)+1)},psm:()=>{if(SIGN.k)setPlayers(SIGN.k,playersOf(SIGN.k)-1)},psp:()=>{if(SIGN.k)setPlayers(SIGN.k,playersOf(SIGN.k)+1)},mclose:()=>menuOpen(false),mroom:()=>{const i=ROOM.list.findIndex(x=>x.k===ROOM.k);setRoom(ROOM.list[(i+1)%ROOM.list.length].k)},mfc:()=>{const o=['clean','guitar','raw'];setFcello(o[(o.indexOf(FCMODE)+1)%3])},msnd:()=>{setSound(setKey,packOn(setKey)?'band':'pack')},gnext:()=>{if(GPAGE>=gpages().length-1)guideOpen(false);else{GPAGE++;drawGuide()}},gback:()=>{GPAGE=Math.max(0,GPAGE-1);drawGuide()},gskip:()=>guideOpen(false),mguide:()=>guideOpen(true),mlock:()=>setLock(!LOCK),myard:()=>{yardBack();drawMenu()},msongs:()=>{MPAGE='songs';DELARM='';drawMenu()},mmain:()=>{MPAGE='main';drawMenu()},mback:()=>{pansBack();drawMenu()},
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{if(a==='one')setYard(false);else setLayout(a);drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
     mlook:()=>{const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+i+ks.length)%ks.length];LSset('look',lookKey);applyLook();drawMenu()},
-    mwt:()=>{const o=['light','real','heavy'];setWeight(o[(o.indexOf(WEIGHT)+1)%3])},mhum:()=>setOpt('hum',!OPT.hum),mtone:()=>setOpt('tone',!OPT.tone),msway:()=>setOpt('sway',!OPT.sway),mlen:()=>{stickLen=a;LSset('sticklen',a);restick(true);try{lenUI()}catch{}drawMenu()},
+    mspace:()=>setSpace(SPACE==='close'?'roomy':'close'),mwt:()=>{const o=['light','real','heavy'];setWeight(o[(o.indexOf(WEIGHT)+1)%3])},mhum:()=>setOpt('hum',!OPT.hum),mtone:()=>setOpt('tone',!OPT.tone),msway:()=>setOpt('sway',!OPT.sway),mlen:()=>{stickLen=a;LSset('sticklen',a);restick(true);try{lenUI()}catch{}drawMenu()},
     mtable:()=>{showTable(a==='1');drawMenu()},mbring:()=>{bringPan();menuOpen(false)},mexit:()=>{menuOpen(false);const se=renderer.xr.getSession&&renderer.xr.getSession();if(se)se.end()},
     lane:()=>select(i),m:()=>{snapUndo();SONG.tracks[i].mute=!SONG.tracks[i].mute;saveSong();mixAll()},s:()=>{snapUndo();SONG.tracks[i].solo=!SONG.tracks[i].solo;saveSong();mixAll()},
     re:()=>rerecord(i),del:()=>delTrack(i),
@@ -1134,6 +1193,7 @@ const bRay=new THREE.Raycaster(),bm=new THREE.Matrix4();
 function beamFrame(){for(const b of beams){if(!b.src){continue}
   bm.identity().extractRotation(b.c.matrixWorld);bRay.ray.origin.setFromMatrixPosition(b.c.matrixWorld);bRay.ray.direction.set(0,0,-1).applyMatrix4(bm);
   const hit=bRay.intersectObjects(PANELS.filter(panelLive).map(p=>p.m))[0],gp=b.src.gamepad,trig=!!(gp&&gp.buttons[0]&&gp.buttons[0].pressed);
+  b.onSign=!!(hit&&hit.object===psign.m);if(!(hit&&hit.distance<3)&&!b.drag)signFrame(bRay);if(b.onSign)SIGN.until=performance.now()+2500;
   const onPanel=hit&&hit.distance<3&&!b.drag,sh=!onPanel&&inYard()&&!b.grab&&!LOCK?(b.drag?{st:b.drag.st,point:b.drag.st.g.getWorldPosition(new THREE.Vector3()),distance:bRay.ray.origin.distanceTo(b.drag.st.g.getWorldPosition(new THREE.Vector3()))}:stationHit(bRay)):null;
   if(onPanel){b.line.material.color.set('#bfe6ff');b.lg.visible=true;b.line.scale.y=hit.distance;b.line.position.z=-hit.distance/2;b.dot.visible=true;b.dot.position.copy(hit.point);
     const p=PANELS.find(q=>q.m===hit.object);if(b.grab){}else if(trig&&!b.down){if(uiDown(p,hit.uv))try{gp.hapticActuators[0].pulse(.3,15)}catch{}}else if(trig)uiMove(p,hit.uv)}
@@ -1376,7 +1436,7 @@ async function shareDo(what,e){if(!e)return;const box=$('mineBox'),say=t=>{SHMSG
 
 /* ---------- moving the pans to you ---------- */
 const head=new THREE.Vector3(),fwd=new THREE.Vector3();
-function bringPan(){if(inYard())return goTo(STN.has(setKey)?setKey:[...STN.keys()][0]);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
+function bringPan(){if(inYard())return goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
   if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='tenor'?.48:setKey==='kit'?.45:PANSET[setKey]&&!PANSET[setKey].place?.48:.5;
   rig.position.set(head.x+fwd.x*dist,Math.max(.55,head.y-.66),head.z+fwd.z*dist);rig.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
 let placed=false,placeN=0;const pressed=new Map();
@@ -1409,7 +1469,10 @@ function teleport(x,z,yaw){if(!renderer.xr.isPresenting){PL.x=x;PL.z=z;if(yaw!=n
 function snapTurn(dir){const h=headNow();teleport(h.p.x,h.p.z,h.yaw+dir*Math.PI/4)}
 // a station's spot: half a metre behind its pans (outside the circle), facing them
 function spotOf(st){const p=new THREE.Vector3(0,0,.5);st.g.localToWorld(p);return {x:p.x,z:p.z,yaw:st.g.rotation.y}}
-function goTo(k){const st=STN.get(k);if(!st)return;const sp=spotOf(st);teleport(sp.x,sp.z,sp.yaw);arrive(k)}
+/* a jump to a station's spot: in the headset the yard stays still and only you move (the owner: "the pans always seem to
+   move"), so you turn your own body to pans that face another way; `face` (the first placing, A / X back to my spot, a new
+   layout or spacing) turns you to them. Off the headset the view always faces the pans. */
+function goTo(k,face){const st=STN.get(k);if(!st)return;const sp=spotOf(st);teleport(sp.x,sp.z,face||!renderer.xr.isPresenting?sp.yaw:null);arrive(k)}
 function arrive(k,quiet){if(!STN.has(k))return;if(typeof CLASS!=='undefined'&&CLASS.on&&(CLASS.lvl===3?ALL_CLS:CLS_SETS).includes(k)&&k!==CLASS.set){CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsFor(k);CLASS.page='home';CLASS.beat=null;CLASS.redraw=true}const was=setKey;setKey=k;LSset('set',k);hereStation();restick();renderSeg();
   if(!KIDS&&TR.state!=='rec'){const i=SONG.tracks.findIndex(t=>!t.rec&&t.set===k);if(i>=0)SONG.sel=i}
   if(was!==k&&!quiet)msg(setName(k)+(KIDS?'':' · ● Rec records here'));dirty=true}
@@ -1455,7 +1518,7 @@ renderer.setAnimationLoop((now,frame)=>{
     walkCheck(headNow().p);
   }
   for(const d of drums)for(const n of d.notes){if(n.lit>0){n.glow.visible=true;n.glow.material.opacity=.6*n.lit;n.lit=Math.max(0,n.lit-dt*3)}else if(n.glow.visible)n.glow.visible=false}
-  if(renderer.xr.isPresenting)beamFrame();
+  if(renderer.xr.isPresenting)beamFrame();signTick();
   tick();learnFrame(dt);classFrame(dt);wristFrame(dt);studioFrame(dt);kitFrame(dt);standFollow(dt);listen();toastFrame(dt);renderer.render(scene,camera);
 });
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
@@ -1474,13 +1537,16 @@ let VIEW='pans';
 function setYard(on){if(TR.state!=='idle')stopAll();YARD=on;LSset('yard',on?'1':'0');resetYard()}
 // another layout: every section walks to its place in it (or where you moved it in that layout), and you to your pans
 function setLayout(k){if(!LAYOUTS[k])return;LAYOUT=k;LSset('layout',k);loadPos();if(!YARD&&!KIDS){YARD=true;LSset('yard','1');return resetYard()}
-  for(const st of STN.values()){if(st.solo)continue;const [x,z,ry]=BAND[st.key],sv=YPOS[st.key];st.g.rotation.set(0,ry,0);if(Array.isArray(sv)&&sv.length===2)placeStation(st,sv[0],sv[1]);else placeStation(st,x,z)}
-  goTo(STN.has(setKey)?setKey:[...STN.keys()][0]);yardUI();if(menu.m.visible)drawMenu();toast(k==='pano'?'Panorama: basses on the wings':'Concert rows: basses and drums at the back')}
+  for(const st of STN.values()){if(st.solo)continue;const [x,z,ry]=BAND[st.key],sv=YPOS[st.key];st.g.rotation.set(0,ry,0);if(Array.isArray(sv)&&sv.length===2)placeStation(st,sv[0],sv[1]);else placeStation(st,x,z)}relaxYard();
+  goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);yardUI();if(menu.m.visible)drawMenu();toast(k==='pano'?'Panorama: basses on the wings':'Concert rows: basses and drums at the back')}
+function setSpace(m){if(!SPACES[m])return;SPACE=m;LSset('space',m);
+  for(const st of STN.values()){if(st.solo)continue;const [x,z,ry]=BAND[st.key],sv=YPOS[st.key];st.g.rotation.set(0,ry,0);if(Array.isArray(sv)&&sv.length===2)placeStation(st,sv[0],sv[1]);else placeStation(st,x,z)}relaxYard();
+  if(inYard())goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);yardUI();if(menu.m.visible)drawMenu();toast(m==='close'?'Close: the sections stand near you, as in a real yard':'Roomy: more space between the sections')}
 function setKids(on){if(TR.state!=='idle')stopAll();KIDS=on;LSset('kids',on?'1':'0');if(on&&!KIDSETS.includes(setKey))setKey='tenor';table.visible=tableShown();NSEL=null;PICK=null;resetYard()}
 function resetYard(){PL.x=PL.z=PL.yaw=0;applyPlayer();SHOWN.clear();if(!inYard()){rig.position.set(0,.9,-.5);rig.rotation.set(0,0,0)}syncStations();restick(true);
-  if(inYard())goTo(STN.has(setKey)?setKey:[...STN.keys()][0]);else if(renderer.xr.isPresenting)bringPan();else view(VIEW==='yard'?'pans':VIEW);yardUI();if(menu.m.visible)drawMenu()}
+  if(inYard())goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);else if(renderer.xr.isPresenting)bringPan();else view(VIEW==='yard'?'pans':VIEW);yardUI();if(menu.m.visible)drawMenu()}
 function yardUI(){const set=(id,f)=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',String(f(b))));
-  set('whereSeg',b=>b.dataset.where==='one'?!YARD:YARD&&b.dataset.where===LAYOUT);set('evenSeg',b=>(b.dataset.even==='on')===EVEN);set('kidsSeg',b=>(b.dataset.kids==='on')===KIDS)}
+  set('whereSeg',b=>b.dataset.where==='one'?!YARD:YARD&&b.dataset.where===LAYOUT);set('evenSeg',b=>(b.dataset.even==='on')===EVEN);set('spaceSeg',b=>b.dataset.space===SPACE);set('kidsSeg',b=>(b.dataset.kids==='on')===KIDS)}
 function view(k){VIEW=k;if(k==='yard'){camera.position.set(0,2.8,6.6);camera.lookAt(0,.4,-1.2)}else if(k==='pans'&&inYard()){applyPlayer()}else if(k==='table'){const w=new THREE.Vector3(0,.2,0);table.localToWorld(w);const f=new THREE.Vector3(0,.25,1.15);table.localToWorld(f);camera.position.copy(f);camera.lookAt(w)}
   else{camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5)}document.querySelectorAll('#viewSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===k)))}
 document.querySelectorAll('#viewSeg button').forEach(b=>b.onclick=()=>view(b.dataset.view));
@@ -1506,7 +1572,7 @@ async function enter(mode){
 }
 $('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immersive-ar');
 loadSong();renderSeg();applyLook();gdUI();mineUI();yardUI();lockUI();document.querySelectorAll('#lockSeg button').forEach(b=>b.onclick=()=>setLock(b.dataset.lock==='on'));if(inYard())goTo(setKey);
-document.querySelectorAll('#whereSeg button').forEach(b=>b.onclick=()=>b.dataset.where==='one'?setYard(false):setLayout(b.dataset.where));document.querySelectorAll('#evenSeg button').forEach(b=>b.onclick=()=>setEven(b.dataset.even==='on'));document.querySelectorAll('#fcSeg button').forEach(b=>b.onclick=()=>setFcello(b.dataset.fc));fcUI();document.querySelectorAll('#kidsSeg button').forEach(b=>b.onclick=()=>setKids(b.dataset.kids==='on'));
+document.querySelectorAll('#whereSeg button').forEach(b=>b.onclick=()=>b.dataset.where==='one'?setYard(false):setLayout(b.dataset.where));document.querySelectorAll('#spaceSeg button').forEach(b=>b.onclick=()=>setSpace(b.dataset.space));document.querySelectorAll('#evenSeg button').forEach(b=>b.onclick=()=>setEven(b.dataset.even==='on'));document.querySelectorAll('#fcSeg button').forEach(b=>b.onclick=()=>setFcello(b.dataset.fc));fcUI();document.querySelectorAll('#kidsSeg button').forEach(b=>b.onclick=()=>setKids(b.dataset.kids==='on'));
 $('mineFile').onclick=()=>$('mineIn').click();
 $('mineIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const x=await openFile(f);$('status').textContent='Opened '+x.title+'.'}catch(err){$('status').textContent='That file couldn’t open: '+(err.message||err)}};
 showTable(tableOn);document.querySelectorAll('#optSeg [data-opt]').forEach(b=>{b.setAttribute('aria-pressed',String(OPT[b.dataset.opt]));b.onclick=()=>setOpt(b.dataset.opt,!OPT[b.dataset.opt])});
@@ -2200,7 +2266,7 @@ function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRec
   g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, reading, playing in the band and composing',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
-const VR=window.VR={buzzes:[],weight:{get:()=>WEIGHT,set:w=>setWeight(w),swingLag:(i,vx,vy)=>{const st=sticks[i],g=st&&st.piv.parent;if(!g)return null;st.lp=null;lagFrame(st,1/72);for(let k=0;k<12;k++){g.position.x+=vx/72;g.position.y+=vy/72;g.updateMatrix();g.updateMatrixWorld(true);lagFrame(st,1/72)}const r={x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)};g.position.x-=vx*12/72;g.position.y-=vy*12/72;g.updateMatrix();g.updateMatrixWorld(true);st.lp=null;st.lagX=st.lagY=0;st.piv.rotation.y=0;return r},frame:(i,dt)=>{const st=sticks[i];lagFrame(st,dt);bounce(st,dt);return {x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)}}},soft:(k,v)=>softAt(k,v),fcello:{mode:()=>FCMODE,set:m=>setFcello(m),src:id=>{ensureNote(id,'fcello');const r=fcelloSrc(id);return r&&{id:r.id,shift:+r.shift.toFixed(1)}},load:()=>moreSounds(FC_GOOD)},sway:()=>drums.map(d=>({set:d.set,i:d.i,hang:!!d.hang,sx:d.sx||0,sz:d.sz||0,vx:d.vx||0,vz:d.vz||0})),swaySet:(i,x,z)=>{const d=drums[i];d.sx=x;d.sz=z;d.vx=d.vz=0},swayOpt:on=>setOpt('sway',on),swayStep:sec=>{for(let t=0;t<sec;t+=.02)standFollow(.02);return VR.sway()},stand:i=>{const d=drums[i];if(!d.hang)return {hang:false};const rim=new THREE.Vector3();d.g.localToWorld(rim);return {hang:true,rim:+rim.y.toFixed(3),hooks:d.H.map(h=>+h.y.toFixed(3)),straps:d.arms.map(a=>+a.strap.scale.y.toFixed(3)),pole:+d.pole.scale.y.toFixed(3),shown:d.stand.visible}},room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{demo:hasDemo(st),t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
+const VR=window.VR={players:{set:(k,n)=>setPlayers(k,n),of:k=>playersOf(k),max:k=>maxPlayers(k),drums:k=>{const st=STN.get(k);return st?st.drums.map(d=>{const p=d.g.getWorldPosition(new THREE.Vector3());return {i:d.i,copy:d.copy||0,x:+p.x.toFixed(2),z:+p.z.toFixed(2)}}):null},sign:k=>{const st=STN.get(k);SIGN.k=k;drawSign();const w=new THREE.Vector3(0,1.36,-.35);st.g.localToWorld(w);psign.m.position.copy(w);psign.m.visible=true;SIGN.until=performance.now()+60000;return true},press:id=>act(id),hitCopy:(k,copy,id,speed)=>{const d=STN.get(k).drums.find(q=>(q.copy||0)===copy&&q.notes.some(n=>n.id===id)),n=d.notes.find(x=>x.id===id),st=makeStick(k),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,y=surf(d,x,z),dt=1/72,step=(speed||2.5)*dt;let out=null;for(let q=4;q>=-2;q--){const w=new THREE.Vector3(x,y+.012+q*step,z);d.g.localToWorld(w);out=track(st,w,dt)||out}return out}},yfeel:{space:m=>setSpace(m),layout:k=>setLayout(k),get:()=>({space:SPACE,even:EVEN,layout:LAYOUT}),st:()=>[...STN.values()].filter(st=>!st.solo).map(st=>{const p=st.g.getWorldPosition(new THREE.Vector3());return {k:st.key,x:+p.x.toFixed(2),z:+p.z.toFixed(2),clash:+clashOf(st).toFixed(3),bus:st.bus?[st.bus.p.positionX.value,st.bus.p.positionY.value,st.bus.p.positionZ.value].map(v=>+v.toFixed(2)):null}})},buzzes:[],weight:{get:()=>WEIGHT,set:w=>setWeight(w),swingLag:(i,vx,vy)=>{const st=sticks[i],g=st&&st.piv.parent;if(!g)return null;st.lp=null;lagFrame(st,1/72);for(let k=0;k<12;k++){g.position.x+=vx/72;g.position.y+=vy/72;g.updateMatrix();g.updateMatrixWorld(true);lagFrame(st,1/72)}const r={x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)};g.position.x-=vx*12/72;g.position.y-=vy*12/72;g.updateMatrix();g.updateMatrixWorld(true);st.lp=null;st.lagX=st.lagY=0;st.piv.rotation.y=0;return r},frame:(i,dt)=>{const st=sticks[i];lagFrame(st,dt);bounce(st,dt);return {x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)}}},soft:(k,v)=>softAt(k,v),fcello:{mode:()=>FCMODE,set:m=>setFcello(m),src:id=>{ensureNote(id,'fcello');const r=fcelloSrc(id);return r&&{id:r.id,shift:+r.shift.toFixed(1)}},load:()=>moreSounds(FC_GOOD)},sway:()=>drums.map(d=>({set:d.set,i:d.i,hang:!!d.hang,sx:d.sx||0,sz:d.sz||0,vx:d.vx||0,vz:d.vz||0})),swaySet:(i,x,z)=>{const d=drums[i];d.sx=x;d.sz=z;d.vx=d.vz=0},swayOpt:on=>setOpt('sway',on),swayStep:sec=>{for(let t=0;t<sec;t+=.02)standFollow(.02);return VR.sway()},stand:i=>{const d=drums[i];if(!d.hang)return {hang:false};const rim=new THREE.Vector3();d.g.localToWorld(rim);return {hang:true,rim:+rim.y.toFixed(3),hooks:d.H.map(h=>+h.y.toFixed(3)),straps:d.arms.map(a=>+a.strap.scale.y.toFixed(3)),pole:+d.pole.scale.y.toFixed(3),shown:d.stand.visible}},room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{demo:hasDemo(st),t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
     level:n=>classLevel(n),spd:v=>act('clsspd:'+v),map:()=>{const st=step(),it=st&&st.items&&st.items[CLASS.k];return {gold:st&&it&&(st.glow||CLASS.shown)?sugOf(st,it):[],bad:CLASS.badId}},song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
     beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {demoNow:CLASS.demoNow,demoTimes:CLASS.demoTimes,lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
     glow:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>n.id+':'+n.cue.material.color.getHexString())),voicing:(t,s)=>voicing(t,s),hint:(a,b)=>hintFor(a,b),boardAt:()=>board.m.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(2))},rendered:null,render:async()=>{const b=await renderSong(SONG);return VR.rendered},inbox:()=>INBOX,hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,
@@ -2212,6 +2278,12 @@ const VR=window.VR={buzzes:[],weight:{get:()=>WEIGHT,set:w=>setWeight(w),swingLa
   movePan(i,dx,dy,dz,overNotes){const d=drums[i],w=new THREE.Vector3(overNotes?0:RS,.02,0);d.g.localToWorld(w);const s=drumAtRim(w);if(s!==d)return false;
     panGrab(d,w);w.add(new THREE.Vector3(dx,dy,dz));panMove(w);panDrop();return true},panPos:i=>drums[i].g.position.toArray().map(v=>+v.toFixed(3)),pansBack,showTable,tableOn:()=>tableOn,THREE,scene,mk:k=>makeStick(k),borrow:id=>borrowOf(id),sticks:()=>sticks.map(s=>s.kind),
   // a hand coming down through a note: the stick's eye-tip stays on the steel, the hit still plays, then it flicks up
+  // the hand just outside a pan's rim, a little below it, the stick reaching in over a note: how far the stick is in the steel
+  // before the bend, and after (bounce), and how much it bent
+  shaftThrough(id,drop){const d=drumOf(id),n=d.notes.find(x=>x.id===id),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S,a=Math.atan2(z,x),s=makeStick(NOTE[id].set);s.kind=NOTE[id].set;
+    const g=new THREE.Group();g.add(s.piv);scene.add(g);const hand=new THREE.Vector3(Math.cos(a)*(RS+.1),-(drop||.04),Math.sin(a)*(RS+.1)),tgt=new THREE.Vector3(x,surf(d,x,z)+.03,z);d.g.localToWorld(hand);d.g.localToWorld(tgt);
+    g.position.copy(hand);g.lookAt(hand.clone().multiplyScalar(2).sub(tgt));g.updateMatrixWorld(true);s.piv.rotation.x=STICK_TILT;s.piv.updateMatrixWorld(true);
+    const before=sinkOf(s);bounce(s,1/72);const after=sinkOf(s),bend=s.piv.rotation.x-STICK_TILT;scene.remove(g);return {before:+(before*1000).toFixed(1),after:+(after*1000).toFixed(1),bend:+bend.toFixed(3)}},
   pushStick(id,depth){const d=drumOf(id),n=d.notes.find(x=>x.id===id),s=makeStick(),x=(n.x-d.cx)*d.S,z=(n.y-d.cy)*d.S;
     s.grip=new THREE.Group();s.grip.add(s.piv);scene.add(s.grip);const out=[];for(let k=0;k<=8;k++){const yy=surf(d,x,z)+s.R+.06-k*(.06+depth)/8;
       const w=new THREE.Vector3(x,yy,z);d.g.localToWorld(w);s.piv.rotation.x=STICK_TILT;s.grip.position.set(0,0,0);s.grip.quaternion.identity();s.grip.updateMatrixWorld(true);

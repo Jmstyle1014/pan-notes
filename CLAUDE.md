@@ -224,6 +224,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   track 0.12 s ahead, looping the song or the loop); ● Rec records the selected track (or a new one, on its pans) while
   the others play, ● again stops, and the first take sets `L` (whole bars). `UNDO` holds earlier songs. Old per-set takes
   (`panyard-vr-take-<set>`) become the first tracks.
+  **No black specks** (the owner's headset video showed dark grain on the bowls, mostly far pans; `dishNormals`): the bowl's light
+  comes from the surface smoothed over e = 6 mm (12 mm on far `lite` stations), not the sharp 5 mm grooves; the bowl is
+  `FrontSide` only (a double-sided one let flipped underside fragments win the Quest's depth test); camera near .05 (was .02:
+  2.5× the depth precision); surface textures get max anisotropy; far stations a touch rougher (.48). Test with `tvrspeck`.
   **The pans in 3D:** each set's bowl is sunk `PANSET[k].depth` (tenor 19 cm ≈ 7½ in, double second 16.5, guitar 14; the
   skirt is at least that long), and `heightMap(d)` (each drum's notes blurred twice on a 512² canvas) sinks a 5 mm groove
   round every note and domes it up to 6 mm (smaller notes less); `surf(d,x,z)` is the playing surface everywhere (the
@@ -255,7 +259,9 @@ upright count is low because a checklist pushes the pans below the play bar ther
   **Sticks** (`STICKS`, `makeStick(kind)`, swapped by `restick()`): bass blue balls, cello black, guitar tan, double
   second and tenor red, kit wooden; held pointing forward and a touch down (`STICK_TILT`). **Bounce:** hits use the hand's
   real tip; then `bounce()` bends the stick back from the hand until its tip rests on the steel (`sinkOf`) and a hit
-  flicks it up (`kickBack`). Test with `tvrpans` (`VR.pushStick`).
+  flicks it up (`kickBack`). Test with `tvrpans` (`VR.pushStick`). The whole stick stays out of the steel: `sinkOf` also checks
+  points along the wooden shaft (`SHAFT_T`, not right by the hand, dips under 12 cm), so the stick bends up from the hand until
+  neither tip nor wood is in a pan (test in `tvrsticks`, `VR.shaftThrough`).
   **Stick shapes** (after the owner's stick kit, `steelpan-sticks.mjs`, from the same photo): flat lathed rubber caps wider
   than the wood (`capGeo`, `cr`/`ch` in `STICKS`, tenor 11 mm … cello 15 mm), the basses' oval ribbed blue heads (`ball` 41 mm,
   a seam, `ribTex`), a rounded butt and grained beech (`woodMat`); the rubber sits on its own pivot (`s.cap`) and squashes on
@@ -309,8 +315,22 @@ upright count is low because a checklist pushes the pans below the play bar ther
   teleport; left/right snap turns 45°; walking near a station (`walkCheck`) arrives too; B/Y and the menu's ◀ ▶ go to the
   next station. ● Rec records the track for the pans you're at, and only their notes (`recHit`). **Surround:** each station
   has an HRTF `PannerNode` bus (`busOf`/`placeBus`), tracks route there (`chan`, `routeAll`), the listener follows your head
-  (`listen`); Even mix (`EVEN`, localStorage `panyard-vr-even`, on) is rolloff 0.3, off is 1. 🗋 New song asks which pans
+  (`listen`); Even mix (`EVEN`, localStorage `panyard-vr-even`, off unless chosen) is rolloff 0.3, off is 1. 🗋 New song asks which pans
   (`PICK='song'`, `PSEL`, Put them out → `pansOut`); `songChanged()` re-syncs after undo, delete, open, Drive import.
+  **The yard feels still and close** (the owner: pans "always seem to move", jumps felt far): in the headset `goTo(k)` keeps your
+  facing (only you move; you turn your body to pans facing another way); `goTo(k,true)` faces you to the pans for the first
+  placing, A / X, a new layout, spacing or Yard back. **Spacing** (`SPACES`, `SPACE`, localStorage `panyard-vr-space`, page
+  `#spaceSeg`, menu "Yard:" in the Even mix row): Close (default) is `BAND` × .68 then `relaxYard()` nudges any two sections that
+  would touch apart (`pairOver`, `GAP`; ones you moved yourself, `YPOS`, stay), Roomy the first layout. **Even mix is off by
+  default** now (far sections quieter, direction clearer), and each station's panner sits at its drums' middle (`placeBus`).
+  Test with `tvryardfeel`.
+  **Players** (a section's size, per song: `SONG.players[set]`, `playersOf`/`maxPlayers`/`setPlayers`, the owner: "three tenors…"):
+  `buildStation` adds n−1 copies of the set's drums side by side (`makeDrums(k,st,lite,copy,off)`, `d.copy`, own index → own
+  saved place, `st.n`; `syncStations` rebuilds a station whose size changed, `rebuildStation(k)`), still **one track**; `strike()`
+  with a track plays every copy (`CP_DT` ms later, `CP_C` cents off, ×.82; voices keyed `id#copy`; copies skip lights/hits), so
+  the section sounds fuller. Any copy is playable (same ids). Set on the mixer strip (Players − / +, `plm`/`plp`) or the sign
+  over a section you point at (`psign`, `signFrame`/`signTick`/`drawSign`, `psm`/`psp`). Max 6, 12 drums a section (six/seven 2,
+  four cello 3), not the kit. Test with `tvrplayers` (`VR.players`).
   **Pull a section closer:** a beam on another station (its invisible cylinder `st.hit`, the beam turns gold) + trigger drags it
   along the floor (`stationHit`, `stGrab/stMove/stDrop` on the 0.9 m plane, `placeStation` moves it and its sound); kept per set in localStorage `panyard-vr-yardpos`; menu ↺ Yard back (`yardBack`) puts all back in their `BAND` places. Dragging keeps a section's facing.
   **The barrier** (`clashOf`/`footOf`, `GAP` 8 cm): footprints are each station's drums, the kit's pieces and its player's
