@@ -43,6 +43,7 @@ canvas{display:block}
   <div class="lab">Where you play</div>
   <div class="seg" id="whereSeg"><button data-where="pano">Panorama (basses on the wings)</button><button data-where="rows">Concert rows</button><button data-where="one">One pan in front of you</button></div>
   <div class="lab">Even mix (the yard)</div>
+  <div class="seg" id="spaceSeg"><button data-space="close">Sections close, like a real yard</button><button data-space="roomy">Roomy</button></div>
   <div class="seg" id="evenSeg"><button data-even="on">On: far pans stay clear</button><button data-even="off">Off: like real life</button></div>
   <div class="lab">The pans (the yard)</div>
   <div class="seg" id="lockSeg"><button data-lock="on">🔒 Locked in place</button><button data-lock="off">🔓 Free to arrange</button></div>
@@ -309,7 +310,10 @@ const LAYOUTS={
   rows:{tenor:[0,-2.3,0],dten:[-2.5,-2.3,0],dsec:[2.5,-2.3,0],guitar:[-2.5,-.3,0],fcello:[0,-.3,0],tcello:[2.5,-.3,0],
     six:[-3.4,1.9,0],kit:[0,2.1,0],seven:[3.4,1.9,0]}};
 let LAYOUT=LAYOUTS[LS('layout')]?LS('layout'):'pano';
-const BAND=new Proxy({},{get:(_,k)=>LAYOUTS[LAYOUT][k]});
+// how close the sections stand (page / menu "Yard: Close / Roomy", localStorage panyard-vr-space): Close brings every section
+// in by a third, like a real yard (the owner found jumps between pans felt far); Roomy is the yard as first laid out
+const SPACES={close:.68,roomy:1};let SPACE=SPACES[LS('space')]?LS('space'):'close';
+const BAND=new Proxy({},{get:(_,k)=>{const b=LAYOUTS[LAYOUT][k];if(!b)return b;const f=SPACES[SPACE];return [b[0]*f,b[1]*f,b[2]]}});
 const BORDER=['dten','tenor','dsec','guitar','fcello','tcello','seven','kit','six'];   // B / Y and the menu go round in this order
 const STN=new Map(),SHOWN=new Set();
 const inYard=()=>YARD||KIDS;
@@ -387,18 +391,30 @@ let LOCK=LS('lock')!=='0';
 function setLock(on){LOCK=on;LSset('lock',on?'1':'0');toast(on?'🔒 The pans are locked in place':'🔓 Unlocked: move the pans, then lock them again');dirty=true;if(menu.m.visible)drawMenu();lockUI()}
 function lockUI(){document.querySelectorAll('#lockSeg button').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.lock==='on')===LOCK)))}
 function stDrop(dr){const p=dr.st.g.position;YPOS[dr.st.key]=[+p.x.toFixed(3),+p.z.toFixed(3)];LSset(posKey(),JSON.stringify(YPOS));for(const o of STN.values())if(o.label)o.label.visible=o.key!==setKey}
-function yardBack(){YPOS={};LSset(posKey(),'{}');for(const st of STN.values()){if(st.solo)continue;placeStation(st,BAND[st.key][0],BAND[st.key][1])}
-  if(STN.has(setKey))goTo(setKey);msg('Every section is back in its place')}
+function yardBack(){YPOS={};LSset(posKey(),'{}');for(const st of STN.values()){if(st.solo)continue;placeStation(st,BAND[st.key][0],BAND[st.key][1])}relaxYard();
+  if(STN.has(setKey))goTo(setKey,true);msg('Every section is back in its place')}
 function dropStation(st){for(const d of st.drums){st.lift.remove(d.g);scene.remove(d.stand);d.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map&&o.material.map!==headTex)o.material.map.dispose()})}
   if(st.bus){try{st.bus.p.disconnect()}catch{}}if(st.label){st.label.material.map.dispose();st.label.material.dispose()}
   if(kitG.parent===st.g)rig.add(kitG);if(table.parent===st.g)rig.add(table);if(sign.parent===st.g)rig.add(sign);if(!st.solo)rig.remove(st.g)}
 // the stations the song (or kids mode) needs; all: rebuild every one (a new look)
+/* Close spacing: every section starts at its place brought in by a third (BAND), then any two that would touch are nudged
+   apart along the line between them, a little at a time, until there's GAP between all of them; sections you moved yourself
+   (YPOS) stay put and the others make room. Roomy is the first layout, which never touches. */
+function pairOver(a,b){let w=0;for(const [x,z,r] of footOf(a))for(const [u,v,q] of footOf(b))w=Math.max(w,r+q+GAP-Math.hypot(x-u,z-v));return w}
+function relaxYard(){if(!inYard())return;const sts=[...STN.values()].filter(st=>!st.solo);
+  for(const st of sts){if(YPOS[st.key])continue;const [x,z,ry]=BAND[st.key];st.g.rotation.set(0,ry,0);placeStation(st,x,z)}
+  if(SPACE==='roomy')return;
+  for(let it=0;it<80;it++){let moved=false;
+    for(let i=0;i<sts.length;i++)for(let j=i+1;j<sts.length;j++){const a=sts[i],b=sts[j],o=pairOver(a,b);if(o<=0)continue;
+      const fa=YPOS[a.key]?0:1,fb=YPOS[b.key]?0:1;if(!fa&&!fb)continue;const pa=a.g.position,pb=b.g.position;let dx=pb.x-pa.x,dz=pb.z-pa.z;const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
+      const m=Math.min(.12,o+.01),ka=m*fa/(fa+fb),kb=m*fb/(fa+fb);placeStation(a,pa.x-dx*ka,pa.z-dz*ka);placeStation(b,pb.x+dx*kb,pb.z+dz*kb);moved=true}
+    if(!moved)break}}
 function syncStations(all){const ks=wantKeys(),solo=!inYard();
   for(const [k,st] of [...STN])if(all||!ks.includes(k)||st.solo!==solo){dropStation(st);STN.delete(k)}
   if(!solo){rig.position.set(0,0,0);rig.rotation.set(0,0,0)}
   for(const k of ks)if(!STN.has(k))STN.set(k,buildStation(k));
   drums=[...STN.values()].flatMap(st=>st.drums);
-  const kst=STN.get('kit');kitG.visible=!!kst;(kst?kst.g:rig).add(kitG);
+  const kst=STN.get('kit');kitG.visible=!!kst;(kst?kst.g:rig).add(kitG);relaxYard();
   hereStation();routeAll();shed.visible=inYard()&&!inRoom&&!(typeof ROOM!=='undefined'&&roomActive());flag.position.set(0,inYard()?2.5:1.75,inYard()?-6.4:-2.6);dirty=true}
 function buildPans(){syncStations(true)}
 // the station you're at holds the sign and the studio table; the others show their names
@@ -737,13 +753,15 @@ function chan(t){if(RENDER)return RENDER.chan(t);let c=CH.get(t.id);if(!c&&ac){c
 /* surround: in the yard each station's sound comes from where its pans stand (an HRTF panner at the station; the
    listener is your head, each frame). Even mix (on unless switched off, localStorage panyard-vr-even): far pans fade only
    a little; off: as in real life. Walking up to a pan always makes it louder. */
-let EVEN=LS('even')!=='0';
+let EVEN=LS('even')==='1';   // off unless chosen: far sections quieter, so you hear where they are
 const SP=new THREE.Vector3();
 function busOf(k){if(RENDER)return master;const st=STN.get(k);if(!st||st.solo||!ac)return master;
   if(!st.bus){const g=ac.createGain(),p=ac.createPanner();p.panningModel='HRTF';p.distanceModel='inverse';p.refDistance=1;p.maxDistance=60;g.connect(p);p.connect(master);st.bus={g,p}}
   placeBus(st);return st.bus.g}
-function placeBus(st){if(!st.bus)return;st.g.getWorldPosition(SP);const p=st.bus.p;p.rolloffFactor=EVEN?.3:1;
+function placeBus(st){if(!st.bus)return;st.g.getWorldPosition(SP);if(st.drums&&st.drums.length){SP.set(0,0,0);for(const d of st.drums){d.g.getWorldPosition(W2);SP.add(W2)}SP.divideScalar(st.drums.length)}else SP.y+=.85;   // heard from its pans (their middle, at pan height), not the floor
+  const p=st.bus.p;p.rolloffFactor=EVEN?.3:1;
   if(p.positionX){p.positionX.value=SP.x;p.positionY.value=SP.y;p.positionZ.value=SP.z}else p.setPosition(SP.x,SP.y,SP.z)}
+const W2=new THREE.Vector3();
 function routeAll(){if(!ac)return;for(const st of STN.values())placeBus(st);
   for(const t of SONG.tracks){const c=CH.get(t.id);if(!c)continue;const to=t.rec?master:busOf(t.set);if(c.to!==to){try{c.p.disconnect()}catch{}c.p.connect(to);c.to=to}}}
 const LP=new THREE.Vector3(),LF=new THREE.Vector3(),LUp=new THREE.Vector3(),LQ2=new THREE.Quaternion();
@@ -806,7 +824,7 @@ function drawPick(p,g){const x0=280,y0=170,w=1300,h=560;g.fillStyle='rgba(8,12,1
   btn(p,'pickx',x0+w-200,y0+20,170,60,'Cancel',{fs:28})}
 // the new song's pans: a track each, out in the yard; you go to the first
 function pansOut(){const ks=KEYS.filter(k=>PSEL.has(k));PICK=null;if(!ks.length)return;for(const k of ks)if(SONG.tracks.length<MAXT)SONG.tracks.push(newTrack(k));SONG.sel=0;saveSong();mixAll();
-  setKey=ks[0];LSset('set',setKey);songChanged();goTo(ks[0]);msg('Your pans are out: '+ks.map(setName).join(', '))}
+  setKey=ks[0];LSset('set',setKey);songChanged();goTo(ks[0],true);msg('Your pans are out: '+ks.map(setName).join(', '))}
 function delTrack(i){const t=SONG.tracks[i];if(!t)return;if(TR.rec===t){TR.rec=null;TR.state='play'}snapUndo();SONG.tracks.splice(i,1);SONG.sel=Math.max(0,Math.min(SONG.sel,SONG.tracks.length-1));
   if(!SONG.tracks.length){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}saveSong();mixAll();songChanged();msg('Deleted '+t.name+' (↶ Undo brings it back)')}
 function rerecord(i){const t=SONG.tracks[i];if(!t)return;if(t.rec||!KEYS.includes(t.set))return msg(t.rec?'The recording comes from Panyard':'Play this part on its own pans in Panyard');if(TR.state==='rec'){endRec();TR.state='play'}snapUndo();t.notes=[];SONG.sel=i;if(!hasNotes()){SONG.L=0;SONG.loop.on=false;if(TR.state!=='idle')stopAll()}record(true)}
@@ -905,7 +923,7 @@ function drawMenu(){const p=menu,g=p.g;p.hits=[];g.setTransform(1,0,0,1,0,0);g.f
   row(105,yd?'Go to pans':'Pans',yd?'the pans in this song':'');pick(100,'mset',setName(setKey),60);if(setKey==='fcello')btn(p,'mfc',900,100,260,60,'Sound: '+FCNAME[FCMODE],{on:FCMODE!=='raw',fs:24});else if(PACK[setKey])btn(p,'msnd',900,100,260,60,packOn(setKey)?'Sound: studio':'Sound: band',{on:packOn(setKey),fs:24});
   row(180,'Look');pick(175,'mlook',LOOKN[lookKey],60);if(ROOM.list.length>1)btn(p,'mroom',900,175,260,60,'Room ▸ '+fit(g,(ROOM.list.find(x=>x.k===ROOM.k)||{name:'The yard'}).name,150),{fs:22,on:ROOM.k!=='yard'});
   row(255,'Where you play',yd?(LAYOUT==='pano'?'the whole band, basses on the wings':'the whole band in rows'):'one pan in front of you');btn(p,'mwhere:pano',560,250,200,60,'Panorama',{on:yd&&LAYOUT==='pano',fs:26});btn(p,'mwhere:rows',770,250,190,60,'Rows',{on:yd&&LAYOUT==='rows',fs:26});btn(p,'mwhere:one',970,250,190,60,'One pan',{on:!yd,fs:26});
-  row(330,'Even mix','far pans stay clear; walk up and they get louder');btn(p,'meven',880,325,280,60,EVEN?'On':'Off',{on:EVEN,fs:30});
+  row(330,'Even mix','far pans stay clear; walk up and they get louder');btn(p,'mspace',560,325,300,60,'Yard: '+(SPACE==='close'?'Close':'Roomy'),{on:SPACE==='close',fs:26});btn(p,'meven',880,325,280,60,EVEN?'On':'Off',{on:EVEN,fs:30});
   row(405,'Drum body hum','the air in the barrel hums, from its skirt length');btn(p,'mhum',880,400,280,60,OPT.hum?'On':'Off',{on:OPT.hum,fs:30});
   row(480,'Bass & treble for each pan','basses fuller, tenors brighter');btn(p,'mtone',880,475,280,60,OPT.tone?'On':'Off',{on:OPT.tone,fs:30});
   row(555,'Sticks');['short','medium','long'].forEach((k,i)=>btn(p,'mlen:'+k,300+i*190,550,175,60,k[0].toUpperCase()+k.slice(1),{on:stickLen===k,fs:28}));btn(p,'mwt',880,550,280,60,'Weight: '+WNAME[WEIGHT],{on:WEIGHT!=='light',fs:26});
@@ -1022,7 +1040,7 @@ function act(id){const [k,a]=id.split(':'),i=+a;if(/^cls/.test(k))return classAc
     msave:()=>{saveMine(false);drawMenu()},msavenew:()=>{saveMine(true);drawMenu()},mopen:()=>{DELARM='';openMine(a);drawMenu()},mpg:()=>{MSP=Math.max(0,MSP+i);DELARM='';drawMenu()},
     mdel:()=>{if(DELARM===a){DELARM='';delMine(a);msg('Deleted')}else DELARM=a;drawMenu()},mset:()=>{nextSet(i);drawMenu()},mwhere:()=>{if(a==='one')setYard(false);else setLayout(a);drawMenu()},meven:()=>{setEven(!EVEN);drawMenu()},mkids:()=>{setKids(!KIDS);drawMenu()},
     mlook:()=>{const ks=Object.keys(LOOKS);lookKey=ks[(ks.indexOf(lookKey)+i+ks.length)%ks.length];LSset('look',lookKey);applyLook();drawMenu()},
-    mwt:()=>{const o=['light','real','heavy'];setWeight(o[(o.indexOf(WEIGHT)+1)%3])},mhum:()=>setOpt('hum',!OPT.hum),mtone:()=>setOpt('tone',!OPT.tone),msway:()=>setOpt('sway',!OPT.sway),mlen:()=>{stickLen=a;LSset('sticklen',a);restick(true);try{lenUI()}catch{}drawMenu()},
+    mspace:()=>setSpace(SPACE==='close'?'roomy':'close'),mwt:()=>{const o=['light','real','heavy'];setWeight(o[(o.indexOf(WEIGHT)+1)%3])},mhum:()=>setOpt('hum',!OPT.hum),mtone:()=>setOpt('tone',!OPT.tone),msway:()=>setOpt('sway',!OPT.sway),mlen:()=>{stickLen=a;LSset('sticklen',a);restick(true);try{lenUI()}catch{}drawMenu()},
     mtable:()=>{showTable(a==='1');drawMenu()},mbring:()=>{bringPan();menuOpen(false)},mexit:()=>{menuOpen(false);const se=renderer.xr.getSession&&renderer.xr.getSession();if(se)se.end()},
     lane:()=>select(i),m:()=>{snapUndo();SONG.tracks[i].mute=!SONG.tracks[i].mute;saveSong();mixAll()},s:()=>{snapUndo();SONG.tracks[i].solo=!SONG.tracks[i].solo;saveSong();mixAll()},
     re:()=>rerecord(i),del:()=>delTrack(i),
@@ -1382,7 +1400,7 @@ async function shareDo(what,e){if(!e)return;const box=$('mineBox'),say=t=>{SHMSG
 
 /* ---------- moving the pans to you ---------- */
 const head=new THREE.Vector3(),fwd=new THREE.Vector3();
-function bringPan(){if(inYard())return goTo(STN.has(setKey)?setKey:[...STN.keys()][0]);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
+function bringPan(){if(inYard())return goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;cam.getWorldPosition(head);cam.getWorldDirection(fwd);fwd.y=0;
   if(fwd.lengthSq()<1e-4)fwd.set(0,0,-1);fwd.normalize();const dist=setKey==='tenor'?.48:setKey==='kit'?.45:PANSET[setKey]&&!PANSET[setKey].place?.48:.5;
   rig.position.set(head.x+fwd.x*dist,Math.max(.55,head.y-.66),head.z+fwd.z*dist);rig.rotation.y=Math.atan2(-fwd.x,-fwd.z)}
 let placed=false,placeN=0;const pressed=new Map();
@@ -1415,7 +1433,10 @@ function teleport(x,z,yaw){if(!renderer.xr.isPresenting){PL.x=x;PL.z=z;if(yaw!=n
 function snapTurn(dir){const h=headNow();teleport(h.p.x,h.p.z,h.yaw+dir*Math.PI/4)}
 // a station's spot: half a metre behind its pans (outside the circle), facing them
 function spotOf(st){const p=new THREE.Vector3(0,0,.5);st.g.localToWorld(p);return {x:p.x,z:p.z,yaw:st.g.rotation.y}}
-function goTo(k){const st=STN.get(k);if(!st)return;const sp=spotOf(st);teleport(sp.x,sp.z,sp.yaw);arrive(k)}
+/* a jump to a station's spot: in the headset the yard stays still and only you move (the owner: "the pans always seem to
+   move"), so you turn your own body to pans that face another way; `face` (the first placing, A / X back to my spot, a new
+   layout or spacing) turns you to them. Off the headset the view always faces the pans. */
+function goTo(k,face){const st=STN.get(k);if(!st)return;const sp=spotOf(st);teleport(sp.x,sp.z,face||!renderer.xr.isPresenting?sp.yaw:null);arrive(k)}
 function arrive(k,quiet){if(!STN.has(k))return;if(typeof CLASS!=='undefined'&&CLASS.on&&(CLASS.lvl===3?ALL_CLS:CLS_SETS).includes(k)&&k!==CLASS.set){CLASS.set=k;LSset('cls-set',k);LESSONS=lessonsFor(k);CLASS.page='home';CLASS.beat=null;CLASS.redraw=true}const was=setKey;setKey=k;LSset('set',k);hereStation();restick();renderSeg();
   if(!KIDS&&TR.state!=='rec'){const i=SONG.tracks.findIndex(t=>!t.rec&&t.set===k);if(i>=0)SONG.sel=i}
   if(was!==k&&!quiet)msg(setName(k)+(KIDS?'':' · ● Rec records here'));dirty=true}
@@ -1480,13 +1501,16 @@ let VIEW='pans';
 function setYard(on){if(TR.state!=='idle')stopAll();YARD=on;LSset('yard',on?'1':'0');resetYard()}
 // another layout: every section walks to its place in it (or where you moved it in that layout), and you to your pans
 function setLayout(k){if(!LAYOUTS[k])return;LAYOUT=k;LSset('layout',k);loadPos();if(!YARD&&!KIDS){YARD=true;LSset('yard','1');return resetYard()}
-  for(const st of STN.values()){if(st.solo)continue;const [x,z,ry]=BAND[st.key],sv=YPOS[st.key];st.g.rotation.set(0,ry,0);if(Array.isArray(sv)&&sv.length===2)placeStation(st,sv[0],sv[1]);else placeStation(st,x,z)}
-  goTo(STN.has(setKey)?setKey:[...STN.keys()][0]);yardUI();if(menu.m.visible)drawMenu();toast(k==='pano'?'Panorama: basses on the wings':'Concert rows: basses and drums at the back')}
+  for(const st of STN.values()){if(st.solo)continue;const [x,z,ry]=BAND[st.key],sv=YPOS[st.key];st.g.rotation.set(0,ry,0);if(Array.isArray(sv)&&sv.length===2)placeStation(st,sv[0],sv[1]);else placeStation(st,x,z)}relaxYard();
+  goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);yardUI();if(menu.m.visible)drawMenu();toast(k==='pano'?'Panorama: basses on the wings':'Concert rows: basses and drums at the back')}
+function setSpace(m){if(!SPACES[m])return;SPACE=m;LSset('space',m);
+  for(const st of STN.values()){if(st.solo)continue;const [x,z,ry]=BAND[st.key],sv=YPOS[st.key];st.g.rotation.set(0,ry,0);if(Array.isArray(sv)&&sv.length===2)placeStation(st,sv[0],sv[1]);else placeStation(st,x,z)}relaxYard();
+  if(inYard())goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);yardUI();if(menu.m.visible)drawMenu();toast(m==='close'?'Close: the sections stand near you, as in a real yard':'Roomy: more space between the sections')}
 function setKids(on){if(TR.state!=='idle')stopAll();KIDS=on;LSset('kids',on?'1':'0');if(on&&!KIDSETS.includes(setKey))setKey='tenor';table.visible=tableShown();NSEL=null;PICK=null;resetYard()}
 function resetYard(){PL.x=PL.z=PL.yaw=0;applyPlayer();SHOWN.clear();if(!inYard()){rig.position.set(0,.9,-.5);rig.rotation.set(0,0,0)}syncStations();restick(true);
-  if(inYard())goTo(STN.has(setKey)?setKey:[...STN.keys()][0]);else if(renderer.xr.isPresenting)bringPan();else view(VIEW==='yard'?'pans':VIEW);yardUI();if(menu.m.visible)drawMenu()}
+  if(inYard())goTo(STN.has(setKey)?setKey:[...STN.keys()][0],true);else if(renderer.xr.isPresenting)bringPan();else view(VIEW==='yard'?'pans':VIEW);yardUI();if(menu.m.visible)drawMenu()}
 function yardUI(){const set=(id,f)=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',String(f(b))));
-  set('whereSeg',b=>b.dataset.where==='one'?!YARD:YARD&&b.dataset.where===LAYOUT);set('evenSeg',b=>(b.dataset.even==='on')===EVEN);set('kidsSeg',b=>(b.dataset.kids==='on')===KIDS)}
+  set('whereSeg',b=>b.dataset.where==='one'?!YARD:YARD&&b.dataset.where===LAYOUT);set('evenSeg',b=>(b.dataset.even==='on')===EVEN);set('spaceSeg',b=>b.dataset.space===SPACE);set('kidsSeg',b=>(b.dataset.kids==='on')===KIDS)}
 function view(k){VIEW=k;if(k==='yard'){camera.position.set(0,2.8,6.6);camera.lookAt(0,.4,-1.2)}else if(k==='pans'&&inYard()){applyPlayer()}else if(k==='table'){const w=new THREE.Vector3(0,.2,0);table.localToWorld(w);const f=new THREE.Vector3(0,.25,1.15);table.localToWorld(f);camera.position.copy(f);camera.lookAt(w)}
   else{camera.position.set(0,1.62,.12);camera.lookAt(0,.86,-.5)}document.querySelectorAll('#viewSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===k)))}
 document.querySelectorAll('#viewSeg button').forEach(b=>b.onclick=()=>view(b.dataset.view));
@@ -1512,7 +1536,7 @@ async function enter(mode){
 }
 $('goVR').onclick=()=>enter('immersive-vr');$('goRoom').onclick=()=>enter('immersive-ar');
 loadSong();renderSeg();applyLook();gdUI();mineUI();yardUI();lockUI();document.querySelectorAll('#lockSeg button').forEach(b=>b.onclick=()=>setLock(b.dataset.lock==='on'));if(inYard())goTo(setKey);
-document.querySelectorAll('#whereSeg button').forEach(b=>b.onclick=()=>b.dataset.where==='one'?setYard(false):setLayout(b.dataset.where));document.querySelectorAll('#evenSeg button').forEach(b=>b.onclick=()=>setEven(b.dataset.even==='on'));document.querySelectorAll('#fcSeg button').forEach(b=>b.onclick=()=>setFcello(b.dataset.fc));fcUI();document.querySelectorAll('#kidsSeg button').forEach(b=>b.onclick=()=>setKids(b.dataset.kids==='on'));
+document.querySelectorAll('#whereSeg button').forEach(b=>b.onclick=()=>b.dataset.where==='one'?setYard(false):setLayout(b.dataset.where));document.querySelectorAll('#spaceSeg button').forEach(b=>b.onclick=()=>setSpace(b.dataset.space));document.querySelectorAll('#evenSeg button').forEach(b=>b.onclick=()=>setEven(b.dataset.even==='on'));document.querySelectorAll('#fcSeg button').forEach(b=>b.onclick=()=>setFcello(b.dataset.fc));fcUI();document.querySelectorAll('#kidsSeg button').forEach(b=>b.onclick=()=>setKids(b.dataset.kids==='on'));
 $('mineFile').onclick=()=>$('mineIn').click();
 $('mineIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const x=await openFile(f);$('status').textContent='Opened '+x.title+'.'}catch(err){$('status').textContent='That file couldn’t open: '+(err.message||err)}};
 showTable(tableOn);document.querySelectorAll('#optSeg [data-opt]').forEach(b=>{b.setAttribute('aria-pressed',String(OPT[b.dataset.opt]));b.onclick=()=>setOpt(b.dataset.opt,!OPT[b.dataset.opt])});
@@ -2206,7 +2230,7 @@ function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRec
   g.fillStyle='#c9d6cf';g.font='34px system-ui,sans-serif';g.fillText('Theory, reading, playing in the band and composing',p.W/2,350);
   btn(p,'clsgo',p.W/2-300,470,600,140,'Start a lesson',{fs:52,on:true});g.fillStyle='#9fb0b8';g.font='30px system-ui,sans-serif';g.fillText('Point here and pull the trigger',p.W/2,700);p.tex.needsUpdate=true}
 
-const VR=window.VR={buzzes:[],weight:{get:()=>WEIGHT,set:w=>setWeight(w),swingLag:(i,vx,vy)=>{const st=sticks[i],g=st&&st.piv.parent;if(!g)return null;st.lp=null;lagFrame(st,1/72);for(let k=0;k<12;k++){g.position.x+=vx/72;g.position.y+=vy/72;g.updateMatrix();g.updateMatrixWorld(true);lagFrame(st,1/72)}const r={x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)};g.position.x-=vx*12/72;g.position.y-=vy*12/72;g.updateMatrix();g.updateMatrixWorld(true);st.lp=null;st.lagX=st.lagY=0;st.piv.rotation.y=0;return r},frame:(i,dt)=>{const st=sticks[i];lagFrame(st,dt);bounce(st,dt);return {x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)}}},soft:(k,v)=>softAt(k,v),fcello:{mode:()=>FCMODE,set:m=>setFcello(m),src:id=>{ensureNote(id,'fcello');const r=fcelloSrc(id);return r&&{id:r.id,shift:+r.shift.toFixed(1)}},load:()=>moreSounds(FC_GOOD)},sway:()=>drums.map(d=>({set:d.set,i:d.i,hang:!!d.hang,sx:d.sx||0,sz:d.sz||0,vx:d.vx||0,vz:d.vz||0})),swaySet:(i,x,z)=>{const d=drums[i];d.sx=x;d.sz=z;d.vx=d.vz=0},swayOpt:on=>setOpt('sway',on),swayStep:sec=>{for(let t=0;t<sec;t+=.02)standFollow(.02);return VR.sway()},stand:i=>{const d=drums[i];if(!d.hang)return {hang:false};const rim=new THREE.Vector3();d.g.localToWorld(rim);return {hang:true,rim:+rim.y.toFixed(3),hooks:d.H.map(h=>+h.y.toFixed(3)),straps:d.arms.map(a=>+a.strap.scale.y.toFixed(3)),pole:+d.pole.scale.y.toFixed(3),shown:d.stand.visible}},room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{demo:hasDemo(st),t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
+const VR=window.VR={yfeel:{space:m=>setSpace(m),layout:k=>setLayout(k),get:()=>({space:SPACE,even:EVEN,layout:LAYOUT}),st:()=>[...STN.values()].filter(st=>!st.solo).map(st=>{const p=st.g.getWorldPosition(new THREE.Vector3());return {k:st.key,x:+p.x.toFixed(2),z:+p.z.toFixed(2),clash:+clashOf(st).toFixed(3),bus:st.bus?[st.bus.p.positionX.value,st.bus.p.positionY.value,st.bus.p.positionZ.value].map(v=>+v.toFixed(2)):null}})},buzzes:[],weight:{get:()=>WEIGHT,set:w=>setWeight(w),swingLag:(i,vx,vy)=>{const st=sticks[i],g=st&&st.piv.parent;if(!g)return null;st.lp=null;lagFrame(st,1/72);for(let k=0;k<12;k++){g.position.x+=vx/72;g.position.y+=vy/72;g.updateMatrix();g.updateMatrixWorld(true);lagFrame(st,1/72)}const r={x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)};g.position.x-=vx*12/72;g.position.y-=vy*12/72;g.updateMatrix();g.updateMatrixWorld(true);st.lp=null;st.lagX=st.lagY=0;st.piv.rotation.y=0;return r},frame:(i,dt)=>{const st=sticks[i];lagFrame(st,dt);bounce(st,dt);return {x:+(st.lagX||0).toFixed(3),y:+(st.lagY||0).toFixed(3)}}},soft:(k,v)=>softAt(k,v),fcello:{mode:()=>FCMODE,set:m=>setFcello(m),src:id=>{ensureNote(id,'fcello');const r=fcelloSrc(id);return r&&{id:r.id,shift:+r.shift.toFixed(1)}},load:()=>moreSounds(FC_GOOD)},sway:()=>drums.map(d=>({set:d.set,i:d.i,hang:!!d.hang,sx:d.sx||0,sz:d.sz||0,vx:d.vx||0,vz:d.vz||0})),swaySet:(i,x,z)=>{const d=drums[i];d.sx=x;d.sz=z;d.vx=d.vz=0},swayOpt:on=>setOpt('sway',on),swayStep:sec=>{for(let t=0;t<sec;t+=.02)standFollow(.02);return VR.sway()},stand:i=>{const d=drums[i];if(!d.hang)return {hang:false};const rim=new THREE.Vector3();d.g.localToWorld(rim);return {hang:true,rim:+rim.y.toFixed(3),hooks:d.H.map(h=>+h.y.toFixed(3)),straps:d.arms.map(a=>+a.strap.scale.y.toFixed(3)),pole:+d.pole.scale.y.toFixed(3),shown:d.stand.visible}},room:{set:k=>setRoom(k),list:()=>ROOM.list.map(r=>r.k),k:()=>ROOM.k,active:()=>roomActive(),add:async(dataUrl,name)=>{const b=await (await fetch(dataUrl)).blob();return roomAdd(new File([b],name||'test.jpg',{type:b.type}))},remove:()=>roomRemove(),sizes:()=>ROOM.tex&&[ROOM.tex.image.width,ROOM.tex.image.height],bg:()=>!!(roomMesh&&roomMesh.visible),eye:d=>{roomNudge(d);return roomEye(ROOM.k)},floorAt:()=>{if(!roomMesh)return null;const p=roomMesh.geometry.getAttribute('position');let mn=1e9;for(let i=1;i<p.count*3;i+=3)mn=Math.min(mn,p.array[i]);return +(mn+roomMesh.position.y).toFixed(3)},sky:()=>sky.visible,shed:()=>shed.visible},said:[],cls:{start:()=>classStart(),stop:()=>classStop(),act:k=>act(k),open:i=>openLesson(i),set:k=>classSet(k),hit:(id,dt)=>classHit(id,ac.currentTime+(dt||0)),hitAt:(id,t,v)=>classHit(id,t,v),go:(L,S)=>{Object.assign(CLASS,{page:'lesson',L,S,mis:0,prev:null});enterStep()},clock:()=>CLASS.beat&&{t0:CLASS.beat.t0,sp:CLASS.beat.sp,rec:CLASS.beat.rec.length,dynMiss:CLASS.beat.dynMiss},piece:{get:()=>JSON.parse(JSON.stringify(PIECE)),tune:()=>pieceTune(),save:()=>{const e=savePiece();return e&&{title:e.title,L:e.song.L,tracks:e.song.tracks.map(t=>({name:t.name,set:t.set,n:t.notes.length}))}},reset:()=>{PIECE={};keepPiece()},set:o=>{PIECE=o;keepPiece()}},arrange:(set,role,minor)=>arrangeTo(set,minor?TUNE_B:TUNE_A,role),range:k=>setRange(k),fit:(k,ms)=>fitShift(k,ms),step:()=>{const st=step();return st&&{demo:hasDemo(st),t:st.t,write:st.write,mel:st.mel&&st.mel.length,len:st.len,beats:st.beats&&st.beats.length,backing:st.backing&&st.backing.map(t=>t.set+':'+t.notes.length),items:st.items&&st.items.length}},beatTimes:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,ids:e.ids})),now:()=>ac.currentTime,
     level:n=>classLevel(n),spd:v=>act('clsspd:'+v),map:()=>{const st=step(),it=st&&st.items&&st.items[CLASS.k];return {gold:st&&it&&(st.glow||CLASS.shown)?sugOf(st,it):[],bad:CLASS.badId}},song:id=>openSong(id),bar:i=>act('clsbar:'+i),comp:()=>act('clscomp'),guess:sg=>guessChords(sg),chartOrder:c=>chartOrder(c),chord:n=>{const c=chordOf(n);return {name:c.name,tones:c.tones,third:c.third,seventh:c.seventh}},pairs:(n,g)=>chordPairs(CLASS.set,chordOf(n),g),voice:(n,prev,g)=>chordVoice(CLASS.set,chordOf(n),prev,g),
     beatInfo:()=>CLASS.beat&&CLASS.beat.exp.map(e=>({t:e.t,t2:e.t2,ids:e.ids,chord:e.chord&&e.chord.name,sug:e.sug,ok:e.ok,roll:!!e.roll,rate:e.rate,even:e.even})),state:()=>{const st=step();return {demoNow:CLASS.demoNow,demoTimes:CLASS.demoTimes,lvl:CLASS.lvl,prev:CLASS.prev,song:CLASS.song&&CLASS.song.G.map(g=>g.c),on:CLASS.on,page:CLASS.page,set:CLASS.set,L:CLASS.L,S:CLASS.S,k:CLASS.k,t:st&&st.t,item:st&&st.items&&st.items[CLASS.k]?st.items[CLASS.k]:null,done:CLASS.done,msg:CLASS.msg,mis:CLASS.mis,shown:CLASS.shown,beat:CLASS.beat&&{ok:CLASS.beat.ok,n:CLASS.beat.exp.length,over:CLASS.beat.over},stars:CPROG,lessons:LESSONS.map(l=>[l.title,l.steps.length]),board:board.m.visible,door:door.m.visible,studio:table.visible}},
     glow:()=>drums.flatMap(d=>d.notes.filter(n=>n.cue&&n.cue.visible).map(n=>n.id+':'+n.cue.material.color.getHexString())),voicing:(t,s)=>voicing(t,s),hint:(a,b)=>hintFor(a,b),boardAt:()=>board.m.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(2))},rendered:null,render:async()=>{const b=await renderSong(SONG);return VR.rendered},inbox:()=>INBOX,hits:[],clicks:0,toasts:[],packs:()=>Object.fromEntries(Object.entries(PACK).map(([k,m])=>[k,{on:packOn(k),notes:Object.keys(m.files).length,layers:m.layers.length,loaded:Object.keys(m.files).filter(i=>pbuf[i]).length}])),setSound,wristPinned:false,

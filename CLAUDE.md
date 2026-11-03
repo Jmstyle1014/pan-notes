@@ -311,8 +311,15 @@ upright count is low because a checklist pushes the pans below the play bar ther
   teleport; left/right snap turns 45°; walking near a station (`walkCheck`) arrives too; B/Y and the menu's ◀ ▶ go to the
   next station. ● Rec records the track for the pans you're at, and only their notes (`recHit`). **Surround:** each station
   has an HRTF `PannerNode` bus (`busOf`/`placeBus`), tracks route there (`chan`, `routeAll`), the listener follows your head
-  (`listen`); Even mix (`EVEN`, localStorage `panyard-vr-even`, on) is rolloff 0.3, off is 1. 🗋 New song asks which pans
+  (`listen`); Even mix (`EVEN`, localStorage `panyard-vr-even`, off unless chosen) is rolloff 0.3, off is 1. 🗋 New song asks which pans
   (`PICK='song'`, `PSEL`, Put them out → `pansOut`); `songChanged()` re-syncs after undo, delete, open, Drive import.
+  **The yard feels still and close** (the owner: pans "always seem to move", jumps felt far): in the headset `goTo(k)` keeps your
+  facing (only you move; you turn your body to pans facing another way); `goTo(k,true)` faces you to the pans for the first
+  placing, A / X, a new layout, spacing or Yard back. **Spacing** (`SPACES`, `SPACE`, localStorage `panyard-vr-space`, page
+  `#spaceSeg`, menu "Yard:" in the Even mix row): Close (default) is `BAND` × .68 then `relaxYard()` nudges any two sections that
+  would touch apart (`pairOver`, `GAP`; ones you moved yourself, `YPOS`, stay), Roomy the first layout. **Even mix is off by
+  default** now (far sections quieter, direction clearer), and each station's panner sits at its drums' middle (`placeBus`).
+  Test with `tvryardfeel`.
   **Pull a section closer:** a beam on another station (its invisible cylinder `st.hit`, the beam turns gold) + trigger drags it
   along the floor (`stationHit`, `stGrab/stMove/stDrop` on the 0.9 m plane, `placeStation` moves it and its sound); kept per set in localStorage `panyard-vr-yardpos`; menu ↺ Yard back (`yardBack`) puts all back in their `BAND` places. Dragging keeps a section's facing.
   **The barrier** (`clashOf`/`footOf`, `GAP` 8 cm): footprints are each station's drums, the kit's pieces and its player's
