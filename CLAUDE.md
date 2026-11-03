@@ -399,6 +399,13 @@ upright count is low because a checklist pushes the pans below the play bar ther
   (`SWAY` w 7, ζ .18; more near the edge, for a harder hit and a lighter pan via `HANG`), applied as `d.g.rotation.x = tilt0 + sx`,
   `.z = sz` (≤ 2°), so hits follow the pan. Basses keep the old floor pole and don't sway. Menu / page switch Pans sway
   (`OPT.sway`, localStorage `panyard-vr-sway`, on). Test with `tvrstand` (`VR.swayStep` steps it by simulated time).
+- **VR four cello sound** (`FCMODE`, `fcelloSrc`, `FC_GOOD` in `panyard-vr.html`; page "Four cello sound", menu "Sound:" beside Go to pans
+  at the four cello; localStorage `panyard-vr-fcello`): the band's four cello recordings (band sounds version `FC_VER` 0f448d2055)
+  were measured: fcello:48–51, 53, 54, 58, 60, 61 are mostly the octave below (the drum ringing into the mic), 34, 35, 55, 56 the
+  octave above, so it sounded like a bass. **Cleaned** (default) plays the nearest `FC_GOOD` recording retuned, two high-passes at
+  0.8× the note, a gentler body hum and no low-shelf lift; **From guitar** the nearest double guitar recording retuned (C♯3–G♯4,
+  further stretches beyond); **As recorded** the old way. Re-measure if new band sounds come (a new version falls back to all of
+  them). Test with `tvrfcello` (it renders middle C and measures the octave below).
 - **VR rooms** (page → Room, menu → Room ▸): a 360° picture as the room (`ROOM`, `setRoom`, `applyRoom` in `panyard-vr.html`):
   built-in ones from `rooms/rooms.json` (`[{k, name, file}]`, files beside it, served at /pan-notes/rooms/), your own added on
   the page (`roomAdd`: cut to at most 4096 wide, JPEG, IndexedDB panyard-vr / rec `room:<id>`, names in localStorage
