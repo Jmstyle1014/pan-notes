@@ -224,6 +224,10 @@ upright count is low because a checklist pushes the pans below the play bar ther
   track 0.12 s ahead, looping the song or the loop); ● Rec records the selected track (or a new one, on its pans) while
   the others play, ● again stops, and the first take sets `L` (whole bars). `UNDO` holds earlier songs. Old per-set takes
   (`panyard-vr-take-<set>`) become the first tracks.
+  **The page** (before you enter VR, `#hud`): wide (max 1000 px) with tabs (the owner: "too much to scroll through"): Pans, Look &
+  room, Yard, Sound, Sticks, Songs, Help (`.tabs`, `.tab[data-tab]`, two columns of `.box` sections; `hudTab(k)`, remembered in
+  localStorage `panyard-vr-tab`); the title, status and Play in my room / Enter VR stay at the top. Every control keeps its id;
+  tests that click one call `hudShow('#id')` first (it opens that control's tab).
   **No black specks** (the owner's headset video showed dark grain on the bowls, mostly far pans; `dishNormals`): the bowl's light
   comes from the surface smoothed over e = 6 mm (12 mm on far `lite` stations), not the sharp 5 mm grooves; the bowl is
   `FrontSide` only (a double-sided one let flipped underside fragments win the Quest's depth test); camera near .05 (was .02:

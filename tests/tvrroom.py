@@ -32,7 +32,7 @@ with sync_playwright() as p:
     R=lambda js:pg.evaluate("VR.room."+js)
     check(R("k()")=='yard' and not R("bg()") and R("sky()") and R("list()")==['yard','deck'],'starts in the yard; the built-in room is offered')
     check(pg.locator('#roomSeg button').count()==2,'the page lists the rooms')
-    pg.locator('#roomSeg button',has_text='Sunset deck').click();pg.wait_for_function("VR.room.active()",timeout=20000)
+    pg.evaluate("hudShow('#roomSeg')");pg.locator('#roomSeg button',has_text='Sunset deck').click();pg.wait_for_function("VR.room.active()",timeout=20000)
     check(R("bg()") and not R("sky()") and not R("shed()") and R("sizes()")==[2048,1024],'a built-in room wraps round you; the sky and the yard\'s roof step aside')
     fl=R("floorAt()");check(fl is not None and abs(fl)<.03,f'grounded: the picture\'s floor lies at the real floor (y {fl}), not at infinity')
     e=pg.evaluate("VR.room.eye(.2)");fl2=R("floorAt()");check(abs(e-1.8)<.01 and abs(fl2)<.03 and pg.evaluate("VR.room.eye(-.2)")==1.6,f'Floor lower / higher changes how far below your eyes the picture\'s floor is ({e} m), the floor staying at your feet')

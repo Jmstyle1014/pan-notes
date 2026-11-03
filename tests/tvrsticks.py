@@ -29,8 +29,8 @@ with sync_playwright() as p:
     for k,nid in [('tenor','tenor:72'),('six','six:40')]:
         pg.evaluate(f"VR.set('{k}')");fr=pg.evaluate(f"VR.pushStick('{nid}',.08)");deep=max(f['below'] for f in fr);hit=[f['hit'] for f in fr if f['hit']]
         check(deep<=2.5 and hit==[nid],f'{k}: the stick still rests on the steel ({deep} mm) and the hit plays once {hit}')
-    pg.evaluate("VR.set('tenor')");pg.click('#capSeg [data-cap=black]');check(pg.evaluate("localStorage.getItem('panyard-vr-tenorcap')")=='black','Tenor caps: black is kept')
-    pg.click('#capSeg [data-cap=red]')
+    pg.evaluate("VR.set('tenor')");pg.evaluate("hudShow('#capSeg')");pg.click('#capSeg [data-cap=black]');check(pg.evaluate("localStorage.getItem('panyard-vr-tenorcap')")=='black','Tenor caps: black is kept')
+    pg.evaluate("hudShow('#capSeg')");pg.click('#capSeg [data-cap=red]')
     pg.evaluate("document.getElementById('hud').hidden=true;VR.lineup()");pg.wait_for_timeout(700);pg.screenshot(path=D+'sticks.png')
     # notes to the rim: the outer notes come within about 1.4 cm of the rim (half the drawing's gap), and still play
     pg.evaluate("VR.lineup&&VR.scene.remove(VR.scene.getObjectByName('lineup'));VR.set('tenor');VR.view('pans');VR.camera.position.set(0,1.45,-.12);VR.camera.lookAt(0,.9,-.5)")

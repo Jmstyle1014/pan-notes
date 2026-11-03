@@ -61,7 +61,7 @@ with sync_playwright() as p:
     ctx.add_init_script("try{localStorage.setItem('panyard-vr-yard','0');localStorage.setItem('panyard-vr-welcomed','1');if(!localStorage.getItem('panyard-vr-songs'))localStorage.setItem('panyard-vr-songs',"+json.dumps(json.dumps(SAVED))+")}catch(e){}")
     pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto('https://pan.test/vr/');pg.wait_for_function("window.VR&&VR.ready()>=79&&VR.drums()>0",timeout=90000)
-    pg.click('#mineBox [data-ms]');pg.wait_for_selector('.mshare')
+    pg.evaluate("hudShow('#mineBox')");pg.click('#mineBox [data-ms]');pg.wait_for_selector('.mshare')
     check(pg.locator('.mshare [data-sh]').count()==4,'Share opens four ways out: Send to Panyard, MP3, WAV, Save to my Drive')
     pg.locator('#mineBox').scroll_into_view_if_needed();pg.wait_for_timeout(200);pg.screenshot(path=D+'1-share.png')
     # WAV

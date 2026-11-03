@@ -9,7 +9,12 @@
 :root{--bg:#0b1117;--text:#eef2f4;--muted:#9fb0b8;--gold:#f6ba45;--card:rgb(14 22 28/.86);--line:rgb(255 255 255/.14)}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
 canvas{display:block}
-#hud{position:fixed;left:16px;right:16px;bottom:16px;max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 18px;backdrop-filter:blur(8px);max-height:calc(100vh - 32px);overflow:auto;box-sizing:border-box}
+#hud{position:fixed;left:16px;right:16px;bottom:16px;max-width:1000px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 18px;backdrop-filter:blur(8px);max-height:calc(100vh - 32px);box-sizing:border-box;display:flex;flex-direction:column}
+#hud .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}#hud .ttl{flex:1;min-width:220px}#hud .gobtns{margin-top:0;flex:1;min-width:300px}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:12px 0 4px;padding-bottom:2px;scrollbar-width:none}.tabs button{flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:rgb(255 255 255/.05);color:var(--muted);font-size:15px;font-weight:600}
+.tabs button[aria-selected=true]{color:var(--text);border-color:var(--gold);background:rgb(246 186 69/.18)}
+.tab{display:none;overflow:auto;min-height:0}.tab.on{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:4px 18px;align-content:start}
+.tab .box{min-width:0}.tab .box.wide{grid-column:1/-1}
 #hud h1{margin:0 0 4px;font-size:22px}#hud p{margin:6px 0;color:var(--muted)}
 #hud b{color:var(--text)}
 .lab{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
@@ -28,53 +33,52 @@ canvas{display:block}
 </head>
 <body>
 <div id="hud">
-  <h1>Panyard VR</h1>
-  <p>The band's pans, with your controllers as sticks. Hit harder for a louder note.</p>
-  <div class="lab">Pans</div>
-  <div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="dten">Double Tenor</button><button data-set="dsec">Double Second</button><button data-set="guitar">Double Guitar</button><button data-set="fcello">Four Cello</button><button data-set="tcello">Three Cello</button><button data-set="six">Six Bass</button><button data-set="seven">Seven Bass</button><button data-set="kit">Drum kit</button></div>
-  <div class="lab">Look</div>
-  <div class="lab">Room</div>
-  <div class="seg" id="roomSeg"></div>
-  <div class="btns" style="margin-top:6px"><button id="roomAdd">＋ Add a 360° picture…</button><button id="roomDel" hidden>Remove this picture</button></div><div class="btns" id="roomEyeBox" style="margin-top:6px" hidden><button id="roomLow">Floor lower</button><button id="roomHigh">Floor higher</button></div><input type="file" id="roomIn" accept="image/*" hidden>
-  <p class="credit" id="roomNote">A 360° panorama (2:1, like 4096 × 2048) wraps round you as the room; your pans, the studio and the classroom stay in front of you.</p>
-  <div class="lab">Pans</div>
-  <div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div>
-  <p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you; <b>hold</b> it to hide the studio or bring it back. The <b>studio screen</b> floats above the pans you're at; turn your <b>left palm up</b> for Play, Rec, Learn and Loop on your wrist. <b>Squeeze a grip</b> on the studio screen to nudge it, or with your hand on a pan's rim, to move it. In the <b>pan yard</b>, every pan in your song stands as on a Panorama stage (frontline in front, basses on the wings, drums at the back): push a <b>thumbstick forward</b>, aim the arc and let go to jump to them (or just walk), and push it <b>left or right</b> to turn. To hear a section better, <b>point at it and hold the trigger</b>, then aim where it should go: it slides closer (or further away). <b>Squeeze both grips</b> with your hands on the rims to lift the pans: move, turn and tilt them towards you, so you don't have to look so far down. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the menu (pans, look, sound, sticks, the table). On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p>
-  <div class="lab">Where you play</div>
-  <div class="seg" id="whereSeg"><button data-where="pano">Panorama (basses on the wings)</button><button data-where="rows">Concert rows</button><button data-where="one">One pan in front of you</button></div>
-  <div class="lab">Even mix (the yard)</div>
-  <div class="seg" id="spaceSeg"><button data-space="close">Sections close, like a real yard</button><button data-space="roomy">Roomy</button></div>
-  <div class="seg" id="evenSeg"><button data-even="on">On: far pans stay clear</button><button data-even="off">Off: like real life</button></div>
-  <div class="lab">The pans (the yard)</div>
-  <div class="seg" id="lockSeg"><button data-lock="on">🔒 Locked in place</button><button data-lock="off">🔓 Free to arrange</button></div>
-  <div class="lab">Kids mode</div>
-  <div class="seg" id="kidsSeg"><button data-kids="on">On: just play, no studio</button><button data-kids="off">Off</button></div>
-  <div id="packBox"></div>
-  <div class="lab">Four cello sound</div>
-  <div class="seg" id="fcSeg"><button data-fc="clean">Cleaned</button><button data-fc="guitar">From the guitar</button><button data-fc="raw">As recorded</button></div>
-  <div class="lab">Sound</div>
-  <div class="seg" id="optSeg"><button data-opt="hum">Drum body hum</button><button data-opt="tone">Bass &amp; treble for each pan</button><button data-opt="sway">Pans sway on their stands</button></div>
-  <div class="lab">Sticks</div>
-  <div class="seg" id="lenSeg"><button data-len="short">Short</button><button data-len="medium">Medium</button><button data-len="long">Long</button></div>
-  <div class="lab">Stick weight</div>
-  <div class="seg" id="wtSeg"><button data-wt="light">Light</button><button data-wt="real">Real</button><button data-wt="heavy">Heavy</button></div>
-  <div class="lab">Notes</div>
-  <div class="seg" id="fillSeg"><button data-fill="on">Close to the rim (like a real pan)</button><button data-fill="off">As drawn in Panyard</button></div>
-  <div class="seg" id="capSeg" style="margin-top:8px"><button data-cap="red">Tenor caps: red</button><button data-cap="black">Tenor caps: black</button></div>
-  <div class="lab">Studio</div>
-  <div class="seg" id="studioSeg"><button data-st="on">Out</button><button data-st="off">Put away (just play)</button></div>
-  <div class="lab">Off the headset, look at</div>
-  <div class="seg" id="viewSeg"><button data-view="pans" aria-pressed="true">The pans</button><button data-view="table">The studio</button><button data-view="yard">The yard</button></div>
-  <div class="lab">Your songs</div>
-  <div class="btns" style="margin-top:0"><button id="gdGo">☁ My songs from Google Drive</button></div>
-  <div id="gdBox"></div>
-  <div class="lab">Saved in VR</div>
-  <div id="mineBox"></div>
-  <div class="btns" style="margin-top:8px"><button id="mineFile">Open a song file</button></div><input type="file" id="mineIn" accept=".json,application/json" hidden>
-  <p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p>
-  <div class="btns"><button id="goRoom" class="go" hidden>Play in my room</button><button id="goVR" hidden>Enter VR</button></div>
+  <div class="top"><div class="ttl"><h1>Panyard VR</h1><p id="status" role="status" aria-live="polite">Getting the band's pan sounds ready…</p></div><div class="btns gobtns"><button id="goRoom" class="go" hidden>Play in my room</button><button id="goVR" hidden>Enter VR</button></div></div>
   <p id="noxr" hidden>Open this page in your headset's browser to play in VR. Here you can tap the notes with the mouse or your finger.</p>
+  <nav class="tabs" role="tablist"><button data-tab="pans">🥁 Pans</button><button data-tab="look">🎨 Look &amp; room</button><button data-tab="yard">🏟 Yard</button><button data-tab="sound">🔊 Sound</button><button data-tab="sticks">🥢 Sticks</button><button data-tab="songs">🎵 Songs</button><button data-tab="help">❓ Help</button></nav>
+  <div class="tab" data-tab="pans">
+    <section class="box"><div class="lab">Pans</div><div class="seg" id="setSeg"><button data-set="tenor">Tenor</button><button data-set="dten">Double Tenor</button><button data-set="dsec">Double Second</button><button data-set="guitar">Double Guitar</button><button data-set="fcello">Four Cello</button><button data-set="tcello">Three Cello</button><button data-set="six">Six Bass</button><button data-set="seven">Seven Bass</button><button data-set="kit">Drum kit</button></div></section>
+    <section class="box"><div class="lab">Notes</div><div class="seg" id="fillSeg"><button data-fill="on">Close to the rim (like a real pan)</button><button data-fill="off">As drawn in Panyard</button></div></section>
+    <section class="box"><div class="lab">Kids mode</div><div class="seg" id="kidsSeg"><button data-kids="on">On: just play, no studio</button><button data-kids="off">Off</button></div></section>
+    <section class="box"><div class="lab">Off the headset, look at</div><div class="seg" id="viewSeg"><button data-view="pans" aria-pressed="true">The pans</button><button data-view="table">The studio</button><button data-view="yard">The yard</button></div></section>
+  </div>
+  <div class="tab" data-tab="look">
+    <section class="box"><div class="lab">Look</div><div class="seg" id="lookSeg"><button data-look="chrome">Chrome</button><button data-look="gems">Vincy · Gems</button><button data-look="gren">Vincy · Grenadines</button><button data-look="flag">Vincy · Flag</button></div></section>
+    <section class="box wide"><div class="lab">Room</div><div class="seg" id="roomSeg"></div>
+  <div class="btns" style="margin-top:6px"><button id="roomAdd">＋ Add a 360° picture…</button><button id="roomDel" hidden>Remove this picture</button></div><div class="btns" id="roomEyeBox" style="margin-top:6px" hidden><button id="roomLow">Floor lower</button><button id="roomHigh">Floor higher</button></div><input type="file" id="roomIn" accept="image/*" hidden>
+<p class="credit" id="roomNote">A 360° panorama (2:1, like 4096 × 2048) wraps round you as the room; your pans, the studio and the classroom stay in front of you.</p></section>
+  </div>
+  <div class="tab" data-tab="yard">
+    <section class="box"><div class="lab">Where you play</div><div class="seg" id="whereSeg"><button data-where="pano">Panorama (basses on the wings)</button><button data-where="rows">Concert rows</button><button data-where="one">One pan in front of you</button></div></section>
+    <section class="box"><div class="lab">Spacing</div><div class="seg" id="spaceSeg"><button data-space="close">Sections close, like a real yard</button><button data-space="roomy">Roomy</button></div></section>
+    <section class="box"><div class="lab">Even mix</div><div class="seg" id="evenSeg"><button data-even="on">On: far pans stay clear</button><button data-even="off">Off: like real life</button></div></section>
+    <section class="box"><div class="lab">The pans in the yard</div><div class="seg" id="lockSeg"><button data-lock="on">🔒 Locked in place</button><button data-lock="off">🔓 Free to arrange</button></div></section>
+    <section class="box"><div class="lab">Studio</div><div class="seg" id="studioSeg"><button data-st="on">Out</button><button data-st="off">Put away (just play)</button></div></section>
+  </div>
+  <div class="tab" data-tab="sound">
+    <section class="box wide"><div id="packBox"></div></section>
+    <section class="box"><div class="lab">Four cello sound</div><div class="seg" id="fcSeg"><button data-fc="clean">Cleaned</button><button data-fc="guitar">From the guitar</button><button data-fc="raw">As recorded</button></div></section>
+    <section class="box"><div class="lab">Sound</div><div class="seg" id="optSeg"><button data-opt="hum">Drum body hum</button><button data-opt="tone">Bass &amp; treble for each pan</button><button data-opt="sway">Pans sway on their stands</button></div></section>
+  </div>
+  <div class="tab" data-tab="sticks">
+    <section class="box"><div class="lab">Sticks</div><div class="seg" id="lenSeg"><button data-len="short">Short</button><button data-len="medium">Medium</button><button data-len="long">Long</button></div></section>
+    <section class="box"><div class="lab">Stick weight</div><div class="seg" id="wtSeg"><button data-wt="light">Light</button><button data-wt="real">Real</button><button data-wt="heavy">Heavy</button></div></section>
+    <section class="box"><div class="lab">Tenor caps</div><div class="seg" id="capSeg"><button data-cap="red">Tenor caps: red</button><button data-cap="black">Tenor caps: black</button></div></section>
+  </div>
+  <div class="tab" data-tab="songs">
+    <section class="box wide"><div class="lab">Your songs</div><div class="btns" style="margin-top:0"><button id="gdGo">☁ My songs from Google Drive</button></div>  <div id="gdBox"></div>  <div class="lab">Saved in VR</div>  <div id="mineBox"></div>  <div class="btns" style="margin-top:8px"><button id="mineFile">Open a song file</button></div><input type="file" id="mineIn" accept=".json,application/json" hidden></section>
+  </div>
+  <div class="tab" data-tab="help">
+    <section class="box wide"><p>The band's pans, with your controllers as sticks. Hit harder for a louder note.</p><p>In VR: <b>A</b> or <b>X</b> brings the pans in front of you; <b>hold</b> it to hide the studio or bring it back. The <b>studio screen</b> floats above the pans you're at; turn your <b>left palm up</b> for Play, Rec, Learn and Loop on your wrist. <b>Squeeze a grip</b> on the studio screen to nudge it, or with your hand on a pan's rim, to move it. In the <b>pan yard</b>, every pan in your song stands as on a Panorama stage (frontline in front, basses on the wings, drums at the back): push a <b>thumbstick forward</b>, aim the arc and let go to jump to them (or just walk), and push it <b>left or right</b> to turn. To hear a section better, <b>point at it and hold the trigger</b>, then aim where it should go: it slides closer (or further away). <b>Squeeze both grips</b> with your hands on the rims to lift the pans: move, turn and tilt them towards you, so you don't have to look so far down. On the <b>Drum kit</b>, pull a <b>trigger</b> for the kick; the big bass drum stands on your right. <b>Thumbstick</b> up or down: higher or lower. <b>B</b> or <b>Y</b>: the other pans. <b>Press a thumbstick</b>: the menu (pans, look, sound, sticks, the table). On your left, a <b>studio table</b>: tracks, a mixing desk and a track screen. Point a controller at it and pull the <b>trigger</b>.</p></section>
+  </div>
 </div>
+<script>
+/* the page's tabs (the owner: "too much to scroll through"): one tab at a time, remembered (panyard-vr-tab) */
+function hudTab(k){document.querySelectorAll('#hud .tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===k));document.querySelectorAll('#hud .tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===k)));try{localStorage.setItem('panyard-vr-tab',k)}catch{}}
+document.querySelectorAll('#hud .tabs button').forEach(b=>b.onclick=()=>hudTab(b.dataset.tab));
+{let k='pans';try{k=localStorage.getItem('panyard-vr-tab')||'pans'}catch{}hudTab(document.querySelector('#hud .tab[data-tab="'+k+'"]')?k:'pans')}
+window.hudShow=sel=>{const el=document.querySelector(sel),t=el&&el.closest('.tab');if(t)hudTab(t.dataset.tab);return !!t};
+</script>
 <script type="module">
 import * as THREE from 'three';
 import {RoomEnvironment} from './lib/RoomEnvironment.js';
