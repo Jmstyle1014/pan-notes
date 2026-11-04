@@ -456,7 +456,7 @@ upright count is low because a checklist pushes the pans below the play bar ther
   of you for ideas while you play, kept in localStorage `panyard-vr-ideas` (`{list:[{id,title,at,bpm,sid,parts,text,ink}],cur,tab}`).
   **Parts** (the owner: "if I have a tenor and I want to add a guitar or a double seconds"): `e.parts=[{id,set,clef,notes}]`, one
   staff per pan, made the first time you hit that pan (`partFor`; ideas from before have `e.notes`, split by pan in `partsOf`);
-  one part shows 8 bars on two rows, more parts 4 bars stacked, three at a time (`BPP`, `IA.pscroll`, ▲▼); the label picks the
+  one part shows 8 bars on two rows, more parts 4 bars stacked, two at a time so chord names never reach the next part (`BPP`, `IA.pscroll`, ▲▼); the label picks the
   part (`iasel`, for Rest/Clear), 𝄞 Treble / 𝄢 Bass flips its clef (`clefOf`: basses and cellos bass). ▶ plays every part on its
   own pans; with Writing on it counts in 4 clicks (`IA.playT0`) and hits go in at the beat they land on (play along, `along` runs).
   ⬇ From the studio (`ideaFromSong`): the studio song's pan tracks become a new idea's parts; 🎹 Open as a song (`ideaToSong(true)`)

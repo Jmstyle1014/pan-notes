@@ -2018,7 +2018,7 @@ function drawStaff(g,x,y,w,notes,opt){opt=opt||{};const s=20,yb=y+4*s,col='#eef2
     g.strokeStyle=c;g.lineWidth=2;for(let L=Z-2;L>=dn;L-=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-Z)*s/2);g.lineTo(nx+s*1.1,yb-(L-Z)*s/2);g.stroke()}
     for(let L=Z+10;L<=dn;L+=2){g.beginPath();g.moveTo(nx-s*1.1,yb-(L-Z)*s/2);g.lineTo(nx+s*1.1,yb-(L-Z)*s/2);g.stroke()}
     const acc=lab.slice(1);if(acc&&!(KEYSIG[opt.key]||[]).includes(lab)){g.font='700 '+(s*1.7)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(acc,nx-s*1.55,ny)}
-    if(opt.names&&!n.hide){const nk=NK[i];g.save();g.font='700 '+(n.col==='#f6ba45'?s*1.5:s*1.15)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(lab,nx,yb+s*(BS?3.4:3.1)+(nk?nk.off+nk.rk*s*1.35:(dn<Z-4?(Z-4-dn)*s/2:0)));g.restore()}
+    if(opt.names&&!n.hide){const nk=NK[i];g.save();g.font='700 '+(n.col==='#f6ba45'?s*1.5:s*1.15)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(lab,nx,yb+s*(BS?3.4:3.1)+(nk?nk.off+nk.rk*s*1.2:(dn<Z-4?(Z-4-dn)*s/2:0)));g.restore()}
     const d=n.d||1;noteHead(g,nx,ny,s,d>=2);if([.75,1.5,3].includes(d)){g.beginPath();g.arc(nx+s*1.05,ny-(dn%2?0:s*.4),s*.2,0,7);g.fill()}
     const nx2=notes[i+1],pairs=d===.5&&nx2&&!nx2.rest&&(nx2.d||1)===.5&&opt.timed&&Math.floor(nx2.b)===Math.floor(n.b)&&n.b%1===0;
     if(d<4){const up=beam&&beam.on?beam.up:pairs?(dn+dnOf(nx2.m,spell(nx2.m,opt.key)))/2<Z+4:dn<Z+4,sx=up?nx+s*.6:nx-s*.6,sy=up?ny-s*3.5:ny+s*3.5;g.lineWidth=2.5;g.beginPath();g.moveTo(sx,ny);g.lineTo(sx,sy);g.stroke();
@@ -2303,7 +2303,7 @@ const BPP=e=>partsOf(e).length>1?16:32;   // beats a page: one part shows 8 bars
 const pageOf=(e,b)=>Math.floor(Math.max(0,b-.01)/BPP(e));
 const clefOf=pt=>pt.clef||(LOWPANS.has(pt.set)?'bass':'treble');
 const selPart=e=>partsOf(e).find(x=>x.id===IA.part)||e.parts[e.parts.length-1]||null;
-function partFor(e,set){let pt=partsOf(e).find(x=>x.set===set);if(!pt){pt={id:pid(),set,notes:[]};e.parts.push(pt);if(e.parts.length>1)toast('A '+setName(set)+' part is added to the score');IA.pscroll=Math.max(0,e.parts.length-3)}return pt}
+function partFor(e,set){let pt=partsOf(e).find(x=>x.set===set);if(!pt){pt={id:pid(),set,notes:[]};e.parts.push(pt);if(e.parts.length>1)toast('A '+setName(set)+' part is added to the score');IA.pscroll=Math.max(0,e.parts.length-2)}return pt}
 function ideasOpen(on){pad.m.visible=on;if(on){menuOpen(false);const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera,hp=new THREE.Vector3(),f=new THREE.Vector3();cam.getWorldPosition(hp);cam.getWorldDirection(f);f.y=0;
     if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();pad.m.position.set(hp.x+f.x*.9,hp.y-.02,hp.z+f.z*.9);pad.m.lookAt(hp.x,hp.y-.02,hp.z);const e=ideaCur();IA.page=pageOf(e,ideaEnd(e));drawPad()}
   else{ideaStop();clickOff();IA.click=false}dirty=true}
@@ -2364,7 +2364,7 @@ function ideaType(k){const e=ideaCur();if(k==='⌫')e.text=e.text.slice(0,-1);el
 const KB=[['1','2','3','4','5','6','7','8','9','0','⌫'],['q','w','e','r','t','y','u','i','o','p','♯'],['a','s','d','f','g','h','j','k','l','\'','♭'],['⇧','z','x','c','v','b','n','m',',','.','?'],['-','/','|','space',':','⏎']];
 function ideaAct(k,a){const e=ideaCur(),i=+a;IA.arm=k==='iaclr'||k==='iadel'?IA.arm:'';if(k==='iaprev'||k==='ianew'||k==='ialen'||k==='iaclr')IA.runs={};if(k==='iaprev'||k==='ianew'){IA.hist=[];IA.part=null;IA.pscroll=0}
   ({iaclose:()=>ideasOpen(false),iatab:()=>{IDEAS.tab=a;ideaSave()},iaprev:()=>{const j=IDEAS.list.indexOf(e);IDEAS.cur=IDEAS.list[(j+i+IDEAS.list.length)%IDEAS.list.length].id;IA.page=0;ideaStop();ideaSave()},
-    ianew:()=>{ideaStop();ideaNew()},ialen:()=>{IA.len=a==='auto'?'auto':+a},iaclick:()=>{if(IA.click){IA.click=false;clickOff()}else clickOn()},iasong:()=>ideaToSong(false),iaopen:()=>ideaToSong(true),iafrom:()=>{ideaStop();ideaFromSong()},iasel:()=>{const pt=partsOf(e)[i];if(pt)IA.part=pt.id},iaclef:()=>{const pt=partsOf(e)[i];if(pt){pt.clef=clefOf(pt)==='bass'?'treble':'bass';ideaSave()}},iaps:()=>{IA.pscroll=Math.max(0,Math.min(partsOf(e).length-3,IA.pscroll+i))},iadot:()=>{IA.dot=!IA.dot},iarest:ideaRest,iaundo:ideaUndo,iawrite:()=>{IA.write=!IA.write},iaplay:ideaPlay,
+    ianew:()=>{ideaStop();ideaNew()},ialen:()=>{IA.len=a==='auto'?'auto':+a},iaclick:()=>{if(IA.click){IA.click=false;clickOff()}else clickOn()},iasong:()=>ideaToSong(false),iaopen:()=>ideaToSong(true),iafrom:()=>{ideaStop();ideaFromSong()},iasel:()=>{const pt=partsOf(e)[i];if(pt)IA.part=pt.id},iaclef:()=>{const pt=partsOf(e)[i];if(pt){pt.clef=clefOf(pt)==='bass'?'treble':'bass';ideaSave()}},iaps:()=>{IA.pscroll=Math.max(0,Math.min(partsOf(e).length-2,IA.pscroll+i))},iadot:()=>{IA.dot=!IA.dot},iarest:ideaRest,iaundo:ideaUndo,iawrite:()=>{IA.write=!IA.write},iaplay:ideaPlay,
     iabpm:()=>{e.bpm=Math.max(40,Math.min(200,(e.bpm||90)+i));ideaSave();if(IA.click)clickOn()},ianames:()=>{CLASS.names=!CLASS.names;LSset('cls-names',CLASS.names?'1':'0')},
     iapg:()=>{IA.page=Math.max(0,Math.min(pageOf(e,ideaEnd(e))+1,IA.page+i))},
     iaclr:()=>{const w=IDEAS.tab+':'+e.id;if(IA.arm===w){IA.arm='';ideaStop();if(IDEAS.tab==='score'){const pt=selPart(e);if(pt&&e.parts.length>1){e.parts=e.parts.filter(x=>x!==pt);IA.part=null;IA.pscroll=0}else e.parts=[];IA.hist=[]}else if(IDEAS.tab==='type')e.text='';else e.ink=[];ideaSave();toast(IDEAS.tab==='score'&&e.parts.length?'That part is cleared':'Cleared')}else IA.arm=w},
@@ -2393,14 +2393,14 @@ function drawPad(){const p=pad,g=p.g,e=ideaCur(),tab=IDEAS.tab;p.hits=[];g.setTr
     btn(p,'iasong',890,204,296,70,e.sid&&SONGS.some(x=>x.id===e.sid)?'💾 Update the song':'💾 Save as a song',{fs:26});
     const ps=partsOf(e),multi=ps.length>1,bpp=BPP(e),bars=bpp/4,end=ideaEnd(e),pages=pageOf(e,end)+1;IA.page=Math.min(IA.page,pages);
     btn(p,'iapg:-1',1200,204,70,70,'◀',{fs:30});g.fillStyle='#c9d3da';g.font='26px system-ui,sans-serif';g.textAlign='center';g.fillText('Bars '+(IA.page*bars+1)+'–'+(IA.page*bars+bars),1342,240);btn(p,'iapg:1',1414,204,70,70,'▶',{fs:30});
-    const sel=selPart(e),vis=multi?ps.slice(IA.pscroll,IA.pscroll+3):[ps[0]||null,ps[0]||null],gapY=vis.length===2&&multi?250:multi?172:270;
-    vis.forEach((pt,r)=>{const y=multi?(vis.length===2?380:350)+r*gapY:(r?650:380),b0=multi?IA.page*16:(IA.page*2+r)*16,pi=pt?ps.indexOf(pt):-1;
+    const sel=selPart(e),vis=multi?ps.slice(IA.pscroll,IA.pscroll+2):[ps[0]||null,ps[0]||null];
+    vis.forEach((pt,r)=>{const y=r?640:370,b0=multi?IA.page*16:(IA.page*2+r)*16,pi=pt?ps.indexOf(pt):-1;
       const ns=pt?pt.notes.filter(n=>n.b>=b0&&n.b<b0+16).map(n=>({m:n.m,rest:n.rest,d:n.d,b:n.b-b0,col:IA.at>=0&&n.b===IA.at?'#f6ba45':null})):[],pe=pt?partEnd(pt):0;
       const cur=!IA.play.length&&pt&&(pt===sel||!multi)&&pe>=b0&&pe<b0+16?pe-b0:null;
       drawStaff(g,46,y,p.W-92,ns,{names:CLASS.names,timed:1,len:16,time:IA.page===0&&r===0,clef:pt&&clefOf(pt)==='bass'?'bass':null,bars:[4,8,12],cursor:cur});
       g.fillStyle='#77838d';g.font='22px system-ui,sans-serif';g.textAlign='left';g.fillText(String(b0/4+1),46,y-30);
       if(pt&&(multi||r===0)){btn(p,'iasel:'+pi,80,y-58,200,42,shortSet(pt.set),{on:multi&&pt===sel,fs:24});btn(p,'iaclef:'+pi,288,y-58,150,42,clefOf(pt)==='bass'?'𝄢 Bass':'𝄞 Treble',{fs:24})}});
-    if(ps.length>3){btn(p,'iaps:-1',1500,300,70,60,'▲',{fs:28});g.fillStyle='#c9d3da';g.font='22px system-ui,sans-serif';g.textAlign='center';g.fillText((IA.pscroll+1)+'–'+Math.min(ps.length,IA.pscroll+3)+' of '+ps.length,1535,380);btn(p,'iaps:1',1500,400,70,60,'▼',{fs:28})}
+    if(ps.length>2){btn(p,'iaps:-1',1250,310,80,44,'▲',{fs:26});g.fillStyle='#c9d3da';g.font='22px system-ui,sans-serif';g.textAlign='center';g.fillText('Parts '+(IA.pscroll+1)+'–'+Math.min(ps.length,IA.pscroll+2)+' of '+ps.length,1410,333);btn(p,'iaps:1',1490,310,80,44,'▼',{fs:26})}
     btn(p,'iafrom',1000,830,270,58,'⬇ From the studio',{fs:24});btn(p,'iaopen',1282,830,288,58,'🎹 Open as a song',{fs:24});
     g.fillStyle='#9fb0b8';g.font='23px system-ui,sans-serif';g.textAlign='left';
     g.fillText(fit(g,!IA.write?'Writing is off: play freely, nothing is written.':IA.play.length&&IA.playT0!=null?'Play along: what you hit goes in on the beat it lands.':!ps.length?'Hit a note on any pan: it starts that pan\'s part.':IA.len==='auto'?'Just play: lengths come from your timing. Another pan adds its part.':'Hit the next note. Two together make a chord.',940),36,859)}
