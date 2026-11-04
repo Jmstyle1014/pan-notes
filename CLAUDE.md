@@ -481,6 +481,11 @@ upright count is low because a checklist pushes the pans below the play bar ther
   draws (`inkDrag`, a hit with `nosnap`/`done`, so it never touches the song's undo; `uiDown`/`uiUp` honour both). The page's
   Songs tab lists ideas (`ideasUI`, `#ideaBox`): rename, type the notes with a real keyboard, delete. Test with `tvrideas`
   (`VR.ideas`, `hitAt(id,t)` for timed hits).
+- **Four cello from the guitar** (Panyard, Settings switch under On the phone speaker; `FCG` in `panyard-fcello.js`, after even;
+  localStorage `panyard-fcguitar`, on unless '0', not backed up): as VR's "From guitar" (the band's four cello recordings ring an
+  octave off), every fcello note borrows the closest Double Guitar recording, retuned (`FCG.src`, wrapping `borrowOf`, and
+  `TW.skip` so the phone's own four cello recordings are passed over), so Play, Studio and My part all follow. Only with recorded
+  sounds and guitar recordings on the phone. Panyard Band gets it on its next rebuild. Test with `tfcguitar`.
 - **Studio sound packs in Panyard and Panyard Band** (`panyard-packs.js`, `PACKS`, after steel): the same `packs/` as VR
   (`PACKS.LIST`: dsec Dunleavy on by default, tenor SASS-E off; **remove `tenor` before charging**, CC BY-NC). With a pack on and
   recorded sounds (`S.panVoice==='mine'`), Play's taps (`strikeMine` wrapper → `playSample(…, pk)`) and Studio's `panVoice`
