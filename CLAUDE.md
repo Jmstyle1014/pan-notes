@@ -460,7 +460,11 @@ upright count is low because a checklist pushes the pans below the play bar ther
   part (`iasel`, for Rest/Clear), 𝄞 Treble / 𝄢 Bass flips its clef (`clefOf`: basses and cellos bass). ▶ plays every part on its
   own pans; with Writing on it counts in 4 clicks (`IA.playT0`) and hits go in at the beat they land on (play along, `along` runs).
   ⬇ From the studio (`ideaFromSong`): the studio song's pan tracks become a new idea's parts; 🎹 Open as a song (`ideaToSong(true)`)
-  saves and opens it in the studio. ⌫ Undo uses `IA.hist` (a chord is one step). Chord names under the staff stack (`NK` in `drawStaff`).
+  saves and opens it in the studio. ⌫ Undo uses `IA.hist` (a chord is one step). **▶ / ■** (the owner: Stop didn't stop, ▶ again
+  doubled it): `ideaPlay` hands notes and clicks to the speakers only 0.15 s ahead from one clock (`IA.sch`, a 25 ms interval), so
+  ■ really stops; `ideaStop` fades the `idea-<set>` channels and drops them from `CH`. Writing on: 4-click count-in, then it runs
+  until ■ (🥁 Metronome ticks through it if on); Writing off: stops after the last note. 🥁 Metronome (`iaclick`) also ticks on
+  its own while you write (`clickOn`), and Auto lines the beats up with it. Chord names under the staff stack (`NK` in `drawStaff`).
   🎼 Score: with ✏ Writing on, every live pan hit (`ideaHit(id,v,t)`, called beside `classHit` in `strike`/`strikeLayer`) goes on a
   blank staff. **⏱ Auto** (default, the owner: picking a length first "slows down the motion"): a note's length is the wait for the
   next hit at the idea's tempo, snapped to eighths (`STD_D`: ½ 1 1½ 2 3 4, the rest a rest), the newest note a quarter until then
