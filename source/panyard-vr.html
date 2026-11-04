@@ -2287,8 +2287,8 @@ function drawDoor(){const p=door,g=p.g;p.hits=[];g.fillStyle='#16241c';g.fillRec
    localStorage panyard-vr-ideas ({list:[{id,title,at,bpm,sid,parts:[{id,set,clef,notes:[{id,m,b,d,rest,auto}]}],text,
    ink:[{c,w,p:[[x,y]…]}]}], cur, tab}; an idea from before parts has `notes`, split into parts by pan when first read). */
 const pad=uiPanel(1.1,.62,1600,900);pad.m.visible=false;scene.add(pad.m);PANELS.push(pad);
-const IDEAS=(()=>{let o=null;try{o=JSON.parse(LS('ideas')||'null')}catch{}o=o&&Array.isArray(o.list)?o:{list:[],cur:null,tab:'score'};return o})();
-const IA={write:true,len:'auto',runs:{},hist:[],part:null,pscroll:0,playT0:null,click:false,clk:null,dot:false,page:0,shift:true,arm:'',play:[],at:-1,lastT:0,lastPart:null,ink:'#eef2f4',thick:false,stroke:null};
+const IDEAS=(()=>{let o=null;try{o=JSON.parse(LS('ideas')||'null')}catch{}o=o&&Array.isArray(o.list)?o:{list:[],cur:null,tab:'notes'};return o})();
+const IA={rpage:0,atT:-1,rawRun:null,rawLast:null,write:true,len:'auto',runs:{},hist:[],part:null,pscroll:0,playT0:null,click:false,clk:null,dot:false,page:0,shift:true,arm:'',play:[],at:-1,lastT:0,lastPart:null,ink:'#eef2f4',thick:false,stroke:null};
 const IDEA_LEN=[[4,'Whole'],[2,'Half'],[1,'Quarter'],[.5,'Eighth']],INK=['#eef2f4','#f6ba45','#4fd1c5','#ff6b5e'];
 function ideaSave(){try{LSset('ideas',JSON.stringify(IDEAS))}catch{}try{ideasUI()}catch{}}
 function ideaNew(){const n=IDEAS.list.length+1;let t='Idea '+n;while(IDEAS.list.some(e=>e.title===t))t='Idea '+(+t.split(' ')[1]+1);
@@ -2314,7 +2314,7 @@ function ideasOpen(on){pad.m.visible=on;if(on){menuOpen(false);const cam=rendere
    more than about five beats starts a new phrase after what's written. With 🥁 Click on, the beats line up with the click.
    While ▶ plays (after its count-in), a hit goes in at the beat it lands on: playing a new part along with the others. */
 const STD_D=[4,3,2,1.5,1,.5];
-function ideaHit(id,v,t,now){if(!pad.m.visible||IDEAS.tab!=='score'||!IA.write||String(id).startsWith('drum:')||!NOTE[id])return;const m=cm(id);if(!Number.isFinite(m))return;
+function ideaHit(id,v,t,now){if(!pad.m.visible||(IDEAS.tab!=='score'&&IDEAS.tab!=='notes')||!IA.write||String(id).startsWith('drum:')||!NOTE[id])return;if(IDEAS.tab==='notes')return rawHit(id,t,now==null?performance.now():now);const m=cm(id);if(!Number.isFinite(m))return;
   const e=ideaCur(),pt=partFor(e,NOTE[id].set),fixed=IA.len!=='auto',d0=fixed?IA.len*(IA.dot?1.5:1):1;now=now==null?performance.now():now;IA.part=pt.id;
   let R=IA.runs[pt.id];const L=R&&R.last;
   if(L&&!L.rest&&IA.lastPart===pt.id&&now-IA.lastT<90){if(!pt.notes.some(n=>n.b===L.b&&n.m===m)){const n={id,m,b:L.b,d:L.d,auto:L.auto};pt.notes.push(n);pt.notes.sort((a,b)=>a.b-b.b);const h=IA.hist[IA.hist.length-1];if(h&&h.pt===pt.id)h.n.push(n);else IA.hist.push({pt:pt.id,n:[n]})}}
@@ -2330,23 +2330,23 @@ function ideaHit(id,v,t,now){if(!pad.m.visible||IDEAS.tab!=='score'||!IA.write||
   IA.lastT=now;IA.lastPart=pt.id;e.at=Date.now();ideaSave();drawPad()}
 function ideaRest(){IA.runs={};const e=ideaCur(),pt=selPart(e)||partFor(e,setKey==='kit'?'tenor':setKey),n={rest:true,b:partEnd(pt),d:IA.len==='auto'?1:IA.len*(IA.dot?1.5:1)};pt.notes.push(n);IA.hist.push({pt:pt.id,n:[n]});IA.page=pageOf(e,ideaEnd(e));ideaSave();drawPad()}
 function ideaUndo(){IA.runs={};const e=ideaCur(),h=IA.hist.pop(),pt=h?partsOf(e).find(x=>x.id===h.pt):selPart(e);
-  if(h&&pt)pt.notes=pt.notes.filter(n=>!h.n.includes(n));else if(pt&&pt.notes.length){const L=pt.notes[pt.notes.length-1];pt.notes=pt.notes.filter(n=>!(n.b===L.b&&!!n.rest===!!L.rest))}ideaSave();drawPad()}
+  IA.rawRun=null;if(h&&pt){pt.notes=pt.notes.filter(n=>!h.n.includes(n));if(pt.raw)pt.raw=pt.raw.filter(n=>!h.n.includes(n))}else if(pt&&IDEAS.tab==='notes'&&pt.raw&&pt.raw.length){const L=pt.raw[pt.raw.length-1];pt.raw=pt.raw.filter(n=>n.t!==L.t)}else if(pt&&pt.notes.length){const L=pt.notes[pt.notes.length-1];pt.notes=pt.notes.filter(n=>!(n.b===L.b&&!!n.rest===!!L.rest))}ideaSave();drawPad()}
 /* ▶ / ■ (the owner: Stop didn't stop, and ▶ again played a second copy over it): notes and clicks are handed to the speakers
    only 0.15 s ahead, from one clock (IA.sch), so ■ Stop really stops; Stop also fades the idea's channels out (notes still
    ringing) and drops them, so the next ▶ starts clean. With Writing on, four clicks count you in and it keeps going (the
    metronome on if 🥁 Metronome is) until ■ Stop, so you can play along; with Writing off it stops after the last note. */
-function ideaStop(){IA.play.forEach(x=>{clearInterval(x);clearTimeout(x)});IA.play=[];IA.sch=null;IA.at=-1;IA.playT0=null;IA.runs={};
+function ideaStop(){IA.atT=-1;IA.play.forEach(x=>{clearInterval(x);clearTimeout(x)});IA.play=[];IA.sch=null;IA.at=-1;IA.playT0=null;IA.runs={};
   if(ac)for(const [k,c] of [...CH])if(String(k).startsWith('idea-')){try{c.g.gain.cancelScheduledValues(ac.currentTime);c.g.gain.setTargetAtTime(0,ac.currentTime,.03)}catch{}CH.delete(k)}
   if(IA.click&&pad.m.visible)clickOn()}
 function ideaPlay(){if(IA.play.length){ideaStop();drawPad();return}clickOff();const e=ideaCur(),ps=partsOf(e);if(!ac)audio();if(!ac)return;
-  const has=ps.some(pt=>pt.notes.some(n=>!n.rest));if(!has&&!IA.write)return;
-  const sp=60/(e.bpm||90),cnt=IA.write?4:0,t0=ac.currentTime+.25+cnt*sp,end=IA.write?Infinity:ideaEnd(e);IA.playT0=t0;IA.runs={};
-  const ev=ps.flatMap(pt=>{const tr={id:'idea-'+pt.set,set:pt.set,vol:1,pan:0,mute:false,solo:true,notes:[]};return pt.notes.filter(n=>!n.rest).map(n=>({t:t0+n.b*sp,id:n.id,tr}))}).sort((x,y)=>x.t-y.t);
+  const NM=IDEAS.tab==='notes',has=NM?ps.some(pt=>(pt.raw||[]).length):ps.some(pt=>pt.notes.some(n=>!n.rest));if(!has&&!IA.write)return;
+  const sp=60/(e.bpm||90),cnt=IA.write?4:0,t0=ac.currentTime+.25+cnt*sp,end=IA.write?Infinity:NM?(Math.max(0,...ps.map(rawEnd))+1.5)/sp:ideaEnd(e);IA.playT0=t0;IA.atT=-1;IA.runs={};
+  const ev=ps.flatMap(pt=>{const tr={id:'idea-'+pt.set,set:pt.set,vol:1,pan:0,mute:false,solo:true,notes:[]};return NM?(pt.raw||[]).map(n=>({t:t0+n.t,id:n.id,tr})):pt.notes.filter(n=>!n.rest).map(n=>({t:t0+n.b*sp,id:n.id,tr}))}).sort((x,y)=>x.t-y.t);
   const S=IA.sch={t0,sp,ev,i:0,k:-cnt,end,beat:-1};
   const run=()=>{if(IA.sch!==S)return;const now=ac.currentTime,hz=now+.15;
     while(S.i<S.ev.length&&S.ev[S.i].t<hz){const x=S.ev[S.i++];strike(x.id,.8,Math.max(x.t,now),x.tr)}
     while(t0+S.k*sp<hz&&S.k<S.end){if(S.k<0||IA.click)click(Math.max(t0+S.k*sp,now),((S.k%4)+4)%4===0);S.k++}
-    const b=Math.floor((now-t0)/sp*2)/2;if(b!==S.beat&&b>=0){S.beat=b;IA.at=b;IA.page=pageOf(e,b+.5);drawPad()}
+    if(NM){const q=Math.floor((now-t0)*10);if(q!==S.beat&&q>=0){S.beat=q;IA.atT=now-t0;IA.rpage=Math.floor(IA.atT/10);drawPad()}}else{const b=Math.floor((now-t0)/sp*2)/2;if(b!==S.beat&&b>=0){S.beat=b;IA.at=b;IA.page=pageOf(e,b+.5);drawPad()}}
     if(now>t0+S.end*sp+.3){ideaStop();ideaSave();drawPad()}};
   IA.play=[setInterval(run,25)];run();if(cnt)toast(has?'1, 2, 3, 4… play along. ■ Stop when you\'re done':'1, 2, 3, 4… play. ■ Stop when you\'re done');drawPad()}
 function clickOn(){if(!ac)audio();if(!ac)return;clickOff();IA.click=true;IA.runs={};if(IA.play.length)return;const e=ideaCur(),sp=60/(e.bpm||90),t0=ac.currentTime+.1;let k=0;IA.clk={t0,timer:setInterval(()=>{while(t0+k*sp<ac.currentTime+.15){if(t0+k*sp>=ac.currentTime-.01)click(t0+k*sp,k%4===0);k++}},25)}}
@@ -2354,10 +2354,10 @@ function clickOff(){if(IA.clk)clearInterval(IA.clk.timer);IA.clk=null}
 /* 💾 Save as a song: a track for each part, at the idea's tempo, into My songs (the same song again on a later save, e.sid);
    🎹 Open as a song also opens it in the studio. ⬇ From the studio: the studio song's pan tracks become a new idea's parts
    (a note as long as the wait for the next, snapped like Auto). */
-function ideaToSong(open){const e=ideaCur(),ps=partsOf(e).filter(pt=>pt.notes.some(n=>!n.rest&&NOTE[n.id]));if(!ps.length){toast('Nothing on the score yet');return null}
-  const tracks=ps.slice(0,MAXT).map((pt,i)=>({id:uid(),name:setName(pt.set),set:pt.set,vol:1,pan:0,mute:false,solo:false,col:COLORS[i%COLORS.length],notes:pt.notes.filter(n=>!n.rest&&NOTE[n.id]).map(n=>({id:n.id,v:.8,b:n.b}))}));
+function ideaToSong(open){const e=ideaCur(),NM=IDEAS.tab==='notes',sp=60/(e.bpm||90),src=pt=>NM?(pt.raw||[]).filter(n=>NOTE[n.id]).map(n=>({id:n.id,b:+(n.t/sp).toFixed(3)})):pt.notes.filter(n=>!n.rest&&NOTE[n.id]),ps=partsOf(e).filter(pt=>src(pt).length);if(!ps.length){toast(NM?'Nothing on the Notes page yet':'Nothing on the score yet');return null}
+  const tracks=ps.slice(0,MAXT).map((pt,i)=>({id:uid(),name:setName(pt.set),set:pt.set,vol:1,pan:0,mute:false,solo:false,col:COLORS[i%COLORS.length],notes:src(pt).map(n=>({id:n.id,v:.8,b:n.b}))}));
   const was=SONGS.slice();let sv=e.sid&&SONGS.find(x=>x.id===e.sid);if(!sv)sv={id:uid(),title:SONGS.some(x=>x.title===e.title)?freeTitle(e.title):e.title};
-  sv.at=Date.now();sv.song={bpm:e.bpm||90,L:Math.max(4,Math.ceil(ideaEnd(e)/4)*4),loop:{on:false,s:0,e:1},sel:0,click:false,title:sv.title,sid:sv.id,tracks};
+  sv.at=Date.now();sv.song={bpm:e.bpm||90,L:Math.max(4,Math.ceil((NM?Math.max(0,...ps.map(rawEnd))/sp+1:ideaEnd(e))/4)*4),loop:{on:false,s:0,e:1},sel:0,click:false,title:sv.title,sid:sv.id,tracks};
   SONGS=[sv,...SONGS.filter(x=>x!==sv)];if(!keepSongs()){SONGS=was;return null}e.sid=sv.id;ideaSave();try{mineUI()}catch{}
   if(open){openMine(sv.id);ideasOpen(false);toast('In the studio: '+sv.title)}else toast('Saved to My songs: '+sv.title);return sv}
 function ideaFromSong(){const ts=SONG.tracks.filter(t=>!t.rec&&t.set!=='kit'&&t.notes.some(n=>NOTE[n.id]&&Number.isFinite(cm(n.id))));if(!ts.length){toast('The studio song has no pan notes yet');return null}
@@ -2370,12 +2370,12 @@ function ideaType(k){const e=ideaCur();if(k==='⌫')e.text=e.text.slice(0,-1);el
   else{let c=k==='space'?' ':k;if(IA.shift&&c.length===1){c=c.toUpperCase();IA.shift=false}e.text+=c;if(/[.?!]\s$/.test(e.text))IA.shift=true}
   if(e.text===''||/\n$/.test(e.text))IA.shift=true;e.at=Date.now();ideaSave();drawPad()}
 const KB=[['1','2','3','4','5','6','7','8','9','0','⌫'],['q','w','e','r','t','y','u','i','o','p','♯'],['a','s','d','f','g','h','j','k','l','\'','♭'],['⇧','z','x','c','v','b','n','m',',','.','?'],['-','/','|','space',':','⏎']];
-function ideaAct(k,a){const e=ideaCur(),i=+a;IA.arm=k==='iaclr'||k==='iadel'?IA.arm:'';if(k==='iaprev'||k==='ianew'||k==='ialen'||k==='iaclr')IA.runs={};if(k==='iaprev'||k==='ianew'){IA.hist=[];IA.part=null;IA.pscroll=0}
+function ideaAct(k,a){const e=ideaCur(),i=+a;IA.arm=k==='iaclr'||k==='iadel'?IA.arm:'';if(k==='iaprev'||k==='ianew'||k==='ialen'||k==='iaclr')IA.runs={};if(k==='iaprev'||k==='ianew'){IA.rawRun=null;IA.rpage=0;IA.hist=[];IA.part=null;IA.pscroll=0}
   ({iaclose:()=>ideasOpen(false),iatab:()=>{IDEAS.tab=a;ideaSave()},iaprev:()=>{const j=IDEAS.list.indexOf(e);IDEAS.cur=IDEAS.list[(j+i+IDEAS.list.length)%IDEAS.list.length].id;IA.page=0;ideaStop();ideaSave()},
-    ianew:()=>{ideaStop();ideaNew()},ialen:()=>{IA.len=a==='auto'?'auto':+a},iaclick:()=>{if(IA.click){IA.click=false;clickOff()}else clickOn()},iasong:()=>ideaToSong(false),iaopen:()=>ideaToSong(true),iafrom:()=>{ideaStop();ideaFromSong()},iasel:()=>{const pt=partsOf(e)[i];if(pt)IA.part=pt.id},iaclef:()=>{const pt=partsOf(e)[i];if(pt){pt.clef=clefOf(pt)==='bass'?'treble':'bass';ideaSave()}},iaps:()=>{IA.pscroll=Math.max(0,Math.min(partsOf(e).length-2,IA.pscroll+i))},iadot:()=>{IA.dot=!IA.dot},iarest:ideaRest,iaundo:ideaUndo,iawrite:()=>{IA.write=!IA.write},iaplay:ideaPlay,
+    ianew:()=>{ideaStop();ideaNew()},ialen:()=>{IA.len=a==='auto'?'auto':+a},iaclick:()=>{if(IA.click){IA.click=false;clickOff()}else clickOn()},iasong:()=>ideaToSong(false),iascore:rawToScore,iarpg:()=>{IA.rpage=Math.max(0,Math.min(Math.floor(Math.max(0,...partsOf(e).map(rawEnd))/10)+1,(IA.rpage||0)+i))},iaopen:()=>ideaToSong(true),iafrom:()=>{ideaStop();ideaFromSong()},iasel:()=>{const pt=partsOf(e)[i];if(pt)IA.part=pt.id},iaclef:()=>{const pt=partsOf(e)[i];if(pt){pt.clef=clefOf(pt)==='bass'?'treble':'bass';ideaSave()}},iaps:()=>{IA.pscroll=Math.max(0,Math.min(partsOf(e).length-2,IA.pscroll+i))},iadot:()=>{IA.dot=!IA.dot},iarest:ideaRest,iaundo:ideaUndo,iawrite:()=>{IA.write=!IA.write},iaplay:ideaPlay,
     iabpm:()=>{e.bpm=Math.max(40,Math.min(200,(e.bpm||90)+i));ideaSave();if(IA.click)clickOn()},ianames:()=>{CLASS.names=!CLASS.names;LSset('cls-names',CLASS.names?'1':'0')},
     iapg:()=>{IA.page=Math.max(0,Math.min(pageOf(e,ideaEnd(e))+1,IA.page+i))},
-    iaclr:()=>{const w=IDEAS.tab+':'+e.id;if(IA.arm===w){IA.arm='';ideaStop();if(IDEAS.tab==='score'){const pt=selPart(e);if(pt&&e.parts.length>1){e.parts=e.parts.filter(x=>x!==pt);IA.part=null;IA.pscroll=0}else e.parts=[];IA.hist=[]}else if(IDEAS.tab==='type')e.text='';else e.ink=[];ideaSave();toast(IDEAS.tab==='score'&&e.parts.length?'That part is cleared':'Cleared')}else IA.arm=w},
+    iaclr:()=>{const w=IDEAS.tab+':'+e.id;if(IA.arm===w){IA.arm='';ideaStop();if(IDEAS.tab==='notes'){const pt=selPart(e);if(pt){pt.raw=[];if(!pt.notes.length&&e.parts.length>1){e.parts=e.parts.filter(x=>x!==pt);IA.part=null;IA.pscroll=0}}IA.hist=[];IA.rawRun=null}else if(IDEAS.tab==='score'){const pt=selPart(e);if(pt&&e.parts.length>1){e.parts=e.parts.filter(x=>x!==pt);IA.part=null;IA.pscroll=0}else e.parts=[];IA.hist=[]}else if(IDEAS.tab==='type')e.text='';else e.ink=[];ideaSave();toast(IDEAS.tab==='score'||IDEAS.tab==='notes'?'That part is cleared':'Cleared')}else IA.arm=w},
     iadel:()=>{if(IA.arm==='del:'+e.id){IA.arm='';ideaStop();IDEAS.list=IDEAS.list.filter(x=>x!==e);IDEAS.cur=(IDEAS.list[0]||{}).id||null;ideaSave();toast('Idea deleted')}else IA.arm='del:'+e.id},
     iakey:()=>ideaType(a),iaink:()=>{IA.ink=INK[i]},iathick:()=>{IA.thick=!IA.thick},iainkundo:()=>{e.ink.pop();ideaSave()}})[k]?.();if(pad.m.visible)drawPad()}
 const PADX=30,PADY=118,PADW=1540,PADH=690;
@@ -2385,12 +2385,67 @@ function inkDrag(x,y,first){const e=ideaCur(),px=Math.max(0,Math.min(PADW,x-PADX
   if(first||!IA.stroke){IA.stroke={c:IA.ink,w:IA.thick?14:6,p:[[px,py]]};e.ink.push(IA.stroke);inkSeg(pad.g,IA.stroke,0)}
   else{const p=IA.stroke.p,l=p[p.length-1];if(Math.hypot(px-l[0],py-l[1])<3)return;p.push([Math.round(px),Math.round(py)]);inkSeg(pad.g,IA.stroke,p.length-1)}pad.tex.needsUpdate=true}
 function inkDone(){if(IA.stroke){IA.stroke=null;ideaCur().at=Date.now();ideaSave()}}
+/* 🎵 Notes (the owner: the score's rounding "is not exact to the rhythm I play"; bring Panyard Write's way, one to one): each
+   part also keeps `raw` [{id,m,t}], t in seconds exactly as hit. On the Notes page a live hit goes here, not on the score; a
+   pause over 3 s brings the next note in 1 s after the last (no long empty stretch); while ▶ plays with Writing on, t is the
+   time since the count-in ended (play along). Notes within 90 ms are a chord (same t). Each note shows its letter, a small
+   octave number and a colour per octave (`OCOL`). 🎼 Make a score rounds a copy into the score at the idea's tempo; the
+   Notes are never changed. */
+const OCOL={1:'#b39ddb',2:'#7aa2ff',3:'#5ad1ff',4:'#4fd1c5',5:'#f6ba45',6:'#ff8a80',7:'#f48fb1'},octOf=m=>Math.floor(m/12)-1,ocol=m=>OCOL[octOf(m)]||'#c9d3da';
+const rawOf=pt=>pt.raw||(pt.raw=[]),rawEnd=pt=>(pt.raw||[]).reduce((a,n)=>Math.max(a,n.t),0);
+function rawHit(id,t,now){const m=cm(id);if(!Number.isFinite(m))return;const e=ideaCur(),pt=partFor(e,NOTE[id].set),R=rawOf(pt);IA.part=pt.id;
+  const L=IA.rawLast&&IA.rawLast.pt===pt.id?IA.rawLast.n:null;
+  if(L&&IA.lastPart===pt.id&&now-IA.lastT<90){if(!R.some(n=>n.t===L.t&&n.m===m)){const n={id,m,t:L.t};R.push(n);const h=IA.hist[IA.hist.length-1];if(h&&h.pt===pt.id)h.n.push(n);else IA.hist.push({pt:pt.id,n:[n]})}}
+  else{const T=t!=null?t:(ac?ac.currentTime:now/1000),along=!!IA.play.length&&IA.playT0!=null;let tt;
+    if(along){tt=T-IA.playT0;if(tt<-.15)return;tt=Math.max(0,tt)}
+    else{const Q=IA.rawRun;if(!Q||Q.pt!==pt.id||T-Q.lt>3){tt=R.length?rawEnd(pt)+1:0;IA.rawRun={pt:pt.id,base:tt,t0:T,lt:T}}else tt=Q.base+(T-Q.t0);IA.rawRun.lt=T}
+    const n={id,m,t:+tt.toFixed(3)};R.push(n);IA.hist.push({pt:pt.id,n:[n]});IA.rawLast={pt:pt.id,n};if(!along)IA.rpage=Math.floor(n.t/10)}
+  R.sort((a,b)=>a.t-b.t);IA.lastT=now;IA.lastPart=pt.id;e.at=Date.now();ideaSave();drawPad()}
+function rawToScore(){const e=ideaCur(),sp=60/(e.bpm||90);let k=0;
+  for(const pt of partsOf(e)){if(!pt.raw||!pt.raw.length)continue;const bs=[...new Set(pt.raw.map(r=>Math.round(r.t/sp*2)/2))].sort((a,b)=>a-b);pt.notes=[];
+    for(const r of pt.raw){const b=Math.round(r.t/sp*2)/2,nx=bs.find(x=>x>b+1e-6),d=nx==null?1:(STD_D.find(x=>x<=nx-b+1e-6)||.5);if(!pt.notes.some(q=>q.b===b&&q.m===r.m))pt.notes.push({id:r.id,m:r.m,b,d})}
+    pt.notes.sort((a,b)=>a.b-b.b);k++}
+  if(!k){toast('Nothing on the Notes page yet');return}IA.hist=[];IDEAS.tab='score';IA.page=0;ideaSave();toast('A score made from your notes, at '+(e.bpm||90)+' bpm')}
+function noteChip(g,x,y,m,big,hi){const lab=spell(m),o=octOf(m),fs=big?30:24,w=(big?44:34)+(lab.length-1)*(big?16:13)+(big?14:10);
+  rr(g,x-w/2,y-(big?28:20),w,big?56:40,big?28:20,hi?'#3a3218':ocol(m),hi?'#f6ba45':null);g.fillStyle=hi?ocol(m):'#15110a';g.textAlign='left';g.textBaseline='middle';
+  g.font='700 '+fs+'px system-ui,sans-serif';const lw=g.measureText(lab).width;g.fillText(lab,x-w/2+(big?14:10),y+1);g.font='700 '+(big?17:15)+'px system-ui,sans-serif';g.fillText(String(o),x-w/2+(big?14:10)+lw+3,y+(big?9:7));return w}
+function drawNotesPage(p,g,e){const ps=partsOf(e),sel=selPart(e),playing=!!IA.play.length,sp=60/(e.bpm||90);
+  btn(p,'iaplay',30,118,200,70,playing?'■ Stop':'▶ Play',{on:playing,oncol:'#34c759',fs:30});btn(p,'iawrite',244,118,230,70,IA.write?'✏ Writing: On':'✏ Writing: Off',{on:IA.write,oncol:'#4fd1c5',fs:26});
+  btn(p,'iaclick',486,118,200,70,'🥁 Metronome',{on:IA.click,fs:24});btn(p,'iaundo',698,118,150,70,'⌫ Undo',{fs:26});
+  const ca=IA.arm==='notes:'+e.id;btn(p,'iaclr',860,118,190,70,ca?'Clear '+(sel?shortSet(sel.set):'')+'?':'🗑 Clear part',{fs:24,on:ca,oncol:'#ff453a'});
+  btn(p,'iascore',1062,118,250,70,'🎼 Make a score',{fs:24});btn(p,'iaopen',1324,118,246,70,'🎹 Open as a song',{fs:24});
+  g.font='22px system-ui,sans-serif';g.fillStyle='#9fb0b8';g.textAlign='left';g.textBaseline='middle';g.fillText('Octave:',36,224);
+  [3,4,5,6].forEach((o,i)=>{rr(g,124+i*104,207,92,34,17,OCOL[o]);g.fillStyle='#15110a';g.font='700 19px system-ui,sans-serif';g.textAlign='center';g.fillText('octave '+o,170+i*104,225)});
+  btn(p,'iabpm:-5',560,204,56,42,'−',{fs:28});g.fillStyle='#c9d3da';g.font='22px system-ui,sans-serif';g.textAlign='center';g.fillText((e.bpm||90)+' bpm',672,225);btn(p,'iabpm:5',728,204,56,42,'+',{fs:28});
+  const pg=IA.rpage||0;btn(p,'iarpg:-1',1290,204,60,42,'◀',{fs:24});g.fillStyle='#c9d3da';g.font='22px system-ui,sans-serif';g.fillText(pg*10+'–'+(pg*10+10)+' s',1410,225);btn(p,'iarpg:1',1470,204,60,42,'▶',{fs:24});
+  if(ps.length>2){btn(p,'iaps:-1',820,204,56,42,'▲',{fs:22});g.fillStyle='#c9d3da';g.font='20px system-ui,sans-serif';g.textAlign='center';g.fillText('Parts '+(IA.pscroll+1)+'–'+Math.min(ps.length,IA.pscroll+2)+' of '+ps.length,960,225);btn(p,'iaps:1',1046,204,56,42,'▼',{fs:22})}
+  const X0=244,W=1300,x=t=>X0+(t-pg*10)/10*W;
+  const vis=ps.slice(IA.pscroll,IA.pscroll+2);if(!vis.length)vis.push(null);
+  vis.forEach((pt,r)=>{const y=262+r*208;rr(g,30,y,1540,190,16,'#141b21',pt&&pt===sel&&ps.length>1?'#f6ba45':'#26313a');
+    for(let s=0;s<=10;s++){const xx=X0+s*W/10;g.strokeStyle='#202a32';g.lineWidth=1;g.beginPath();g.moveTo(xx,y+18);g.lineTo(xx,y+160);g.stroke();g.fillStyle='#4a5660';g.font='16px system-ui,sans-serif';g.textAlign='center';g.fillText((pg*10+s)+'s',xx,y+176)}
+    if(!pt){g.fillStyle='#77838d';g.font='26px system-ui,sans-serif';g.textAlign='center';g.fillText('Hit a note on any pan: it shows here, just as you play it.',X0+W/2,y+95);return}
+    const pi=ps.indexOf(pt);btn(p,'iasel:'+pi,44,y+16,180,48,shortSet(pt.set),{on:pt===sel&&ps.length>1,fs:24});g.fillStyle='#77838d';g.font='18px system-ui,sans-serif';g.textAlign='left';g.fillText((pt.raw||[]).length+' notes',52,y+88);
+    const G=[];for(const n of pt.raw||[]){const q=G[G.length-1];if(q&&q.t===n.t)q.ms.push(n.m);else G.push({t:n.t,ms:[n.m]})}
+    let lastX=-1e9,lift=0;for(const q of G){const xx=x(q.t);if(xx<X0-30||xx>X0+W+30)continue;lift=xx-lastX<58?(lift?0:1):0;lastX=xx;
+      q.ms.slice().sort((a,b)=>a-b).forEach((m,k)=>noteChip(g,xx,y+128-lift*30-k*42,m,false,playing&&Math.abs(IA.atT-q.t)<.12))}
+    if(playing&&IA.atT>=pg*10&&IA.atT<=pg*10+10){g.strokeStyle='#f6ba45';g.lineWidth=4;g.beginPath();g.moveTo(x(IA.atT),y+6);g.lineTo(x(IA.atT),y+184);g.stroke()}});
+  // the selected part in order, as Panyard's Coming up: the newest at the end (or the one playing)
+  rr(g,30,678,1540,130,16,'#10171c','#26313a');g.fillStyle='#9fb0b8';g.font='700 18px system-ui,sans-serif';g.textAlign='left';g.fillText(sel?(setName(sel.set).toUpperCase()+', IN ORDER'):'IN ORDER',50,702);
+  if(sel&&sel.raw&&sel.raw.length){const G=[];for(const n of sel.raw){const q=G[G.length-1];if(q&&q.t===n.t)q.ms.push(n.m);else G.push({t:n.t,ms:[n.m]})}
+    let cur=playing?G.findIndex(q=>Math.abs(IA.atT-q.t)<.12):-1;const wOf=q=>q.ms.reduce((a,m)=>a+44+(spell(m).length-1)*16+14+8,0)+12;
+    let end=cur>=0?cur:G.length-1,start=end,tot=wOf(G[end]);while(start>0&&tot+wOf(G[start-1])+10<1500){start--;tot+=wOf(G[start])+10}
+    let xx=50;for(let i=start;i<G.length;i++){const q=G[i],w=wOf(q);if(xx+w>1555)break;const hi=i===cur;rr(g,xx,722,w,64,32,hi?'#3a3218':'#1d262d',hi?'#f6ba45':'#3d4852');
+      let cx=xx+12;q.ms.slice().sort((a,b)=>a-b).forEach(m=>{const cw=44+(spell(m).length-1)*16+14;noteChip(g,cx+cw/2,754,m,true,false);cx+=cw+8});xx+=w+10}}
+  else{g.fillStyle='#77838d';g.font='24px system-ui,sans-serif';g.textAlign='left';g.fillText('Your notes, in the order you play them.',50,752)}
+  g.fillStyle='#9fb0b8';g.font='23px system-ui,sans-serif';g.textAlign='left';
+  g.fillText(fit(g,!IA.write?'Writing is off: play freely, nothing is kept.':playing&&IA.playT0!=null?'Play along: your notes go in at the moment you hit them.':'Just play: every note is kept exactly as you hit it. ▶ plays it back the same way.',1500),36,852)}
 function drawPad(){const p=pad,g=p.g,e=ideaCur(),tab=IDEAS.tab;p.hits=[];g.setTransform(1,0,0,1,0,0);g.fillStyle='#0d1216';g.fillRect(0,0,p.W,p.H);g.strokeStyle='#f6ba45';g.lineWidth=6;g.strokeRect(3,3,p.W-6,p.H-6);
-  g.textBaseline='middle';g.textAlign='left';g.fillStyle='#f6ba45';g.font='700 40px system-ui,sans-serif';g.fillText('💡 '+fit(g,e.title,330),30,62);
-  [['score','🎼 Score'],['type','⌨ Type'],['draw','✏ Draw']].forEach(([k,l],j)=>btn(p,'iatab:'+k,420+j*190,24,178,76,l,{on:tab===k,fs:30}));
-  const j=IDEAS.list.indexOf(e);btn(p,'iaprev:-1',1000,24,70,76,'◀',{fs:30});g.fillStyle='#c9d3da';g.font='26px system-ui,sans-serif';g.textAlign='center';g.fillText((j+1)+' / '+IDEAS.list.length,1112,62);btn(p,'iaprev:1',1154,24,70,76,'▶',{fs:30});
-  btn(p,'ianew',1236,24,150,76,'＋ New',{fs:30});btn(p,'iaclose',1398,24,172,76,'✕ Close',{fs:30});
-  if(tab==='score'){
+  g.textBaseline='middle';g.textAlign='left';g.fillStyle='#f6ba45';g.font='700 40px system-ui,sans-serif';g.fillText('💡 '+fit(g,e.title,210),30,62);
+  [['notes','🎵 Notes'],['score','🎼 Score'],['type','⌨ Type'],['draw','✏ Draw']].forEach(([k,l],j)=>btn(p,'iatab:'+k,280+j*176,24,166,76,l,{on:tab===k,fs:28}));
+  const j=IDEAS.list.indexOf(e);btn(p,'iaprev:-1',992,24,60,76,'◀',{fs:28});g.fillStyle='#c9d3da';g.font='24px system-ui,sans-serif';g.textAlign='center';g.fillText((j+1)+' / '+IDEAS.list.length,1092,62);btn(p,'iaprev:1',1132,24,60,76,'▶',{fs:28});
+  btn(p,'ianew',1204,24,170,76,'＋ New',{fs:28});btn(p,'iaclose',1386,24,184,76,'✕ Close',{fs:28});
+  if(tab==='notes')drawNotesPage(p,g,e);
+  else if(tab==='score'){
     const AU=IA.len==='auto';btn(p,'ialen:auto',30,118,170,74,'⏱ Auto',{on:AU,oncol:'#4fd1c5',fs:28});
     IDEA_LEN.forEach(([d,l],k)=>btn(p,'ialen:'+d,210+[0,120,232,374][k],118,[110,102,132,122][k],74,l,{on:IA.len===d,fs:26}));btn(p,'iadot',718,118,110,74,'Dotted',{on:IA.dot&&!AU,dim:AU,fs:26});
     btn(p,'iarest',836,118,96,74,'Rest',{fs:26});btn(p,'iaundo',940,118,114,74,'⌫ Undo',{fs:26});
@@ -2427,7 +2482,7 @@ function drawPad(){const p=pad,g=p.g,e=ideaCur(),tab=IDEAS.tab;p.hits=[];g.setTr
     INK.forEach((c,k)=>{rr(g,30+k*100,822,86,64,14,c,IA.ink===c?'#ffffff':null);if(IA.ink===c){g.strokeStyle='#ffffff';g.lineWidth=5;g.strokeRect(30+k*100,822,86,64)}p.hits.push({id:'iaink:'+k,x:30+k*100,y:822,w:86,h:64})});
     btn(p,'iathick',440,822,200,64,IA.thick?'Thick pen':'Thin pen',{fs:28,on:IA.thick});btn(p,'iainkundo',656,822,220,64,'↶ Undo line',{fs:28});
     btn(p,'iaclr',890,822,260,64,IA.arm==='draw:'+e.id?'Clear page?':'🗑 Clear page',{fs:28,on:IA.arm==='draw:'+e.id,oncol:'#ff453a'})}
-  {const da=IA.arm==='del:'+e.id;if(tab==='draw')btn(p,'iadel',1300,822,270,64,da?'Delete idea?':'Delete idea',{fs:26,on:da,oncol:'#ff453a'});else if(tab!=='score')btn(p,'iadel',1296,214,274,84,da?'Delete idea?':'Delete idea',{fs:26,on:da,oncol:'#ff453a'})}
+  {const da=IA.arm==='del:'+e.id;if(tab==='draw')btn(p,'iadel',1300,822,270,64,da?'Delete idea?':'Delete idea',{fs:26,on:da,oncol:'#ff453a'});else if(tab==='type')btn(p,'iadel',1296,214,274,84,da?'Delete idea?':'Delete idea',{fs:26,on:da,oncol:'#ff453a'})}
   p.tex.needsUpdate=true;dirty=true}
 /* off the headset: the page's Songs tab lists the ideas; rename, type the notes with a real keyboard, delete */
 function ideasUI(){const box=document.getElementById('ideaBox');if(!box)return;
@@ -2516,7 +2571,7 @@ const VR=window.VR={players:{set:(k,n)=>setPlayers(k,n),of:k=>playersOf(k),max:k
   menuHits:()=>{drawMenu();return menu.hits.map(h=>h.id)}};
 // 💡 Ideas, for tests: open the pad in front of the camera, press its buttons, write with the pen (points on the pad canvas)
 VR.ideaChans=()=>[...CH.keys()].filter(k=>String(k).startsWith('idea-')).length;
-VR.ideas={open:on=>ideasOpen(on!==false),shown:()=>pad.m.visible,state:()=>{IDEAS.list.forEach(partsOf);const o=JSON.parse(JSON.stringify(IDEAS));o.list.forEach(e=>{e.notes=e.parts.flatMap(pt=>pt.notes).sort((a,b)=>a.b-b.b)});return o},ia:()=>({write:IA.write,len:IA.len,dot:IA.dot,page:IA.page,shift:IA.shift,playing:IA.play.length>0,click:IA.click,playT0:IA.playT0,part:IA.part}),
+VR.ideas={open:on=>ideasOpen(on!==false),shown:()=>pad.m.visible,state:()=>{IDEAS.list.forEach(partsOf);const o=JSON.parse(JSON.stringify(IDEAS));o.list.forEach(e=>{e.notes=e.parts.flatMap(pt=>pt.notes).sort((a,b)=>a.b-b.b)});return o},ia:()=>({rpage:IA.rpage,atT:IA.atT,write:IA.write,len:IA.len,dot:IA.dot,page:IA.page,shift:IA.shift,playing:IA.play.length>0,click:IA.click,playT0:IA.playT0,part:IA.part}),
   press:id=>{act(id)},hits:()=>{drawPad();return pad.hits.map(h=>h.id)},type:t=>{for(const c of t)ideaType(c===' '?'space':c==='\n'?'⏎':c)},
   pen:pts=>{const h=pad.hits.find(x=>x.id==='iaink-area');pts.forEach(([x,y],i)=>h.drag(x,y,i===0));h.done()},
   beam:(x,y,down)=>{const uv={x:x/pad.W,y:1-y/pad.H};if(down===true)return uiDown(pad,uv);if(down===false)return uiUp();uiMove(pad,uv)},live:()=>panelLive(pad),hitAt:(id,t)=>ideaHit(id,.8,t,t*1000),noSticks:()=>sticks.forEach(s=>s.grip.visible=false),png:()=>{drawPad();return pad.c.toDataURL('image/png')}};
