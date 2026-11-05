@@ -128,7 +128,7 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
         <button class="btn" id="stExp">Export</button>
         <button class="btn" id="stTime">Timing fix</button>
       </div>
-      <div class="seg st-views" id="stViews" role="tablist" aria-label="Studio view"><button data-sv="tracks" role="tab" aria-selected="true">☰ Tracks</button><button data-sv="inst" role="tab" aria-selected="false">◉ Pans</button><button data-sv="song" role="tab" aria-selected="false">♫ Song</button><button data-sv="stage" role="tab" aria-selected="false">🎭 Stage</button></div>
+      <div class="seg st-views" id="stViews" role="tablist" aria-label="Studio view"><button data-sv="tracks" role="tab" aria-selected="true">☰ Tracks</button><button data-sv="inst" role="tab" aria-selected="false">◉ Pans</button><button data-sv="song" role="tab" aria-selected="false">♫ Song</button><button data-sv="stage" role="tab" aria-selected="false">🎭 Stage</button><button data-sv="score" role="tab" aria-selected="false">🎼 Score</button></div>
     </div>
     <div class="st-secs" id="stSecs" hidden></div>
     <div class="panel st-tlp">
@@ -140,6 +140,7 @@ rep('  <!-- CUES -->', '''  <!-- STUDIO -->
     <div id="stSel" class="st-selbar" hidden></div>
     <div class="panel" id="stInst"></div>
     <div class="panel st-stage" id="stStage" hidden></div>
+    <div class="panel st-score" id="stScore" hidden></div>
     <input type="file" id="stFile" accept="audio/*,video/*" hidden>
   </section>
 
@@ -163,7 +164,7 @@ assert n == 2, n
 s = s.replace("curName!=='Example tones')uploadRecording(", "curName!=='Example tones'&&curName!=='Your part')uploadRecording(")
 rep("{k:'rec',t:'Add the recording',ok:hasAudio,", "{k:'rec',t:'Add the recording',ok:hasAudio&&curName!=='Your part',")
 rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-hang.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
-rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-studio.js'), encoding='utf-8').read() + '\n/* ---------- start ---------- */')
+rep('/* ---------- start ---------- */', open(os.path.join(HERE, 'panyard-studio.js'), encoding='utf-8').read().replace('/*@SCORE@*/', open(os.path.join(HERE, 'panyard-score.js'), encoding='utf-8').read()) + '\n/* ---------- start ---------- */')
 rep('      <details><summary>Hearing the pans when you tap</summary>', """      <details><summary>Studio: recording in layers</summary>
         <p>Open <b>Studio</b> to record over your song. Your practice recording is track 1, and the bars come from ♩ Timing in Write, so everything lines up with your notes and sections.</p>
         <p><b>+ Add track</b> gives you a <b>Mic</b> track (record yourself or import a file), a <b>Pan taps</b> track (play the pans on screen; every hit becomes a note), a <b>Beat</b> (soca, calypso and more, or your own pattern), or <b>Your part from Write</b>. Choose a track, tap <b>● Rec</b> (the screen switches to the pans or mic for you), and a bar of clicks counts you in while everything else plays. Use headphones for mic takes.</p>

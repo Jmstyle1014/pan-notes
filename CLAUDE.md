@@ -152,6 +152,17 @@ upright count is low because a checklist pushes the pans below the play bar ther
     (`stretched()`, same pitch); mic takes need full speed.
   - The Tempo sheet holds Write's timing panel (`#gridBox`, moved in and back out like WB's sheet).
   Test with `tpart` (My part) and `tmerge` (the rest).
+- **🎼 Score** (a fifth Studio view, the owner: "work more like MuseScore"; `panyard-score.js`, inserted **inside** the STUDIO IIFE by
+  make_panyard.py at the `/*@SCORE@*/` marker before its `return`, so it uses Studio's own `song`, `pushHistory`, `channel`…; `SC`,
+  `scRender`/`scDraw` on a canvas `#scCan` in `#stScore`; view button in `#stViews` and GB's `#gbView`, data-v `score`): every pan
+  track and My part as a staff (bass clef for `SC_LOW`), note names under (🔤), bar lines from `BPB()`, a teal cursor, the playhead.
+  Tap a note to pick it (it plays; `SC.hits`), drag it up/down to the next note on its pan (`scStep`, one ↶ Undo step), Whole…16th
+  and Dotted set its length (or the next notes'), ▲▼ ◀ ▶ ♯ ♭ 8va ⌫; new notes at the cursor from the letter keys (`scLetter`: the
+  octave nearest the note before, naturals first), the pans under the score (`#scPans`), or ✏ Add by tapping the staff (pitch from
+  the line/space, `scNearest`); taps within 120 ms make a chord. Pan tracks' notes `{t,d,p}` (beats) are edited directly; My part
+  edits `S.cues` (`scOps`, `cueSolo` splits a chord's note or a run into its own cue first; deleting from a run keeps the others'
+  timing). Drag the staff sideways to look along (`SC.x0`), − / + zoom (`SC.ppb`), ▶ From the cursor. Kept in localStorage
+  `panyard-score` (length, dotted, add, names, zoom). No rests drawn yet (gaps show as space). Test with `tscore`.
 - **Suggested tone per pan** (Studio track settings → Tone, `TONE`/`SHELF`/`fxOf` in `panyard-studio.js`): pan and My part
   tracks get their pan's Treble/Bass/Compressor (basses more bass and less treble, tenors the opposite) unless
   `tr.fx.own` is set (moving one of those sliders sets it; the ✨ Suggested switch clears it, or turns it off = flat).
