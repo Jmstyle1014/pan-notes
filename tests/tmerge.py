@@ -82,7 +82,7 @@ with sync_playwright() as p:
             shown=E(pg,"[...document.querySelectorAll('#gbView .gbi')].filter(b=>b.getBoundingClientRect().width>0).length")
             check(shown==1 and g[0][1]<=g[1][0] and g[1][1]<=g[2][0],tag+': upright, one view button and nothing overlaps play and record '+json.dumps([shown,g]))
             pg.click('#gbView .gbi[aria-pressed=true]');pg.wait_for_timeout(250);pg.screenshot(path=D+tag+'-drawer.png')
-            check(E(pg,"[...document.querySelectorAll('#gbView .gbi')].filter(b=>b.getBoundingClientRect().width>0).length")==4,tag+': tapping it opens the drawer with all four views')
+            check(E(pg,"[...document.querySelectorAll('#gbView .gbi')].filter(b=>b.getBoundingClientRect().width>0).length")==5,tag+': tapping it opens the drawer with all five views (Score too)')
             pg.click('#gbView .gbi[data-v=tracks]');pg.wait_for_timeout(400)
             check(E(pg,"STUDIO.view()")=='tracks' and not E(pg,"document.getElementById('gbView').classList.contains('open')"),tag+': picking Tracks switches and closes the drawer')
         # a band member still has the Write screen
