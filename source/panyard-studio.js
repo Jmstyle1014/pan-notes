@@ -1496,10 +1496,10 @@ function renderViews(){
   const t=q('#stViews');if(!t||!song)return;const tr=selTr();
   t.querySelector('[data-sv="inst"]').textContent=INST_LABEL[tr.type];
   t.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.sv===VIEW)));
-  q('.st-tlp').hidden=VIEW==='inst'||VIEW==='stage';q('#stInst').hidden=VIEW!=='inst';q('#stSel').hidden=VIEW==='inst'||VIEW==='stage'||!SEL;{const sg=q('#stStage');if(sg)sg.hidden=VIEW!=='stage'}
+  q('.st-tlp').hidden=VIEW==='inst'||VIEW==='stage'||VIEW==='score';{const sc=q('#stScore');if(sc){sc.hidden=VIEW!=='score';if(VIEW==='score')setTimeout(scRender,0)}}q('#stInst').hidden=VIEW!=='inst';q('#stSel').hidden=VIEW==='inst'||VIEW==='stage'||VIEW==='score'||!SEL;{const sg=q('#stStage');if(sg)sg.hidden=VIEW!=='stage'}
   const tt=t.querySelector('[data-sv="tracks"]');if(tt)tt.textContent=zoneOn()?'☰ Takes':'☰ Tracks';
 }
-function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs();renderTimeline();renderInst();renderUndo();renderViews();if(VIEW==='stage')renderStage()}
+function renderAll(){if(!song||!q('#stTl'))return;renderTransport();renderSecs();renderTimeline();renderInst();renderUndo();renderViews();if(VIEW==='stage')renderStage();if(VIEW==='score'){SC.sel=null;scRender()}}
 
 /* ---- Stage side: the band set up on a stage, like Panorama ----
    Each track is a section of the band (lead tenors at the front by the judges, seconds and double tenors behind
@@ -2337,7 +2337,8 @@ async function enter(){
 }
 function leave(){if(song&&T.playing)stop(false);if(song)loopToApp()}
 init();
-return{TONE,SHELF,arrangementData,refresh:()=>refreshGains(),stageMix:tr=>stageMix(tr),fxOf:tr=>fxOf(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
+/*@SCORE@*/
+return{SC,scRows:()=>scRows().map(R=>({pi:R.pi,y:R.y,yb:R.yb,Z:R.Z,type:R.tr.type})),scRender:()=>scRender(),scParts:()=>scParts(),scNotes:tr=>scNotes(tr),TONE,SHELF,arrangementData,refresh:()=>refreshGains(),stageMix:tr=>stageMix(tr),fxOf:tr=>fxOf(tr),zones:()=>zoneOn(),view:()=>VIEW,hearing:()=>song.tracks.filter(audible).map(t=>t.name),templates:()=>{AC();openSheet('tpl')},arrangement:()=>{AC();if(SH.kind==='arr'){closeSheet();return}openSheet('arr')},kit:id=>{const K=id?kitBuf(id):KIT;return{ok:K.ok,sounds:K.buf.size}},drumTracks:()=>song?song.tracks.filter(t=>t.type==='drums'||t.type==='beats').map(t=>({type:t.type,name:t.name,kit:t.kit||'real',notes:(t.notes||[]).map(n=>[n.p,n.t,n.v])})):[],parts:async()=>{await load();return chartParts()},songGeo:()=>song?songGeo():null,setPartText,tempoSheet:()=>{AC();openSheet('tempo')},trackSheet:id=>{AC();openSheet('track',id)},setTempo,get bpm(){return bpm()},pnotes,ck,BPB:()=>BPB(),enter,leave,exportSheet:()=>openSheet('export'),timingSheet:()=>{AC();openSheet('timing')},get song(){return song},T,play,stop,toggleRec,addTrack,openSheet,closeSheet,renderSong,partTrack,undo,redo,buffers,micStart,micStop,seek,beatNow,heardNow,pDur:()=>pBuf?pBuf.duration:null,writePart:()=>writePart(),selType:()=>song&&selTr()?selTr().type:null,setSpeed:r=>setSpeed(r),speed:()=>SPD.rate,bars};
 })();
 // Studio is its own tab; the play bar's own transport hides while it's open
 {const lp=$('lagPlus');if(lp){const m=document.createElement('button');m.type='button';m.className='mini';m.id='lagMeasure';m.textContent='Measure';

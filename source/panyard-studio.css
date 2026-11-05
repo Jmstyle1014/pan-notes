@@ -477,3 +477,17 @@ body.st-song #stSecs{display:none!important}
 .stg-lay b{font-size:14px;margin:2px 4px 0}.stg-lay span{font-size:12px;color:var(--muted);margin:0 4px 4px}
 .stg-lay.on{border-color:var(--gold);box-shadow:0 0 0 2px rgb(255 209 102 / .35)}
 .stg-svg .stg-tag{fill:#f4e3c0;paint-order:stroke;stroke:#05070f;stroke-width:calc(3px / var(--stz,1))}
+/* 🎼 Score view (panyard-score.js) */
+.st-score{display:flex;flex-direction:column;gap:8px;min-width:0;max-width:100%}
+.sc-bar,.sc-keys,.sc-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sc-bar .chip{min-height:36px}
+.sc-keys .sc-k{min-width:40px;font-weight:700}
+.sc-gap{flex:1}
+.sc-where{font-size:12px;color:var(--muted);width:100%}
+.sc-wrap{min-width:0;border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden;touch-action:none}
+.sc-wrap canvas{display:block;touch-action:none}
+.sc-pans svg{min-height:120px;max-height:30vh}
+.sc-bar .chip{border:1px solid var(--line);background:var(--raised);color:var(--text)}
+.sc-bar .chip.on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink,#2a1d00);font-weight:700}
+.sc-pans svg{max-width:340px;margin:0 auto;display:block}
+.sc-pans.one svg{max-width:300px}
